@@ -44,7 +44,7 @@ import {
   policy,
   SERVICE_NAME,
 } from '@r10c/order-service';
-import { httpSagaStarterLayer } from '@r10c/shells-effect-service';
+import { httpFlowStarterLayer } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
@@ -130,7 +130,7 @@ const connections = Layer.mergeAll(
     makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
   ),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
-  httpSagaStarterLayer({
+  httpFlowStarterLayer({
     url: COORDINATOR_URL,
     crossingToken: E2E_CROSSING_TOKEN,
   }),

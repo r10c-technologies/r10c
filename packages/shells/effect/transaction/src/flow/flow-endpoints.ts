@@ -2,7 +2,10 @@ import type { Permission } from '@entifix/authz';
 import { Unresolvable } from '@entifix/business';
 import { IdempotencyKeyTag } from '@entifix/business';
 import { compose, type Recipe } from '@entifix/business/compose';
-import { CompositionRefused, FlowRequirementsUnmet } from '@entifix/business/flow';
+import {
+  CompositionRefused,
+  FlowRequirementsUnmet,
+} from '@entifix/business/flow';
 import { verifiedContext } from '@entifix/business/verified';
 import {
   defineEndpoint,
@@ -25,6 +28,9 @@ import { Effect } from 'effect';
 import { VendorFactsTag } from './vendor-facts.js';
 
 type Body = Readonly<Record<string, unknown>>;
+
+/** The entitlement a vendor holds to ship what it sells. */
+const SHIPPING_ENTITLEMENT = 'shipping-order-management';
 
 const recordOf = (value: unknown): Body | undefined =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -87,10 +93,18 @@ export const FLOW_STARTS = {
     recipe: cancellationRecipe,
     permission: 'order-management:product-order:write' as Permission,
     vendorsOf: input => [input['vendorId']].filter(isString),
-    state: (input, entitlements) => ({
-      ...input,
-      entitlements: entitlements.get(String(input['vendorId'])) ?? [],
-    }),
+    state: (input, entitlements) => {
+      const verified = entitlements.get(String(input['vendorId'])) ?? [];
+      return {
+        ...input,
+        entitlements: verified,
+        // A shipment exists only where the order shipped and the vendor
+        // ships at all: a checkout opens none for a vendor not provisioned
+        // to, so a hold on it would refuse a cancellation for nothing.
+        shipped:
+          input['shipped'] === true && verified.includes(SHIPPING_ENTITLEMENT),
+      };
+    },
   },
 } as const satisfies Readonly<Record<string, FlowStart>>;
 
@@ -146,7 +160,9 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         const key = yield* IdempotencyKeyTag;
         const input = recordOf(payload) ?? {};
         const facts = yield* VendorFactsTag;
-        const entitlements = yield* facts.entitlementsOf(start.vendorsOf(input));
+        const entitlements = yield* facts.entitlementsOf(
+          start.vendorsOf(input),
+        );
         const flowId = globalThis.crypto.randomUUID();
         const slip = yield* compose(
           start.recipe,

@@ -114,7 +114,9 @@ export interface FlowStatusStoreOptions {
  * The `flow-status` store over Mongo, written by the realtime slice alone
  * ([ADR 0072](../../../../../docs/adr/0072-the-realtime-slice-flow-status-and-the-edge.md)).
  */
-export const MongoFlowStatusStoreLayer = ({ ttlSeconds }: FlowStatusStoreOptions) =>
+export const MongoFlowStatusStoreLayer = ({
+  ttlSeconds,
+}: FlowStatusStoreOptions) =>
   Layer.effect(
     FlowStatusStoreTag,
     Effect.gen(function* () {

@@ -45,10 +45,7 @@ const crossing = (extra: Record<string, string> = {}) => ({
 const takeHold = (quantity: number, extra: Record<string, string> = {}) =>
   service.client.post(
     '/api/reservation',
-    {
-      meta: { type: 'entity', entity: 'reservation' },
-      data: { offeringId: OFFERING, quantity },
-    },
+    { offeringId: OFFERING, quantity },
     { headers: crossing(extra) },
   );
 

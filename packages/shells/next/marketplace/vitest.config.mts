@@ -48,6 +48,8 @@ export default defineEntifixTest({
     // storefront e2e drives the actions themselves.
     '**/lib/cart/checkout-action.ts',
     '**/lib/cart/settle-action.ts',
+    '**/lib/cart/settle-cancel-action.ts',
     '**/lib/cart/flow-ticket-cookie.ts',
+    '**/lib/cart/cancel-ticket-cookie.ts',
   ],
 });

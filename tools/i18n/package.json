@@ -43,6 +43,7 @@
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/business-ts-payment-management": "workspace:*",
     "@r10c/business-ts-product-configuration-management": "workspace:*",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/business-ts-sales-management": "workspace:*",
     "@r10c/business-ts-settlement-management": "workspace:*",

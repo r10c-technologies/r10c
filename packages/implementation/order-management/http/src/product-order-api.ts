@@ -14,9 +14,14 @@ import {
   Invalid,
   JsonBody,
   makeEntityEnvelope,
+  makeEnvelope,
   NotFound,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
+import {
+  type FlowAccepted,
+  FlowNotStarted,
+} from '@r10c/business-ts-flow-contracts';
 import {
   buyerReceipt,
   CancelNotAuthorized,
@@ -38,7 +43,6 @@ import {
   ProductOrder,
   ProductOrderStoreTag,
 } from '@r10c/business-ts-order-management';
-import { RefundDeclined } from '@r10c/business-ts-payment-contracts';
 import { Effect, Option, Schema } from 'effect';
 
 const KEY = entityKey(ProductOrder, 'product-order');
@@ -63,9 +67,9 @@ const recordLinks = (orderId: string): EntifixEnvelopeLink[] => [
 const envelopeOf = (order: ProductOrder, links: EntifixEnvelopeLink[]) =>
   makeEntityEnvelope(ProductOrder, order, links);
 
-/** An entity verb's answer: the order, with the links this caller may follow. */
-const answerFor = (context: EntityApiContext) => (order: ProductOrder) =>
-  envelopeOf(order, context.links.record(String(order.id)));
+/** A started cancellation's answer: the flow to follow (ADR 0073). */
+const acceptedEnvelope = (accepted: FlowAccepted) =>
+  makeEnvelope('flowAccepted', KEY, accepted);
 
 /** The id every entity verb is bound to; the path always carries it. */
 const idOf = (request: EntityApiRequest) => request.params?.id as string;
@@ -130,13 +134,15 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
     },
   },
   useCases: [
+    // Answered `202` with the cancellation to follow, never its outcome.
     verbEndpoint(CancelProductOrderUC, {
       guard: { kind: 'permission' },
+      accepted: true,
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         cancelOrderAsStaff({
           orderId: idOf(request),
           scope: orderScopeFor(context.principal ?? {}),
-        }).pipe(Effect.map(answerFor(context))),
+        }).pipe(Effect.map(acceptedEnvelope)),
     }),
   ],
 });
@@ -212,9 +218,10 @@ const buyerCancellation = defineEndpoint({
     CancelNotAuthorized,
     PaymentPending,
     OrderNotCancellable,
-    RefundDeclined,
+    FlowNotStarted,
   ],
   guard: { kind: 'public' },
+  accepted: true,
 });
 
 /**
@@ -315,9 +322,9 @@ const closed = defineEndpoint({
   idempotent: 'unit',
 });
 
-const nonceOf = (body: unknown) => {
-  const nonce = (body as { cancelNonce?: unknown } | undefined)?.cancelNonce;
-  return typeof nonce === 'string' ? nonce : undefined;
+const stringOf = (body: unknown, member: string) => {
+  const value = (body as Record<string, unknown> | undefined)?.[member];
+  return typeof value === 'string' ? value : undefined;
 };
 
 /** Read an order back for a transition that did not move it. */
@@ -351,9 +358,11 @@ const answerMove = (
  */
 export const productOrderEndpoints = [
   implement(buyerCancellation, ({ params: { id }, payload }) =>
-    cancelOrderAsBuyer({ orderId: id, nonce: nonceOf(payload) }).pipe(
-      Effect.map(order => envelopeOf(order, recordLinks(String(order.id)))),
-    ),
+    cancelOrderAsBuyer({
+      orderId: id,
+      nonce: stringOf(payload, 'cancelNonce'),
+      capabilityDigest: stringOf(payload, 'capabilityDigest'),
+    }).pipe(Effect.map(acceptedEnvelope)),
   ),
   implement(buyerReceiptRead, ({ params: { id }, headers }) =>
     buyerReceipt({ groupId: id, nonce: headers['x-cancel-nonce'] }).pipe(

@@ -46,7 +46,9 @@ export const noForeignAppNamespace = {
     schema: [],
     messages: {
       binder: 'Do not bind the `app` namespace outside apps/. ' + GUIDANCE,
-      key: 'Do not reference the `app:`-qualified key "{{key}}" outside apps/. ' + GUIDANCE,
+      key:
+        'Do not reference the `app:`-qualified key "{{key}}" outside apps/. ' +
+        GUIDANCE,
     },
   },
 

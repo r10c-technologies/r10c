@@ -120,7 +120,10 @@ describe('admitsFlowReader', () => {
     expect(admitsFlowReader(record, { organizationId: 'org-b' })).toBe(false);
     expect(admitsFlowReader(record, { flowDigests: ['other'] })).toBe(false);
     expect(
-      admitsFlowReader({ ...record, audience: [] }, { organizationId: 'org-a' }),
+      admitsFlowReader(
+        { ...record, audience: [] },
+        { organizationId: 'org-a' },
+      ),
     ).toBe(false);
   });
 });
@@ -159,7 +162,10 @@ describe('the in-memory double', () => {
   it('lists what it holds', async () => {
     const store = makeInMemoryFlowStatusStore();
     await Effect.runPromise(
-      store.apply(contractFlowStatus('f-1', 1), { consumer: 'c', eventId: 'e' }),
+      store.apply(contractFlowStatus('f-1', 1), {
+        consumer: 'c',
+        eventId: 'e',
+      }),
     );
 
     expect(store.records().map(record => record.flowId)).toEqual(['f-1']);

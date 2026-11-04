@@ -39,7 +39,9 @@ describe('the vendor verbs', () => {
       standing: 'held',
       transition: 'dispatch',
     });
-    expect((refused as Error).message).toBe("a shipping order in 'held' cannot dispatch");
+    expect((refused as Error).message).toBe(
+      "a shipping order in 'held' cannot dispatch",
+    );
   });
 
   it('derives one permission per verb in the shipping-order namespace', () => {

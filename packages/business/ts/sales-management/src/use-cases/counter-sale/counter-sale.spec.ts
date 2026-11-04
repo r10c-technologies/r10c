@@ -150,7 +150,7 @@ describe('sellAtCounter', () => {
           category: 'notFound',
         },
       }).sell('c-open'),
-    ).toMatchObject({ code: 'notFound' });
+    ).toMatchObject({ code: 'flowNotStarted', refusal: 'notFound' });
     expect(await world('unreachable').sell('c-open')).toMatchObject({
       _tag: 'UpstreamUnavailable',
       upstream: 'transaction-service',

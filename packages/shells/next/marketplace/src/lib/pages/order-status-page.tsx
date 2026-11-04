@@ -15,6 +15,8 @@ import { formatPrice } from '@r10c/utils-react-ui';
 
 import { cancelOrder } from '../cart/cancel-action';
 import type { CancelOutcome } from '../cart/cancel-outcome';
+import type { CancelTicket } from '../cart/cancel-ticket';
+import { readCancelTicket } from '../cart/cancel-ticket-cookie';
 import { cancelWindowLabel } from '../cart/cancel-window';
 import { checkout } from '../cart/checkout-action';
 import { readFlowTicket } from '../cart/flow-ticket-cookie';
@@ -22,6 +24,7 @@ import { OrderStatusFlow } from '../cart/order-status-flow';
 import { readReceipt } from '../cart/receipt-cookie';
 import type { Receipt, ReceiptOrder } from '../cart/receipt-state';
 import { settleCheckout } from '../cart/settle-action';
+import { settleCancellation } from '../cart/settle-cancel-action';
 import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
@@ -117,6 +120,16 @@ async function ReceiptView({
   // When the buyer may still cancel: the nonce has to be there and the window
   // open. A counter sale carries none.
   const cancelWindow = cancelWindowLabel(locale, receipt, new Date());
+  // A cancellation this browser started and is waiting on, for an order on
+  // this receipt; one at a time, so the other cancel buttons wait too.
+  const ticket = await readCancelTicket();
+  const cancelling: CancelTicket | undefined = receipt.orders.some(
+    order => order.orderId === ticket?.orderId,
+  )
+    ? ticket
+    : undefined;
+  const receiptHref = (cancel: CancelOutcome) =>
+    `${localeHref(locale, storePaths.orderStatus(receipt.groupId))}?cancel=${cancel}`;
 
   return (
     <Stack gap="l">
@@ -147,12 +160,37 @@ async function ReceiptView({
         </Card>
       ) : undefined}
 
+      {cancelling === undefined ? undefined : (
+        <Card>
+          <OrderStatusFlow
+            flowId={cancelling.flowId}
+            capability={cancelling.capability}
+            statusHref={`/api/realtime/flow/${encodeURIComponent(
+              cancelling.flowId,
+            )}?capability=${encodeURIComponent(cancelling.capability)}`}
+            locale={locale}
+            labels={{
+              pending: t('storefront.order.cancelling'),
+              failed: t('storefront.order.cancelFailed'),
+              retry: t('storefront.order.retry'),
+            }}
+            settle={settleCancellation}
+            settledHref={receiptHref('cancelled')}
+            failedHref={receiptHref('failed')}
+          />
+        </Card>
+      )}
+
       {receipt.orders.map(order => (
         <VendorOrderCard
           key={order.orderId}
           locale={locale}
           order={order}
-          cancellable={cancelWindow !== undefined && order.cancelled !== true}
+          cancellable={
+            cancelWindow !== undefined &&
+            order.cancelled !== true &&
+            cancelling === undefined
+          }
         />
       ))}
 

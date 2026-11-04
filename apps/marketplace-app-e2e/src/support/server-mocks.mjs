@@ -223,9 +223,13 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
  * capability is *present* and nothing more — the digest comparison is the
  * service's own decision — and `404` is a flow it never started.
  */
+/** Every cancellation a buyer started, by its flow id. */
+const cancellations = new Set();
+
 const flowStatusHandler = http.get(FLOW_STATUS_URL, ({ request, params }) => {
   const capability = new URL(request.url).searchParams.get('capability');
-  if (!capability || !baskets.has(params.id)) return notFound();
+  if (!capability || !(baskets.has(params.id) || cancellations.has(params.id)))
+    return notFound();
   return HttpResponse.json({
     meta: { type: 'flowStatus', entity: 'flow' },
     data: {
@@ -308,10 +312,23 @@ const buyerCancelHandler = http.post(
         orderId: params.id,
       });
     }
-    return HttpResponse.json({
-      meta: { type: 'entity', entity: 'product-order' },
-      data: { id: params.id, status: 'cancelled' },
-    });
+    // A cancellation is a flow (ADR 0066): started, answered `202`, and
+    // followed by the receipt to its end on the stream.
+    const flowId = `e2e-cancel-${params.id}`;
+    cancellations.add(flowId);
+    return HttpResponse.json(
+      {
+        meta: { type: 'flowAccepted', entity: 'product-order' },
+        data: {
+          flowId,
+          links: [
+            { rel: 'status', href: `/api/realtime/flow/${flowId}` },
+            { rel: 'stream', href: '/api/realtime/stream' },
+          ],
+        },
+      },
+      { status: 202 },
+    );
   },
 );
 

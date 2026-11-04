@@ -26,19 +26,26 @@ export interface OrderStatusIslandProps {
   readonly statusHref: string;
   readonly locale: string;
   readonly labels: OrderStatusLabels;
-  /** The settle server action: verifies, writes the receipt, clears the cart. */
+  /** The settle server action: verifies how the flow ended, and records it. */
   readonly settle: (
     flowId: string,
   ) => Promise<'settled' | 'pending' | 'failed'>;
-  /** The retry form's server action — the checkout, under the same key. */
-  readonly retry: (formData: FormData) => void | Promise<void>;
+  /**
+   * The retry form's server action — the checkout, under the same key. Absent,
+   * a failed flow is settled too and the page moves to `failedHref`.
+   */
+  readonly retry?: (formData: FormData) => void | Promise<void>;
+  /** Where a settled flow takes the page; absent, it re-renders in place. */
+  readonly settledHref?: string;
+  /** Where a failed flow takes the page when there is no retry to offer. */
+  readonly failedHref?: string;
   readonly readStatus: FlowStatusRead;
 }
 
 const ENDED_BADLY = new Set(['failed', 'compensated', 'interrupted']);
 
 /**
- * A buyer waiting on their checkout. It settles by push — the pending-flow
+ * A buyer waiting on their checkout, or on a cancellation. It settles by push — the pending-flow
  * store above hears `flow.completed` or `flow.failed` on the flow's topic,
  * admitted by the capability this island holds while it waits — and by its own
  * catch-up read on mount, because an anonymous pending flow is never caught up
@@ -53,6 +60,8 @@ export function OrderStatusIsland({
   labels,
   settle,
   retry,
+  settledHref,
+  failedHref,
   readStatus,
 }: OrderStatusIslandProps) {
   const router = useRouter();
@@ -61,24 +70,36 @@ export function OrderStatusIsland({
 
   useEffect(() => {
     let live = true;
-    const completed = () => {
+    const ended = () => {
       void settle(flowId).then(result => {
         if (!live) return;
-        if (result === 'settled') router.refresh();
-        if (result === 'failed') setFailed(true);
+        if (result === 'settled') {
+          if (settledHref === undefined) router.refresh();
+          else router.replace(settledHref);
+        }
+        if (result === 'failed') {
+          if (failedHref === undefined) setFailed(true);
+          else router.replace(failedHref);
+        }
       });
+    };
+    // With no retry to offer, a failed flow is settled like a completed one:
+    // the server records it and the page moves on.
+    const failedFlow = () => {
+      if (failedHref === undefined) setFailed(true);
+      else ended();
     };
     const release = holdCapability(capability);
     store?.add({ flowId });
     const off = store?.onSettled(flowId, outcome => {
-      if (outcome.kind === 'confirmed') completed();
-      else setFailed(true);
+      if (outcome.kind === 'confirmed') ended();
+      else failedFlow();
     });
     void Effect.runPromise(readStatus(statusHref)).then(
       body => {
         if (!live || body === undefined) return;
-        if (body.state === 'completed') completed();
-        else if (ENDED_BADLY.has(body.state)) setFailed(true);
+        if (body.state === 'completed') ended();
+        else if (ENDED_BADLY.has(body.state)) failedFlow();
       },
       () => undefined,
     );
@@ -87,20 +108,32 @@ export function OrderStatusIsland({
       off?.();
       release();
     };
-  }, [flowId, capability, statusHref, settle, store, readStatus, router]);
+  }, [
+    flowId,
+    capability,
+    statusHref,
+    settle,
+    settledHref,
+    failedHref,
+    store,
+    readStatus,
+    router,
+  ]);
 
   return failed ? (
     <Stack gap="s" align="start">
       <Text data-testid="order-failed">{labels.failed}</Text>
       {/* The same `Idempotency-Key` the first attempt used: a retried checkout
           is that flow again, never a second one. The cart was never touched. */}
-      <form action={retry}>
-        <input type="hidden" name="locale" value={locale} />
-        <input type="hidden" name="retry" value="1" />
-        <Button type="submit" data-testid="order-retry">
-          {labels.retry}
-        </Button>
-      </form>
+      {retry === undefined ? undefined : (
+        <form action={retry}>
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="retry" value="1" />
+          <Button type="submit" data-testid="order-retry">
+            {labels.retry}
+          </Button>
+        </form>
+      )}
     </Stack>
   ) : (
     <Text data-testid="order-pending">{labels.pending}</Text>

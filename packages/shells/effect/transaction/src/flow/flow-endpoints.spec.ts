@@ -160,6 +160,24 @@ describe('the flow start routes', () => {
     });
   });
 
+  it('holds no shipment for a vendor that ships nothing, whatever the order said', async () => {
+    const { flows, run } = world({ 'v-1': ['stock-management'] });
+
+    await run(cancellation, {
+      orderId: 'ord-1',
+      vendorId: 'v-1',
+      paymentMethod: 'card',
+      lines: [{ offeringId: 'o-1', quantity: 1 }],
+      shipped: true,
+    });
+
+    expect(
+      flows.started[0]?.stages.flatMap(stage =>
+        stage.steps.map(step => step.ref),
+      ),
+    ).not.toContain('fulfilment.hold@2');
+  });
+
   it('refuses a cancellation that names no vendor', async () => {
     const { run } = world();
 
@@ -181,6 +199,9 @@ describe('the flow start routes', () => {
 
     expect(answer).toMatchObject({ _tag: 'Success' });
     expect(flows.started[0]?.recipe).toBe('cancellation');
+    expect(flows.started[0]?.stages[0]?.steps[0]?.ref).toBe(
+      'fulfilment.hold@2',
+    );
     expect(flows.started[0]?.stages[0]?.steps[0]?.segment).toMatchObject({
       entitlements: PROVISIONED,
     });

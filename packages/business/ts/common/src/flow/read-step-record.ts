@@ -26,7 +26,9 @@ export const readStepRecord = <T extends Entity>(
     Effect.flatMap(record =>
       record === undefined
         ? Effect.fail(
-            new InvalidBody({ reason: 'a flow step names the record it writes' }),
+            new InvalidBody({
+              reason: 'a flow step names the record it writes',
+            }),
           )
         : Effect.succeed(record),
     ),

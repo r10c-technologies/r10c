@@ -1,6 +1,7 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { NotFound, useCase } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
+import { FlowNotStarted } from '@r10c/business-ts-flow-contracts';
 import { Effect, Schema } from 'effect';
 
 import { SalesChannel } from '../../entities/sales-channel';
@@ -57,7 +58,13 @@ export type CounterSalePayload = typeof CounterSalePayload.Type;
   labelKey: 'entity:sales-channel.useCases.sell',
   recipe: 'checkout',
   payload: CounterSalePayload,
-  errors: [NotFound, ChannelInactive, OfferingNotYours, InvalidBody],
+  errors: [
+    NotFound,
+    ChannelInactive,
+    OfferingNotYours,
+    InvalidBody,
+    FlowNotStarted,
+  ],
 })
 export class SellAtChannelUC {
   /**

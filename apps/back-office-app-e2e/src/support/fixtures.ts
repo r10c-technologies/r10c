@@ -14,6 +14,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   ProductOffering,
   ProductSpecification,
@@ -77,6 +78,8 @@ export const SALES_SERVICE_URL = 'http://localhost:3109/api';
  * read is a predicate built from the session the proxy carries upstream.
  */
 export const SETTLEMENT_SERVICE_URL = 'http://localhost:3107/api';
+/** Where the order screens' adapters reach order-service under `mock`. */
+export const ORDER_SERVICE_URL = 'http://localhost:3105/api';
 
 export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
@@ -93,6 +96,7 @@ const CONFIGURATION = {
     { key: 'stock-service-domain', value: STOCK_SERVICE_URL },
     { key: 'sales-service-domain', value: SALES_SERVICE_URL },
     { key: 'settlement-service-domain', value: SETTLEMENT_SERVICE_URL },
+    { key: 'order-service-domain', value: ORDER_SERVICE_URL },
   ],
 };
 
@@ -229,6 +233,77 @@ const salesMetadataHandlers = [
       data: { actions: ['read', 'write', 'delete'], useCases: [] },
     }),
   ),
+];
+
+/** One paid vendor order: the one a cancel journey cancels. */
+export const PAID_ORDER_ID = 'product-order-paid-1';
+
+const productOrders = entityBackendHandlers(ProductOrder, {
+  baseUrl: `${ORDER_SERVICE_URL}/product-order`,
+  seed: [
+    {
+      id: PAID_ORDER_ID,
+      buyerId: 'buyer-1',
+      vendorId: 'e2e-organization',
+      groupId: 'group-1',
+      paymentMethod: 'card',
+      status: 'paid',
+      placedAt: '2026-11-03T10:00:00.000Z',
+      items: [
+        {
+          offeringId: 'product-offering-1',
+          quantity: 2,
+          amount: 25,
+          currency: 'GTQ',
+        },
+      ],
+    },
+  ],
+});
+
+/**
+ * The order screens' affordance document, on the app's own `/api/order/...`
+ * proxy path, with the verbs the entity declares — `cancel` among them.
+ */
+const orderMetadataHandlers = [
+  http.get(`${APP_URL}/api/order/product-order/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'product-order' },
+      data: {
+        actions: ['read'],
+        useCases: describeEntityUseCases(ProductOrder),
+      },
+    }),
+  ),
+];
+
+/** The cancellation every mocked cancel starts, and a spec settles. */
+export const CANCEL_FLOW_ID = 'cancel-flow-1';
+
+/** Every cancel the order screen asked for in this run. */
+export const cancels: string[] = [];
+
+/**
+ * The staff `cancel` verb, answered as order-service does since #487: `202`
+ * with the cancellation to follow, whose outcome the push stream brings.
+ */
+const cancelHandlers = [
+  http.post(`${ORDER_SERVICE_URL}/product-order/:id/cancel`, ({ params }) => {
+    cancels.push(String(params['id']));
+    return HttpResponse.json(
+      {
+        meta: { type: 'flowAccepted', entity: 'product-order' },
+        data: {
+          flowId: CANCEL_FLOW_ID,
+          links: [
+            { rel: 'status', href: `/api/realtime/flow/${CANCEL_FLOW_ID}` },
+            { rel: 'stream', href: '/api/realtime/stream' },
+          ],
+        },
+      },
+      { status: 202 },
+    );
+  }),
 ];
 
 const publishedOfferings = entityBackendHandlers(PublishedOffering, {
@@ -419,6 +494,9 @@ const base = defineEntifixE2eTest({
     ...offeringMetadataHandlers,
     ...bulkPublishHandlers,
     ...sellHandlers,
+    ...productOrders.handlers,
+    ...orderMetadataHandlers,
+    ...cancelHandlers,
     ...createHandlers,
     ...realtimeHandlers,
   ],

@@ -1,5 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import { type Entity,Unavailable } from '@entifix/core';
+import { type Entity, Unavailable } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { Configuration } from '@r10c/business-ts-configuration';

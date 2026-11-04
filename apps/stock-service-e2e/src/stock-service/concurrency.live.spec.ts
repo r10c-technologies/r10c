@@ -76,10 +76,7 @@ const recordMovement = (offeringId: string, quantity: number, reason: string) =>
 const takeHold = (offeringId: string, quantity: number) =>
   service.client.post(
     '/api/reservation',
-    {
-      meta: { type: 'entity', entity: 'reservation' },
-      data: { offeringId, quantity },
-    },
+    { offeringId, quantity },
     { headers: crossingHeaders() },
   );
 

@@ -17,9 +17,6 @@
       "path": "../../../utils/ts/fleet/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
-    },
-    {
       "path": "../../../business/ts/flow-contracts/tsconfig.lib.json"
     },
     {

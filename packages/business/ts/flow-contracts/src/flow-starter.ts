@@ -1,12 +1,32 @@
 import {
   decodeProblem,
-  type EntifixFailure,
+  Failure,
   PROBLEM_CONTENT_TYPE,
   ProtocolFailure,
+  type TechnicalFailure,
   UpstreamUnavailable,
 } from '@entifix/core';
 import { FlowAccepted } from '@entifix/transactions';
 import { Context, Effect, Schema } from 'effect';
+
+export { FlowAccepted } from '@entifix/transactions';
+
+/**
+ * The coordinator refused to start a flow: the input was not one the recipe
+ * accepts, or a vendor in it is not provisioned for a step. The coordinator's
+ * own `code` travels with it, so a caller can name the refusal without
+ * declaring every failure a composition can raise — which no caller, typed by
+ * the routes it serves, could keep in step with the recipes.
+ */
+export class FlowNotStarted extends Failure.declined<FlowNotStarted>()(
+  'FlowNotStarted',
+  'flowNotStarted',
+  { refusal: Schema.String },
+  { message: ({ refusal }) => `the coordinator refused to start: ${refusal}` },
+) {}
+
+/** Why a flow did not start: refused, or the coordinator could not answer. */
+export type FlowStartFailure = FlowNotStarted | TechnicalFailure;
 
 /**
  * Starts a flow on the coordinator and answers what to follow
@@ -34,7 +54,7 @@ export interface FlowStarter {
     recipe: string,
     input: unknown,
     idempotencyKey: string,
-  ) => Effect.Effect<FlowAccepted, EntifixFailure>;
+  ) => Effect.Effect<FlowAccepted, FlowStartFailure>;
 }
 
 export class FlowStarterTag extends Context.Service<
@@ -61,7 +81,7 @@ export const flowStartOutcome = (answer: {
   readonly status: number;
   readonly contentType: string | undefined;
   readonly body: unknown;
-}): Effect.Effect<FlowAccepted, EntifixFailure> => {
+}): Effect.Effect<FlowAccepted, FlowStartFailure> => {
   if (answer.status === 202)
     return decodeAccepted(answer.body).pipe(
       Effect.map(envelope => envelope.data),
@@ -73,8 +93,14 @@ export const flowStartOutcome = (answer: {
           }),
       ),
     );
-  if (answer.contentType?.startsWith(PROBLEM_CONTENT_TYPE) === true)
-    return Effect.fail(decodeProblem(answer.body, answer.status));
+  if (answer.contentType?.startsWith(PROBLEM_CONTENT_TYPE) === true) {
+    const failure = decodeProblem(answer.body, answer.status);
+    return Effect.fail(
+      Failure.isFamily('technical')(failure)
+        ? (failure as TechnicalFailure)
+        : new FlowNotStarted({ refusal: failure.code }),
+    );
+  }
   return Effect.fail(
     new ProtocolFailure({
       reason: `${FLOW_COORDINATOR} answered ${String(answer.status)} without a problem body`,
@@ -84,5 +110,5 @@ export const flowStartOutcome = (answer: {
 };
 
 /** A coordinator that could not be reached at all. */
-export const coordinatorUnreachable = (): EntifixFailure =>
+export const coordinatorUnreachable = (): TechnicalFailure =>
   new UpstreamUnavailable({ upstream: FLOW_COORDINATOR });

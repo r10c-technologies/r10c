@@ -64,10 +64,7 @@ const ORDER_SHAPE = {
 const openGroup = (id: string, data: Record<string, unknown> = {}) =>
   service.client.post(
     '/api/checkout-group',
-    {
-      meta: { type: 'entity', entity: 'checkout-group' },
-      data: { id, buyerId: 'party-user-2', ...data },
-    },
+    { id, buyerId: 'party-user-2', ...data },
     { headers: crossing() },
   );
 
@@ -82,13 +79,10 @@ const place = (
   service.client.post(
     '/api/product-order',
     {
-      meta: { type: 'entity', entity: 'product-order' },
-      data: {
-        ...ORDER_SHAPE,
-        vendorId: items[0]?.vendorId ?? E2E_ORGANIZATION_ID,
-        buyerId: 'party-user-2',
-        items,
-      },
+      ...ORDER_SHAPE,
+      vendorId: items[0]?.vendorId ?? E2E_ORGANIZATION_ID,
+      buyerId: 'party-user-2',
+      items,
     },
     { headers: crossing(extra) },
   );
@@ -142,12 +136,9 @@ describe('placing an order', () => {
     const res = await service.client.post(
       '/api/product-order',
       {
-        meta: { type: 'entity', entity: 'product-order' },
-        data: {
-          ...ORDER_SHAPE,
-          groupId: crypto.randomUUID(),
-          items: [line('offering-orphan')],
-        },
+        ...ORDER_SHAPE,
+        groupId: crypto.randomUUID(),
+        items: [line('offering-orphan')],
       },
       { headers: crossing() },
     );
@@ -169,10 +160,7 @@ describe('the write takes a crossing token and no session', () => {
   it('refuses a session, even an admin one', async () => {
     const res = await service.client.post(
       '/api/product-order',
-      {
-        meta: { type: 'entity', entity: 'product-order' },
-        data: { ...ORDER_SHAPE, items: [line('offering-g')] },
-      },
+      { ...ORDER_SHAPE, items: [line('offering-g')] },
       { headers: { Authorization: await bearerFor(['admin']) } },
     );
 
@@ -282,12 +270,9 @@ describe('a read is scoped to the caller, from the principal', () => {
     const theirs = await service.client.post(
       '/api/product-order',
       {
-        meta: { type: 'entity', entity: 'product-order' },
-        data: {
-          ...ORDER_SHAPE,
-          buyerId: 'party-somebody-else',
-          items: [line('offering-scope-d')],
-        },
+        ...ORDER_SHAPE,
+        buyerId: 'party-somebody-else',
+        items: [line('offering-scope-d')],
       },
       { headers: crossing() },
     );
@@ -308,12 +293,9 @@ describe('a read is scoped to the caller, from the principal', () => {
     const theirs = await service.client.post(
       '/api/product-order',
       {
-        meta: { type: 'entity', entity: 'product-order' },
-        data: {
-          ...ORDER_SHAPE,
-          buyerId: 'party-somebody-else',
-          items: [line('offering-scope-e')],
-        },
+        ...ORDER_SHAPE,
+        buyerId: 'party-somebody-else',
+        items: [line('offering-scope-e')],
       },
       { headers: crossing() },
     );
@@ -332,12 +314,9 @@ describe('a read is scoped to the caller, from the principal', () => {
     const theirs = await service.client.post(
       '/api/product-order',
       {
-        meta: { type: 'entity', entity: 'product-order' },
-        data: {
-          ...ORDER_SHAPE,
-          buyerId: 'party-somebody-else',
-          items: [line('offering-scope-g')],
-        },
+        ...ORDER_SHAPE,
+        buyerId: 'party-somebody-else',
+        items: [line('offering-scope-g')],
       },
       { headers: crossing() },
     );
@@ -370,12 +349,9 @@ describe('a read is scoped to the caller, from the principal', () => {
     const theirs = await service.client.post(
       '/api/product-order',
       {
-        meta: { type: 'entity', entity: 'product-order' },
-        data: {
-          ...ORDER_SHAPE,
-          buyerId: 'party-somebody-else',
-          items: [line('offering-scope-i')],
-        },
+        ...ORDER_SHAPE,
+        buyerId: 'party-somebody-else',
+        items: [line('offering-scope-i')],
       },
       { headers: crossing() },
     );
@@ -534,13 +510,10 @@ describe('the checkout group', () => {
       await service.client.post(
         '/api/product-order',
         {
-          meta: { type: 'entity', entity: 'product-order' },
-          data: {
-            ...ORDER_SHAPE,
-            vendorId,
-            groupId,
-            items: [{ ...line('offering-g'), vendorId }],
-          },
+          ...ORDER_SHAPE,
+          vendorId,
+          groupId,
+          items: [{ ...line('offering-g'), vendorId }],
         },
         { headers: crossing() },
       );
@@ -786,10 +759,7 @@ describe('the buyer’s own cancel', () => {
     await openGroup(groupId, { cancelDigest: await digestOfNonce() });
     const res = await service.client.post(
       '/api/product-order',
-      {
-        meta: { type: 'entity', entity: 'product-order' },
-        data: { ...ORDER_SHAPE, groupId, items: [line('offering-cap')] },
-      },
+      { ...ORDER_SHAPE, groupId, items: [line('offering-cap')] },
       { headers: crossing() },
     );
     return res.data.data.id as string;
@@ -910,13 +880,10 @@ describe('a vendor or operator asking to cancel', () => {
       service.client.post(
         '/api/product-order',
         {
-          meta: { type: 'entity', entity: 'product-order' },
-          data: {
-            ...ORDER_SHAPE,
-            vendorId,
-            groupId,
-            items: [{ ...line('offering-vab'), vendorId }],
-          },
+          ...ORDER_SHAPE,
+          vendorId,
+          groupId,
+          items: [{ ...line('offering-vab'), vendorId }],
         },
         { headers: crossing() },
       );

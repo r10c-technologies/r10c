@@ -46,7 +46,9 @@ export const acceptedAnswer = (flowId: string) => ({
  */
 export const describeFlowStarterContract = (
   name: string,
-  make: (coordinator: FlowCoordinatorScript) => FlowStarter | Promise<FlowStarter>,
+  make: (
+    coordinator: FlowCoordinatorScript,
+  ) => FlowStarter | Promise<FlowStarter>,
 ) => {
   describe(`${name} honours the FlowStarter contract`, () => {
     const startWith = async (answer: ReturnType<FlowCoordinatorScript>) => {
@@ -78,7 +80,7 @@ export const describeFlowStarterContract = (
       });
     });
 
-    it('reads a problem body as the refusal it names', async () => {
+    it('reads a business refusal as FlowNotStarted, naming the coordinator’s code', async () => {
       const { outcome } = await startWith({
         status: 404,
         contentType: 'application/problem+json',
@@ -92,7 +94,29 @@ export const describeFlowStarterContract = (
       });
 
       expect(outcome).toMatchObject({
-        failure: { code: 'notFound', category: 'notFound' },
+        failure: {
+          _tag: 'FlowNotStarted',
+          code: 'flowNotStarted',
+          refusal: 'notFound',
+        },
+      });
+    });
+
+    it('passes a technical refusal on as it is', async () => {
+      const { outcome } = await startWith({
+        status: 503,
+        contentType: 'application/problem+json',
+        body: {
+          type: 'about:blank',
+          title: 'unavailable',
+          status: 503,
+          code: 'unavailable',
+          category: 'unavailable',
+        },
+      });
+
+      expect(outcome).toMatchObject({
+        failure: { code: 'unavailable', category: 'unavailable' },
       });
     });
 

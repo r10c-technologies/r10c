@@ -171,7 +171,10 @@ describe('which entifix packages a change reaches', () => {
     expect(entifixDependencies(root)).toEqual(
       new Map([
         ['@entifix/core', new Set()],
-        ['@entifix/service-shell', new Set(['@entifix/core', '@entifix/mongo'])],
+        [
+          '@entifix/service-shell',
+          new Set(['@entifix/core', '@entifix/mongo']),
+        ],
       ]),
     );
   });
@@ -202,7 +205,10 @@ describe('which services restart', () => {
     expect(
       servicesToRestart(manifests, new Set(['@entifix/service-shell'])),
     ).toEqual([
-      { name: '@acme/config-service', path: 'apps/config-service/package.json' },
+      {
+        name: '@acme/config-service',
+        path: 'apps/config-service/package.json',
+      },
     ]);
   });
 

@@ -47,9 +47,7 @@ describe('the Mongo cell', () => {
     const claim = { consumer: 'realtime.flow.completed', eventId: 'f-burst:3' };
 
     const outcomes = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        run(store => store.apply(record, claim)),
-      ),
+      Array.from({ length: 5 }, () => run(store => store.apply(record, claim))),
     );
 
     expect(outcomes.filter(outcome => outcome === 'applied')).toHaveLength(1);

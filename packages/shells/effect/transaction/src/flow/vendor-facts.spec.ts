@@ -96,11 +96,17 @@ describe('httpVendorFactsLayer', () => {
     ['a projection that cannot be reached', () => undefined],
     ['a 5xx', () => ({ status: 503 })],
     ['a body that is not JSON', () => ({ status: 200, body: 'nope' })],
-  ])('answers %s as an unavailable upstream, not as no entitlements', async (_label, answer) => {
-    serve(answer);
+  ])(
+    'answers %s as an unavailable upstream, not as no entitlements',
+    async (_label, answer) => {
+      serve(answer);
 
-    expect(await factsOf(['v-1'])).toMatchObject({
-      failure: { _tag: 'UpstreamUnavailable', upstream: 'marketplace-service' },
-    });
-  });
+      expect(await factsOf(['v-1'])).toMatchObject({
+        failure: {
+          _tag: 'UpstreamUnavailable',
+          upstream: 'marketplace-service',
+        },
+      });
+    },
+  );
 });

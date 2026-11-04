@@ -50,13 +50,10 @@ const restore = (
   service.client.post(
     '/api/stock-restoration',
     {
-      meta: { type: 'entity', entity: 'stock-movement' },
-      data: {
-        offeringId: OFFERING,
-        quantity: 2,
-        cause: 'cancellation',
-        ...body,
-      },
+      offeringId: OFFERING,
+      quantity: 2,
+      cause: 'cancellation',
+      ...body,
     },
     { headers: crossing(extra) },
   );
@@ -64,10 +61,7 @@ const restore = (
 const takeHold = (quantity: number) =>
   service.client.post(
     '/api/reservation',
-    {
-      meta: { type: 'entity', entity: 'reservation' },
-      data: { offeringId: OFFERING, quantity },
-    },
+    { offeringId: OFFERING, quantity },
     { headers: crossing() },
   );
 
@@ -116,10 +110,7 @@ describe('restoring stock after a cancellation', () => {
     const offeringId = `offering-ledger-${String(Date.now())}`;
     await service.client.post(
       '/api/stock-restoration',
-      {
-        meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId, quantity: 5, cause: 'cancellation' },
-      },
+      { offeringId, quantity: 5, cause: 'cancellation' },
       { headers: crossing() },
     );
 
@@ -141,13 +132,10 @@ describe('restoring stock after a cancellation', () => {
     const res = await service.client.post(
       '/api/stock-restoration',
       {
-        meta: { type: 'entity', entity: 'stock-movement' },
-        data: {
-          offeringId,
-          quantity: 3,
-          reason: 'receipt',
-          cause: 'cancellation',
-        },
+        offeringId,
+        quantity: 3,
+        reason: 'receipt',
+        cause: 'cancellation',
       },
       { headers: crossing() },
     );
@@ -169,10 +157,7 @@ describe('restoring stock after a cancellation', () => {
     const send = () =>
       service.client.post(
         '/api/stock-restoration',
-        {
-          meta: { type: 'entity', entity: 'stock-movement' },
-          data: { offeringId, quantity: 4, cause: 'cancellation' },
-        },
+        { offeringId, quantity: 4, cause: 'cancellation' },
         { headers: crossing({ 'idempotency-key': `"${commandId}"` }) },
       );
 
@@ -219,10 +204,7 @@ describe('restoring stock after a cancellation', () => {
   it('refuses a session, even super-admin', async () => {
     const res = await service.client.post(
       '/api/stock-restoration',
-      {
-        meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
-      },
+      { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
       { headers: { Authorization: await bearerFor(['super-admin']) } },
     );
 
@@ -240,10 +222,7 @@ describe('restoring stock after a cancellation', () => {
   it('refuses a crossing that names no organization', async () => {
     const res = await service.client.post(
       '/api/stock-restoration',
-      {
-        meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
-      },
+      { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
       {
         headers: {
           'x-crossing-token': E2E_CROSSING_TOKEN,

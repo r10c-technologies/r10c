@@ -58,6 +58,7 @@ describe('SellAtChannelUC', () => {
       'ChannelInactive',
       'OfferingNotYours',
       'InvalidBody',
+      'FlowNotStarted',
     ]);
   });
 });

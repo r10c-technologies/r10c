@@ -81,6 +81,8 @@ export const errors = {
   // una escritura atómica condicionada a eso. Cero documentos alcanzados *es* la
   // respuesta de falta de existencia, no un error del sistema.
   insufficientStock: 'No hay existencia suficiente para reservar.',
+  flowNotStarted:
+    'No se pudo iniciar. Revisa lo solicitado e inténtalo de nuevo.',
   // La venta se compensó por completo: alguna línea fue rechazada y toda
   // existencia que se había apartado volvió a quedar disponible. Es un
   // resultado de inventario sobre el que el vendedor puede actuar, no una

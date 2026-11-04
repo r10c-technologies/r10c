@@ -1,6 +1,6 @@
 'use client';
 
-import { type EntifixFailure,readDraftString } from '@entifix/core';
+import { type EntifixFailure, readDraftString } from '@entifix/core';
 import {
   EntityField,
   EntityForm,

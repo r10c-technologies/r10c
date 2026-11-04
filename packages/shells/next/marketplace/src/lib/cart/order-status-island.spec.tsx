@@ -11,7 +11,10 @@ import { heldCapabilities } from './flow-capabilities.js';
 import { OrderStatusIsland } from './order-status-island.js';
 
 const refresh = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
+const replace = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh, replace }),
+}));
 
 const LABELS = { pending: 'Waiting', failed: 'It failed', retry: 'Retry' };
 
@@ -37,6 +40,8 @@ const mount = (
     settled?: 'settled' | 'pending' | 'failed';
     store?: ReturnType<typeof makePendingFlowStore>;
     readStatus?: FlowStatusRead;
+    /** A cancellation's island: no retry, and a page to move to either way. */
+    following?: boolean;
   } = {},
 ) => {
   const settle = vi.fn(() => Promise.resolve(options.settled ?? 'settled'));
@@ -48,7 +53,9 @@ const mount = (
       locale="es"
       labels={LABELS}
       settle={settle}
-      retry={() => undefined}
+      {...(options.following === true
+        ? { settledHref: '/done', failedHref: '/refused' }
+        : { retry: () => undefined })}
       readStatus={options.readStatus ?? statusOf(options.state)}
     />
   );
@@ -66,6 +73,65 @@ const mount = (
 
 beforeEach(() => {
   refresh.mockReset();
+  replace.mockReset();
+});
+
+describe('the island with nothing to retry and nowhere to go', () => {
+  it('shows the failure, and no retry it was not given', async () => {
+    render(
+      <OrderStatusIsland
+        flowId="f-1"
+        capability="cap-1"
+        statusHref="/api/realtime/flow/f-1?capability=cap-1"
+        locale="es"
+        labels={LABELS}
+        settle={() => Promise.resolve('failed')}
+        readStatus={statusOf('failed')}
+      />,
+    );
+    await flush();
+
+    expect(screen.getByTestId('order-failed')).toBeTruthy();
+    expect(screen.queryByTestId('order-retry')).toBeNull();
+  });
+});
+
+describe('the island following a cancellation', () => {
+  it('moves to the settled page once the flow completed and settled', async () => {
+    const { settle } = mount({ state: 'completed', following: true });
+    await flush();
+
+    expect(settle).toHaveBeenCalledWith('f-1');
+    expect(replace).toHaveBeenCalledWith('/done');
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('settles a flow that ended badly too, and moves to the refused page with no retry', async () => {
+    const { settle } = mount({
+      state: 'failed',
+      settled: 'failed',
+      following: true,
+    });
+    await flush();
+
+    expect(settle).toHaveBeenCalledWith('f-1');
+    expect(replace).toHaveBeenCalledWith('/refused');
+    expect(screen.queryByTestId('order-retry')).toBeNull();
+  });
+
+  it('settles a failure it hears pushed the same way', async () => {
+    const store = makePendingFlowStore();
+    const { settle } = mount({ store, settled: 'failed', following: true });
+    await flush();
+
+    act(() => {
+      store.settle('f-1', { kind: 'failed' });
+    });
+    await flush();
+
+    expect(settle).toHaveBeenCalledWith('f-1');
+    expect(replace).toHaveBeenCalledWith('/refused');
+  });
 });
 
 describe('OrderStatusIsland', () => {

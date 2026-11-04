@@ -1,6 +1,6 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { NotFound, useCase } from '@entifix/core';
-import { RefundDeclined } from '@r10c/business-ts-payment-contracts';
+import { FlowNotStarted } from '@r10c/business-ts-flow-contracts';
 import { Effect } from 'effect';
 
 import { ProductOrder } from '../../entities/product-order';
@@ -32,7 +32,9 @@ import { orderStatusAfter } from '../../values/order-transition';
     tone: 'destructive',
     messageKey: 'entity:product-order.useCases.cancelConfirm',
   },
-  errors: [NotFound, OrderNotCancellable, RefundDeclined],
+  // A refund refused, or an order that moved on, arrives as the flow's
+  // failure: the verb answers `202` once it has started the flow (ADR 0073).
+  errors: [NotFound, OrderNotCancellable, FlowNotStarted],
 })
 export class CancelProductOrderUC {
   static run(

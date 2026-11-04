@@ -1,9 +1,5 @@
 import { makeService } from '@entifix/service-shell/runtime';
-import {
-  endpoints,
-  makeAppLayer,
-  policy,
-} from '@r10c/shells-effect-stock';
+import { endpoints, makeAppLayer, policy } from '@r10c/shells-effect-stock';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
