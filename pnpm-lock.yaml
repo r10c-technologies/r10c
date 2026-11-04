@@ -609,6 +609,9 @@ importers:
       '@r10c/shells-next-auth':
         specifier: workspace:*
         version: link:../../packages/shells/next/auth
+      '@r10c/shells-next-fulfilment':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/fulfilment
       '@r10c/shells-next-marketplace-admin':
         specifier: workspace:*
         version: link:../../packages/shells/next/marketplace-admin
@@ -663,6 +666,9 @@ importers:
       '@r10c/business-ts-settlement-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/settlement-management
+      '@r10c/business-ts-shipping-order-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/shipping-order-management
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/stock-management
@@ -4284,6 +4290,40 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../../business/ts/authz-grants
+
+  packages/shells/next/fulfilment:
+    dependencies:
+      '@entifix/authz':
+        specifier: 'catalog:'
+        version: 0.17.0(effect@4.0.7)
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.17.0(effect@4.0.7)
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.17.0(effect@4.0.7)
+      '@entifix/next-shell':
+        specifier: 'catalog:'
+        version: 0.17.0(@tanstack/react-form@1.33.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/react-query@5.105.1(@types/react@19.3.0)(react@19.3.1))(effect@4.0.7)(i18next@26.6.0(typescript@6.0.3))(next@16.4.3(@babel/core@8.0.10)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.1)(@types/node@26.6.6)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.101.0))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.10(i18next@26.6.0(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1)(zustand@5.0.16(@types/react@19.3.0)(react@19.3.1)(use-sync-external-store@1.7.0(react@19.3.1)))
+      '@entifix/react-integration':
+        specifier: 'catalog:'
+        version: 0.17.0(@tanstack/react-form@1.33.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/react-query@5.105.1(@types/react@19.3.0)(react@19.3.1))(effect@4.0.7)(react@19.3.1)
+      '@entifix/rest':
+        specifier: 'catalog:'
+        version: 0.17.0(effect@4.0.7)
+      '@r10c/business-ts-shipping-order-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/shipping-order-management
+      effect:
+        specifier: 4.0.7
+        version: 4.0.7
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.17.0(@entifix/react-controls@0.17.0(@entifix/i18n@0.17.0(effect@4.0.7)(i18next@26.6.0(typescript@6.0.3)))(effect@4.0.7)(i18next@26.6.0(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.10(i18next@26.6.0(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.7)(msw@3.0.3(@types/node@26.6.6)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.6)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/business-ts-i18n':
+        specifier: workspace:*
+        version: link:../../../business/ts/i18n
 
   packages/shells/next/i18n-catalog:
     dependencies:

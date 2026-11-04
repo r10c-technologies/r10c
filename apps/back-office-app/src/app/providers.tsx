@@ -28,6 +28,10 @@ import { makeEventSourcePushChannel } from '@entifix/react-integration/event-sou
 import { buildFlowStatusReader } from '@entifix/rest';
 import { refreshSession } from '@r10c/shells-next-auth';
 import {
+  FULFILMENT_PUSH_TOPICS,
+  FulfilmentProvider,
+} from '@r10c/shells-next-fulfilment';
+import {
   CATALOG_PUSH_TOPICS,
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
@@ -77,6 +81,7 @@ const readFlowStatus = buildFlowStatusReader();
 const PUSHED_TOPICS: readonly PushTopic[] = [
   ...CATALOG_PUSH_TOPICS,
   ...ORDER_PUSH_TOPICS,
+  ...FULFILMENT_PUSH_TOPICS,
 ];
 
 /**
@@ -131,29 +136,31 @@ function ThemedProviders({
                 to a flow — a create at `/new`, a cancel, a sale at the till —
                 waits on plain routes no `WorkspaceShell` encloses, and its
                 failure is toasted once by the region below (ADR 0073). */}
-                <PendingFlowsProvider
-                  scope={scope}
-                  channel={pushChannel}
-                  readStatus={readFlowStatus}
-                >
-                  {scope === ANONYMOUS_WORKSPACE_SCOPE ? null : (
-                    <PushedEntities />
-                  )}
-                  {/* Each shell builds its own adapters against its own backend —
-                  config-service here, stock-service below — so they are
-                  provided beside the catalog's rather than through it. Three
-                  backends, three composition roots, and nesting them is only
-                  how React contexts stack. */}
-                  <SystemManagementProvider>
-                    <StockProvider>
-                      <OrderProvider>
+              <PendingFlowsProvider
+                scope={scope}
+                channel={pushChannel}
+                readStatus={readFlowStatus}
+              >
+                {scope === ANONYMOUS_WORKSPACE_SCOPE ? null : (
+                  <PushedEntities />
+                )}
+                {/* Each shell builds its own adapters against its own backend —
+                  config-service, stock-, order-, fulfilment-, sales- and
+                  settlement-service — so they are provided beside the
+                  catalog's rather than through it. One composition root per
+                  backend, and nesting them is only how React contexts stack. */}
+                <SystemManagementProvider>
+                  <StockProvider>
+                    <OrderProvider>
+                      <FulfilmentProvider>
                         <SalesProvider>
                           <SettlementProvider>{children}</SettlementProvider>
                         </SalesProvider>
-                      </OrderProvider>
-                    </StockProvider>
-                  </SystemManagementProvider>
-                </PendingFlowsProvider>
+                      </FulfilmentProvider>
+                    </OrderProvider>
+                  </StockProvider>
+                </SystemManagementProvider>
+              </PendingFlowsProvider>
             </MarketplaceAdminAdaptersProvider>
             <ToastRegion />
           </ToastProvider>

@@ -8,6 +8,7 @@ import {
   wizardTabKind,
 } from '@entifix/next-shell';
 import { UserDetailPage, UsersPage } from '@r10c/shells-next-auth';
+import { FULFILMENT_CRUDS } from '@r10c/shells-next-fulfilment';
 import {
   MARKETPLACE_ADMIN_CRUDS,
   PRODUCT_SETUP_SURFACE,
@@ -166,9 +167,9 @@ const wizardKind = wizardTabKind({
  */
 export const workspaceRegistry = new TabRegistry()
   .register(entityTabKind('master', masterScreens()))
-  // Operaciones: stock and orders, whose records a *process* made — a movement
-  // upserts the item, the checkout flow writes the hold and the receipt
-  // (ADR 0033). One registration over both lists, because a tab kind is the
+  // Operaciones: stock, orders, shipments and the settlement ledger, whose
+  // records a *process* made — a movement upserts the item, the checkout flow
+  // writes the hold, the receipt and the shipment (ADR 0033). One registration over both lists, because a tab kind is the
   // *tier* rather than the shell that contributed to it: two `entityTabKind`
   // calls for one `operation:` grammar would be two registrations racing for
   // the same prefix.
@@ -178,6 +179,7 @@ export const workspaceRegistry = new TabRegistry()
       screensFor('operation', [
         ...STOCK_CRUDS,
         ...ORDER_CRUDS,
+        ...FULFILMENT_CRUDS,
         ...SETTLEMENT_OPERATION_CRUDS,
       ]),
     ),

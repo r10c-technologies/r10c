@@ -91,6 +91,9 @@ base.describe('without an admin session', () => {
 
       const nav = page.getByRole('navigation');
       await expect(nav.getByRole('link', { name: 'Productos' })).toHaveCount(0);
+      // The dispatch worklist is gated the same way: an `admin` holds every
+      // shipping verb, and the organization was not provisioned for any.
+      await expect(nav.getByRole('link', { name: 'Envíos' })).toHaveCount(0);
       // `catalog-reference` is operator-owned and never grantable (ADR 0022),
       // so an unprovisioned vendor keeps the vocabulary its offerings are
       // classified in. Gating these too is the failure this asserts against.

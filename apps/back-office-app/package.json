@@ -19,6 +19,7 @@
     "@r10c/business-ts-i18n": "workspace:*",
     "@r10c/i18n-catalog": "workspace:*",
     "@r10c/shells-next-auth": "workspace:*",
+    "@r10c/shells-next-fulfilment": "workspace:*",
     "@r10c/shells-next-marketplace-admin": "workspace:*",
     "@r10c/shells-next-order": "workspace:*",
     "@r10c/shells-next-sales": "workspace:*",

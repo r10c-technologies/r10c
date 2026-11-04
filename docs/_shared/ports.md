@@ -529,8 +529,11 @@ coordinator's inbound one too** — `participant.fulfilmentToken` on
 transaction-service and `service.token` here, plus `transaction.crossingToken`
 to start a delivery — which makes it the fourth holder of that secret, and,
 like order-service for a cancellation, a participant in the flow it starts.
-Both app `dev` targets start it, since a checkout opens a shipment; the
-dispatch worklist that gives it a back-office surface is #489.
+Both app `dev` targets start it, since a checkout opens a shipment. Its
+back-office surface is the dispatch worklist in `@r10c/shells-next-fulfilment`,
+reached through a same-origin `/api/fulfilment` proxy (`fulfilment-service-domain`
+in config-service) that forwards `GET` and `POST` only — the four verbs are the
+only session-guarded writes, and every other write is a flow's crossing.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

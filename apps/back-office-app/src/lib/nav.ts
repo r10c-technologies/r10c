@@ -7,6 +7,7 @@ import type { NavSection } from '@entifix/next-shell';
 import { isPermissionEntitled } from '@r10c/business-ts-access-management';
 import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
 import { AUTH_NAV } from '@r10c/shells-next-auth/server';
+import { FULFILMENT_NAV } from '@r10c/shells-next-fulfilment/server';
 import { MARKETPLACE_ADMIN_NAV } from '@r10c/shells-next-marketplace-admin/server';
 import { ORDER_NAV } from '@r10c/shells-next-order/server';
 import { SALES_NAV } from '@r10c/shells-next-sales/server';
@@ -45,6 +46,9 @@ export const NAV: GuardedNavSection[] = [
   // Contributed by the order shell, into the same Operaciones tier — a process
   // wrote every record in both, which is what the tier means (ADR 0033).
   ...ORDER_NAV,
+  // Contributed by the fulfilment shell, beside the orders its shipments carry
+  // — the dispatch worklist a vendor opens to hand parcels to a courier.
+  ...FULFILMENT_NAV,
   // Contributed by the `scope:shared` system-management shell, which owns both
   // the screens and their copy — so mounting it in a second host later moves
   // nothing. Its items carry `config:configuration:*`, which only `super-admin`

@@ -236,6 +236,14 @@ export const r10c = {
       orders: 'Pedidos',
     },
   },
+  fulfilment: {
+    nav: {
+      // El grupo y su único destino: lo que el vendedor abre para entregar
+      // paquetes al mensajero, y que abre en los que esperan despacho.
+      title: 'Despacho',
+      shipments: 'Envíos',
+    },
+  },
   settlement: {
     nav: {
       // El mismo nombre de grupo en las dos gradas: un acuerdo se redacta

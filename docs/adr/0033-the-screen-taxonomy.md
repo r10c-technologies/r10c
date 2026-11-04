@@ -24,6 +24,13 @@
   been the mistake this record already names: since ADR 0026 every entity
   declares them, so a verb is grounds for a button, never for a type.
 
+- Revised: 2026-11-04 — the first worklist is built (#489): the dispatch
+  worklist over `ShippingOrder`, which opens on `awaiting-dispatch`. The preset
+  query the `Worklist` section below names is `makeEntityCrud({ initialFiltering })`
+  (entifix 0.17.0): the user's own filter chosen for them, shown in the panel
+  and clearable, and checked against the entity's `filterable` allowlist when
+  the screen is generated — not a restriction, which is `baseFiltering`'s job.
+
 ## Context
 
 The back office has one tier of navigation and no rule for what shape a new
@@ -162,7 +169,8 @@ awaiting me" is not "all orders". It is not a **type** here, because the two
 screens have the same shape and differ only by a default filter bound to the
 principal. Making it a type would put one record class in two nav places, which
 is the nav duplication #125 exists to remove. A worklist ships as a preset query
-alongside the search aggregator and the palette (#130, #112).
+on the generated list — `makeEntityCrud`'s `initialFiltering`, the first of
+them the dispatch worklist (#489).
 
 ### `Sistema` is Definiciones; `Cuenta` is outside the taxonomy
 

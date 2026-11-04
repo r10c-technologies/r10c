@@ -10,7 +10,9 @@ import { configSourceFor } from '@r10c/utils-ts-fleet';
  * the real address. The vendor-authored catalog goes through `/api/admin`, the
  * platform vocabulary it is classified in through `/api/marketplace`, the
  * configuration CRUD through `/api/system`, a vendor's stock through
- * `/api/stock`, and their selling channels and the till through `/api/sales`.
+ * `/api/stock`, their orders through `/api/order`, their shipments through
+ * `/api/fulfilment`, their selling channels and the till through `/api/sales`,
+ * and their terms and statement through `/api/settlement`.
  *
  * Two catalog backends and not one since ADR 0022: `ProductSpecification` is
  * tenant-plane and marketplace-admin-service owns it, while `ProductBrand` and
@@ -28,6 +30,7 @@ export const GET = createConfigRoute({
     'config-service-domain': '/api/system',
     'stock-service-domain': '/api/stock',
     'order-service-domain': '/api/order',
+    'fulfilment-service-domain': '/api/fulfilment',
     'sales-service-domain': '/api/sales',
     'settlement-service-domain': '/api/settlement',
   },
