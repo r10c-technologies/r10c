@@ -1,5 +1,7 @@
 import { generateKeyPairSync } from 'node:crypto';
 
+import type { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import type { FlowEngineTag } from '@entifix/transactions';
 import {
   flowParticipants,
   PARTICIPANT_DIALS,
@@ -77,6 +79,25 @@ describe('the transaction shell', () => {
 
     expect(Layer.isLayer(replica0)).toBe(true);
     expect(Layer.isLayer(replica1)).toBe(true);
+  });
+
+  // The routes read these from the composition's *output*. Provided into the
+  // engine and not merged, they vanish from it: every start answers 500 while
+  // the layer still builds — measured on the live lab, invisible to the build.
+  it('exposes what the start routes read, not only what the engine does', () => {
+    type Exposed = Layer.Success<
+      Effect.Success<
+        ReturnType<ReturnType<typeof transactionComposition>>
+      >
+    >;
+    const routesRead: [ServiceCrossingTokenTag, FlowEngineTag] extends [
+      Exposed,
+      Exposed,
+    ]
+      ? true
+      : false = true;
+
+    expect(routesRead).toBe(true);
   });
 
   /** A participant on entifix's defaults would be sized for nobody, silently. */

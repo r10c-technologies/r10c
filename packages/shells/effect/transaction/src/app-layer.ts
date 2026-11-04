@@ -87,7 +87,10 @@ export const transactionComposition =
         yield* crossingTokenLayer(configuration),
       );
 
-      return Layer.provide(
+      // `provideMerge`, not `provide`: the routes read the security layers and
+      // the inbound crossing token from this composition's output, not only
+      // the engine below them.
+      return Layer.provideMerge(
         Layer.merge(
           yield* workflowComposition(configuration, participants, runner),
           httpVendorFactsLayer(catalogUrl),
