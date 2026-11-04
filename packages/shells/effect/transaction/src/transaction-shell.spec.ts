@@ -46,6 +46,10 @@ const CONFIGURATION = fleetConfigurationOf({
     runnerHost: '127.0.0.1',
   }),
   flow: configurationRows({ concurrency: 4 }),
+  delivery: configurationRows({
+    awaitDeliveryTimeout: 1_209_600_000,
+    awaitReturnTimeout: 2_592_000_000,
+  }),
   marketplace: configurationRows({ url: 'http://marketplace.invalid/api' }),
   outbox: configurationRows({ maxAttempts: 5 }),
   breaker: flowParticipants().flatMap(participant =>
@@ -86,9 +90,7 @@ describe('the transaction shell', () => {
   // the layer still builds — measured on the live lab, invisible to the build.
   it('exposes what the start routes read, not only what the engine does', () => {
     type Exposed = Layer.Success<
-      Effect.Success<
-        ReturnType<ReturnType<typeof transactionComposition>>
-      >
+      Effect.Success<ReturnType<ReturnType<typeof transactionComposition>>>
     >;
     const routesRead: [ServiceCrossingTokenTag, FlowEngineTag] extends [
       Exposed,

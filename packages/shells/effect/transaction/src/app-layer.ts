@@ -7,6 +7,8 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { deliveryDialsLayer } from './flow/delivery-dials.js';
+import { startShippingSignals } from './flow/shipping-signals.js';
 import { httpVendorFactsLayer } from './flow/vendor-facts.js';
 import {
   type Participant,
@@ -90,12 +92,21 @@ export const transactionComposition =
       // `provideMerge`, not `provide`: the routes read the security layers and
       // the inbound crossing token from this composition's output, not only
       // the engine below them.
-      return Layer.provideMerge(
-        Layer.merge(
+      const flows = Layer.provideMerge(
+        Layer.mergeAll(
           yield* workflowComposition(configuration, participants, runner),
           httpVendorFactsLayer(catalogUrl),
+          yield* deliveryDialsLayer(configuration),
         ),
         connections,
+      );
+      // The delivery flow's waits are answered here, on the process that
+      // serves the starts; a runner-only replica walks flows and listens to
+      // nothing. The queue is `work`, so a second replica of this process
+      // would share it rather than signal twice.
+      return Layer.provideMerge(
+        Layer.effectDiscard(startShippingSignals),
+        flows,
       );
     });
 

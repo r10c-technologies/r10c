@@ -21,10 +21,12 @@ import { FlowEngineTag } from '@entifix/transactions';
 import {
   cancellationRecipe,
   checkoutRecipe,
+  deliveryRecipe,
   flowCatalog,
 } from '@r10c/shells-effect-flow-catalog';
 import { Effect } from 'effect';
 
+import { type DeliveryDials, DeliveryDialsTag } from './delivery-dials.js';
 import { VendorFactsTag } from './vendor-facts.js';
 
 type Body = Readonly<Record<string, unknown>>;
@@ -42,9 +44,10 @@ const isString = (value: unknown): value is string =>
 
 /**
  * One flow a caller may start, and what the coordinator states into its start
- * input before composing: the vendors' entitlements as it verified them, and —
- * for a checkout — the group's id, which is the flow's own (ADR 0069). Whatever
- * the caller sent for either is overwritten.
+ * input before composing: the vendors' entitlements as it verified them, for a
+ * checkout the group's id, which is the flow's own (ADR 0069), and for a
+ * delivery the windows it waits in, which are configuration. Whatever the
+ * caller sent for any of them is overwritten.
  */
 interface FlowStart {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each recipe has its own input
@@ -55,6 +58,7 @@ interface FlowStart {
     input: Body,
     entitlements: ReadonlyMap<string, readonly string[]>,
     flowId: string,
+    dials: DeliveryDials,
   ) => Body;
 }
 
@@ -105,6 +109,24 @@ export const FLOW_STARTS = {
           input['shipped'] === true && verified.includes(SHIPPING_ENTITLEMENT),
       };
     },
+  },
+  /**
+   * Started by fulfilment-service when a vendor dispatches, from the shipment
+   * it stores. On `dispatch-step`, the crossing permission of the pivot the
+   * flow runs: whoever may have a parcel dispatched may start its delivery,
+   * and no new line joins `SERVICE_CROSSING_PERMISSIONS`.
+   */
+  delivery: {
+    recipe: deliveryRecipe,
+    permission:
+      'shipping-order-management:shipping-order:dispatch-step' as Permission,
+    vendorsOf: input => [input['vendorId']].filter(isString),
+    state: (input, entitlements, _flowId, dials) => ({
+      ...input,
+      entitlements: entitlements.get(String(input['vendorId'])) ?? [],
+      awaitDeliveryMs: dials.awaitDeliveryMs,
+      awaitReturnMs: dials.awaitReturnMs,
+    }),
   },
 } as const satisfies Readonly<Record<string, FlowStart>>;
 
@@ -160,6 +182,7 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         const key = yield* IdempotencyKeyTag;
         const input = recordOf(payload) ?? {};
         const facts = yield* VendorFactsTag;
+        const dials = yield* DeliveryDialsTag;
         const entitlements = yield* facts.entitlementsOf(
           start.vendorsOf(input),
         );
@@ -170,7 +193,7 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
           COORDINATOR,
           recordOf(payload) === undefined
             ? payload
-            : start.state(input, entitlements, flowId),
+            : start.state(input, entitlements, flowId, dials),
           { flowId, composedAt: new Date().toISOString() },
         );
         const engine = yield* FlowEngineTag;
@@ -184,7 +207,7 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
 };
 
 /**
- * `POST /api/flow/checkout` and `POST /api/flow/cancellation` — a flow
+ * `POST /api/flow/checkout`, `/cancellation` and `/delivery` — a flow
  * started, answered `202` with what to follow, never with its outcome
  * (ADR 0066, ADR 0073). One endpoint per recipe so each carries its own
  * permission; the coordinator composes from what it verified, validates, and
@@ -193,4 +216,5 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
 export const flowStartEndpoints = [
   startEndpoint('checkout'),
   startEndpoint('cancellation'),
+  startEndpoint('delivery'),
 ] as const;

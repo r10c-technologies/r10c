@@ -1,11 +1,20 @@
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
+import { deliveryCorrelation } from '@r10c/shells-effect-flow-catalog';
+import { Effect } from 'effect';
 
-import { PROVISIONED_VENDOR, startMockService } from '../support/mock-service';
+import {
+  calls,
+  currentOrder,
+  DELIVERY_DIALS,
+  engine,
+  PROVISIONED_VENDOR,
+  startMockService,
+} from '../support/mock-service';
 import { bearerFor, E2E_CROSSING_TOKEN } from '../support/tokens';
 
 /**
- * `POST /api/flow/checkout` and `POST /api/flow/cancellation` — a flow
- * started and answered `202` with what to follow (ADR 0066, #486, #487).
+ * `POST /api/flow/checkout`, `/cancellation` and `/delivery` — a flow
+ * started and answered `202` with what to follow (ADR 0066, #486–#488).
  *
  * The real routes, guards and grant table, over the engine's fake: what is
  * proven here is who may start a flow, what the coordinator verifies before
@@ -124,5 +133,128 @@ describe('POST /api/flow/cancellation', () => {
 
     expect(res.status).toBe(202);
     expect(res.data.meta.type).toBe('flowAccepted');
+  });
+});
+
+/**
+ * The delivery flow (#488), driven as the coordinator's `shipping-order.*`
+ * consumer drives it: a correlated signal per report, by shipment. The
+ * participants are fakes, so what is proven is which steps a report leads to.
+ */
+describe('POST /api/flow/delivery', () => {
+  const start = async (orderId: string, paymentMethod: 'card' | 'cod') => {
+    currentOrder.id = orderId;
+    return service.client.post(
+      '/api/flow/delivery',
+      {
+        shippingOrderId: orderId,
+        orderId,
+        groupId: 'grp-1',
+        vendorId: PROVISIONED_VENDOR,
+        paymentMethod,
+        amountDue: paymentMethod === 'cod' ? 500 : 0,
+        currency: 'GTQ',
+        lines: [{ offeringId: 'o-1', quantity: 1 }],
+      },
+      { headers: crossing() },
+    );
+  };
+
+  const report = (orderId: string, outcome: string) => {
+    currentOrder.id = orderId;
+    return Effect.runPromise(
+      Effect.result(
+        engine.signalCorrelated(deliveryCorrelation(orderId), { outcome }),
+      ),
+    );
+  };
+
+  /** The steps called for one order, without its vendor segment. */
+  const stepsOf = (orderId: string) =>
+    calls
+      .filter(call => call.orderId === orderId)
+      .map(call => call.step.split(':').slice(1).join(':'));
+
+  it('dispatches and waits, answered 202, on the dispatch-step crossing', async () => {
+    const res = await start('ord-wait', 'cod');
+
+    expect(res.status).toBe(202);
+    expect(stepsOf('ord-wait')).toEqual([
+      'fulfilment.dispatch',
+      'order.mark-dispatched',
+    ]);
+  });
+
+  it('records the cash collected for a delivered COD order, and closes it fulfilled', async () => {
+    await start('ord-cod-delivered', 'cod');
+
+    expect(await report('ord-cod-delivered', 'delivered')).toMatchObject({
+      _tag: 'Success',
+    });
+    expect(stepsOf('ord-cod-delivered')).toEqual([
+      'fulfilment.dispatch',
+      'order.mark-dispatched',
+      'payment.record-collection',
+      'order.close-fulfilled',
+    ]);
+  });
+
+  it('puts a refused COD parcel back once returned, and closes the order cancelled', async () => {
+    await start('ord-cod-refused', 'cod');
+
+    await report('ord-cod-refused', 'refused');
+    // The return is a report for the wait after, so a second refusal is not.
+    expect(await report('ord-cod-refused', 'refused')).toMatchObject({
+      failure: { _tag: 'FlowSignalRejected' },
+    });
+    await report('ord-cod-refused', 'returned');
+
+    expect(stepsOf('ord-cod-refused')).toEqual([
+      'fulfilment.dispatch',
+      'order.mark-dispatched',
+      'o-1:stock.restore',
+      'order.close-cancelled',
+    ]);
+  });
+
+  it('refunds a card order whose parcel came back', async () => {
+    await start('ord-card-refused', 'card');
+
+    await report('ord-card-refused', 'refused');
+    await report('ord-card-refused', 'returned');
+
+    expect(stepsOf('ord-card-refused').slice(-3)).toEqual([
+      'o-1:stock.restore',
+      'order.close-cancelled',
+      'payment.refund-after-delivery',
+    ]);
+  });
+
+  it('strands a flow whose refused parcel never comes back, and puts nothing back', async () => {
+    const res = await start('ord-lost', 'card');
+    await report('ord-lost', 'refused');
+
+    await new Promise(resolve => {
+      setTimeout(resolve, DELIVERY_DIALS.awaitReturnMs * 3);
+    });
+
+    const status = await Effect.runPromise(
+      engine.status(res.data.data.flowId as string),
+    );
+    expect(status).toMatchObject({ state: 'stranded' });
+    expect(stepsOf('ord-lost')).toEqual([
+      'fulfilment.dispatch',
+      'order.mark-dispatched',
+    ]);
+  });
+
+  it('refuses a start that presents no crossing token', async () => {
+    const res = await service.client.post(
+      '/api/flow/delivery',
+      { shippingOrderId: 'ord-1' },
+      { headers: { 'idempotency-key': '"k"', Authorization: '' } },
+    );
+
+    expect(res.status).toBe(401);
   });
 });

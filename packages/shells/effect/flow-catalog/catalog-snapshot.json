@@ -36,9 +36,9 @@
       "fingerprint": "0f76b9eb1662e5"
     },
     {
-      "ref": "fulfilment.await-delivery@2",
+      "ref": "fulfilment.await-delivery@3",
       "id": "fulfilment.await-delivery",
-      "version": 2,
+      "version": 3,
       "module": "shipping-order-management",
       "kind": "wait",
       "cardinality": "one",
@@ -56,6 +56,10 @@
         ]
       },
       "excludedFrom": {},
+      "outcomes": [
+        "delivered",
+        "refused"
+      ],
       "consumes": {
         "shippingOrderId": {
           "dialect": "draft-2020-12",
@@ -139,12 +143,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0aa292e4ffe970"
+      "fingerprint": "1b5f91ae6132d5"
     },
     {
-      "ref": "fulfilment.await-return@2",
+      "ref": "fulfilment.await-return@3",
       "id": "fulfilment.await-return",
-      "version": 2,
+      "version": 3,
       "module": "shipping-order-management",
       "kind": "wait",
       "cardinality": "one",
@@ -162,6 +166,9 @@
         ]
       },
       "excludedFrom": {},
+      "outcomes": [
+        "returned"
+      ],
       "consumes": {
         "shippingOrderId": {
           "dialect": "draft-2020-12",
@@ -245,7 +252,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0aa292e4ffe970"
+      "fingerprint": "068c887d082cd4"
     },
     {
       "ref": "fulfilment.dispatch@2",
@@ -1963,6 +1970,125 @@
         }
       },
       "fingerprint": "01d132e382c7d6"
+    },
+    {
+      "ref": "payment.refund-after-delivery@1",
+      "id": "payment.refund-after-delivery",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/refund"
+      },
+      "readOnly": false,
+      "irreversible": true,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "orderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "noCapturedPayment",
+                  "refundDeclined",
+                  "refundExceedsCapture"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "0e059779e57d19"
     },
     {
       "ref": "payment.refund@2",

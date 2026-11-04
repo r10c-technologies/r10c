@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Revised: 2026-11-04 — the delivery flow built (#488): a vendor's `dispatch` starts it, it branches on the courier's report through guards on its waits, a refused card delivery refunds as a retried step after the dispatch pivot rather than through a child flow, a return the window never sees strands the flow, and a parcel is returned only after it was refused
 - Area: business
 - Read when: an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout
 
@@ -32,10 +33,27 @@ outlive its expiry waiting for a courier.
 
 ### The delivery flow
 
-Dispatch is its pivot. After it the flow waits for delivery, then records the
-collection and closes; or waits for a return, restores the stock and closes. A
-refused card delivery refunds through a child flow. Card orders ship too, so
-the old `fulfil` verb is deleted.
+Dispatch is its pivot, and a vendor's `dispatch` verb starts the flow rather
+than moving the shipment itself. After it the flow waits for the courier's
+report, then records the collection and closes; or — refused, or no report in
+the delivery window — waits for a return, restores the stock and closes. Which
+tail runs is decided by the report: each step after the wait is guarded on the
+outcomes it was answered with.
+
+A refused card delivery refunds as a **retried step after the dispatch**, not
+through a child flow. A slip has one point of no return and this one already
+passed it, so everything after it rolls forward
+([ADR 0054](0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)) —
+which is exactly a refund that has to happen: retried, idempotent on its key,
+and refused by the allocation's guard past what was captured. A child flow
+would have been a second recipe, a second start route and a step calling the
+coordinator itself, all for the same call.
+
+A return that the return window never sees **strands** the flow for a person:
+nothing in it can decide whether goods that are nowhere go back on the shelf.
+A parcel is returned only after it was refused — one delivered is the flow's
+end, and a return after delivery is a flow of its own, not built. Card orders
+ship too, so the old `fulfil` verb is deleted.
 
 ### Catalog extensions
 

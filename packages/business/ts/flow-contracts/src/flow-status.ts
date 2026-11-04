@@ -86,6 +86,8 @@ export const FLOW_EVENT_STATES: Readonly<Record<FlowEventName, FlowState>> = {
   'flow.suspended': 'suspended',
   'flow.completed': 'completed',
   'flow.failed': 'failed',
+  // A delivery whose parcel never came back: ended for a person, not retried.
+  'flow.stranded': 'stranded',
 };
 
 const isFlowEventName = (name: string): name is FlowEventName =>

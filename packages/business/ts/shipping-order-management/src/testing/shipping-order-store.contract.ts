@@ -63,12 +63,28 @@ export const describeShippingOrderStoreContract = (
       expect(await run(store.get('org-2', 's-1'))).toBeUndefined();
     });
 
-    it('moves from dispatch to delivery to return, stamping each moment', async () => {
+    it('moves from dispatch to delivery, stamping each moment', async () => {
       const store = await make();
       await run(store.open(ORG, aShipment('s-1'), undefined));
 
       await run(store.transition(ORG, 's-1', 'dispatch', AT, undefined));
-      await run(store.transition(ORG, 's-1', 'record-delivery', AT, undefined));
+      const delivered = await run(
+        store.transition(ORG, 's-1', 'record-delivery', AT, undefined),
+      );
+
+      expect(delivered).toMatchObject({
+        status: 'delivered',
+        dispatchedAt: AT,
+        deliveredAt: AT,
+      });
+    });
+
+    it('moves from dispatch to refusal to return, stamping each moment', async () => {
+      const store = await make();
+      await run(store.open(ORG, aShipment('s-1'), undefined));
+
+      await run(store.transition(ORG, 's-1', 'dispatch', AT, undefined));
+      await run(store.transition(ORG, 's-1', 'record-refusal', AT, undefined));
       const returned = await run(
         store.transition(ORG, 's-1', 'record-return', AT, undefined),
       );
@@ -76,7 +92,7 @@ export const describeShippingOrderStoreContract = (
       expect(returned).toMatchObject({
         status: 'returned',
         dispatchedAt: AT,
-        deliveredAt: AT,
+        refusedAt: AT,
         returnedAt: AT,
       });
     });

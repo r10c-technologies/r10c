@@ -6,6 +6,7 @@
 - Read when: a flow spans slices, has to survive its coordinator dying, or answers `202` — flows run on Effect Workflow over Postgres, and the saga runner and tracker are deleted, not kept beside it
 - Revised: 2026-10-29 — the tracker and the single-step engine's only use went ahead of wave 4: the specification create is a unit of work (#463)
 - Revised: 2026-11-04 — built (#486, #487, #490): checkout and cancellation run on the engine, started by `POST /api/flow/<recipe>` answering `202`; the saga runner, its `saga` store, its resume sweep, `GET /api/saga/:id` and `saga-contracts` are deleted, `FlowStarterTag` lives in `flow-contracts`, and `postFlow` replaced `postSaga`
+- Revised: 2026-11-04 — the delivery flow (#488) adopted entifix 0.16.0's grammar: a wait declares its outcomes, a step is guarded on them, a timeout answers an outcome or strands the flow (`flow.stranded`), and a correlated signal finds its wait by the shipment alone
 
 ## Context
 

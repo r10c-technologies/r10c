@@ -9,6 +9,7 @@ import {
   fleetOutboxLayer,
   fleetSecurityLayer,
   fleetTenantMongoLayer,
+  httpFlowStarterLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
@@ -40,10 +41,21 @@ export const FULFILMENT_IDEMPOTENCY_DB = 'fulfilment-idempotency';
  * ⚠️ **Its own crossing secret.** Opening, holding, withdrawing and dispatching
  * a vendor's shipment are a flow's acts on that vendor's store, behind a token
  * that is this service's alone (ADR 0023).
+ *
+ * ⚠️ **And the coordinator's inbound one.** A vendor's dispatch starts the
+ * delivery flow, which makes this service the fourth holder of that secret,
+ * beside the storefront, sales-service and order-service — and, as
+ * order-service is for a cancellation, a participant in the flow it starts:
+ * a dispatch's authority is the vendor's session, verifiable only here.
  */
 export const fulfilmentComposition = (configuration: FleetConfiguration) =>
   Effect.gen(function* () {
+    const coordinator = configuration.store.in('transaction');
     const connections = Layer.mergeAll(
+      httpFlowStarterLayer({
+        url: yield* coordinator.getString('url'),
+        crossingToken: yield* coordinator.getString('crossingToken'),
+      }),
       yield* fleetTenantMongoLayer(configuration, ['fulfilment']),
       yield* fleetSecurityLayer(configuration),
       yield* crossingTokenLayer(configuration),

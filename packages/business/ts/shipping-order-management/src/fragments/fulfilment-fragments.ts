@@ -156,13 +156,15 @@ export const fulfilmentDispatch = defineFragment({
 });
 
 /**
- * Wait for the courier's report: completed by `shipping-order.delivered` or
- * `.refused`, timed out by the delivery window. A wait makes no call; the one
- * named is the read that says where the shipment stands.
+ * Wait for the courier's report: answered `delivered` or `refused` by the
+ * `shipping-order.*` event the vendor's record makes, and by the delivery
+ * window's timeout when nothing came. A wait makes no call; the one named is
+ * the read that says where the shipment stands.
  */
 export const fulfilmentAwaitDelivery = defineFragment({
   id: 'fulfilment.await-delivery',
-  version: 2,
+  version: 3,
+  outcomes: ['delivered', 'refused'],
   module: 'shipping-order-management',
   kind: 'wait',
   participant: PARTICIPANT,
@@ -177,10 +179,15 @@ export const fulfilmentAwaitDelivery = defineFragment({
   },
 });
 
-/** Wait for a refused or returned parcel to reach the vendor again. */
+/**
+ * Wait for a refused parcel to reach the vendor again: answered `returned` by
+ * `shipping-order.returned`. A `delivered` or `refused` arriving now is a
+ * report for the wait before, and is refused rather than taken.
+ */
 export const fulfilmentAwaitReturn = defineFragment({
   id: 'fulfilment.await-return',
-  version: 2,
+  version: 3,
+  outcomes: ['returned'],
   module: 'shipping-order-management',
   kind: 'wait',
   participant: PARTICIPANT,

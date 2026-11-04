@@ -131,10 +131,27 @@ export const paymentCodEligible = defineFragment({
   },
 });
 
+/**
+ * Give money back for a card order whose parcel was refused or returned: the
+ * same refund as {@link paymentRefund}, as a step **after** another flow's
+ * pivot rather than as one. The delivery flow already passed its point of no
+ * return when it dispatched the parcel, a slip has one, and past it every
+ * step rolls forward — so a refund that has to happen is retried until it
+ * does, idempotent on its key, the allocation's guarded `$inc` refusing
+ * anything over what was captured (ADR 0054, ADR 0070).
+ */
+export const paymentRefundAfterDelivery = defineFragment({
+  ...paymentRefund,
+  id: 'payment.refund-after-delivery',
+  version: 1,
+  kind: 'retriable',
+});
+
 /** Every fragment payment-management contributes. */
 export const PAYMENT_FRAGMENTS = [
   paymentCapture,
   paymentRefund,
+  paymentRefundAfterDelivery,
   paymentRecordCollection,
   paymentCodEligible,
 ] as const;

@@ -28,6 +28,7 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { flowCatalog } from '@r10c/shells-effect-flow-catalog';
 import {
+  DeliveryDialsTag,
   endpoints,
   policy,
   SERVICE_NAME,
@@ -54,10 +55,31 @@ const CONFIGURATION = {
 /** A vendor provisioned for every step a checkout or a cancellation takes. */
 export const PROVISIONED_VENDOR = 'demo-organization';
 
-/** The engine every start in this run reached, to read what it was given. */
-export const engine = makeFakeFlowEngine(flowCatalog, () =>
-  Effect.succeed({ ok: true }),
-);
+/** Every participant call the engine made, by the order a case named and the step. */
+export const calls: Array<{ readonly orderId: string; readonly step: string }> =
+  [];
+
+/**
+ * The engine every start in this run reached, to read what it was given and
+ * to answer its waits as the coordinator's `shipping-order.*` consumer would.
+ */
+export const engine = makeFakeFlowEngine(flowCatalog, step => {
+  calls.push({ orderId: currentOrder.id, step: step.step });
+  return Effect.succeed({ ok: true });
+});
+
+/**
+ * The order a participant call is made for. The fake engine runs a flow's
+ * steps synchronously inside the call that moves it — a start or a signal —
+ * so a case names its order before the call it makes.
+ */
+export const currentOrder = { id: '' };
+
+/**
+ * The windows a delivery waits in: the report's long enough that no case
+ * outruns it, the return's short enough to watch a flow strand.
+ */
+export const DELIVERY_DIALS = { awaitDeliveryMs: 600_000, awaitReturnMs: 300 };
 
 /**
  * The `mock` composition root: the real routes, guards and grant table over
@@ -67,6 +89,7 @@ export const engine = makeFakeFlowEngine(flowCatalog, () =>
  */
 const MockAppLayer = Layer.mergeAll(
   Layer.succeed(FlowEngineTag, engine),
+  Layer.succeed(DeliveryDialsTag, DELIVERY_DIALS),
   Layer.succeed(VendorFactsTag, {
     entitlementsOf: vendorIds =>
       Effect.succeed(

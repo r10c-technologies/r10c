@@ -36,10 +36,11 @@ const captureIn = (paymentMethod: string): Slip => ({
 });
 
 describe('payment fragments', () => {
-  it('are two irreversible pivots, a retried collection and a read-only check', () => {
+  it('are two irreversible pivots, a retried refund and collection, and a read-only check', () => {
     expect(PAYMENT_FRAGMENTS.map(fragmentRef)).toEqual([
       'payment.capture@3',
       'payment.refund@2',
+      'payment.refund-after-delivery@1',
       'payment.record-collection@1',
       'payment.cod-eligible@1',
     ]);
@@ -52,9 +53,19 @@ describe('payment fragments', () => {
       'pivot',
       'pivot',
       'retriable',
+      'retriable',
       'compensatable',
     ]);
-    expect(PAYMENT_FRAGMENTS[3]?.readOnly).toBe(true);
+    expect(PAYMENT_FRAGMENTS[4]?.readOnly).toBe(true);
+  });
+
+  it('refunds after a delivery on the refund’s own route, contract and refusals', () => {
+    const [, refund, afterDelivery] = PAYMENT_FRAGMENTS;
+    expect(afterDelivery).toMatchObject({
+      call: refund.call,
+      contract: refund.contract,
+      irreversible: true,
+    });
   });
 
   it('let a card segment capture', () => {

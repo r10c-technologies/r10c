@@ -388,8 +388,185 @@ export const cancellationRecipe: Recipe<CancellationStart> = {
   ],
 };
 
+/**
+ * What a delivery flow's waits are correlated with: its shipment. The
+ * coordinator's `shipping-order.*` consumer signals by it, knowing the
+ * shipment a vendor's report names and neither the flow nor its step names.
+ */
+export const deliveryCorrelation = (shippingOrderId: string) =>
+  `delivery:${shippingOrderId}`;
+
+/** A courier's report the delivery flow branches on, past its two waits. */
+export const DELIVERY_OUTCOMES = {
+  delivered: 'delivered',
+  refused: 'refused',
+  /** No report inside the delivery window — handled as a refusal. */
+  unanswered: 'unanswered',
+  returned: 'returned',
+} as const;
+
+/** A positive whole number of milliseconds. */
+const Millis = Schema.Int.check(Schema.isGreaterThan(0));
+
+/**
+ * What a delivery starts from: the shipment as fulfilment-service stored it —
+ * the authority on it — and, stated by the coordinator, the vendor's verified
+ * entitlements and the two windows, which are configuration rows rather than
+ * anything a caller says.
+ */
+export const DeliveryStart = openStruct({
+  shippingOrderId: Schema.NonEmptyString,
+  orderId: Schema.NonEmptyString,
+  groupId: Schema.NonEmptyString,
+  vendorId: Schema.NonEmptyString,
+  paymentMethod: Schema.Literals(PAYMENT_METHODS),
+  amountDue: Schema.Number,
+  currency: Schema.NonEmptyString,
+  lines: Schema.Array(ReturnedLine).check(Schema.isMinLength(1)),
+  buyerId: Schema.optionalKey(Schema.String),
+  entitlements: Schema.optionalKey(Schema.Array(Schema.String)),
+  awaitDeliveryMs: Millis,
+  awaitReturnMs: Millis,
+});
+export type DeliveryStart = typeof DeliveryStart.Type;
+
+const theShipment = (_context: unknown, start: DeliveryStart) => ({
+  orderId: start.orderId,
+  shippingOrderId: start.shippingOrderId,
+  organizationId: start.vendorId,
+});
+
+const AWAIT_DELIVERY = 'fulfilment.await-delivery';
+const AWAIT_RETURN = 'fulfilment.await-return';
+
+/**
+ * Delivery, one vendor order (ADR 0070): hand the parcel to the courier — the
+ * pivot, after which nothing is undone — and mark the order dispatched; then
+ * wait for the courier's report, for as long as the delivery window.
+ *
+ * - **Delivered**: record the cash a cash-on-delivery courier collected, and
+ *   close the order fulfilled.
+ * - **Refused, or no report in the window**: wait for the parcel to come
+ *   back, put the goods back as a `return`, close the order cancelled, and
+ *   give a card buyer their money back. A parcel that never comes back in the
+ *   return window strands the flow for a person: nothing here can decide
+ *   whether goods that are nowhere go back on the shelf.
+ *
+ * The refund is a retried step past the dispatch, not a pivot of its own: a
+ * slip has one point of no return, and this one already passed it.
+ */
+export const deliveryRecipe: Recipe<DeliveryStart> = {
+  name: 'delivery',
+  input: DeliveryStart,
+  requiresCommitPoint: true,
+  provides: { orderId: Schema.String, shippingOrderId: Schema.String },
+  segments: start => [
+    {
+      vendor: start.vendorId,
+      paymentMethod: start.paymentMethod,
+      entitlements: start.entitlements ?? [],
+    },
+  ],
+  lines: start => linesOf(start.lines),
+  audience: (start, _context, flowId) =>
+    audienceOf(flowId, [start.vendorId], undefined, start.buyerId),
+  stages: [
+    {
+      name: 'dispatch',
+      perSegment: true,
+      steps: [
+        { ref: 'fulfilment.dispatch@2', parameters: theShipment },
+        { ref: 'order.mark-dispatched@2', parameters: theShipment },
+      ],
+    },
+    {
+      name: 'await',
+      perSegment: true,
+      steps: [
+        {
+          ref: `${AWAIT_DELIVERY}@3`,
+          parameters: (context, start) => ({
+            ...theShipment(context, start),
+            correlation: deliveryCorrelation(start.shippingOrderId),
+            timeoutMs: start.awaitDeliveryMs,
+            onTimeout: { outcome: DELIVERY_OUTCOMES.unanswered },
+          }),
+        },
+      ],
+    },
+    {
+      name: 'delivered',
+      perSegment: true,
+      on: { wait: AWAIT_DELIVERY, outcomes: [DELIVERY_OUTCOMES.delivered] },
+      steps: [
+        {
+          ref: 'payment.record-collection@1',
+          when: (_context, start) => start.paymentMethod === 'cod',
+          parameters: (_context, start) => ({
+            groupId: start.groupId,
+            orderId: start.orderId,
+            vendorId: start.vendorId,
+            amount: start.amountDue,
+            currency: start.currency,
+          }),
+        },
+        {
+          ref: 'order.close@2',
+          // Named apart from the return branch's close: a step's name is its
+          // Activity's, and two steps of one slip may not share one.
+          step: 'order.close-fulfilled',
+          parameters: (context, start) => ({
+            ...theShipment(context, start),
+            outcome: 'fulfilled',
+          }),
+        },
+      ],
+    },
+    {
+      name: 'returned',
+      perSegment: true,
+      on: {
+        wait: AWAIT_DELIVERY,
+        outcomes: [DELIVERY_OUTCOMES.refused, DELIVERY_OUTCOMES.unanswered],
+      },
+      steps: [
+        {
+          ref: `${AWAIT_RETURN}@3`,
+          parameters: (context, start) => ({
+            ...theShipment(context, start),
+            correlation: deliveryCorrelation(start.shippingOrderId),
+            timeoutMs: start.awaitReturnMs,
+            onTimeout: 'strand',
+          }),
+        },
+        {
+          ref: 'stock.restore@3',
+          parameters: (_context, start) => ({
+            organizationId: start.vendorId,
+            cause: 'return',
+          }),
+        },
+        {
+          ref: 'order.close@2',
+          step: 'order.close-cancelled',
+          parameters: (context, start) => ({
+            ...theShipment(context, start),
+            outcome: 'cancelled',
+          }),
+        },
+        {
+          ref: 'payment.refund-after-delivery@1',
+          when: (_context, start) => start.paymentMethod !== 'cod',
+          parameters: theShipment,
+        },
+      ],
+    },
+  ],
+};
+
 /** Every recipe, by name — what `$metadata` resolves a verb's recipe against. */
 export const FLOW_RECIPES = {
   checkout: checkoutRecipe,
   cancellation: cancellationRecipe,
+  delivery: deliveryRecipe,
 } as const;

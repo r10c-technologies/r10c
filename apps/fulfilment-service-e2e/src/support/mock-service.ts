@@ -35,6 +35,11 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import {
+  acceptedAnswer,
+  makeScriptedFlowStarter,
+} from '@r10c/business-ts-flow-contracts/testing';
 import {
   endpoints,
   FULFILMENT_SLICE,
@@ -100,6 +105,13 @@ const MockAppLayer = (() => {
     Layer.succeed(EventBusTag, bus),
     Layer.succeed(OutboxMaxAttempts, 5),
     Layer.succeed(EventSourceTag, FULFILMENT_SLICE),
+    Layer.succeed(
+      FlowStarterTag,
+      makeScriptedFlowStarter((recipe, input, key) => {
+        flowStarts.push({ recipe, input, key });
+        return acceptedAnswer(`delivery-${String(flowStarts.length)}`);
+      }),
+    ),
   );
 
   return Layer.provideMerge(
@@ -110,6 +122,17 @@ const MockAppLayer = (() => {
     connections,
   ).pipe(Layer.orDie);
 })();
+
+/**
+ * Every delivery a dispatch asked the coordinator to start, in order. The
+ * coordinator is scripted: what a start then does is transaction-service's
+ * suite's, and the live pass's.
+ */
+export const flowStarts: Array<{
+  readonly recipe: string;
+  readonly input: unknown;
+  readonly key: string;
+}> = [];
 
 /** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>

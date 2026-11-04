@@ -44,7 +44,11 @@ const TRANSITIONS: Record<
   dispatch: { 'awaiting-dispatch': 'dispatched' },
   'record-delivery': { dispatched: 'delivered' },
   'record-refusal': { dispatched: 'refused' },
-  'record-return': { delivered: 'returned', refused: 'returned' },
+  // Only a refused parcel comes back. One returned after it was delivered
+  // has no flow waiting on it — its delivery already closed the order — so it
+  // would be a report nothing answers; that return is a flow of its own, and
+  // not this one (ADR 0070).
+  'record-return': { refused: 'returned' },
 };
 
 /** The resulting status, or `undefined` when the move is illegal. */

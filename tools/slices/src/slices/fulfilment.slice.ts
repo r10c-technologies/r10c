@@ -52,7 +52,14 @@ export const fulfilmentSlice: SliceDeclaration = {
     'POST /api/shipping-order/:id/record-refusal',
     'POST /api/shipping-order/:id/record-return',
   ],
-  dependantAPIs: ['GET /api/config/:service'],
+  dependantAPIs: [
+    'GET /api/config/:service',
+    // ⚠️ **A vendor's dispatch starts the delivery flow, which this slice is
+    // also a participant in** — the cycle order-service's cancellation makes,
+    // for the same reason: a dispatch's authority is the vendor's session,
+    // verifiable only here (ADR 0070).
+    'POST /api/flow/delivery',
+  ],
   publishedEvents: [
     'shipping-order.dispatched',
     'shipping-order.delivered',

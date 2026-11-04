@@ -14,10 +14,13 @@ import {
   Invalid,
   JsonBody,
   makeEntityEnvelope,
+  makeEnvelope,
   NotFound,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
+import type { FlowAccepted } from '@r10c/business-ts-flow-contracts';
 import {
+  dispatchShipment,
   DispatchShippingOrderUC,
   RecordDeliveryUC,
   RecordRefusalUC,
@@ -70,10 +73,7 @@ const MOVE_ERRORS = [
 /** A vendor verb on their own shipment, behind their session and its grant. */
 const vendorVerb = (
   useCase:
-    | typeof DispatchShippingOrderUC
-    | typeof RecordDeliveryUC
-    | typeof RecordRefusalUC
-    | typeof RecordReturnUC,
+    typeof RecordDeliveryUC | typeof RecordRefusalUC | typeof RecordReturnUC,
   transition: ShippingTransition,
 ) =>
   verbEndpoint(useCase, {
@@ -82,7 +82,25 @@ const vendorVerb = (
       move(request.params?.id as string, transition),
   });
 
-const dispatchVerb = vendorVerb(DispatchShippingOrderUC, 'dispatch');
+/**
+ * A vendor's dispatch starts the delivery flow, whose pivot is the dispatch
+ * itself, and answers `202` with the flow to follow (ADR 0070, ADR 0073). The
+ * three courier reports below stay plain moves: each announces itself, and the
+ * coordinator's consumer answers the flow's wait with it.
+ */
+const dispatchVerb = verbEndpoint(DispatchShippingOrderUC, {
+  guard: { kind: 'organization' },
+  accepted: true,
+  handler: (request: EntityApiRequest) =>
+    Effect.gen(function* () {
+      const accepted: FlowAccepted = yield* dispatchShipment({
+        organizationId: yield* OrganizationIdTag,
+        shippingOrderId: request.params?.id as string,
+      });
+      return makeEnvelope('flowAccepted', KEY, accepted);
+    }),
+});
+
 const deliveryVerb = vendorVerb(RecordDeliveryUC, 'record-delivery');
 const refusalVerb = vendorVerb(RecordRefusalUC, 'record-refusal');
 const returnVerb = vendorVerb(RecordReturnUC, 'record-return');

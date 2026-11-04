@@ -4,6 +4,11 @@ import {
   OrganizationIdTag,
 } from '@entifix/business';
 import { makeEntityEnvelope } from '@entifix/core';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import {
+  acceptedAnswer,
+  makeScriptedFlowStarter,
+} from '@r10c/business-ts-flow-contracts/testing';
 import {
   ShippingLine,
   ShippingOrder,
@@ -26,15 +31,27 @@ const context: EntityApiContext = {
   },
 };
 
-type R = ShippingOrderStoreTag | OrganizationIdTag;
+type R = ShippingOrderStoreTag | OrganizationIdTag | FlowStarterTag;
 
-/** One store per case, every request bound to `acme`. */
+/** One store per case, every request bound to `acme`, every flow start kept. */
 const world = () => {
+  const started: Array<{ recipe: string; input: unknown }> = [];
+  const store = makeInMemoryShippingOrderStore();
   const layer = Layer.mergeAll(
-    Layer.succeed(ShippingOrderStoreTag, makeInMemoryShippingOrderStore()),
+    Layer.succeed(ShippingOrderStoreTag, store),
     Layer.succeed(OrganizationIdTag, 'acme'),
+    Layer.succeed(
+      FlowStarterTag,
+      makeScriptedFlowStarter((recipe, input) => {
+        started.push({ recipe, input });
+        return acceptedAnswer(`flow-${String(started.length)}`);
+      }),
+    ),
   );
   return {
+    started,
+    statusOf: async (id: string) =>
+      (await Effect.runPromise(store.get('acme', id)))?.status,
     run: <A, E>(effect: Effect.Effect<A, E, R>) =>
       Effect.runPromise(Effect.provide(effect, layer)) as Promise<{
         data: { id: string; status: string };
@@ -157,22 +174,51 @@ describe('the flow’s steps', () => {
 });
 
 describe('the vendor’s verbs', () => {
-  it('dispatch a parcel and record its delivery, refusal and return', async () => {
+  it('dispatch by starting the delivery flow, and answer the flow to follow', async () => {
+    const w = world();
+    const id = await opened(w);
+
+    const answer = (await w.run(verb(dispatch, id))) as unknown as {
+      meta: { type: string };
+      data: { flowId: string };
+    };
+
+    expect(answer.meta.type).toBe('flowAccepted');
+    expect(answer.data.flowId).toBe('flow-1');
+    expect(w.started).toEqual([
+      {
+        recipe: 'delivery',
+        input: expect.objectContaining({
+          shippingOrderId: id,
+          vendorId: 'acme',
+        }),
+      },
+    ]);
+    // The flow's pivot dispatches it; the verb itself moves nothing.
+    expect(await w.statusOf(id)).toBe('awaiting-dispatch');
+  });
+
+  it('record what the courier reported, once the flow dispatched the parcel', async () => {
     const w = world();
     const delivered = await opened(w);
     const refused = await opened(w, 'order-2');
 
-    await w.run(verb(dispatch, delivered));
-    const done = await w.run(verb(delivery, delivered));
-    const back = await w.run(verb(returned, delivered));
+    await w.run(at(dispatchStep, { params: { id: delivered } }));
     await w.run(at(dispatchStep, { params: { id: refused } }));
+    const done = await w.run(verb(delivery, delivered));
     const no = await w.run(verb(refusal, refused));
+    const back = await w.run(verb(returned, refused));
 
-    expect([done, back, no].map(answer => answer.data.status)).toEqual([
+    expect([done, no, back].map(answer => answer.data.status)).toEqual([
       'delivered',
-      'returned',
       'refused',
+      'returned',
     ]);
+    // A delivered parcel is the delivery flow's end, and comes back as no
+    // return of this one.
+    expect((await w.refusal(verb(returned, delivered))).code).toBe(
+      'shippingOrderNotTransitionable',
+    );
   });
 
   it('answers a shipment that is not the caller’s as not found', async () => {
