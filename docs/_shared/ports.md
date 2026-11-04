@@ -135,9 +135,10 @@ config rows (#462). The saga runner, its `saga` store, its resume sweep and
 `GET /api/saga/:id` were deleted when checkout and cancellation moved onto the
 engine (#490).
 
-⚠️ **Both app `dev` targets start it**: the storefront's checkout and the till's
-counter sale both start here. Neither starts order-service or payment-service,
-so a live checkout still needs those two by hand.
+⚠️ **Both app `dev` targets start it, and every participant with it**: the
+storefront's checkout and the till's counter sale both start here, so each app's
+`dev` also starts stock-, order-, payment- and fulfilment-service — a flow whose
+participant nothing started fails at its first step.
 
 It holds a **crossing token per participant**, which is the concentration
 ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
@@ -200,7 +201,7 @@ refunded writes the sale and its mirror in a single transaction. A separate
 reversal record would have written neither.
 
 ⚠️ **A refused capture and a refused refund announce nothing.** A capture
-that refused is the checkout saga's pivot refusing, which compensates the flow
+that refused is the checkout flow's pivot refusing, which compensates the flow
 and deletes the order — nothing to settle and nothing to un-settle — and an
 event no slice subscribes to is not published
 ([ADR 0068](../adr/0068-one-outbox-ordered-per-aggregate.md)).
@@ -214,8 +215,8 @@ arrives on the bus, so nothing dispatches into it, and every route it serves is
 guarded by a verified session. It is the only slice in the fleet with a store, a bus
 connection and no service secret at all.
 
-**`back-office:dev` starts it**, unlike order-service and payment-service,
-because it has a back-office surface: a vendor's terms and
+**`back-office:dev` starts it** and `mp:dev` does not, because it is no
+checkout participant and has a back-office surface: a vendor's terms and
 their statement are screens, and a proxy pointed at a process nothing started is
 a nav item that 502s.
 
@@ -243,7 +244,7 @@ keeps `authorize` and `capture` separate, because roughly a fifth of Guatemalan
 e-commerce is _contra entrega_ — the money reaches a courier's hand days after
 the order, which is only sayable if the two are separate calls.
 
-⚠️ **`POST /api/payment` is the checkout saga's pivot**, and the only write in
+⚠️ **`POST /api/payment` is the checkout flow's pivot**, and the only write in
 the fleet that cannot be compensated. It takes a **crossing token and no
 session** — the buyer behind a checkout holds no grant over the capture made on
 their behalf — while its reads take a session and no token. One route, one
@@ -260,10 +261,10 @@ for once ([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)).
 `payment.captured` carries the allocations, so order-service advances every
 order a capture paid for and settlement folds each one.
 
-⚠️ **`POST /api/refund` is the _cancellation_ saga's pivot**, and the second
+⚠️ **`POST /api/refund` is the _cancellation_ flow's pivot**, and the second
 write here that cannot be compensated. It takes a crossing token and no session
 for the same reason the capture does, and it is addressed by **order id** — the
-saga holds an order and has never seen a payment — resolving that order's
+flow holds an order and has never seen a payment — resolving that order's
 allocation itself. Without an `amount` it gives back all that is left of the
 share; with one, that part of it. A `Refund` is its own record: ADR 0054
 protects the capture row as the evidence a customer was charged, so a
@@ -289,14 +290,13 @@ it as one would be backwards: it is a new money movement whose own reversal
 question has the same answer, because un-refunding is charging a customer again.
 
 It publishes `payment.captured` and `payment.refunded` from an
-outbox in its own store. The capture _decision_ never arrives as a message — the saga dispatches
-it — so what the bus carries is the consequence: order-service advances an order
+outbox in its own store. The capture _decision_ never arrives as a message — the checkout flow
+dispatches it — so what the bus carries is the consequence: order-service advances an order
 to `paid`, and settlement will fold a commission entry in M6.
 
-⚠️ **No dev target starts it.** Like order-service it is not a dependency of
-either frontend's `dev` (transaction-service is, since #283), so a live checkout
-needs it started by hand — `node apps/payment-service/dist/main.js` — or the saga's pivot fails
-against an address nothing is listening on.
+**Both app `dev` targets start it**, as they start every checkout participant:
+a fleet without it is a checkout whose pivot fails against an address nothing
+is listening on.
 
 ⁷ **order-service, bound.** It owns the `order` store — **platform** plane and
 single, one named database, which is the opposite of stock's per-request tenant
@@ -313,7 +313,7 @@ by transaction-service, which holds both halves of the checkout flow; this
 service is a _participant_. The checkout writes accept a **crossing token and no
 session** — the buyer behind a checkout holds no grant over the receipt written
 on their behalf — while its reads accept a session and no token. One route, one
-credential, each way ([ADR 0052](../adr/0052-the-checkout-saga.md)).
+credential, each way ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)).
 
 `DELETE /api/product-order/:id` is a **compensation**, not a customer-facing
 cancel: it undoes a step that should not have happened. A cancellation is a
@@ -384,7 +384,7 @@ is `stock-management:stock-movement:restore` rather than the `stock-movement:wri
 a vendor's own session holds, so a crossing token can write the one correction a
 cancellation makes and not that vendor's whole ledger
 ([ADR 0058](../adr/0058-the-order-after-payment.md)). `reason` is server-owned,
-and the route is idempotent on `Idempotency-Key` because the cancellation saga
+and the route is idempotent on `Idempotency-Key` because the cancellation flow
 dispatches it **after** its pivot.
 
 ⚠️ **A restoration names its cause, and a return is not a cancellation.** The
@@ -405,7 +405,7 @@ releases one and `POST /api/reservation/:id/conversion` converts it to a sale.
 Each carries its own crossing permission, and there is deliberately no `PUT` — a
 generic save could rewrite a quantity or an expiry after the fact, which is a
 hold that never expires granted by its holder. ⚠️ **Both answer `200` when the
-hold was already gone.** They are compensations the checkout saga dispatches,
+hold was already gone.** They are compensations the checkout flow dispatches,
 delivery is at-least-once, and a compensation that errors on its second delivery
 strands a flow that had in fact been fully reversed; the body says which
 happened. A sweep releases what expired, walking every `stock_<organizationId>`
@@ -427,7 +427,7 @@ member of the organization that owns it, so a verified session is the only
 credential any route accepts.
 
 ⚠️ **It owns the channel and never the sale.** A counter sale is a
-`ProductOrder` with a `channel` on it, written by the checkout saga through
+`ProductOrder` with a `channel` on it, written by the checkout flow through
 order-service — the same order the storefront produces, which is what keeps a
 vendor's takings one query rather than two
 ([ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)).
@@ -503,8 +503,8 @@ the vendor, and the delivery flow (#488) waits on it.
 
 **It holds its own crossing token and accepts the coordinator's** —
 `participant.fulfilmentToken` on transaction-service, `service.token` here — and
-nothing else. No dev target starts it yet: the dispatch worklist that gives it a
-back-office surface is #489.
+nothing else. Both app `dev` targets start it, since a checkout opens a
+shipment; the dispatch worklist that gives it a back-office surface is #489.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

@@ -50,14 +50,18 @@ pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-serv
                                            #        realtime-service, the stream
                                            #        the edge routes to; and
                                            #        transaction-service, which
-                                           #        a checkout starts on)
+                                           #        a checkout starts on, with
+                                           #        its participants stock-,
+                                           #        order-, payment- and
+                                           #        fulfilment-service)
 pnpm nx run back-office-app:dev            # :3001 (catalog + system management +
                                            #        users + account, one origin;
                                            #        auto-starts admin-service,
                                            #        auth-service, config-service,
                                            #        marketplace-, stock-, sales-,
-                                           #        settlement-, transaction-
-                                           #        and realtime-service)
+                                           #        settlement-, transaction-,
+                                           #        realtime-, order-, payment-
+                                           #        and fulfilment-service)
 pnpm nx run config-service:dev             # :3190 (Postgres; runs ensure-infra first)
 pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + RabbitMQ;
                                            #        +config-service)

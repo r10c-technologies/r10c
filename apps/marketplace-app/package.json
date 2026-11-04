@@ -42,7 +42,11 @@
               "@r10c/marketplace-admin-service",
               "@r10c/auth-service",
               "@r10c/realtime-service",
-              "@r10c/transaction-service"
+              "@r10c/transaction-service",
+              "@r10c/stock-service",
+              "@r10c/order-service",
+              "@r10c/payment-service",
+              "@r10c/fulfilment-service"
             ],
             "target": "dev"
           },
