@@ -5,7 +5,6 @@ import {
 } from '@r10c/shells-effect-service';
 
 import { flowStartEndpoints } from './flow/flow-endpoints.js';
-import { sagaEndpoints } from './saga/saga-endpoints.js';
 
 /**
  * The `transaction` slice's endpoints, served as one `HttpApi` by
@@ -16,9 +15,8 @@ import { sagaEndpoints } from './saga/saga-endpoints.js';
  * permission, answered `202` (ADR 0066).
  */
 export const endpoints = [
-  serviceBaseGroup({ service: '@r10c/transaction-service', store: 'mongo' }),
+  serviceBaseGroup({ service: '@r10c/transaction-service', store: 'sql' }),
   endpointGroup('flow', ...flowStartEndpoints),
-  endpointGroup('saga', ...sagaEndpoints),
 ] as const;
 
 /** How this slice's endpoints answer and log a failure (ADR 0064). */

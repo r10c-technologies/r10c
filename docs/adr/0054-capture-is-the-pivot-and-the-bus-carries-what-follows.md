@@ -7,6 +7,7 @@
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the refund it deferred exists, and the unpaired crossing permission gains a sibling
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — the pivot is the slip's commit point, enforced by the validator rather than by the runner's ordering
 - Revised: 2026-10-29 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — `payment.failed` is no longer published, since nothing subscribes to it
+- Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — capture is the `payment.capture@3` fragment's pivot in a composed slip, no longer a `defineSaga` step run by `runSaga` (#486)
 
 ## Context
 

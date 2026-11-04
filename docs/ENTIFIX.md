@@ -438,9 +438,9 @@ Every message on the wire is an `EntifixEnvelope`: `{ meta, data }`, built in
 `@entifix/core` (`src/envelope/make-envelope.ts`) and therefore transport-free —
 the same shape goes over HTTP, over the bus, and into a test double.
 
-`meta.type` is one of `entity`, `entityCollection`, `entityPage`, `command`,
-`event`, `transactionAccepted`, `transactionRecord`, `sagaResult`,
-`sagaInstance` or `entityMetadata`, and `meta.entity` is the
+`meta.type` names a registered message — `entity`, `entityCollection`,
+`entityPage`, `event`, `entityMetadata`, `flowAccepted` and the rest of the open
+registry — and `meta.entity` is the
 **routing label**: `key ?? class name`, resolved by `envelopeEntityName` — the
 identical resolution the REST adapter uses to build an endpoint and the Mongo
 adapter uses to pick a collection. One rule, three consumers, so a renamed `key`

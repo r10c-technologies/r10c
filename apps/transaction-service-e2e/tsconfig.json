@@ -21,6 +21,9 @@
       "path": "../transaction-service"
     },
     {
+      "path": "../../packages/shells/effect/flow-catalog"
+    },
+    {
       "path": "../../packages/business/ts/party-management"
     },
     {

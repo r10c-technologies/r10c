@@ -122,8 +122,8 @@ const scopeConstraints = [
   },
   // The coordinator's own app, registered when the slice was split out to
   // `:3103` (#229). It hosts **no domain**, so it reaches nothing but the
-  // shared core — a saga definition is data, and the whole reason it is data is
-  // that an orchestrator may not import the domains it coordinates.
+  // shared core — a recipe is data, and the whole reason it is data is that an
+  // orchestrator may not import the domains it coordinates.
   {
     sourceTag: 'scope:transaction',
     onlyDependOnLibsWithTags: ['scope:transaction', 'scope:shared'],
@@ -314,7 +314,8 @@ const COMPOSITION_ONLY = [
   ...DRIVERS,
   '@entifix/react-controls/i18next',
   '@entifix/next-shell/server',
-  // The mechanism halves entifix keeps at their own subpaths: the saga engine,
+  // The mechanism halves entifix keeps at their own subpaths: the resilience
+  // engines,
   // the service runtime and its telemetry and test server, server push and its
   // SSE adapter (0.14.0), and the browser's EventSource transport. A cell never
   // knows a browser exists; the realtime shell does.
@@ -454,7 +455,7 @@ const allowRootConfig = [
 
 /**
  * What an Effect service's `src/` may not import (ADR 0064): apps only mount.
- * Routes, an HTTP API and the saga engine are composition, and composition is
+ * Routes, an HTTP API and the flow engine are composition, and composition is
  * the slice's shell's — a route or an engine wired in an app is a second place
  * a reader has to look for what a failure means.
  *

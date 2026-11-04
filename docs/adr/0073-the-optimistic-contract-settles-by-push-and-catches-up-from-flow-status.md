@@ -9,6 +9,7 @@
   the app.
 - Area: frontend
 - Read when: a write answers `202`, a screen shows a write before the server has it, or a failure has to reach the user — the server picks the mode, a pending flow is keyed by `flowId`, and a pending result never shows money taken
+- Revised: 2026-11-04 — checkout, the till's sale and both cancellations answer `202`, and the saga runner the record named is deleted (#486, #487, #490)
 
 ## Context
 

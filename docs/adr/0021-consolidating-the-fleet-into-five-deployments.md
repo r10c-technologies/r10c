@@ -10,6 +10,7 @@
 - Revised: 2026-10-25 — the saga store's named handle is a layer argument rather than a `SagaDatabaseName` tag (#376).
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — transaction-service runs two workflow runners (ports `34103`, `35103`), only replica 0 binding HTTP
 - Revised: 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md) — a platform deployment may own a single projection store: realtime-service owns `flow-status`
+- Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — transaction-service owns no Mongo store: the `saga` store is deleted and its only store is `workflow` (#490)
 
 ## Context
 

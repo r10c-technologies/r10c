@@ -35,9 +35,6 @@
       "path": "../../packages/shells/effect/flow-catalog/tsconfig.lib.json"
     },
     {
-      "path": "../../packages/business/ts/saga-contracts/tsconfig.lib.json"
-    },
-    {
       "path": "../../packages/business/ts/authz-grants/tsconfig.lib.json"
     },
     {

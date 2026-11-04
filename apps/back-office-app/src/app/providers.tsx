@@ -7,7 +7,6 @@ import type { Locale } from '@entifix/core';
 import {
   ANONYMOUS_WORKSPACE_SCOPE,
   PendingFlowsProvider,
-  PendingTransactionsProvider,
 } from '@entifix/next-shell';
 import {
   makeIndexedDbUiPreferencesState,
@@ -128,13 +127,10 @@ function ThemedProviders({
         <UiPreferencesProvider store={uiPreferencesStore}>
           <ToastProvider>
             <MarketplaceAdminAdaptersProvider adapters={adapters}>
-              {/* Above every route, not inside the workspace: the wizard hands
-                its write off to this pending set at `/<basePath>/new` on the
-                plain route, which no `WorkspaceShell` encloses (ADR 0045).
-                The pending-flow store sits beside it for the same reason: a
-                create handed to a flow waits on its form at `/new`, and its
+              {/* Above every route, not inside the workspace: a write handed
+                to a flow — a create at `/new`, a cancel, a sale at the till —
+                waits on plain routes no `WorkspaceShell` encloses, and its
                 failure is toasted once by the region below (ADR 0073). */}
-              <PendingTransactionsProvider scope={scope}>
                 <PendingFlowsProvider
                   scope={scope}
                   channel={pushChannel}
@@ -158,7 +154,6 @@ function ThemedProviders({
                     </StockProvider>
                   </SystemManagementProvider>
                 </PendingFlowsProvider>
-              </PendingTransactionsProvider>
             </MarketplaceAdminAdaptersProvider>
             <ToastRegion />
           </ToastProvider>

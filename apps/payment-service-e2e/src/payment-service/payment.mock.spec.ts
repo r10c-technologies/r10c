@@ -168,9 +168,9 @@ describe('the capture route takes one credential', () => {
 
 describe('a redelivered command', () => {
   /**
-   * ⚠️ **The assertion this whole service exists to make safe.** `runSaga`
-   * re-dispatches a post-pivot step on a stable command id, and a capture that
-   * ran twice is a customer charged twice.
+   * ⚠️ **The assertion this whole service exists to make safe.** The flow
+   * engine re-dispatches a step on a stable `Idempotency-Key`, and a capture
+   * that ran twice is a customer charged twice.
    */
   it('answers the first decision rather than taking the money again', async () => {
     const commandId = `cmd-${String(Date.now())}`;

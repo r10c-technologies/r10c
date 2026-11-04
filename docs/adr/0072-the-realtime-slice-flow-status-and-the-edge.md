@@ -16,6 +16,7 @@
   read answered to a session **or** a capability fits no endpoint guard kind.
 - Area: messaging
 - Read when: pushing anything to a browser, asking where a flow stands, or putting a listener on 3000/3001 — one realtime slice owns the stream and the flow-status projection, the audience filter fails closed, and the edge owns the origins
+- Revised: 2026-11-04 — `GET /api/saga/:id` is deleted (#490); where a flow stands is answered only by `GET /api/realtime/flow/:id`
 
 ## Context
 

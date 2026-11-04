@@ -196,8 +196,9 @@ Mongo, Postgres and Redis are deployment facts. **One engine instance may host
 many Stores; a Store may never span engines.** Two consequences that settle
 questions people actually hit:
 
-- Auth's `session:*` keys and marketplace-admin's saga locks share one Redis and
-  are two Stores. No rule is being bent.
+- transaction's `workflow` journal and Zitadel's own database share one
+  Postgres instance and are not even both Stores — Zitadel's is a foreign
+  system. Sharing an engine bends no rule.
 - **A Store's name is not its database name.** `catalog` is physically
   `tenant_<organizationId>`. The physical name encodes partitioning; the store
   name does not.
@@ -210,7 +211,7 @@ different engine.
 
 The taxonomy matters as much as the definition. A **cache** is derivable and
 droppable — losing it costs latency, never correctness. A **transport** is
-messages in flight, not state at rest: the saga's `transactions` collection is a
+messages in flight, not state at rest: the flow engine's `workflow` journal is a
 store, the RabbitMQ exchange is not. A **foreign system** has an owner who is not
 us — Zitadel's Postgres, reached only through its API.
 
@@ -244,7 +245,7 @@ land on when asking _where does this entity go?_
 | `session`           | control  | `auth`              | — (session records, no entities)                      | single           | system-of-record        |
 | `configuration`     | control  | `config`            | `config`                                              | single           | system-of-record        |
 | `catalog`           | tenant   | `marketplace-admin` | `product-configuration-management`                    | per-organization | system-of-record        |
-| `saga`              | control  | `transaction`       | —                                                     | single           | system-of-record        |
+| `workflow`          | control  | `transaction`       | — (flow journals, no entities)                        | single           | system-of-record        |
 | `catalog-reference` | platform | `marketplace`       | `catalog-reference`                                   | single           | system-of-record        |
 | `published-catalog` | platform | `marketplace`       | `marketplace-catalog`                                 | single           | `projection-of:catalog` |
 | `published-vendor`  | platform | `marketplace`       | `marketplace-vendor`                                  | single           | `projection-of:auth`    |
@@ -274,7 +275,7 @@ Four rows worth their reasoning:
   `sales_<organizationId>`. Same plane, same partitioning, separate databases —
   so one-writer is a property of which handle a request resolves to rather than
   of review. They must never transact together anyway; a cross-domain write goes
-  through the saga.
+  through a flow.
 - **`settlement` is control plane** while its commerce neighbours are platform.
   An `Agreement` is the platform's own record about a vendor, the same character
   as `Entitlement`. A slice may own stores in several planes.
@@ -289,7 +290,7 @@ Four rows worth their reasoning:
 | `config`            | active | configuration                                          | config-service `:3190`            |
 | `auth`              | active | auth, session                                          | auth-service `:3102`              |
 | `marketplace-admin` | active | catalog                                                | marketplace-admin-service `:3101` |
-| `transaction`       | active | saga                                                   | transaction-service `:3103`       |
+| `transaction`       | active | workflow                                               | transaction-service `:3103`       |
 | `marketplace`       | active | catalog-reference, published-catalog, published-vendor | marketplace-service `:3100`       |
 | `stock`             | active | stock                                                  | stock-service `:3108`             |
 | `order`             | active | order                                                  | order-service `:3105`             |
@@ -514,14 +515,12 @@ The vendor's `+50 onHand` and the buyer's guarded `+1 reserved` touch different
 fields, are both atomic, and are order-independent. There is no race to resolve
 and no distributed transaction to coordinate.
 
-> **Trap.** Do not take a distributed lock per decrement. `LockService` is for
-> coarse operations — a catalog publication, a settlement run, an order spanning
-> several vendors. A Redis lock per product serializes every purchase of a
-> popular item through one key, capping throughput at one lock round-trip and
-> surfacing contention to real buyers as `409`. The conditional update has no
-> such ceiling.
+> **Trap.** Do not take a distributed lock per decrement. A Redis lock per
+> product serializes every purchase of a popular item through one key, capping
+> throughput at one lock round-trip and surfacing contention to real buyers as
+> `409`. The conditional update has no such ceiling.
 
-The saga's role here is the cross-plane part: order-management (platform) calls
+The checkout flow's role here is the cross-plane part: order-management (platform) calls
 stock-management (tenant) synchronously to reserve — the buyer needs an answer
 now — and holds a _reservation id_, never a quantity. If the order write then
 fails, the compensation releases the reservation.

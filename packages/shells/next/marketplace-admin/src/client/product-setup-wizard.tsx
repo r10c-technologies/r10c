@@ -20,12 +20,10 @@ import {
 } from '@entifix/core';
 import type { CrudContext, EntityCrudLinkSource } from '@entifix/next-shell';
 import {
-  handOffWrite,
-  mergeCrudContext,
+  crudContextOf,
   useEntityLinkSources,
   useFollowWizardStepUrl,
   useLocaleHref,
-  usePendingTransactions,
   useWizardDraft,
   useWizardStepUrl,
 } from '@entifix/next-shell';
@@ -48,7 +46,6 @@ import {
   useEntityMutation,
   useWizard,
 } from '@entifix/react-integration';
-import type { TransactionSink } from '@entifix/transactions';
 import {
   ProductBrand,
   ProductCategory,
@@ -103,7 +100,6 @@ const PICKER_PLANS = [
  */
 function pickersFor(
   adapters: MarketplaceAdminAdapters,
-  pending: TransactionSink,
 ): readonly EntityCrudLinkSource[] {
   const descriptors = describeEntityColumns(ProductSpecification);
 
@@ -124,7 +120,7 @@ function pickersFor(
       entityConstructor: plan.entityConstructor,
       loadUc: loadUCFactory(),
       getUc: getUCFactory(),
-      ctx: mergeCrudContext(adapters, plan.repository, pending),
+      ctx: crudContextOf(adapters, plan.repository),
     },
   }));
 }
@@ -247,8 +243,7 @@ export interface ProductSetupWizardProps {
  * The wizard, wired to the catalog's adapters.
  *
  * Dual-host like every generated page: as a route it returns to the product
- * list, in a workspace tab the host says where to go. Both inherit the pending
- * set from `providers.tsx`, which is why the ending needs nothing of its own.
+ * list, in a workspace tab the host says where to go.
  */
 export function ProductSetupWizard({
   step,
@@ -256,11 +251,10 @@ export function ProductSetupWizard({
 }: ProductSetupWizardProps = {}) {
   const translateKey = useTranslateKey();
   const adapters = useMarketplaceAdminAdapters();
-  const pending = usePendingTransactions();
   const router = useRouter();
   const withLocale = useLocaleHref();
 
-  const ctx = mergeCrudContext(adapters, 'productRest', pending);
+  const ctx = crudContextOf(adapters, 'productRest');
 
   const draft = useWizardDraft(wizardAddress(PRODUCT_SETUP_SURFACE));
 
@@ -338,10 +332,9 @@ export function ProductSetupWizard({
     const saved = await save(reconstructEntity(ProductSpecification, values));
     if (saved === undefined) return;
 
-    // The same hand-off every generated create performs, through the same
-    // helper: a still-pending write keeps what the operator typed, and only a
-    // committed one spends it.
-    handOffWrite({ id: String(saved.id), record: saved, pending, draft });
+    // The create is one unit of work (#463): once it answered, it committed,
+    // and the draft is spent.
+    draft.clear();
 
     if (onFinished !== undefined) {
       onFinished();
@@ -363,7 +356,7 @@ export function ProductSetupWizard({
       isSubmitting={isSaving}
       recap={
         wizard.isResumed ? (
-          <Recap state={wizard.state} links={pickersFor(adapters, pending)} />
+          <Recap state={wizard.state} links={pickersFor(adapters)} />
         ) : undefined
       }
       onNext={() => void advance()}
@@ -381,7 +374,7 @@ export function ProductSetupWizard({
       <StepBody
         wizard={wizard}
         ctx={ctx}
-        pickers={pickersFor(adapters, pending)}
+        pickers={pickersFor(adapters)}
         registerGate={registerGate}
       />
     </Wizard>
@@ -404,7 +397,7 @@ const STEP_LABEL_KEYS: Record<string, string> = Object.fromEntries(
 
 interface StepBodyProps {
   wizard: ReturnType<typeof useWizard>;
-  ctx: ReturnType<typeof mergeCrudContext>;
+  ctx: ReturnType<typeof crudContextOf>;
   pickers: readonly EntityCrudLinkSource[];
   registerGate: (
     stepId: string,
@@ -514,7 +507,7 @@ function SourceStep({
   ctx,
 }: {
   wizard: ReturnType<typeof useWizard>;
-  ctx: ReturnType<typeof mergeCrudContext>;
+  ctx: ReturnType<typeof crudContextOf>;
 }) {
   const translateKey = useTranslateKey();
   const chosen = readStepIds(wizard.state, 'source')[0];

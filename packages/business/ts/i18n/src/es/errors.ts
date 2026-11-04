@@ -113,8 +113,6 @@ export const errors = {
   unexpected: 'Algo salió mal.',
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
-  sagaCompensated: 'No se pudo completar la operación y no se cambió nada.',
-  sagaStranded: 'La operación se detuvo a medias y se está revisando.',
   mixedCurrencies:
     'Los montos de un mismo vendedor están en más de una moneda.',
   unavailable:

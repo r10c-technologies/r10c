@@ -17,7 +17,7 @@ import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
 import { readCart } from './cart-cookie';
 import type { CartLine } from './cart-state';
-import { checkoutServiceUrl, sagaCrossingToken } from './checkout-config';
+import { checkoutServiceUrl, coordinatorCrossingToken } from './checkout-config';
 import {
   acceptedFlowId,
   checkoutStartBody,
@@ -100,7 +100,7 @@ export async function checkout(formData: FormData) {
   );
   const response = await postFlow(
     checkoutServiceUrl(),
-    sagaCrossingToken(),
+    coordinatorCrossingToken(),
     'checkout',
     checkoutStartBody({
       parts,

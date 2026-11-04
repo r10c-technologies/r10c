@@ -56,7 +56,6 @@ declaration as `bindingReason`.
 | `payment`                | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record         |
 | `published-catalog`      | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog`  |
 | `published-vendor`       | platform | `marketplace`       | active       | —                | `marketplace-vendor`                                          | single           | `projection-of:auth`     |
-| `saga`                   | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record         |
 | `sales`                  | tenant   | `sales`             | active       | —                | `sales-management`                                            | per-organization | system-of-record         |
 | `session`                | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record         |
 | `settlement`             | control  | `settlement`        | active       | —                | `settlement-management`                                       | single           | system-of-record         |
@@ -102,7 +101,7 @@ store can never disagree about theirs.
 plane and the same partitioning but different stores with different writing
 slices, so they get different handles — which makes one-writer a property of the
 connection rather than of review. They must never transact together anyway; a
-cross-domain write goes through the saga.
+cross-domain write goes through a flow.
 
 **Choosing a plane** — ask who may read it: everyone, including anonymous
 storefront traffic → `platform`; exactly one organization → `tenant`; the
@@ -114,18 +113,16 @@ and a published projection of it, which is a second Store carrying
 ## What is not a Store
 
 A **cache** (derivable and droppable), a **transport** (RabbitMQ — messages in
-flight, not state at rest; the saga's `transactions` collection _is_ a store, the
-exchange is not), and a **foreign system** (Zitadel's Postgres — it has an owner,
+flight, not state at rest; the flow engine's `workflow` journal _is_ a store,
+the exchange is not), and a **foreign system** (Zitadel's Postgres — it has an owner,
 and the owner is not us).
 
-The `transaction` slice owns two stores while it moves engines: the saga
-runner's Mongo `saga`, and the durable engine's Postgres `workflow` — every
-flow's journal, the runners' registrations and shard locks, each flow's status
-and the outbox its announcements leave through
-([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)). One slice,
-two engines, which `engine` not being part of a store's identity is what
-allows. `saga` is deleted when checkout and cancellation move onto the engine
-(#490).
+The `transaction` slice owns one store, the durable engine's Postgres
+`workflow` — every flow's journal, the runners' registrations and shard locks,
+each flow's status and the outbox its announcements leave through
+([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)). The saga
+runner's Mongo `saga` was deleted when checkout and cancellation moved onto the
+engine (#490).
 
 ## The rules that follow
 
@@ -136,7 +133,7 @@ boundary rule; the rest are review:
   database", now attached to a named thing. The three couplings that would
   foreclose splitting a domain out later: a module must not read another domain's
   collections; a cross-domain link resolves through the other domain's use-case
-  port, never at the storage layer; a cross-domain write goes through the saga,
+  port, never at the storage layer; a cross-domain write goes through a flow,
   never one transaction.
 - **Two domains sharing a Store are permanently co-deployed.** Not forbidden, but
   a binding decision — record it in the register above, with its cost.
@@ -171,7 +168,7 @@ boundary rule; the rest are review:
   with a service token _and_ a narrow route permission, and only for a caller
   acting on data whose owner it was handed rather than chosen
   ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). There are
-  **two** such paths, both into stock and both dispatched by a saga: checkout
+  **two** such paths, both into stock and both dispatched by a flow: checkout
   taking a hold, and a cancellation putting the goods back
   ([ADR 0058](../adr/0058-the-order-after-payment.md)). Each is a named route
   with its own narrow permission — `reservation:write` and

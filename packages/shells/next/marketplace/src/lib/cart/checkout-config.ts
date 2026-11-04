@@ -19,7 +19,7 @@ export const checkoutServiceUrl = (): string =>
   process.env['TRANSACTION_SERVICE_URL'] ?? 'http://localhost:3103/api';
 
 /**
- * The token the storefront presents to run a saga.
+ * The token the storefront presents to start a flow on the coordinator.
  *
  * ⚠️ **Not a participant token.** It starts a flow; it does not write a vendor's
  * stock. transaction-service holds those separately, so a leak here cannot reach
@@ -30,8 +30,8 @@ export const checkoutServiceUrl = (): string =>
  * the same trade every other `*_TOKEN` default in this fleet makes — visible in
  * the seed, and rotated by setting the variable.
  */
-export const sagaCrossingToken = (): string =>
-  process.env['SAGA_CROSSING_TOKEN'] ?? 'dev-saga-crossing-token-change-me';
+export const coordinatorCrossingToken = (): string =>
+  process.env['COORDINATOR_CROSSING_TOKEN'] ?? 'dev-flow-crossing-token-change-me';
 
 /**
  * order-service's API root, server-side — where a buyer's own cancel is

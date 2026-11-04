@@ -206,6 +206,34 @@ describe('the checkout recipe', () => {
     expect(refs.some(ref => ref.endsWith('fulfilment.open'))).toBe(false);
   });
 
+  it('reaches a signed-in buyer, and opens a group with no cancel digest when none was sent', () => {
+    const { cancelDigest: _dropped, ...noDigest } = CHECKOUTS[0]!.value;
+    const slip = composed({ ...noDigest, buyerId: 'party-1' });
+
+    expect(slip.audience).toContainEqual({ kind: 'party', id: 'party-1' });
+    expect(slipSteps(slip)[0]?.parameters).toEqual({
+      id: 'f',
+      totals: [{ currency: 'GTQ', amount: 2000 }],
+      buyerId: 'party-1',
+    });
+    expect(
+      slipSteps(slip).find(step => step.step === 'v-1/card:order.write')
+        ?.parameters,
+    ).toMatchObject({ buyerId: 'party-1' });
+  });
+
+  it('holds a vendor whose entitlements nobody stated to none', () => {
+    const { entitlements: _none, ...unstated } = part('v-1', 'card');
+    const outcomes = enumerateCompositions(checkoutRecipe, flowCatalog, {
+      contexts: [{ label: 'the coordinator', value: coordinator }],
+      inputs: [
+        { label: 'unstated', value: checkout('storefront', [unstated]) },
+      ],
+    });
+
+    expect(outcomes.map(outcome => outcome.outcome)).toEqual(['unmet']);
+  });
+
   // The rule that keeps a conversion compensable: planted, it must fail.
   it('refuses a conversion planted before the commit point', () => {
     const slip = composed(CHECKOUTS[0]!.value);
@@ -255,6 +283,16 @@ describe('the cancellation recipe', () => {
     expect(outcomes.map(outcome => outcome.outcome)).toEqual(
       Array(3).fill('composed'),
     );
+  });
+
+  it('holds a cancellation whose entitlements nobody stated to none', () => {
+    const { entitlements: _none, ...unstated } = cancellation('card', false);
+    const outcomes = enumerateCompositions(cancellationRecipe, flowCatalog, {
+      contexts: [{ label: 'the coordinator', value: coordinator }],
+      inputs: [{ label: 'unstated', value: unstated }],
+    });
+
+    expect(outcomes.map(outcome => outcome.outcome)).toEqual(['unmet']);
   });
 
   it('holds the shipment, claims, refunds, then puts back, withdraws and closes', () => {
