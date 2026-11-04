@@ -928,7 +928,7 @@ The decisions are [ADR 0072](adr/0072-the-realtime-slice-flow-status-and-the-edg
 the stream lives and who hears what) and
 [ADR 0073](adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md)
 (how a write settles); the mechanism is entifix's `PushChannel` and `useOptimisticMutation`
-([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.15.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
+([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.16.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 
 > **Built by #475–#478.** The back office mounts all of it in `apps/back-office-app/src/app/providers.tsx`:
 > the `ToastProvider` and its `ToastRegion`, one module-level push channel, `PendingFlowsProvider`
