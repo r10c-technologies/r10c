@@ -39,12 +39,14 @@ export const stockReserve = defineFragment({
 });
 
 /**
- * Turn a hold into a sale. After the commit point, so retried rather than
- * compensated; answers `200` when the hold was already converted.
+ * Turn a hold into a sale. After the commit point — the capture for a card
+ * checkout, `flow.commit` for cash on delivery — so retried rather than
+ * compensated; answers `200` when the hold was already converted or had
+ * already expired, without writing a movement (ADR 0070).
  */
 export const stockConvert = defineFragment({
   id: 'stock.convert',
-  version: 1,
+  version: 2,
   module: 'stock-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -61,12 +63,13 @@ export const stockConvert = defineFragment({
 });
 
 /**
- * Put a cancelled order's goods back, as a new `+quantity` movement — never an
- * un-conversion, since the ledger is append-only (ADR 0058).
+ * Put an order's goods back, as a new `+quantity` movement — never an
+ * un-conversion, since the ledger is append-only (ADR 0058). `cause` says why:
+ * a cancellation, or a parcel returned (ADR 0070).
  */
 export const stockRestore = defineFragment({
   id: 'stock.restore',
-  version: 1,
+  version: 2,
   module: 'stock-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -78,6 +81,7 @@ export const stockRestore = defineFragment({
     input: openStruct({
       offeringId: Schema.NonEmptyString,
       quantity: Schema.Number,
+      cause: Schema.Literals(['cancellation', 'return']),
     }),
     output: openStruct({ id: Schema.String }),
     failure: participantRefusal(['invalidBody', 'inconsistentMovement']),

@@ -34,8 +34,8 @@ describe('stock fragments', () => {
   it('are pinned at version 1 and owned by stock-management', () => {
     expect(STOCK_FRAGMENTS.map(fragmentRef)).toEqual([
       'stock.reserve@1',
-      'stock.convert@1',
-      'stock.restore@1',
+      'stock.convert@2',
+      'stock.restore@2',
     ]);
     expect(new Set(STOCK_FRAGMENTS.map(f => f.module))).toEqual(
       new Set(['stock-management']),

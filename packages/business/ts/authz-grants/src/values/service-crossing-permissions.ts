@@ -3,7 +3,12 @@ import {
   type Permission,
 } from '@entifix/authz';
 
-import { ORDER_DOMAIN, PAYMENT_DOMAIN, STOCK_DOMAIN } from './role-permissions';
+import {
+  ORDER_DOMAIN,
+  PAYMENT_DOMAIN,
+  SHIPPING_ORDER_DOMAIN,
+  STOCK_DOMAIN,
+} from './role-permissions';
 
 /**
  * What a **service** may do when it crosses into another party's tenant storage
@@ -68,6 +73,11 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // consequences; this undoes a step that should not have happened.
   `${ORDER_DOMAIN}:product-order:write`,
   `${ORDER_DOMAIN}:product-order:delete`,
+  // Opening the buyer's checkout group before any vendor's order, and deleting
+  // it as that step's compensation. The group is the buyer's receipt across
+  // sellers, written on their behalf exactly as an order is (ADR 0069).
+  `${ORDER_DOMAIN}:checkout-group:write`,
+  `${ORDER_DOMAIN}:checkout-group:delete`,
   // Taking the money the order above was placed for — the checkout saga's
   // **pivot**, and the one crossing on this list that cannot be undone.
   //
@@ -89,6 +99,29 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // is charging a customer again
   // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
   `${PAYMENT_DOMAIN}:refund:write`,
+  // Recording the cash a courier collected for a cash-on-delivery order, which
+  // the delivery flow dispatches after the delivery. A new money movement — a
+  // `cod` payment for one order — with no reversal beside it, for the reason a
+  // capture has none (ADR 0070).
+  `${PAYMENT_DOMAIN}:collection:write`,
+  // Asking whether a seller's order may be paid cash on delivery: a read the
+  // checkout makes before its commit point, behind a crossing because the buyer
+  // asking holds no grant over a vendor's terms. Read-only, so nothing to pair.
+  `${PAYMENT_DOMAIN}:cod-eligibility:read`,
+  // A shipment's flow-driven life, each move its own line: opening it once the
+  // checkout commits, holding it while a cancellation runs (and releasing the
+  // hold, under the same permission, since a release only gives the lock
+  // back), withdrawing it for good, and the delivery flow's dispatch step
+  // ([ADR 0070](../../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
+  //
+  // ⚠️ **`dispatch-step` is not the vendor's `dispatch`.** The vendor's verb is
+  // a session act on their own shipment; this is the coordinator dispatching
+  // the pivot of a flow it runs. One name for both would let a crossing token
+  // carry a vendor's authority, or the reverse.
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:open`,
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:hold`,
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:withdraw`,
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:dispatch-step`,
 ];
 
 /**

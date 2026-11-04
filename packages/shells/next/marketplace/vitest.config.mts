@@ -43,5 +43,11 @@ export default defineEntifixTest({
     // request. The decision it contains — whether a cancel may be offered at
     // all — is `cancel-window.ts`, which is covered directly.
     '**/lib/cart/cancel-action.ts',
+    // Server actions over `cookies()` and `redirect`, like the cancel above:
+    // what they decide lives in covered modules beside them, and the
+    // storefront e2e drives the actions themselves.
+    '**/lib/cart/checkout-action.ts',
+    '**/lib/cart/settle-action.ts',
+    '**/lib/cart/flow-ticket-cookie.ts',
   ],
 });

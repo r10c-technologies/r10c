@@ -164,13 +164,22 @@ export const r10c = {
       checkout: 'Finalizar compra',
     },
     checkout: {
-      placed: 'Tu pedido quedó registrado. Ya se notificó al vendedor.',
-      unavailable:
-        'Uno de estos productos ya no está disponible en la cantidad que pediste. No se cobró nada y se liberaron todas las reservas.',
       empty: 'Ninguno de estos productos sigue a la venta.',
-      failed: 'No se pudo completar la compra. Inténtalo de nuevo.',
+      failed: 'No se pudo iniciar la compra. Inténtalo de nuevo.',
+      // Un medio de pago por vendedor (ADR 0070). El pago contra entrega solo
+      // se ofrece donde el vendedor lo acepta.
+      method: {
+        card: 'Tarjeta',
+        cod: 'Contra entrega',
+      },
     },
     order: {
+      statusHeading: 'Estamos registrando tu pedido',
+      pending:
+        'Estamos confirmando tu pedido con cada vendedor. Esta página se actualiza sola.',
+      failed:
+        'No se pudo registrar tu pedido y no se cobró nada. Tu carrito sigue aquí.',
+      retry: 'Intentar de nuevo',
       heading: '¡Gracias por tu compra!',
       placed: 'Tu pedido quedó registrado y el vendedor ya fue notificado.',
       reference: 'Número de pedido',

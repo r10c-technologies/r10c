@@ -10,7 +10,7 @@ import type {
 
 const request = (paymentMethod: PaymentRequest['paymentMethod']) => ({
   paymentId: 'pay-1',
-  orderId: 'order-1',
+  reference: 'group-1',
   amount: 40,
   currency: 'GTQ',
   paymentMethod,

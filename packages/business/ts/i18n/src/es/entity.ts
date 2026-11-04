@@ -287,6 +287,7 @@ export const entity = {
       vendorId: 'ID del vendedor',
       displayName: 'Vendedor',
       announcedAt: 'Anunciado el',
+      acceptsCod: 'Acepta pago contra entrega',
     },
   },
   'published-offering': {
@@ -311,6 +312,29 @@ export const entity = {
       media: 'Imágenes',
     },
   },
+  'checkout-group': {
+    // Lo abre el flujo de compra, nunca una persona; el comprador lo lee como su
+    // recibo entre vendedores, y un vendedor no lo lee nunca.
+    form: {
+      editTitle: 'Compra',
+      newTitle: 'Compra',
+    },
+    label: 'Compra',
+    plural: 'Compras',
+    fields: {
+      id: 'ID',
+      buyerId: 'ID de comprador',
+      orderIds: 'Pedidos',
+      totals: 'Totales',
+      total: {
+        amount: 'Importe',
+        currency: 'Moneda',
+      },
+      placedAt: 'Fecha de la compra',
+      cancelDigest: 'Huella de cancelación',
+      cancelWindowEndsAt: 'Fin del plazo de cancelación',
+    },
+  },
   'product-order': {
     // Un título de formulario para un registro que nadie crea a mano, igual que
     // `stock-item`. `newTitle` es la puerta que lee `EntityCatalogKey`, no la
@@ -324,6 +348,9 @@ export const entity = {
     fields: {
       id: 'ID',
       buyerId: 'ID de comprador',
+      vendorId: 'ID de vendedor',
+      groupId: 'ID de la compra',
+      paymentMethod: 'Pago',
       status: 'Estado',
       items: 'Líneas',
       /**
@@ -334,30 +361,32 @@ export const entity = {
        */
       item: {
         offeringId: 'ID de oferta',
-        vendorId: 'ID de vendedor',
         quantity: 'Cantidad',
         amount: 'Importe',
         currency: 'Moneda',
         reservationId: 'ID de reserva',
-        fulfilledAt: 'Fecha de entrega',
       },
       channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
       paidAt: 'Fecha de pago',
-      cancelDigest: 'Huella de cancelación',
-      cancelWindowEndsAt: 'Fin del plazo de cancelación',
     },
     values: {
       status: {
         pending: 'Pendiente',
         paid: 'Pagado',
+        confirmed: 'Confirmado',
         cancelling: 'Cancelando',
+        dispatched: 'Despachado',
         fulfilled: 'Entregado',
         cancelled: 'Cancelado',
       },
+      paymentMethod: {
+        card: 'Tarjeta',
+        cash: 'Efectivo',
+        cod: 'Contra entrega',
+      },
     },
     useCases: {
-      fulfil: 'Marcar como entregado',
       cancel: 'Cancelar pedido',
       cancelConfirm:
         'Se devolverá el dinero al comprador y las unidades volverán a tu inventario. Esto no se puede deshacer: volver a cobrar es una compra nueva.',
@@ -368,7 +397,7 @@ export const entity = {
     plural: 'Pagos',
     fields: {
       id: 'ID',
-      orderId: 'ID de pedido',
+      groupId: 'ID de la compra',
       amount: 'Importe',
       currency: 'Moneda',
       status: 'Estado',
@@ -388,7 +417,24 @@ export const entity = {
         card: 'Tarjeta',
         voucher: 'Vale',
         transfer: 'Transferencia',
+        cod: 'Contra entrega',
       },
+    },
+  },
+  'payment-allocation': {
+    label: 'Asignación de pago',
+    plural: 'Asignaciones de pago',
+    fields: {
+      id: 'ID',
+      paymentId: 'ID del pago',
+      groupId: 'ID de la compra',
+      orderId: 'ID del pedido',
+      vendorId: 'ID del vendedor',
+      authorized: 'Autorizado',
+      captured: 'Cobrado',
+      refunded: 'Reembolsado',
+      currency: 'Moneda',
+      paymentMethod: 'Método de pago',
     },
   },
   refund: {
@@ -396,7 +442,7 @@ export const entity = {
     plural: 'Reembolsos',
     fields: {
       id: 'ID',
-      paymentId: 'ID de pago',
+      allocationId: 'ID de la asignación',
       orderId: 'ID de pedido',
       amount: 'Importe',
       currency: 'Moneda',
@@ -441,6 +487,7 @@ export const entity = {
     label: 'Apunte de comisión',
     plural: 'Apuntes de comisión',
     fields: {
+      collectedBy: 'Cobrado por',
       id: 'ID',
       orderId: 'ID de pedido',
       vendorId: 'ID de vendedor',
@@ -452,6 +499,10 @@ export const entity = {
       kind: 'Tipo',
     },
     values: {
+      collectedBy: {
+        platform: 'Plataforma',
+        vendor: 'Vendedor',
+      },
       kind: {
         sale: 'Venta',
         reversal: 'Reverso',
@@ -640,6 +691,7 @@ export const entity = {
         receipt: 'Recepción',
         sale: 'Venta',
         cancellation: 'Cancelación',
+        return: 'Devolución',
         adjustment: 'Ajuste',
       },
     },
@@ -666,6 +718,57 @@ export const entity = {
         converted: 'Convertida',
         released: 'Liberada',
       },
+    },
+  },
+  'shipping-order': {
+    // Lo abre un flujo cuando un checkout se confirma, nunca una persona; el
+    // vendedor lo mueve con los verbos de abajo.
+    form: {
+      editTitle: 'Envío',
+      newTitle: 'Envío',
+    },
+    label: 'Envío',
+    plural: 'Envíos',
+    fields: {
+      id: 'ID',
+      orderId: 'Pedido',
+      groupId: 'Compra',
+      flowId: 'Flujo',
+      paymentMethod: 'Pago',
+      amountDue: 'A cobrar en la entrega',
+      currency: 'Moneda',
+      lines: 'Líneas',
+      line: {
+        offeringId: 'ID de la oferta',
+        quantity: 'Cantidad',
+      },
+      status: 'Estado',
+      dispatchedAt: 'Despachado el',
+      deliveredAt: 'Entregado el',
+      refusedAt: 'Rechazado el',
+      returnedAt: 'Devuelto el',
+    },
+    values: {
+      status: {
+        'awaiting-dispatch': 'Por despachar',
+        held: 'Retenido',
+        dispatched: 'Despachado',
+        delivered: 'Entregado',
+        refused: 'Rechazado',
+        returned: 'Devuelto',
+        withdrawn: 'Retirado',
+      },
+      paymentMethod: {
+        card: 'Tarjeta',
+        cash: 'Efectivo',
+        cod: 'Contra entrega',
+      },
+    },
+    useCases: {
+      dispatch: 'Despachar',
+      'record-delivery': 'Registrar entrega',
+      'record-refusal': 'Registrar rechazo',
+      'record-return': 'Registrar devolución',
     },
   },
 };

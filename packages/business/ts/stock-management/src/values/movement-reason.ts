@@ -6,11 +6,16 @@
  * the extension point named in
  * [ADR 0010](../../../../../docs/adr/0010-stock-ledger-reservations-and-concurrency.md) —
  * a future logistics integration adds a member here rather than a second ledger.
+ *
+ * `return` is a parcel coming back — refused at the door or returned after
+ * delivery — put back on the shelf as its own `+quantity` movement, apart from
+ * a cancellation's, so the ledger says which happened (ADR 0070).
  */
 export const MovementReasons = [
   'receipt',
   'sale',
   'cancellation',
+  'return',
   'adjustment',
 ] as const;
 

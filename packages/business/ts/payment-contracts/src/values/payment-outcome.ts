@@ -47,6 +47,22 @@ export const PAYMENT_EVENTS = [PAYMENT_CAPTURED, PAYMENT_REFUNDED] as const;
 export type PaymentEventName = (typeof PAYMENT_EVENTS)[number];
 
 /**
+ * One vendor order's share of a payment outcome.
+ *
+ * On a capture there is one per order in the checkout group, and the shares
+ * sum to the payment's amount; on a refund there is exactly one — the order the
+ * money went back for, and how much of it. That is what lets order-service
+ * advance every order a capture paid for, and settlement fold a commission per
+ * vendor order, from one message ([ADR 0069](../../../../../docs/adr/0069-a-checkout-group-of-per-vendor-orders.md)).
+ */
+export interface PaymentShare {
+  readonly orderId: string;
+  readonly vendorId: string;
+  /** Minor units. */
+  readonly amount: number;
+}
+
+/**
  * What one payment outcome announces.
  *
  * **One shape for all three event names**, the choice `CatalogPublication` made
@@ -67,19 +83,23 @@ export interface PaymentOutcome {
   /** The `Payment.id` this outcome is about. The natural key. */
   readonly paymentId: string;
   /**
-   * The order the money was for.
+   * The checkout group the money was for.
    *
    * A plain id and never a link: the target is another slice's store, and a
    * typed link would be both an illegal import under the boundary rule and the
-   * storage-layer join `_shared/planes.md` forbids. It is also the member
-   * order-service matches on to advance the order it already holds.
+   * storage-layer join `_shared/planes.md` forbids.
    */
-  readonly orderId: string;
+  readonly groupId: string;
+  /**
+   * Which vendor orders the money was for, and how much each. Never empty.
+   */
+  readonly allocations: readonly PaymentShare[];
   /** Minor units, matching `Payment.amount` and `ProductOfferingPrice.amount`. */
   readonly amount: number;
   readonly currency: string;
   /**
-   * Which kind of tender this was — `cash`, `card`, `voucher` or `transfer`.
+   * Which kind of tender this was — `cash`, `card`, `voucher`, `transfer` or
+   * `cod`, the last announced once a courier's collection is recorded.
    *
    * A bare string rather than the `PaymentMethod` union, because this package is
    * `business:policy` and may not reach `payment-management` to import it. The
@@ -168,9 +188,9 @@ const message = (
   at: data.decidedAt,
   aggregate: { type: 'payment', id: data.paymentId },
   version: Date.parse(data.decidedAt),
-  // The order, not the payment: it is what correlates this message with the
-  // `order.placed` before it and the settlement entry after it.
-  correlationId: data.orderId,
+  // The group, not the payment: it is what correlates this message with the
+  // vendor orders placed before it and the settlement entries after it.
+  correlationId: data.groupId,
   data,
 });
 
@@ -210,9 +230,16 @@ const optionalString = (value: unknown): string | undefined =>
  * What a payment event's `data` must hold. `amount` is finite, not merely a
  * number: a NaN amount reaches Mongo and settles as an amount owed.
  */
+const PaymentShareSchema = openStruct({
+  orderId: Schema.NonEmptyString,
+  vendorId: Schema.NonEmptyString,
+  amount: Schema.Finite,
+});
+
 export const PaymentOutcomeSchema = openStruct({
   paymentId: Schema.NonEmptyString,
-  orderId: Schema.NonEmptyString,
+  groupId: Schema.NonEmptyString,
+  allocations: Schema.Array(PaymentShareSchema).check(Schema.isMinLength(1)),
   amount: Schema.Finite,
   currency: Schema.NonEmptyString,
   paymentMethod: Schema.NonEmptyString,
@@ -247,7 +274,12 @@ export const readPaymentOutcome = (
     ),
     raw => ({
       paymentId: raw.paymentId,
-      orderId: raw.orderId,
+      groupId: raw.groupId,
+      allocations: raw.allocations.map(({ orderId, vendorId, amount }) => ({
+        orderId,
+        vendorId,
+        amount,
+      })),
       amount: raw.amount,
       currency: raw.currency,
       paymentMethod: raw.paymentMethod,

@@ -1,28 +1,34 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import {
+  type OrderTender,
+  OrderTenders,
+} from '@r10c/business-ts-sales-vocabulary';
 
 import { OrderItem } from '../../values/order-item';
 import { type OrderStatus, OrderStatuses } from '../../values/order-status';
 import type { RelatedChannel } from '../../values/related-channel';
 
 /**
- * A party's request for one or more offerings — one checkout, one receipt, even
- * when the basket spans several vendors.
+ * One vendor's part of a checkout: the lines that vendor owes, how the buyer
+ * pays for them, and where that one order stands.
  *
- * The multi-vendor case is carried on the **items**, not by splitting the order:
- * each {@link OrderItem} names its `vendorId`, so settlement aggregates per
- * vendor while the buyer sees the single order they actually placed
- * ([ADR 0022](../../../../../../docs/adr/0022-v1-marketplace-module-boundaries.md)).
+ * ⚠️ **One order per vendor, under a {@link CheckoutGroup}.** A basket spanning
+ * three sellers is three of these, each naming its {@link vendorId} and its
+ * {@link groupId}; the buyer's one receipt is the group. Each vendor reads,
+ * ships, cancels and is refunded for their own order alone, which is what one
+ * multi-vendor order could never let them do
+ * ([ADR 0069](../../../../../../docs/adr/0069-a-checkout-group-of-per-vendor-orders.md)).
  *
- * Platform plane, `order` store — readable by the buyer, the vendors on its
- * lines and the operator, and by no tenant handle. That is also why the
+ * Platform plane, `order` store — readable by the buyer, the vendor it belongs
+ * to and the operator, and by no tenant handle. That is also why the
  * reservation each line holds is taken through a service-to-service crossing
  * rather than from the session: a buyer's session carries no organization, and
- * the vendor comes from the item
+ * the vendor comes from the order
  * ([ADR 0023](../../../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
  *
  * The cart is **not** here. It is a cookie, so the storefront's first response is
- * correct without a round trip, and it becomes a `ProductOrder` only at checkout.
+ * correct without a round trip, and it becomes a group of these only at checkout.
  *
  * **A storefront checkout is not the only way one of these is born.** A vendor
  * selling at their own counter produces this same entity with a different
@@ -42,13 +48,14 @@ export class ProductOrder implements Entity {
   // #region properties
   #id?: EntityId;
   #buyerId?: string;
+  #vendorId = '';
+  #groupId = '';
+  #paymentMethod: OrderTender = 'card';
   #channel?: RelatedChannel;
   #status: OrderStatus = 'pending';
   #items: readonly OrderItem[] = [];
   #placedAt?: Date;
   #paidAt?: Date;
-  #cancelDigest?: string;
-  #cancelWindowEndsAt?: Date;
   // #endregion
 
   // #region constructors
@@ -90,6 +97,63 @@ export class ProductOrder implements Entity {
   }
   set buyerId(value: string | undefined) {
     this.#buyerId = value;
+  }
+
+  /**
+   * The one vendor this order belongs to. Filterable and sortable: a vendor's
+   * order list is a top-level filter on it, and the server narrows every vendor
+   * read to their own organization here.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.vendorId',
+    required: true,
+    filterable: true,
+    sortable: true,
+  })
+  get vendorId(): string {
+    return this.#vendorId;
+  }
+  set vendorId(value: string) {
+    this.#vendorId = value;
+  }
+
+  /**
+   * The checkout group this order was placed in — the buyer's one receipt
+   * across sellers. A plain id: the group lives in this same store, but an
+   * order is read and moved on its own.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.groupId',
+    required: true,
+    filterable: true,
+  })
+  get groupId(): string {
+    return this.#groupId;
+  }
+  set groupId(value: string) {
+    this.#groupId = value;
+  }
+
+  /**
+   * How the buyer pays this vendor: a card captured at checkout, cash at the
+   * counter, or cash on delivery — chosen per seller, so two orders in one
+   * group may differ (ADR 0070).
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.paymentMethod',
+    enumValues: OrderTenders,
+    enumLabelKey: 'entity:product-order.values.paymentMethod',
+    required: true,
+    filterable: true,
+  })
+  get paymentMethod(): OrderTender {
+    return this.#paymentMethod;
+  }
+  set paymentMethod(value: OrderTender) {
+    this.#paymentMethod = value;
   }
 
   /**
@@ -162,9 +226,6 @@ export class ProductOrder implements Entity {
    *
    * `hidden` would be the wrong tool here: it drops a member from serialization
    * *and* deserialization, so the lines would never persist.
-   *
-   * Vendor-scoped queries therefore need an index on the embedded path or a
-   * projection — the accepted cost of one receipt per checkout.
    */
   @accessor({
     type: 'composition',
@@ -222,81 +283,6 @@ export class ProductOrder implements Entity {
   }
   set paidAt(value: Date | undefined) {
     this.#paidAt = value;
-  }
-
-  /**
-   * The SHA-256 digest of the nonce that authorizes the buyer's own cancel.
-   *
-   * ⚠️ **The digest, never the nonce.** The storefront mints 256 bits of
-   * randomness per checkout, keeps it in the buyer's `httpOnly` receipt cookie,
-   * and sends only this digest into the order. That is what lets an anonymous
-   * buyer be authorized for a write with nothing stored anywhere that can
-   * perform it ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md)).
-   *
-   * ⚠️ **Why it is not the signed token the obvious design reaches for.** An
-   * order is written *inside* the checkout saga, so anything the `201` carries
-   * becomes the step's outcome — persisted in the `saga` store and served whole
-   * by `GET /api/saga/:id` to any principal whose organization appears among the
-   * flow's calls, which is every vendor in the basket. A bearer token there
-   * would let one vendor cancel a multi-vendor order their own session is
-   * refused with `409`. A digest carries no such authority: it is serialized
-   * here in the open precisely because inverting it is the problem SHA-256 is.
-   *
-   * ⚠️ **Absent is a meaningful value.** A counter sale carries no digest,
-   * because at a till there is no browser to hold the nonce and no buyer's
-   * cancel to authorize. Clearing it is also how a cancel window is revoked.
-   *
-   * ⚠️ **Not `@accessor({ hidden })`, however much a machine-valued member
-   * wants to be.** That flag drops the member from **deserialization** as well
-   * as from serialization — the same trap `readonly` is, which `paidAt`
-   * documents a few lines up — so a hidden digest would never arrive off the
-   * wire and the member would sit permanently empty. Hiding the input is a
-   * screen's job, and the screen is `<EntityField … hidden />`.
-   *
-   * ⚠️ **`filterable` and `sortable` are written `false`, not omitted.**
-   * `describeEntityColumns` defaults both to **true** for a scalar, so leaving
-   * them out is how a member becomes queryable by accident — and member metadata
-   * is the server-side allowlist, so a queryable digest lets a caller confirm a
-   * guess one request at a time, and a sortable one leaks their order. Omission
-   * is not denial here.
-   */
-  @accessor({
-    type: 'string',
-    labelKey: 'entity:product-order.fields.cancelDigest',
-    sortable: false,
-    filterable: false,
-  })
-  get cancelDigest(): string | undefined {
-    return this.#cancelDigest;
-  }
-  set cancelDigest(value: string | undefined) {
-    this.#cancelDigest = value;
-  }
-
-  /**
-   * When the buyer's own cancel stops being possible.
-   *
-   * ⚠️ **Server-owned, stamped at placement from the order's own `placedAt`.**
-   * It is a stored timestamp rather than an expiry claim inside a token for two
-   * reasons: order-service can shorten or revoke it after the fact, and there is
-   * no key whose rotation silently ends every live window at once.
-   *
-   * It must match the receipt cookie's own lifetime. The cookie is the only
-   * place the nonce lives, so a window wider than the cookie is a capability
-   * nobody can present, and a cookie longer than the window is a Cancel button
-   * that quietly stops working.
-   */
-  @accessor({
-    type: 'date',
-    labelKey: 'entity:product-order.fields.cancelWindowEndsAt',
-    sortable: true,
-    filterable: true,
-  })
-  get cancelWindowEndsAt(): Date | undefined {
-    return this.#cancelWindowEndsAt;
-  }
-  set cancelWindowEndsAt(value: Date | undefined) {
-    this.#cancelWindowEndsAt = value;
   }
   // #endregion
 }

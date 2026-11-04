@@ -22,13 +22,17 @@ export const capturedSubscription: Subscription = {
 };
 
 /**
- * Advance an order to `paid` when its capture is announced.
+ * Advance every order a capture paid for to `paid`.
  *
- * The capture *decision* never arrives as a message — the saga dispatches it
- * to payment-service — so what this folds is the consequence. The store claims
- * the event in the same unit as the write, so a redelivery is recognised and
- * acked rather than applied twice, and an order no longer `pending` (already
- * paid, or compensated away) is left exactly as it is.
+ * The capture *decision* never arrives as a message — the flow dispatches it
+ * to payment-service — so what this folds is the consequence: one capture for
+ * a checkout group, allocated per vendor order, advances each of them.
+ *
+ * ⚠️ **One claim per allocation, `<eventId>#<orderId>`.** The store claims in
+ * the same unit as each write, so a redelivery — or a retry after the second
+ * order of three failed — is recognised order by order and acked rather than
+ * applied twice, and an order no longer `pending` (already paid, or
+ * compensated away) is left exactly as it is.
  */
 export const startPaymentStatusProjection = Effect.gen(function* () {
   const bus = yield* EventBusTag;
@@ -37,12 +41,15 @@ export const startPaymentStatusProjection = Effect.gen(function* () {
 
   yield* bus.subscribe(capturedSubscription, event =>
     Effect.flatMap(readPaymentOutcome(event.data), outcome =>
-      Effect.asVoid(
-        store.markPaid(
-          { consumer, eventId: event.id },
-          outcome.orderId,
-          outcome.decidedAt,
-        ),
+      Effect.forEach(
+        outcome.allocations,
+        ({ orderId }) =>
+          store.markPaid(
+            { consumer, eventId: `${event.id}#${orderId}` },
+            orderId,
+            outcome.decidedAt,
+          ),
+        { discard: true },
       ),
     ),
   );

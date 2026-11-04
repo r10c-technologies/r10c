@@ -10,13 +10,16 @@ import {
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
+import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { formatPrice } from '@r10c/utils-react-ui';
 
 import { removeFromCart, setQuantity } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
 import { MAX_QUANTITY } from '../cart/cart-state';
 import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
+import { sellerParts, tenderField } from '../cart/checkout-start';
 import { runRead } from '../catalog/catalog-reads';
 import { totalsByCurrency } from '../catalog/money';
 import { storePaths } from '../routing/paths';
@@ -69,6 +72,29 @@ export async function CartPage({
       quantity: line.quantity,
     })),
   );
+  // One part per seller, in the order each first appears: a checkout writes
+  // one order per vendor, and the buyer picks a tender for each (ADR 0070).
+  const offerings = new Map(
+    present.map(({ line, offering }) => [line.offeringId, offering]),
+  );
+  const parts = sellerParts(
+    present.map(({ line, offering }) => ({
+      offeringId: line.offeringId,
+      vendorId: offering.vendorId,
+      quantity: line.quantity,
+      amount: offering.amount,
+      currency: offering.currency,
+    })),
+  );
+  const vendors = new Map(
+    (
+      await runRead(
+        PublishedVendor,
+        loadVendors(parts.map(part => part.vendorId)),
+        [],
+      )
+    ).map(vendor => [vendor.vendorId, vendor]),
+  );
 
   return (
     <StoreShell locale={locale}>
@@ -96,61 +122,77 @@ export async function CartPage({
           </Stack>
         ) : (
           <Stack gap="s">
-            {present.map(({ line, offering }) => (
-              <Card key={line.offeringId}>
-                <Cluster justify="between" gap="s">
-                  <Stack gap="3xs">
-                    <Text weight="semibold">{offering.name}</Text>
-                    {/* A form per line, so a quantity changes with no script:
-                        the server writes the cookie and renders the totals. */}
-                    <form
-                      action={setQuantity}
-                      className="flex items-end gap-2xs"
-                    >
-                      <input
-                        type="hidden"
-                        name="offeringId"
-                        value={line.offeringId}
-                      />
-                      <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
-                        {t('storefront.cart.quantity')}
-                        <input
-                          className="w-20 rounded-md border border-border bg-surface px-2xs py-3xs text-content"
-                          type="number"
-                          name="quantity"
-                          min="0"
-                          max={MAX_QUANTITY}
-                          step="1"
-                          inputMode="numeric"
-                          defaultValue={line.quantity}
-                        />
-                      </label>
-                      <Button type="submit" variant="secondary" size="sm">
-                        {t('storefront.cart.update')}
-                      </Button>
-                    </form>
-                  </Stack>
+            {parts.map(part => (
+              <Stack
+                key={part.vendorId}
+                gap="s"
+                data-testid={`cart-seller-${part.vendorId}`}
+              >
+                <Text weight="semibold">
+                  {vendors.get(part.vendorId)?.displayName ?? part.vendorId}
+                </Text>
+                {part.lines.map(line => {
+                  const offering = offerings.get(
+                    line.offeringId,
+                  ) as PublishedOffering;
+                  return (
+                    <Card key={line.offeringId}>
+                      <Cluster justify="between" gap="s">
+                        <Stack gap="3xs">
+                          <Text weight="semibold">{offering.name}</Text>
+                          {/* A form per line, so a quantity changes with no script:
+                            the server writes the cookie and renders the totals. */}
+                          <form
+                            action={setQuantity}
+                            className="flex items-end gap-2xs"
+                          >
+                            <input
+                              type="hidden"
+                              name="offeringId"
+                              value={line.offeringId}
+                            />
+                            <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
+                              {t('storefront.cart.quantity')}
+                              <input
+                                className="w-20 rounded-md border border-border bg-surface px-2xs py-3xs text-content"
+                                type="number"
+                                name="quantity"
+                                min="0"
+                                max={MAX_QUANTITY}
+                                step="1"
+                                inputMode="numeric"
+                                defaultValue={line.quantity}
+                              />
+                            </label>
+                            <Button type="submit" variant="secondary" size="sm">
+                              {t('storefront.cart.update')}
+                            </Button>
+                          </form>
+                        </Stack>
 
-                  <Text data-testid="cart-line-price">
-                    {formatPrice(
-                      locale,
-                      offering.amount * line.quantity,
-                      offering.currency,
-                    )}
-                  </Text>
+                        <Text data-testid="cart-line-price">
+                          {formatPrice(
+                            locale,
+                            offering.amount * line.quantity,
+                            offering.currency,
+                          )}
+                        </Text>
 
-                  <form action={removeFromCart}>
-                    <input
-                      type="hidden"
-                      name="offeringId"
-                      value={line.offeringId}
-                    />
-                    <Button type="submit" variant="ghost" size="sm">
-                      {t('storefront.cart.remove')}
-                    </Button>
-                  </form>
-                </Cluster>
-              </Card>
+                        <form action={removeFromCart}>
+                          <input
+                            type="hidden"
+                            name="offeringId"
+                            value={line.offeringId}
+                          />
+                          <Button type="submit" variant="ghost" size="sm">
+                            {t('storefront.cart.remove')}
+                          </Button>
+                        </form>
+                      </Cluster>
+                    </Card>
+                  );
+                })}
+              </Stack>
             ))}
 
             <Cluster justify="between" gap="s">
@@ -172,8 +214,35 @@ export async function CartPage({
                 >
                   {t('storefront.cart.keepShopping')}
                 </ButtonLink>
-                <form action={checkout}>
+                <form action={checkout} className="flex flex-col gap-2xs">
                   <input type="hidden" name="locale" value={locale} />
+                  {/* A tender per seller. Cash on delivery is offered only
+                      where the seller ships it — a hint from the published
+                      vendor record; the checkout's own eligibility step is
+                      what refuses. */}
+                  {parts.map(part => (
+                    <label
+                      key={part.vendorId}
+                      className="text-step--1 flex items-center gap-2xs text-content-muted"
+                    >
+                      {vendors.get(part.vendorId)?.displayName ?? part.vendorId}
+                      <select
+                        name={tenderField(part.vendorId)}
+                        defaultValue="card"
+                        data-testid={`tender-${part.vendorId}`}
+                        className="rounded-md border border-border bg-surface px-2xs py-3xs text-content"
+                      >
+                        <option value="card">
+                          {t('storefront.checkout.method.card')}
+                        </option>
+                        {vendors.get(part.vendorId)?.acceptsCod === true ? (
+                          <option value="cod">
+                            {t('storefront.checkout.method.cod')}
+                          </option>
+                        ) : null}
+                      </select>
+                    </label>
+                  ))}
                   <Button type="submit" data-testid="checkout">
                     {t('storefront.cart.checkout')}
                   </Button>

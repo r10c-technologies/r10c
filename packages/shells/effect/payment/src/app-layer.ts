@@ -4,6 +4,7 @@ import {
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
+import { CodPolicyTag } from '@r10c/business-ts-payment-management';
 import { MongoPaymentLedgerLayer } from '@r10c/implementation-payment-mongo';
 import {
   crossingTokenLayer,
@@ -17,6 +18,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { httpCodAcceptanceLayer } from './cod-acceptance.js';
 import {
   DEFAULT_SIMULATED_SETTINGS,
   readSimulatedOutcome,
@@ -69,12 +71,24 @@ export const paymentComposition = (configuration: FleetConfiguration) =>
       .in('provider')
       .getString('declineReason');
 
+    // Cash on delivery's dials, and the published vendor record whether a
+    // seller ships it is read from (ADR 0070). The kill switch is a string row
+    // like every other flag, so `'true'` is the only value that turns it on.
+    const codEnabled = yield* store.in('cod').getString('enabled');
+    const codMaxAmount = yield* store.in('cod').getNumber('maxAmount');
+    const catalogUrl = yield* store.in('marketplace').getString('url');
+
     const connections = Layer.mergeAll(
       yield* fleetSingleMongoLayer(configuration, ['payment']),
       yield* fleetBusLayer(configuration),
       yield* fleetSecurityLayer(configuration),
       yield* crossingTokenLayer(configuration),
       yield* fleetOutboxLayer(configuration, PAYMENT_SLICE),
+      Layer.succeed(CodPolicyTag, {
+        enabled: codEnabled === 'true',
+        maxAmount: codMaxAmount,
+      }),
+      httpCodAcceptanceLayer(catalogUrl),
       SimulatedPaymentProviderLayer({
         outcome: readSimulatedOutcome(providerOutcome),
         declineReason:

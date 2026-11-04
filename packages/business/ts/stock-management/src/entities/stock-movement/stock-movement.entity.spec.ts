@@ -75,6 +75,7 @@ describe('StockMovement', () => {
       'receipt',
       'sale',
       'cancellation',
+      'return',
       'adjustment',
     ]);
     expect(reason?.filterable).toBe(true);

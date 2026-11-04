@@ -76,7 +76,7 @@ describe('the payment-status projection', () => {
     data,
   });
 
-  it('advances the order the capture names, claiming the event', async () => {
+  it('advances every order the capture allocated, claiming each on its own', async () => {
     const bus = makeRecordingEventBus();
     const paid: unknown[][] = [];
     const store = {
@@ -93,7 +93,11 @@ describe('the payment-status projection', () => {
         bus.deliver(
           captured({
             paymentId: 'pay-1',
-            orderId: 'o-1',
+            groupId: 'g-1',
+            allocations: [
+              { orderId: 'o-1', vendorId: 'v-1', amount: 30 },
+              { orderId: 'o-2', vendorId: 'v-2', amount: 10 },
+            ],
             amount: 40,
             currency: 'GTQ',
             paymentMethod: 'card',
@@ -112,8 +116,13 @@ describe('the payment-status projection', () => {
     });
     expect(paid).toEqual([
       [
-        { consumer: expect.any(String), eventId: 'payment.captured:1' },
+        { consumer: expect.any(String), eventId: 'payment.captured:1#o-1' },
         'o-1',
+        '2026-10-25T12:00:00.000Z',
+      ],
+      [
+        { consumer: expect.any(String), eventId: 'payment.captured:1#o-2' },
+        'o-2',
         '2026-10-25T12:00:00.000Z',
       ],
     ]);

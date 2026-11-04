@@ -79,21 +79,26 @@ export const recordMovement = (input: {
     return yield* ledger.record(input.organizationId, movement);
   });
 
+/** Why goods are put back: an order cancelled, or a parcel returned. */
+export const RestorationCauses = ['cancellation', 'return'] as const;
+export type RestorationCause = (typeof RestorationCauses)[number];
+
 /**
- * A cancelled order's goods going back — the cancellation saga's
- * `restore-stock` step. A new `+quantity` movement, never an un-conversion:
- * the hold is spent by then and the ledger is append-only. The reason is this
- * domain's to write, so the crossing can make this one correction and not
+ * An order's goods going back — a cancellation's or a return's `restore`
+ * step. A new `+quantity` movement, never an un-conversion: the hold is spent
+ * by then and the ledger is append-only. The reason is this domain's to write
+ * from a closed cause, so the crossing can make these two corrections and not
  * any other.
  */
 export const restoreStock = (input: {
   readonly organizationId: string;
   readonly movement: StockMovement;
+  readonly cause: RestorationCause;
   readonly commandId: string | undefined;
 }) =>
   Effect.gen(function* () {
     const { movement } = input;
-    movement.reason = 'cancellation';
+    movement.reason = input.cause;
     if (!isConsistentMovement(movement.reason, movement.quantity)) {
       return yield* Effect.fail(
         new InconsistentMovement({

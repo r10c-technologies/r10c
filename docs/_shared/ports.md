@@ -17,7 +17,7 @@ canonical port.
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁶               |
 | sales (9)               | —      | 3109⁹               |
-| fulfilment (10)         | —      | 3110¹⁰ reserved     |
+| fulfilment (10)         | —      | 3110¹⁰              |
 | — platform —            |        | config-service 3190 |
 | — platform —            |        | realtime 3191¹¹     |
 
@@ -202,6 +202,13 @@ and a run may legitimately produce a **negative** `VendorPayout` — a claw-back
 against the vendor's next period, allowed rather than clamped
 ([ADR 0058](../adr/0058-the-order-after-payment.md) §9).
 
+⚠️ **One join per vendor order** ([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)).
+A capture contributes each of its allocations to its own order's join, a partial
+refund mirrors only its share of the sale, and cash a vendor collected on delivery
+is written `collectedBy: 'vendor'` — the payout debits only the cut, since the
+vendor already holds the gross. A cash-on-delivery order cancelled before its cash
+was collected voids its join: nothing settles and nothing reverses.
+
 ⚠️ **Both halves of both pairs land on one join record**, and the second pair's
 fold refuses to run until the first has. A reversal cannot precede the sale it
 mirrors, and a placement that arrives after its order was already cancelled and
@@ -262,17 +269,35 @@ movement, not the absence of this one
 ([ADR 0054](../adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
 It was the **only** such entry until the refund below became the second.
 
+⚠️ **One capture per checkout group, allocated per vendor order.** `POST
+/api/payment` takes the group's total and its `allocations[]`, and writes a
+`PaymentAllocation` per order — unique on the order, because an order is paid
+for once ([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)).
+`payment.captured` carries the allocations, so order-service advances every
+order a capture paid for and settlement folds each one.
+
 ⚠️ **`POST /api/refund` is the _cancellation_ saga's pivot**, and the second
 write here that cannot be compensated. It takes a crossing token and no session
 for the same reason the capture does, and it is addressed by **order id** — the
-saga holds an order and has never seen a payment — resolving the capture itself
-and copying the amount off it rather than reading one from the request. A
-`Refund` is its own record: ADR 0054 protects the capture row as the evidence a
-customer was charged, so a `'refunded'` status written over it would erase that
-evidence by another route ([ADR 0058](../adr/0058-the-order-after-payment.md)).
-Two guards stop a double refund and they answer different questions —
-`Idempotency-Key` covers a redelivery of one command, a unique index on the refund's
-`paymentId` covers two different commands aimed at one capture.
+saga holds an order and has never seen a payment — resolving that order's
+allocation itself. Without an `amount` it gives back all that is left of the
+share; with one, that part of it. A `Refund` is its own record: ADR 0054
+protects the capture row as the evidence a customer was charged, so a
+`'refunded'` status written over it would erase that evidence by another route
+([ADR 0058](../adr/0058-the-order-after-payment.md)). Two guards stop an
+over-refund and they answer different questions — `Idempotency-Key` covers a
+redelivery of one command, and a guarded `$inc` on the allocation
+(`refunded + amount <= captured`), taken **before** the provider is called,
+covers any number of commands aimed at one share.
+
+⚠️ **Cash on delivery is two crossing routes** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)).
+`POST /api/cod-eligibility` refuses a seller's order over `cod.maxAmount` (GTQ
+1,500 per vendor order, seeded) or from a seller the published vendor
+projection says does not ship it, and `cod.enabled` switches it off fleet-wide.
+`POST /api/collection` records the cash a courier collected as a `cod` payment
+for that one order, announced as `payment.captured`. Their permissions,
+`collection:write` and `cod-eligibility:read`, are this slice's third and fourth
+entries in `SERVICE_CROSSING_PERMISSIONS`, neither paired with a reversal.
 
 ⚠️ **`payment-management:refund:write` is therefore a _second_ unpaired crossing
 permission, not the pairing the note above says `payment:write` lacks.** Filing
@@ -292,10 +317,12 @@ against an address nothing is listening on.
 ⁷ **order-service, bound.** It owns the `order` store — **platform** plane and
 single, one named database, which is the opposite of stock's per-request tenant
 handle beside it. That is forced rather than chosen: a basket can span several
-vendors, so one order cannot live in any one of their tenant databases. The
-multi-vendor case rides on vendor-tagged embedded lines instead, so the buyer
-gets one receipt and settlement still aggregates per vendor
-([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md)).
+vendors, so its receipt cannot live in any one of their tenant databases. A
+checkout writes one `CheckoutGroup` — the buyer's receipt, opened under the
+flow's own id — and one `ProductOrder` per vendor in it, so each vendor reads,
+ships, cancels and is refunded for their own order alone
+([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)). A vendor
+never reads a group: it would show them the other sellers in the basket.
 
 ⚠️ **It reserves nothing itself.** ADR 0023's crossing into stock is dispatched
 by transaction-service, which holds both halves of the checkout flow; this
@@ -311,13 +338,14 @@ the derived verb `POST /api/product-order/:id/cancel`
 ([ADR 0071](../adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)).
 
 ⚠️ **Three credentials on one surface, and each route still takes exactly one.**
-`fulfil` and `cancel` are session-guarded by the permissions their own
-`@useCase()` descriptors derive — there is still no `product-order:write` for any
-role, and these are verbs rather than saves. `buyer-cancellation` takes the nonce
-from a storefront receipt and **no session at all**: the order stores that
-nonce's SHA-256 digest, so the record is the authority and the credential is
-inert wherever else it travels. The saga's own `cancelling` and `cancelled` steps
-take a crossing token
+`cancel` is session-guarded by the permission its own `@useCase()` descriptor
+derives — there is still no `product-order:write` for any role, and it is a verb
+rather than a save. `buyer-cancellation` and `GET
+/api/checkout-group/:id/buyer-receipt` take the nonce from a storefront receipt
+and **no session at all**: the group stores that nonce's SHA-256 digest, so the
+record is the authority and the credential is inert wherever else it travels. The
+flows' own steps — the group's opening, an order's write, its `cancelling` claim
+and its `confirmed`, `dispatched` and `closed` moves — take a crossing token
 ([ADR 0058](../adr/0058-the-order-after-payment.md)).
 
 ⚠️ **`/cancelling` and `/cancel` look alike and are not the same thing.** The
@@ -325,11 +353,12 @@ first takes the concurrency claim and is dispatched by the coordinator behind a
 crossing guard; the second is the verb a person reaches. A browser reaching the first
 would lock an order with no refund behind it.
 
-⚠️ **Fulfilment is per line; cancellation is per order.** `OrderItem` carries
-`fulfilledAt` and the order reaches `fulfilled` only once every line has one, so
-one vendor cannot state something true about another's lines. A vendor may cancel
-only an order that is theirs alone and gets `409 multiVendorOrder` otherwise —
-the money was taken once, for the whole basket, on one capture.
+⚠️ **Delivery is the shipment's; an order only follows it.** There is no
+`fulfil` verb any more: a vendor dispatches and records delivery on their
+`ShippingOrder` in fulfilment-service, and the delivery flow moves the order
+`confirmed → dispatched → fulfilled` (or `cancelled` for a parcel refused or
+returned) behind a crossing token
+([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)).
 
 ⚠️ **It holds the coordinator's inbound token and is a participant in the flow it
 starts**, making it the third holder of that secret beside the storefront and
@@ -373,6 +402,19 @@ cancellation makes and not that vendor's whole ledger
 ([ADR 0058](../adr/0058-the-order-after-payment.md)). `reason` is server-owned,
 and the route is idempotent on `Idempotency-Key` because the cancellation saga
 dispatches it **after** its pivot.
+
+⚠️ **A restoration names its cause, and a return is not a cancellation.** The
+body carries a closed `cause: 'cancellation' | 'return'`, mapped server-side to
+the movement's `reason`, so a parcel refused or returned goes back as a
+`return` movement the ledger can tell apart (ADR 0070).
+
+⚠️ **Every counter move announces `stock-item.changed`.** A movement, a hold
+taken, released or converted, goods put back — each bumps the item's `version`
+and emits the change at that version into the organization's own
+`stock_<organizationId>` outbox in the same unit, drained at commit; the tenant
+relay walks every `stock_*` database for what a drain left behind. The realtime
+slice pushes it to the vendor's own open tabs, so availability moves without a
+reload (#481).
 
 Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`
 releases one and `POST /api/reservation/:id/conversion` converts it to a sale.
@@ -451,9 +493,33 @@ open `EventSource` kills it for good; a stream nearing its token's `exp` is sent
 `event: reauth` instead. The SSE dials — the jittered `retry:` range, the reauth
 margin and the drain window — are configuration rows.
 
-¹⁰ **Reserved for fulfilment-service** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
-inspector `9110`. The `fulfilment` slice is declared `planned`, so nothing binds
-the port until the commit that writes its store promotes it (#483).
+¹⁰ **fulfilment-service, bound** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
+inspector `9110`, promoted by the commit that wrote its store (#483). It owns the
+`fulfilment` store — **tenant** plane, one Mongo database per organization
+(`fulfilment_<organizationId>`), a fourth beside the catalog's, stock's and
+sales'. Same plane, same partitioning, a different writing slice, so a different
+handle.
+
+⚠️ **Two credentials on one surface, and each route takes exactly one.** A
+vendor reads their own `ShippingOrder`s and moves them — `dispatch`,
+`record-delivery`, `record-refusal`, `record-return` — behind their session and
+the permission each `@useCase()` derives. A flow's steps are crossings with the
+vendor named in `x-organization-id` and **no session**: `POST
+/api/shipping-order` opens one, `POST|DELETE …/:id/hold` holds and releases it,
+`…/:id/withdrawal` withdraws it, and `…/:id/dispatch-step` is the delivery flow's
+pivot — each on its own crossing permission, so `dispatch-step` never carries the
+vendor's `dispatch`.
+
+⚠️ **Every move is one conditional write on the status it leaves**, so a dispatch
+and a cancellation's hold racing on one shipment leave exactly one winner. A move
+past dispatch announces `shipping-order.*` from the organization's own outbox,
+drained at commit and walked by the tenant relay; the realtime slice pushes it to
+the vendor, and the delivery flow (#488) waits on it.
+
+**It holds its own crossing token and accepts the coordinator's** —
+`participant.fulfilmentToken` on transaction-service, `service.token` here — and
+nothing else. No dev target starts it yet: the dispatch worklist that gives it a
+back-office surface is #489.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

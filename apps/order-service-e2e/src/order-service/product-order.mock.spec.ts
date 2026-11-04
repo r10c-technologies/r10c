@@ -48,6 +48,33 @@ const line = (offeringId: string, quantity = 1) => ({
   reservationId: `res-${offeringId}`,
 });
 
+/**
+ * The group every order here is written into, opened once: an order is placed
+ * only into a group that exists (ADR 0069). Its vendor is the lab's
+ * organization unless the lines name another.
+ */
+const SHARED_GROUP = crypto.randomUUID();
+
+const ORDER_SHAPE = {
+  vendorId: E2E_ORGANIZATION_ID,
+  groupId: SHARED_GROUP,
+  paymentMethod: 'card',
+};
+
+const openGroup = (id: string, data: Record<string, unknown> = {}) =>
+  service.client.post(
+    '/api/checkout-group',
+    {
+      meta: { type: 'entity', entity: 'checkout-group' },
+      data: { id, buyerId: 'party-user-2', ...data },
+    },
+    { headers: crossing() },
+  );
+
+beforeAll(async () => {
+  expect((await openGroup(SHARED_GROUP)).status).toBe(200);
+});
+
 const place = (
   items: ReadonlyArray<ReturnType<typeof line>>,
   extra: Record<string, string> = {},
@@ -56,7 +83,12 @@ const place = (
     '/api/product-order',
     {
       meta: { type: 'entity', entity: 'product-order' },
-      data: { buyerId: 'party-user-2', items },
+      data: {
+        ...ORDER_SHAPE,
+        vendorId: items[0]?.vendorId ?? E2E_ORGANIZATION_ID,
+        buyerId: 'party-user-2',
+        items,
+      },
     },
     { headers: crossing(extra) },
   );
@@ -91,15 +123,36 @@ describe('placing an order', () => {
     expect(res.data.data.items[0].amount).toBe(500);
   });
 
-  it('carries the vendor on the line, so one order can span several', async () => {
+  /**
+   * ⚠️ One order is one vendor's (ADR 0069). A basket spanning sellers is one
+   * group of orders, so a write whose lines name two vendors is a basket split
+   * wrongly upstream.
+   */
+  it('refuses a write whose lines name another vendor', async () => {
     const res = await place([
       { ...line('offering-e'), vendorId: 'vendor-a' },
       { ...line('offering-f'), vendorId: 'vendor-b' },
     ]);
 
-    expect(
-      res.data.data.items.map((item: { vendorId: string }) => item.vendorId),
-    ).toEqual(['vendor-a', 'vendor-b']);
+    expect(res.status).toBe(400);
+    expect(res.data.code).toBe('invalidBody');
+  });
+
+  it('refuses an order into a group nobody opened', async () => {
+    const res = await service.client.post(
+      '/api/product-order',
+      {
+        meta: { type: 'entity', entity: 'product-order' },
+        data: {
+          ...ORDER_SHAPE,
+          groupId: crypto.randomUUID(),
+          items: [line('offering-orphan')],
+        },
+      },
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(404);
   });
 
   it('refuses an order with no lines', async () => {
@@ -118,7 +171,7 @@ describe('the write takes a crossing token and no session', () => {
       '/api/product-order',
       {
         meta: { type: 'entity', entity: 'product-order' },
-        data: { items: [line('offering-g')] },
+        data: { ...ORDER_SHAPE, items: [line('offering-g')] },
       },
       { headers: { Authorization: await bearerFor(['admin']) } },
     );
@@ -231,6 +284,7 @@ describe('a read is scoped to the caller, from the principal', () => {
       {
         meta: { type: 'entity', entity: 'product-order' },
         data: {
+          ...ORDER_SHAPE,
           buyerId: 'party-somebody-else',
           items: [line('offering-scope-d')],
         },
@@ -256,6 +310,7 @@ describe('a read is scoped to the caller, from the principal', () => {
       {
         meta: { type: 'entity', entity: 'product-order' },
         data: {
+          ...ORDER_SHAPE,
           buyerId: 'party-somebody-else',
           items: [line('offering-scope-e')],
         },
@@ -279,6 +334,7 @@ describe('a read is scoped to the caller, from the principal', () => {
       {
         meta: { type: 'entity', entity: 'product-order' },
         data: {
+          ...ORDER_SHAPE,
           buyerId: 'party-somebody-else',
           items: [line('offering-scope-g')],
         },
@@ -316,6 +372,7 @@ describe('a read is scoped to the caller, from the principal', () => {
       {
         meta: { type: 'entity', entity: 'product-order' },
         data: {
+          ...ORDER_SHAPE,
           buyerId: 'party-somebody-else',
           items: [line('offering-scope-i')],
         },
@@ -429,55 +486,31 @@ describe('deleting an order is a compensation', () => {
 });
 
 /**
- * The buyer's cancel capability: the digest arrives with the order and the
- * window is stamped from it. The route that spends it is asserted further down —
- * everything up to the dispatch, which needs live participants.
+ * The buyer's checkout group: the receipt across sellers, opened by the
+ * checkout flow under its own id, holding the digest of the nonce a buyer's
+ * cancel and receipt read are authorized by (ADR 0069).
  */
-const placeWithDigest = (
-  data: Record<string, unknown>,
-  extra: Record<string, string> = {},
-) =>
-  service.client.post(
-    '/api/product-order',
-    {
-      meta: { type: 'entity', entity: 'product-order' },
-      data: { buyerId: 'party-user-2', items: [line('offering-cap')], ...data },
-    },
-    { headers: crossing(extra) },
-  );
-
-describe('the cancel capability an order carries', () => {
-  it('stamps a window when the order brought a digest', async () => {
-    const res = await placeWithDigest({ cancelDigest: 'a'.repeat(64) });
+describe('the checkout group', () => {
+  it('stamps a cancel window when the group brought a digest', async () => {
+    const res = await openGroup(crypto.randomUUID(), {
+      cancelDigest: 'a'.repeat(64),
+    });
 
     expect(res.status).toBe(200);
-    expect(res.data.data.cancelDigest).toBe('a'.repeat(64));
-
     const placedAt = Date.parse(String(res.data.data.placedAt));
     const endsAt = Date.parse(String(res.data.data.cancelWindowEndsAt));
     // 30 minutes, the same number the storefront's receipt cookie lives for.
     expect(endsAt - placedAt).toBe(1800 * 1000);
   });
 
-  /**
-   * ⚠️ A counter sale brings no digest, because at a till there is no browser to
-   * hold the nonce. An order with a window and nothing to open it would be a
-   * Cancel button nobody can press.
-   */
-  it('stamps no window when the order brought none', async () => {
-    const res = await placeWithDigest({});
+  it('stamps no window for a counter sale, which brings no digest', async () => {
+    const res = await openGroup(crypto.randomUUID());
 
-    expect(res.status).toBe(200);
-    expect(res.data.data.cancelDigest).toBeUndefined();
     expect(res.data.data.cancelWindowEndsAt).toBeUndefined();
   });
 
-  /**
-   * ⚠️ Server-owned. A body that could choose its own expiry could choose one
-   * that never arrives, which is a hold on a refund that never lapses.
-   */
   it('owns the window whatever the body says', async () => {
-    const res = await placeWithDigest({
+    const res = await openGroup(crypto.randomUUID(), {
       cancelDigest: 'b'.repeat(64),
       cancelWindowEndsAt: '2099-01-01T00:00:00.000Z',
     });
@@ -485,6 +518,45 @@ describe('the cancel capability an order carries', () => {
     expect(Date.parse(String(res.data.data.cancelWindowEndsAt))).toBeLessThan(
       Date.parse('2099-01-01T00:00:00.000Z'),
     );
+  });
+
+  it('opens only under a flow’s id', async () => {
+    const res = await openGroup('not-a-flow-id');
+
+    expect(res.status).toBe(400);
+    expect(res.data.code).toBe('invalidBody');
+  });
+
+  it('lists the vendor orders placed in it, and is shown to no vendor', async () => {
+    const groupId = crypto.randomUUID();
+    await openGroup(groupId);
+    for (const vendorId of ['vendor-ga', 'vendor-gb']) {
+      await service.client.post(
+        '/api/product-order',
+        {
+          meta: { type: 'entity', entity: 'product-order' },
+          data: {
+            ...ORDER_SHAPE,
+            vendorId,
+            groupId,
+            items: [{ ...line('offering-g'), vendorId }],
+          },
+        },
+        { headers: crossing() },
+      );
+    }
+
+    const asOperatorRead = await service.client.get(
+      `/api/checkout-group/${groupId}`,
+      { headers: await asOperator() },
+    );
+    const asVendorRead = await service.client.get(
+      `/api/checkout-group/${groupId}`,
+      { headers: await asVendorOf('vendor-ga') },
+    );
+
+    expect(asOperatorRead.data.data.orderIds).toHaveLength(2);
+    expect(asVendorRead.status).toBe(404);
   });
 });
 
@@ -534,70 +606,55 @@ const asOperator = async () => ({
   )}`,
 });
 
-describe('fulfilling an order', () => {
-  it('refuses a crossing token, because fulfilling is a person’s act', async () => {
-    const placed = await place([line('offering-ff')]);
+describe('the flows’ moves on an order', () => {
+  const move = (id: string, step: string, body: object = {}) =>
+    service.client.post(`/api/product-order/${id}/${step}`, body, {
+      headers: crossing(),
+    });
 
-    const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/fulfil`,
-      {},
-      { headers: crossing() },
-    );
+  it('confirms a pending cash-on-delivery order, dispatches it and closes it fulfilled', async () => {
+    const placed = await place([line('offering-mv')]);
+    const id = placed.data.data.id as string;
 
-    // The mirror image of the write next door: one route, one credential.
-    expect(res.status).toBe(401);
+    const confirmed = await move(id, 'confirmed');
+    const dispatched = await move(id, 'dispatched');
+    const closed = await move(id, 'closed', { outcome: 'fulfilled' });
+
+    expect(confirmed.data.data.status).toBe('confirmed');
+    expect(dispatched.data.data.status).toBe('dispatched');
+    expect(closed.data.data.status).toBe('fulfilled');
   });
 
-  it('answers 404 to a vendor with no line on the order', async () => {
-    const placed = await place([
-      { ...line('offering-fe'), vendorId: 'vendor-fe' },
-    ]);
+  it('closes a dispatched parcel cancelled when it was refused or returned', async () => {
+    const placed = await place([line('offering-mr')]);
+    const id = placed.data.data.id as string;
+    await move(id, 'confirmed');
+    await move(id, 'dispatched');
 
-    const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/fulfil`,
-      {},
-      { headers: await asVendorOf('vendor-elsewhere') },
-    );
+    const closed = await move(id, 'closed', { outcome: 'cancelled' });
 
-    // The same answer an absent order gets. A 403 would confirm it exists to
-    // somebody who may not act on it.
-    expect(res.status).toBe(404);
+    expect(closed.data.data.status).toBe('cancelled');
   });
 
-  it('answers 404 to a buyer, who fulfils nothing', async () => {
-    const placed = await place([line('offering-fh')]);
+  it('refuses a move from the wrong place, naming where the order stood', async () => {
+    const placed = await place([line('offering-mx')]);
 
-    const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/fulfil`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${await signTokenFor(
-            ['admin'],
-            'user-1',
-            null,
-            'customer',
-            E2E_PARTY_ID,
-          )}`,
-        },
-      },
-    );
-
-    expect(res.status).toBe(404);
-  });
-
-  it('refuses to fulfil an order that is not paid', async () => {
-    const placed = await place([line('offering-fg')]);
-
-    const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/fulfil`,
-      {},
-      { headers: await asOperator() },
-    );
+    const res = await move(placed.data.data.id as string, 'dispatched');
 
     expect(res.status).toBe(409);
-    expect(res.headers['content-type']).toContain('application/problem+json');
-    expect(res.data.code).toBe('orderNotFulfillable');
+    expect(res.data.code).toBe('orderNotTransitionable');
+  });
+
+  it('refuses a session, because a move is a flow’s step', async () => {
+    const placed = await place([line('offering-ms')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/confirmed`,
+      {},
+      { headers: { Authorization: await bearerFor(['super-admin']) } },
+    );
+
+    expect(res.status).toBe(401);
   });
 });
 
@@ -675,29 +732,27 @@ describe('the cancellation claim', () => {
 describe('settling a cancellation', () => {
   /**
    * ⚠️ The conditional filter is the whole guard. An order nobody claimed must
-   * not be walked to `cancelled` by a stray delivery — and the answer is still
-   * `200`, because this step sits after the pivot and may only roll forward, so
-   * a refusal here would strand a flow rather than fix anything. The body is
-   * what says nothing happened.
+   * not be walked to `cancelled` by a stray delivery, so the close refuses it
+   * and names where it stood.
    */
-  it('leaves an unclaimed order alone and reports what it found', async () => {
+  it('leaves an unclaimed order alone and says where it stood', async () => {
     const placed = await place([line('offering-sa')]);
     const id = placed.data.data.id as string;
 
     const res = await service.client.post(
-      `/api/product-order/${id}/cancelled`,
-      {},
+      `/api/product-order/${id}/closed`,
+      { outcome: 'cancelled' },
       { headers: crossing({ 'idempotency-key': '"cmd-settle-a"' }) },
     );
 
-    expect(res.status).toBe(200);
-    expect(res.data.data.status).toBe('pending');
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('orderNotTransitionable');
   });
 
   it('answers 404 for an order that is not there', async () => {
     const res = await service.client.post(
-      '/api/product-order/no-such-order/cancelled',
-      {},
+      '/api/product-order/no-such-order/closed',
+      { outcome: 'cancelled' },
       { headers: crossing({ 'idempotency-key': '"cmd-settle-missing"' }) },
     );
 
@@ -708,8 +763,8 @@ describe('settling a cancellation', () => {
     const placed = await place([line('offering-sc')]);
 
     const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/cancelled`,
-      {},
+      `/api/product-order/${placed.data.data.id as string}/closed`,
+      { outcome: 'cancelled' },
       { headers: { Authorization: await bearerFor(['admin']) } },
     );
 
@@ -725,10 +780,43 @@ describe('the buyer’s own cancel', () => {
     return createHash('sha256').update(NONCE, 'utf8').digest('hex');
   };
 
+  /** An order placed in a group that carries the buyer's capability. */
   const withCapability = async (): Promise<string> => {
-    const res = await placeWithDigest({ cancelDigest: await digestOfNonce() });
+    const groupId = crypto.randomUUID();
+    await openGroup(groupId, { cancelDigest: await digestOfNonce() });
+    const res = await service.client.post(
+      '/api/product-order',
+      {
+        meta: { type: 'entity', entity: 'product-order' },
+        data: { ...ORDER_SHAPE, groupId, items: [line('offering-cap')] },
+      },
+      { headers: crossing() },
+    );
     return res.data.data.id as string;
   };
+
+  it('reads the receipt back by the capability in a header, and nothing without it', async () => {
+    const id = await withCapability();
+    const order = await service.client.get(`/api/product-order/${id}`, {
+      headers: await asOperator(),
+    });
+    const groupId = order.data.data.groupId as string;
+
+    const receipt = await service.client.get(
+      `/api/checkout-group/${groupId}/buyer-receipt`,
+      { headers: { Authorization: undefined, 'x-cancel-nonce': NONCE } },
+    );
+    const guessed = await service.client.get(
+      `/api/checkout-group/${groupId}/buyer-receipt`,
+      { headers: { Authorization: undefined, 'x-cancel-nonce': 'guess' } },
+    );
+
+    expect(receipt.status).toBe(200);
+    expect(
+      receipt.data.orders.map((o: { data: { id: string } }) => o.data.id),
+    ).toEqual([id]);
+    expect(guessed.status).toBe(401);
+  });
 
   it('refuses a nonce that does not match, and says nothing about why', async () => {
     const id = await withCapability();
@@ -756,11 +844,11 @@ describe('the buyer’s own cancel', () => {
   });
 
   /**
-   * ⚠️ A counter sale carries no digest, because at a till there is no browser
-   * to hold a nonce. "No capability was required" must never be reachable from
-   * "no capability was presented".
+   * ⚠️ A counter sale's group carries no digest, because at a till there is no
+   * browser to hold a nonce. "No capability was required" must never be
+   * reachable from "no capability was presented".
    */
-  it('refuses every nonce on an order that carries no digest', async () => {
+  it('refuses every nonce on an order whose group carries no digest', async () => {
     const placed = await place([line('offering-bc')]);
 
     const res = await service.client.post(
@@ -812,27 +900,45 @@ describe('the buyer’s own cancel', () => {
 
 describe('a vendor or operator asking to cancel', () => {
   /**
-   * ⚠️ Partial cancellation of a multi-vendor order is out of scope by decision
-   * rather than by omission: the money was taken once, for the whole basket, on
-   * one capture. So a vendor is refused with a code naming who can — and that
-   * check runs **before** the status one, because "not cancellable right now"
-   * reads as a retry and there is no moment at which this one succeeds.
+   * ⚠️ Each vendor's order is theirs alone (ADR 0069): in one group, vendor A
+   * may ask to cancel A's order and is not even shown B's.
    */
-  it('refuses a vendor an order that also names somebody else', async () => {
-    const placed = await place([
-      { ...line('offering-va'), vendorId: 'vendor-va' },
-      { ...line('offering-vb'), vendorId: 'vendor-vb' },
-    ]);
+  it('lets vendor A ask about only their own order in a shared group', async () => {
+    const groupId = crypto.randomUUID();
+    await openGroup(groupId);
+    const write = (vendorId: string) =>
+      service.client.post(
+        '/api/product-order',
+        {
+          meta: { type: 'entity', entity: 'product-order' },
+          data: {
+            ...ORDER_SHAPE,
+            vendorId,
+            groupId,
+            items: [{ ...line('offering-vab'), vendorId }],
+          },
+        },
+        { headers: crossing() },
+      );
+    const a = await write('vendor-va');
+    const b = await write('vendor-vb');
 
-    const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/cancel`,
+    const own = await service.client.post(
+      `/api/product-order/${a.data.data.id as string}/cancel`,
+      {},
+      { headers: await asVendorOf('vendor-va') },
+    );
+    const theirs = await service.client.post(
+      `/api/product-order/${b.data.data.id as string}/cancel`,
       {},
       { headers: await asVendorOf('vendor-va') },
     );
 
-    expect(res.status).toBe(409);
-    expect(res.headers['content-type']).toContain('application/problem+json');
-    expect(res.data.code).toBe('multiVendorOrder');
+    // Their own pending order is refused on its status, not on who asked.
+    expect(own.status).toBe(409);
+    expect(own.headers['content-type']).toContain('application/problem+json');
+    expect(own.data.code).toBe('orderNotCancellable');
+    expect(theirs.status).toBe(404);
   });
 
   it('refuses an operator an order that is not paid', async () => {
@@ -848,7 +954,7 @@ describe('a vendor or operator asking to cancel', () => {
     expect(res.data.code).toBe('orderNotCancellable');
   });
 
-  it('answers 404 to a vendor with no line on the order', async () => {
+  it('answers 404 to a vendor the order does not belong to', async () => {
     const placed = await place([
       { ...line('offering-vc'), vendorId: 'vendor-vc' },
     ]);

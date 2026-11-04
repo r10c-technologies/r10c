@@ -150,29 +150,38 @@ describe('the crossing endpoints', () => {
     });
   });
 
-  it('put a cancelled order’s goods back as a cancellation, once per key', async () => {
+  it('put an order’s goods back by its cause, once per key', async () => {
     const { run, refusal } = world();
-    const restore = (quantity: number) =>
+    const envelope = (quantity: number, cause?: string) => {
+      const payload = makeEntityEnvelope(
+        StockMovement,
+        new StockMovement('o-1', quantity),
+      ) as unknown as { data: Record<string, unknown> };
+      if (cause !== undefined) payload.data['cause'] = cause;
+      return payload;
+    };
+    const restore = (
+      quantity: number,
+      cause = 'cancellation',
+      key = 'cmd-restore',
+    ) =>
       Effect.provideService(
-        restoration.handler({
-          payload: makeEntityEnvelope(
-            StockMovement,
-            new StockMovement('o-1', quantity),
-          ),
-        }),
+        restoration.handler({ payload: envelope(quantity, cause) }),
         IdempotencyKeyTag,
-        'cmd-restore',
+        key,
       );
 
     const restored = await run(restore(2));
     const again = await run(restore(2));
+    const returned = await run(restore(1, 'return', 'cmd-return'));
     const negative = await refusal(
-      restoration.handler({
-        payload: makeEntityEnvelope(
-          StockMovement,
-          new StockMovement('o-1', -2),
-        ),
-      }),
+      restoration.handler({ payload: envelope(-2, 'cancellation') }),
+    );
+    const causeless = await refusal(
+      restoration.handler({ payload: envelope(2) }),
+    );
+    const unknownCause = await refusal(
+      restoration.handler({ payload: envelope(2, 'gift') }),
     );
 
     expect(restored).toMatchObject({
@@ -184,6 +193,9 @@ describe('the crossing endpoints', () => {
       },
     });
     expect(again).toEqual(restored);
+    expect(returned).toMatchObject({ data: { reason: 'return', quantity: 1 } });
     expect(negative).toMatchObject({ code: 'inconsistentMovement' });
+    expect(causeless).toMatchObject({ code: 'invalidBody' });
+    expect(unknownCause).toMatchObject({ code: 'invalidBody' });
   });
 });

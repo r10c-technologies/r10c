@@ -8,6 +8,7 @@ describe('storePaths', () => {
     expect(storePaths.category('lighting')).toBe('/c/lighting');
     expect(storePaths.offering('offering-1')).toBe('/p/offering-1');
     expect(storePaths.cart()).toBe('/cart');
+    expect(storePaths.orderStatus('f 1')).toBe('/order/status/f%201');
   });
 
   it('omits the query when there is no search term', () => {

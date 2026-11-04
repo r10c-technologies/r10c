@@ -3,7 +3,7 @@ import { Context, type Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
 import type { MixedCurrencies } from '../failures/settlement-failures';
-import type { VendorCommission } from '../values/commission';
+import type { CollectedBy, VendorCommission } from '../values/commission';
 
 /**
  * One half of a sale, as one message contributes it. The sale itself is
@@ -15,15 +15,28 @@ export type SaleHalf =
   | {
       readonly commissions: readonly VendorCommission[];
       readonly unpriced: readonly string[];
+      /** The order's tender: a cash-on-delivery order cancelled uncollected voids. */
+      readonly paymentMethod: string;
     }
-  | { readonly decidedAt: string }
+  | {
+      readonly decidedAt: string;
+      /** Minor units the capture allocated to this order. */
+      readonly captured: number;
+      readonly collectedBy: CollectedBy;
+    }
   | { readonly cancelledAt: string }
-  | { readonly refundedAt: string };
+  | {
+      readonly refundedAt: string;
+      /** Minor units given back for this order. */
+      readonly refunded: number;
+    };
 
 /** What contributing a half did. */
 export type FoldOutcome =
   | { readonly kind: 'waiting' }
   | { readonly kind: 'duplicate' }
+  /** A cash-on-delivery order cancelled before any cash changed hands. */
+  | { readonly kind: 'voided' }
   | {
       readonly kind: 'written';
       readonly folded: number;

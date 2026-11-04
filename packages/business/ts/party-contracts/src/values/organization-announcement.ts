@@ -42,6 +42,13 @@ export interface OrganizationAnnouncement {
    * while the walk ran (ADR 0061, the same rule ADR 0050 gives a publication).
    */
   readonly announcedAt: string;
+  /**
+   * Whether the organization ships cash on delivery — whether it is provisioned
+   * for `shipping-order-management`. Public, because the storefront offers cash
+   * on delivery per seller from it; never authoritative, because payment's own
+   * `cod-eligible` check is what a checkout is refused by (ADR 0070).
+   */
+  readonly acceptsCod: boolean;
 }
 
 /**
@@ -95,6 +102,9 @@ export const OrganizationAnnouncementSchema = openStruct({
   announcedAt: Filled.check(
     Schema.makeFilter(value => !Number.isNaN(Date.parse(value))),
   ),
+  // Optional as a safety property: a reader rejecting a payload quarantines it,
+  // and absent reads as a seller who does not ship cash on delivery.
+  acceptsCod: Schema.optional(Schema.Boolean),
 });
 
 // Audience-free: an announcement is folded into the published-vendor
@@ -119,9 +129,10 @@ export const readOrganizationAnnouncement = (
         ),
       ),
     ),
-    ({ organizationId, displayName, announcedAt }) => ({
+    ({ organizationId, displayName, announcedAt, acceptsCod }) => ({
       organizationId,
       displayName,
       announcedAt,
+      acceptsCod: acceptsCod === true,
     }),
   );

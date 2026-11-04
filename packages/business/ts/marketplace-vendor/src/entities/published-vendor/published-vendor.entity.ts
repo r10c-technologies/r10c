@@ -32,6 +32,7 @@ export class PublishedVendor implements Entity {
   // The epoch, so a record written without a stamp compares as older than
   // every real announcement rather than as newer than all of them.
   #announcedAt = new Date(0);
+  #acceptsCod = false;
   // #endregion
 
   // #region constructors
@@ -95,6 +96,24 @@ export class PublishedVendor implements Entity {
   }
   set announcedAt(value: Date) {
     this.#announcedAt = value;
+  }
+
+  /**
+   * Whether this seller ships cash on delivery, as auth-service announced it
+   * from the organization's entitlement. A storefront **hint**: the checkout's
+   * own `cod-eligible` step is what refuses, and payment-service reads this
+   * same record to decide it (ADR 0070).
+   */
+  @accessor({
+    type: 'boolean',
+    labelKey: 'entity:published-vendor.fields.acceptsCod',
+    filterable: true,
+  })
+  get acceptsCod(): boolean {
+    return this.#acceptsCod;
+  }
+  set acceptsCod(value: boolean) {
+    this.#acceptsCod = value;
   }
   // #endregion
 }

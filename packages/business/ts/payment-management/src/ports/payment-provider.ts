@@ -13,7 +13,11 @@ import type { PaymentMethod } from '../values/payment-method';
  */
 export interface PaymentRequest {
   readonly paymentId: string;
-  readonly orderId: string;
+  /**
+   * What the money is for, as the provider's statement shows it: the checkout
+   * group on a capture, the one vendor order on a refund.
+   */
+  readonly reference: string;
   /** Minor units, matching {@link Payment.amount}. */
   readonly amount: number;
   readonly currency: string;

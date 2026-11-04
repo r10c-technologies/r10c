@@ -29,7 +29,6 @@ export const cancelWindowLabel = (
   receipt: Receipt,
   now: Date,
 ): string | undefined => {
-  if (receipt.cancelled === true) return undefined;
   if (!receipt.cancelNonce) return undefined;
   if (receipt.cancelWindowEndsAt === undefined) return undefined;
 

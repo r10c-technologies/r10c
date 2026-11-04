@@ -70,16 +70,16 @@ const productOrderRest = createRestRepositoryContext(ProductOrder);
  * the form renders read-only — without this shell asserting anything about it
  * ([ADR 0026](../../../../../../../docs/adr/0026-the-use-case-descriptor-and-served-entity-metadata.md)).
  *
- * It is also what decides whether `fulfil` and `cancel` appear: the document is
- * filtered by the caller's real grants, so a `user` sees neither and no
- * client-side check is needed or wanted.
+ * It is also what decides whether `cancel` appears: the document is filtered
+ * by the caller's real grants, so a `user` does not see it and no client-side
+ * check is needed or wanted.
  */
 const metadata = makeEntityMetadataSource({
   url: name => `/api/order/${name}/$metadata`,
 });
 
 /**
- * The order's verbs — `fulfil` and `cancel` — through the same proxy and `uri`
+ * The order's verb — `cancel` — through the same proxy and `uri`
  * composition as the repository: `POST product-order/:id/<key>`, the path the
  * service derives from each `@useCase()`, with a refusal decoded from its
  * problem body.

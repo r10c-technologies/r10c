@@ -124,6 +124,7 @@ const FLEET_SERVICES = [
   'settlement-service',
   'stock-service',
   'sales-service',
+  'fulfilment-service',
   'realtime-service',
 ] as const;
 
@@ -170,6 +171,7 @@ const FLOW_PARTICIPANTS = [
   'stock-service',
   'order-service',
   'payment-service',
+  'fulfilment-service',
 ] as const;
 
 /**
@@ -853,6 +855,19 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   {
     service: 'transaction-service',
+    group_name: 'participant',
+    key: 'fulfilmentUrl',
+    value: 'http://localhost:3110',
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'participant',
+    key: 'fulfilmentToken',
+    value: 'dev-fulfilment-crossing-token-change-me',
+    is_secret: true,
+  },
+  {
+    service: 'transaction-service',
     group_name: 'logging',
     key: 'level',
     value: 'debug',
@@ -1102,6 +1117,29 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'declineReason',
     value: 'simulated decline',
   },
+  // Cash on delivery (ADR 0070). The most a courier is trusted to carry for one
+  // vendor order — GTQ 1,500 in minor units, a business default seeded as a
+  // dial — and the kill switch: `'true'` is the only value that turns it on.
+  {
+    service: 'payment-service',
+    group_name: 'cod',
+    key: 'maxAmount',
+    value: '150000',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'cod',
+    key: 'enabled',
+    value: 'true',
+  },
+  // The published vendor projection, read for whether a seller ships cash on
+  // delivery: the same record the storefront offers it from.
+  {
+    service: 'payment-service',
+    group_name: 'marketplace',
+    key: 'url',
+    value: 'http://localhost:3100/api',
+  },
   {
     service: 'payment-service',
     group_name: 'logging',
@@ -1122,6 +1160,90 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   {
     service: 'payment-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
+  // fulfilment-service — a vendor order's journey to the buyer (ADR 0070). It
+  // owns the `fulfilment` store: **tenant** plane, one database per
+  // organization (`fulfilment_<organizationId>`), a fourth beside the
+  // catalog's, stock's and sales'. ⚠️ The prefix is the only thing keeping it
+  // apart from the other three, exactly as stock's is.
+  {
+    service: 'fulfilment-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'tenant',
+    key: 'dbPrefix',
+    value: 'fulfilment_',
+  },
+  // A move past dispatch announces itself from the organization's own outbox,
+  // for the delivery flow that waits on it.
+  {
+    service: 'fulfilment-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // ⚠️ **Its own crossing secret**, matching transaction-service's
+  // `participant.fulfilmentToken` and no other service's (ADR 0023).
+  {
+    service: 'fulfilment-service',
+    group_name: 'service',
+    key: 'token',
+    value: 'dev-fulfilment-crossing-token-change-me',
+    is_secret: true,
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'fulfilment-service',
     group_name: 'otel',
     key: 'metricIntervalMs',
     value: '60000',
@@ -1400,6 +1522,21 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // How long a crossing write's `Idempotency-Key` replays its first answer
   // (ADR 0068): past it the key is free again. A day outlasts every redelivery
   // and every coordinator retry.
+  // The broker and the outbox's dial: every counter move announces
+  // `stock-item.changed` from its organization's own outbox (#481).
+  {
+    service: 'stock-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'stock-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
   {
     service: 'stock-service',
     group_name: 'idempotency',

@@ -57,9 +57,10 @@ const placed = (id: string, organizationId = 'org-a'): DomainEvent => ({
   audience: [{ kind: 'organization', id: organizationId }],
   data: {
     id: 'o-1',
-    items: [
-      { vendorId: organizationId, amount: 10, quantity: 1, currency: 'GTQ' },
-    ],
+    vendorId: organizationId,
+    groupId: 'g-1',
+    paymentMethod: 'card',
+    items: [{ amount: 10, quantity: 1, currency: 'GTQ' }],
   },
 });
 

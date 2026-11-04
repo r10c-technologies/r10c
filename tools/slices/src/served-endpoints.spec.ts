@@ -1,6 +1,7 @@
 import { type AnyEndpointGroup, endpointsOf } from '@entifix/service-shell';
 import { endpoints as authEndpoints } from '@r10c/shells-effect-auth';
 import { endpoints as configEndpoints } from '@r10c/shells-effect-config';
+import { endpoints as fulfilmentEndpoints } from '@r10c/shells-effect-fulfilment';
 import { endpoints as marketplaceEndpoints } from '@r10c/shells-effect-marketplace';
 import { endpoints as marketplaceAdminEndpoints } from '@r10c/shells-effect-marketplace-admin';
 import { endpoints as orderEndpoints } from '@r10c/shells-effect-order';
@@ -27,6 +28,7 @@ import { endpointDrift, expandApis } from './served-endpoints.js';
 const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
   auth: authEndpoints,
   config: configEndpoints,
+  fulfilment: fulfilmentEndpoints,
   marketplace: marketplaceEndpoints,
   'marketplace-admin': marketplaceAdminEndpoints,
   order: orderEndpoints,

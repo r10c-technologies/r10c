@@ -25,7 +25,15 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
-import { makeInMemoryIdempotencyStore } from '@entifix/testing-unit';
+import {
+  makeInMemoryIdempotencyStore,
+  makeRecordingEventBus,
+} from '@entifix/testing-unit';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -118,6 +126,10 @@ const MockAppLayer = (() => {
       makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
     ),
     Layer.succeed(ReservationTtlSecondsTag, RESERVATION_TTL_SECONDS),
+    // Records what the ledger announces; under `mock` nothing consumes it.
+    Layer.succeed(EventBusTag, makeRecordingEventBus()),
+    Layer.succeed(OutboxMaxAttempts, 5),
+    Layer.succeed(EventSourceTag, 'stock'),
   );
 
   // The REAL seed, so both profiles read the same stock positions and a shared

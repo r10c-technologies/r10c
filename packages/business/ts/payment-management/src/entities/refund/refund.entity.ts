@@ -15,20 +15,17 @@ import { type RefundStatus, RefundStatuses } from '../../values/refund-status';
  * time leaves the capture untouched and gives reconciliation two rows to join
  * ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md)).
  *
- * It carries **both** ids. `paymentId` is what it reverses and is the unique key
- * that stops one capture being refunded twice; `orderId` is how it is addressed,
- * because the cancellation saga holds an order and has never seen a payment id.
+ * It carries **both** ids. `allocationId` is the share of a capture it gives
+ * back; `orderId` is how it is addressed, because a cancellation holds an order
+ * and has never seen a payment.
  *
  * `amount` is an integer in the currency's minor unit, like every other money
- * member in this repo, and it is copied off the resolved capture rather than
- * taken from the caller — a request that can name its own refund amount is a
- * request that can refund more than was ever charged.
- *
- * ⚠️ **The whole capture, never a part of it.** Partial refunds are out of v1
- * scope and the unique index on `paymentId` is what keeps that true in storage
- * rather than in review. Adding them later means dropping that index and giving
- * this record a reason to exist more than once per payment, which is a decision
- * rather than a migration.
+ * member in this repo. ⚠️ **It may be part of the allocation, never more than
+ * what is left of it.** The ledger takes it with a conditional `$inc` guarded by
+ * `refunded + amount <= captured`, *before* the provider is called, so two
+ * refunds racing on one allocation can never send back more than was charged —
+ * not at the provider, and not in the ledger
+ * ([ADR 0069](../../../../../../docs/adr/0069-a-checkout-group-of-per-vendor-orders.md)).
  *
  * `providerReference` is the provider's own id for the refund — a *second*
  * reference, never the capture's. Absent for cash, which has no provider to
@@ -43,7 +40,7 @@ import { type RefundStatus, RefundStatuses } from '../../values/refund-status';
 export class Refund implements Entity {
   // #region properties
   #id?: EntityId;
-  #paymentId: string;
+  #allocationId: string;
   #orderId: string;
   #amount: number;
   #currency: string;
@@ -53,9 +50,9 @@ export class Refund implements Entity {
   // #endregion
 
   // #region constructors
-  constructor(orderId = '', paymentId = '', amount = 0, currency = '') {
+  constructor(orderId = '', allocationId = '', amount = 0, currency = '') {
     this.#orderId = orderId;
-    this.#paymentId = paymentId;
+    this.#allocationId = allocationId;
     this.#amount = amount;
     this.#currency = currency;
   }
@@ -71,21 +68,21 @@ export class Refund implements Entity {
   }
 
   /**
-   * The capture this reverses. Server-owned: the route resolves it from the
-   * order rather than accepting it, so a caller cannot aim a refund at a payment
-   * that belongs to a different order.
+   * The allocation this gives money back from. Server-owned: the route
+   * resolves it from the order rather than accepting it, so a caller cannot aim
+   * a refund at money taken for a different order.
    */
   @accessor({
     type: 'string',
-    labelKey: 'entity:refund.fields.paymentId',
+    labelKey: 'entity:refund.fields.allocationId',
     required: true,
     filterable: true,
   })
-  get paymentId(): string {
-    return this.#paymentId;
+  get allocationId(): string {
+    return this.#allocationId;
   }
-  set paymentId(value: string) {
-    this.#paymentId = value;
+  set allocationId(value: string) {
+    this.#allocationId = value;
   }
 
   /**

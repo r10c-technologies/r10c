@@ -74,7 +74,10 @@ const order = (overrides: Partial<DomainEvent> = {}): DomainEvent => ({
   audience: [{ kind: 'organization', id: 'org-a' }],
   data: {
     id: 'o-1',
-    items: [{ vendorId: 'org-a', amount: 10, quantity: 1, currency: 'GTQ' }],
+    vendorId: 'org-a',
+    groupId: 'g-1',
+    paymentMethod: 'card',
+    items: [{ amount: 10, quantity: 1, currency: 'GTQ' }],
   },
   ...overrides,
 });
@@ -145,7 +148,11 @@ describe('the push projections', () => {
   it('push nothing for an event that names no aggregate', () => {
     const bare = order();
     delete bare.aggregate;
-    for (const name of ['order.cancelled', 'catalog.unpublished', 'flow.failed'])
+    for (const name of [
+      'order.cancelled',
+      'catalog.unpublished',
+      'flow.failed',
+    ])
       expect(PUSH_PROJECTIONS[name]?.(bare)).toEqual([]);
   });
 });
@@ -545,8 +552,7 @@ describe('the flow-status projection and its reads', () => {
 
   const get = (path: string, token?: string) =>
     fetch(`${running?.baseUrl}${path}`, {
-      headers:
-        token === undefined ? {} : { authorization: `Bearer ${token}` },
+      headers: token === undefined ? {} : { authorization: `Bearer ${token}` },
     });
 
   beforeAll(async () => {
@@ -670,9 +676,8 @@ describe('the flow-status projection and its reads', () => {
   it('logs an apply at info and a redelivery or an older version at debug', async () => {
     const levels: string[] = [];
     await Effect.runPromise(
-      Effect.forEach(
-        ['applied', 'stale', 'duplicate'] as const,
-        outcome => logFlowStatus('flow.completed', 'f-1', outcome),
+      Effect.forEach(['applied', 'stale', 'duplicate'] as const, outcome =>
+        logFlowStatus('flow.completed', 'f-1', outcome),
       ).pipe(
         Effect.provide(
           Logger.layer([

@@ -18,6 +18,7 @@ const announcement = (
   organizationId,
   displayName,
   announcedAt: `2026-10-25T10:${String(minute).padStart(2, '0')}:00.000Z`,
+  acceptsCod: false,
 });
 
 /**

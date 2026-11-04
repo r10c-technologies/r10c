@@ -1,6 +1,7 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 
+import { CollectedBy } from '../../values/commission';
 import {
   type CommissionEntryKind,
   CommissionEntryKinds,
@@ -56,6 +57,7 @@ export class CommissionEntry implements Entity {
   #occurredAt?: Date;
   #runId?: string;
   #kind: CommissionEntryKind;
+  #collectedBy: CollectedBy = 'platform';
   // #endregion
 
   // #region constructors
@@ -253,6 +255,28 @@ export class CommissionEntry implements Entity {
   }
   set kind(value: CommissionEntryKind) {
     this.#kind = value;
+  }
+
+  /**
+   * Who holds the sale's money: the platform for a card captured at checkout,
+   * the vendor for cash a courier collected on delivery. A payout pays the
+   * gross less the cut for the first, and debits only the cut for the second —
+   * the vendor already has the cash (ADR 0070).
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:commission-entry.fields.collectedBy',
+    enumValues: CollectedBy,
+    enumLabelKey: 'entity:commission-entry.values.collectedBy',
+    required: true,
+    sortable: false,
+    filterable: true,
+  })
+  get collectedBy(): CollectedBy {
+    return this.#collectedBy;
+  }
+  set collectedBy(value: CollectedBy) {
+    this.#collectedBy = value;
   }
   // #endregion
 }

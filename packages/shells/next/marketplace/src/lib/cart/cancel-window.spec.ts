@@ -8,8 +8,16 @@ const OPEN = new Date('2026-09-11T12:30:00.000Z').toISOString();
 const CLOSED = new Date('2026-09-11T11:30:00.000Z').toISOString();
 
 const receipt = (extra: Partial<Receipt> = {}): Receipt => ({
-  orderId: 'order-1',
-  lineCount: 1,
+  groupId: 'group-1',
+  orders: [
+    {
+      orderId: 'order-1',
+      vendorId: 'v-1',
+      method: 'card',
+      lineCount: 1,
+      total: { currency: 'GTQ', amount: 1999 },
+    },
+  ],
   totals: [{ currency: 'GTQ', amount: 1999 }],
   cancelNonce: 'a'.repeat(64),
   cancelWindowEndsAt: OPEN,
@@ -62,12 +70,6 @@ describe('cancelWindowLabel', () => {
   it('closes the window on an unparseable stamp', () => {
     expect(
       cancelWindowLabel('es', receipt({ cancelWindowEndsAt: 'nope' }), NOW),
-    ).toBeUndefined();
-  });
-
-  it('offers nothing on an order already cancelled from this browser', () => {
-    expect(
-      cancelWindowLabel('es', receipt({ cancelled: true }), NOW),
     ).toBeUndefined();
   });
 });

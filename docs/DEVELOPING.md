@@ -644,10 +644,10 @@ and the scope of the slice that owns its domain.
   `makeEntityRoutes.for<R>()(Entity, options)`, which keeps the entity and the
   guard inferred. A single call with explicit `<T, R>` is refused at its
   `guard` since entifix 0.8.0, rather than widening it to every kind.
-- A server-side read narrowed to a line names the embedded path directly
-  (`'items.vendorId' satisfies EntityMemberPath<ProductOrder>`), and a bulk
-  selection is read with `repository.load(loadRequestFor(selection, page))`.
-  Neither needs a cast.
+- A server-side read narrowed to an embedded member names its path directly
+  (`'lines.offeringId' satisfies EntityMemberPath<…>`), and a bulk selection is
+  read with `repository.load(loadRequestFor(selection, page))`. Neither needs a
+  cast.
 - A cell's spec reaches 100% over driver fakes and contract suites
   ([ADR 0063](adr/0063-a-cell-reaches-full-coverage-through-fakes-and-contract-suites.md)),
   never a real database; a race is proven against the live lab.
@@ -922,10 +922,11 @@ checks keep them honest, and each fails the build:
   `defineVariants(` with no spec beside it calling `forEachVariant(`.
 - **A variant is chosen from verified facts.** `@r10c/conventions` fails a
   `When(` predicate that names the request, its body, params, query or input.
-- **A recipe is the saga it describes.** Until the flow engine retires
-  `sagas/*.saga.ts` (#486, #487), `recipes.spec.ts` in
-  `@r10c/shells-effect-transaction` fails a recipe whose card path calls,
-  compensates or classifies a step differently from the saga that actually runs.
+- **The recipes lead; the saga runner lags.** The commerce domain (#479–#485)
+  moved the recipes to per-vendor orders and per-order payment allocations, and
+  the saga runner's `sagas/*.saga.ts` were deliberately left behind: a live
+  checkout or counter sale fails until #486 and #487 move both flows onto the
+  engine from the recipes. Nothing checks the two against each other any more.
 
 A verb that starts a flow names its recipe on its `@useCase()`, and the cell's
 route builder takes the shell's `MetadataCompositions`, so `$metadata` reports

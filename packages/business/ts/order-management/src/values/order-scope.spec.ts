@@ -3,6 +3,7 @@ import { verifiedContext } from '@entifix/business/verified';
 import { describe, expect, it } from 'vitest';
 
 import {
+  checkoutGroupNarrowing,
   orderNarrowing,
   orderScopeFor,
   type ScopedCaller,
@@ -59,22 +60,35 @@ describe('the scope a principal reads orders in', () => {
   });
 });
 
-const narrowingOf = (facts: {
+type Facts = {
   partyRole?: string;
   organizationId?: string;
   partyId?: string;
-}) => {
-  const context = verifiedContext({
+};
+
+const contextOf = (facts: Facts) =>
+  verifiedContext({
     entitlements: [],
     roles: [],
     flags: [],
     config: {},
     ...facts,
   });
+
+const narrowingOf = (facts: Facts) => {
+  const context = contextOf(facts);
   const chosen = dryRun(orderNarrowing, context);
   return chosen === undefined
     ? 'nothing'
     : orderNarrowing[chosen.rule]?.variant.impl(context);
+};
+
+const groupNarrowingOf = (facts: Facts) => {
+  const context = contextOf(facts);
+  const chosen = dryRun(checkoutGroupNarrowing, context);
+  return chosen === undefined
+    ? 'nothing'
+    : checkoutGroupNarrowing[chosen.rule]?.variant.impl(context);
 };
 
 describe('the narrowing a caller reads orders under', () => {
@@ -82,12 +96,12 @@ describe('the narrowing a caller reads orders under', () => {
     expect(narrowingOf({ partyRole: 'operator' })).toBe('unscoped');
   });
 
-  it('narrows a vendor to the orders that owe them a line', () => {
+  it('narrows a vendor to their own orders, by the order’s own vendor', () => {
     expect(
       narrowingOf({ partyRole: 'vendor', organizationId: 'org-2' }),
     ).toEqual({
       operator: 'and',
-      values: [{ property: 'items.vendorId', operator: 'eq', value: 'org-2' }],
+      values: [{ property: 'vendorId', operator: 'eq', value: 'org-2' }],
     });
   });
 
@@ -104,5 +118,32 @@ describe('the narrowing a caller reads orders under', () => {
       'nothing',
     );
     expect(narrowingOf({})).toBe('nothing');
+  });
+});
+
+describe('the narrowing a caller reads checkout groups under', () => {
+  it('leaves platform staff unscoped', () => {
+    expect(groupNarrowingOf({ partyRole: 'operator' })).toBe('unscoped');
+  });
+
+  // A group is the buyer's receipt across sellers: a vendor reading one would
+  // see their competitors' orders.
+  it('shows a vendor nothing, even with an organization', () => {
+    expect(
+      groupNarrowingOf({ partyRole: 'vendor', organizationId: 'org-2' }),
+    ).toBe('nothing');
+  });
+
+  it('narrows a buyer to the groups they placed', () => {
+    expect(groupNarrowingOf({ partyRole: 'customer', partyId: 'p-1' })).toEqual(
+      {
+        operator: 'and',
+        values: [{ property: 'buyerId', operator: 'eq', value: 'p-1' }],
+      },
+    );
+  });
+
+  it('shows nothing to a caller no rule fits', () => {
+    expect(groupNarrowingOf({})).toBe('nothing');
   });
 });

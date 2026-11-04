@@ -3,3 +3,5 @@
 /coverage
 /.nx/cache
 /.nx/workspace-data
+# Written by its own spec (toMatchFileSnapshot): formatting it fails the snapshot.
+/packages/shells/effect/flow-catalog/catalog-snapshot.json

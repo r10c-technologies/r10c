@@ -7,6 +7,7 @@
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the unique index backstopping the fold gains `kind` as a third key
 - Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — `settlement.run.completed` is not published, since nothing subscribes to it
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — settlement joins per order on its payment allocation
+- Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the join is per vendor order, a capture contributes each allocation, a partial refund mirrors its share, and cash a vendor collected on delivery is netted as a debit of the cut; a cash-on-delivery order cancelled uncollected is voided
 
 ## Context
 

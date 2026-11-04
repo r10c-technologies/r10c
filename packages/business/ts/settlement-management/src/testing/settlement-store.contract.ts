@@ -8,10 +8,24 @@ import type {
   SettlementRunStore,
 } from '../ports/settlement-ports';
 
-/** The two ports one settlement store serves, over one ledger. */
+/** One commission line as the contract reads it back. */
+export interface LedgerView {
+  readonly orderId: string;
+  readonly vendorId: string;
+  readonly kind: string;
+  readonly saleAmount: number;
+  readonly commissionAmount: number;
+  readonly collectedBy: string;
+}
+
+/**
+ * The two ports one settlement store serves, over one ledger — and, for the
+ * contract alone, a read of the ledger lines the folds wrote.
+ */
 export interface SettlementPorts {
   readonly join: SaleJoin;
   readonly runs: SettlementRunStore;
+  readonly entries: () => Effect.Effect<readonly LedgerView[]>;
 }
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
@@ -29,16 +43,35 @@ export const CONTRACT_AGREEMENTS: readonly Agreement[] = [
   anAgreement('v-2', 500, '2026-01-01T00:00:00.000Z'),
 ];
 
-const sale: SaleHalf = {
+/** One vendor's order, priced: since ADR 0069 an order has one vendor. */
+const saleOf = (
+  vendorId: string,
+  saleAmount: number,
+  cut: number,
+  paymentMethod = 'card',
+): SaleHalf => ({
   commissions: [
-    { vendorId: 'v-1', saleAmount: 100, commissionAmount: 12, currency: 'GTQ' },
-    { vendorId: 'v-2', saleAmount: 50, commissionAmount: 3, currency: 'GTQ' },
+    { vendorId, saleAmount, commissionAmount: cut, currency: 'GTQ' },
   ],
   unpriced: [],
-};
-const paid: SaleHalf = { decidedAt: '2026-03-01T10:00:00.000Z' };
+  paymentMethod,
+});
+const sale = saleOf('v-1', 100, 12);
+const paidFor = (
+  captured: number,
+  collectedBy: 'platform' | 'vendor' = 'platform',
+): SaleHalf => ({
+  decidedAt: '2026-03-01T10:00:00.000Z',
+  captured,
+  collectedBy,
+});
+const paid = paidFor(100);
 const cancelled: SaleHalf = { cancelledAt: '2026-03-01T11:00:00.000Z' };
-const refunded: SaleHalf = { refundedAt: '2026-03-01T11:05:00.000Z' };
+const refundOf = (refunded: number): SaleHalf => ({
+  refundedAt: '2026-03-01T11:05:00.000Z',
+  refunded,
+});
+const refunded = refundOf(100);
 
 /**
  * What every settlement store must guarantee to the fold and the run, through
@@ -86,9 +119,9 @@ export const describeSettlementStoreContract = (
       const thenPlaced = await contribute(ports, 'ord-2', sale);
 
       expect(placedFirst).toEqual({ kind: 'waiting' });
-      expect(thenPaid).toEqual({ kind: 'written', folded: 2, reversed: 0 });
+      expect(thenPaid).toEqual({ kind: 'written', folded: 1, reversed: 0 });
       expect(paidFirst).toEqual({ kind: 'waiting' });
-      expect(thenPlaced).toEqual({ kind: 'written', folded: 2, reversed: 0 });
+      expect(thenPlaced).toEqual({ kind: 'written', folded: 1, reversed: 0 });
     });
 
     it('folds an event once, and a sale once however many events repeat it', async () => {
@@ -114,7 +147,7 @@ export const describeSettlementStoreContract = (
       const again = await contribute(ports, 'ord-1', refunded);
 
       expect(cancelledOnly).toEqual({ kind: 'waiting' });
-      expect(reversed).toEqual({ kind: 'written', folded: 0, reversed: 2 });
+      expect(reversed).toEqual({ kind: 'written', folded: 0, reversed: 1 });
       expect(again).toEqual({ kind: 'waiting' });
     });
 
@@ -126,7 +159,7 @@ export const describeSettlementStoreContract = (
 
       const placed = await contribute(ports, 'ord-1', sale);
 
-      expect(placed).toEqual({ kind: 'written', folded: 2, reversed: 2 });
+      expect(placed).toEqual({ kind: 'written', folded: 1, reversed: 1 });
     });
 
     it('settles every unsettled line once, and is idle with nothing to settle', async () => {
@@ -135,6 +168,8 @@ export const describeSettlementStoreContract = (
       const empty = await run(ports.runs.settleOnce());
       await contribute(ports, 'ord-1', sale);
       await contribute(ports, 'ord-1', paid);
+      await contribute(ports, 'ord-2', saleOf('v-2', 50, 3));
+      await contribute(ports, 'ord-2', paidFor(50));
       const settled = await run(ports.runs.settleOnce());
       const afterwards = await run(ports.runs.settleOnce());
 
@@ -158,10 +193,71 @@ export const describeSettlementStoreContract = (
 
       expect(await run(ports.runs.settleOnce())).toMatchObject({
         kind: 'calculated',
-        payouts: 2,
-        entries: 2,
+        payouts: 1,
+        entries: 1,
         periodStart: '2026-03-01T11:05:00.000Z',
       });
+    });
+
+    it('folds one capture for a two-vendor group into two joins, each at its own cut', async () => {
+      const ports = await make();
+      await contribute(ports, 'ord-a', saleOf('v-1', 100, 12));
+      await contribute(ports, 'ord-b', saleOf('v-2', 50, 3));
+
+      // One capture, two allocations: the fold contributes each order apart.
+      await contribute(ports, 'ord-a', paidFor(100), 'cap-1#ord-a');
+      await contribute(ports, 'ord-b', paidFor(50), 'cap-1#ord-b');
+
+      expect(
+        (await run(ports.entries())).map(line => [
+          line.orderId,
+          line.vendorId,
+          line.commissionAmount,
+        ]),
+      ).toEqual([
+        ['ord-a', 'v-1', 12],
+        ['ord-b', 'v-2', 3],
+      ]);
+    });
+
+    it('mirrors half the sale for a refund of half the capture', async () => {
+      const ports = await make();
+      await contribute(ports, 'ord-1', sale);
+      await contribute(ports, 'ord-1', paid);
+      await contribute(ports, 'ord-1', cancelled);
+      await contribute(ports, 'ord-1', refundOf(50));
+
+      const reversal = (await run(ports.entries())).find(
+        line => line.kind === 'reversal',
+      );
+
+      expect(reversal).toMatchObject({ saleAmount: -50, commissionAmount: -6 });
+    });
+
+    it('flags a cash-on-delivery collection as held by the vendor', async () => {
+      const ports = await make();
+      await contribute(ports, 'ord-1', saleOf('v-1', 100, 12, 'cod'));
+      await contribute(ports, 'ord-1', paidFor(100, 'vendor'));
+
+      expect(await run(ports.entries())).toEqual([
+        expect.objectContaining({ kind: 'sale', collectedBy: 'vendor' }),
+      ]);
+    });
+
+    it('voids a cash-on-delivery order cancelled before its cash was collected', async () => {
+      const ports = await make();
+      await contribute(ports, 'ord-1', saleOf('v-1', 100, 12, 'cod'));
+
+      const voided = await contribute(ports, 'ord-1', cancelled);
+      const late = await contribute(ports, 'ord-1', paidFor(100, 'vendor'));
+      // A card order cancelled before its capture arrived only waits.
+      await contribute(ports, 'ord-2', sale);
+      const waiting = await contribute(ports, 'ord-2', cancelled);
+
+      expect(voided).toEqual({ kind: 'voided' });
+      expect(late).toEqual({ kind: 'voided' });
+      expect(waiting).toEqual({ kind: 'waiting' });
+      expect(await run(ports.entries())).toEqual([]);
     });
   });
 };

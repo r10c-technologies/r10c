@@ -14,6 +14,7 @@ export const STOCK_DOMAIN = 'stock-management';
 export const ORDER_DOMAIN = 'order-management';
 export const PAYMENT_DOMAIN = 'payment-management';
 export const SETTLEMENT_DOMAIN = 'settlement-management';
+export const SHIPPING_ORDER_DOMAIN = 'shipping-order-management';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -49,6 +50,9 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // role: an order is written by the checkout saga behind a crossing token,
     // never by a person — see the note on `admin` below.
     `${ORDER_DOMAIN}:product-order:read`,
+    // The buyer's checkout groups — their receipt across sellers. Narrowed to
+    // the groups they placed, exactly as their orders are (ADR 0069).
+    `${ORDER_DOMAIN}:checkout-group:read`,
     // ⚠️ **No `payment:read` here, and the omission is the point.**
     // `product-order:read` above is safe for this role because order-service
     // narrows the result to the caller's own records; payment-service cannot,
@@ -143,28 +147,43 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // to, which is how a receipt becomes editable
     // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
     `${ORDER_DOMAIN}:product-order:read`,
-    // What a vendor may do to a paid order, as two **verbs** — which is the
-    // same move `sales-channel:sell` above makes, and for the same reason. The
-    // note directly above still holds: there is no `write`, because these are
-    // named acts with their own rules rather than a save that happens to change
-    // a status. Delivering the goods is per line and cancelling is per order,
-    // and the asymmetry is decided in ADR 0058 §1 rather than here.
+    // Checkout groups, read across buyers by an operator; a vendor holding this
+    // grant reads nothing, because a group would show them the other sellers in
+    // a basket and the narrowing gives a vendor none (ADR 0069).
+    `${ORDER_DOMAIN}:checkout-group:read`,
+    // What a vendor may do to their own order, as a **verb** — the same move
+    // `sales-channel:sell` above makes, and for the same reason. There is no
+    // `write`: cancelling is a named act with its own rules, not a save that
+    // happens to change a status. Delivering the goods is the shipment's, under
+    // `shipping-order-management` below, since the order stopped spanning
+    // vendors (ADR 0069, ADR 0070).
     //
     // ⚠️ **`cancel` is granted although a cancellation refunds money**, and that
     // is not an oversight. The refund itself is dispatched behind a crossing
-    // token by a saga; what this grants is the authority to *ask*, which a
+    // token by a flow; what this grants is the authority to *ask*, which a
     // vendor must have — they are the party who knows the parcel cannot be sent.
-    // A vendor may only cancel an order all of whose lines are theirs, and
-    // order-service enforces that rather than this table
+    // The narrowing shows a vendor only their own orders, so it is only theirs
+    // they can ask about
     // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
     //
-    // Written as literals rather than imported from the use cases that declare
-    // them, for this package's standing reason: it is `business:policy` and may
+    // Written as a literal rather than imported from the use case that declares
+    // it, for this package's standing reason: it is `business:policy` and may
     // depend only on `layer:entifix`/`layer:utils`, so it cannot reach a domain
-    // package. The source scan in `@r10c/slices` is what keeps these two strings
-    // and the `@useCase()` declarations from drifting apart.
-    `${ORDER_DOMAIN}:product-order:fulfil`,
+    // package. The source scan in `@r10c/slices` keeps the two from drifting.
     `${ORDER_DOMAIN}:product-order:cancel`,
+    // A vendor's shipments: reading them, handing a parcel to a courier, and
+    // recording what the courier reported. Four verbs rather than a `write`,
+    // because each is a different act with a different consequence — a
+    // dispatch is the delivery flow's pivot, a delivery may record cash taken,
+    // a refusal and a return put stock back
+    // ([ADR 0070](../../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
+    // Opening, holding and withdrawing a shipment are a flow's, behind a
+    // crossing token, and granted to no role.
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:read`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:dispatch`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-delivery`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-refusal`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-return`,
     // Reading payments — reconciliation, and answering "did this actually go
     // through?". Granted here and **not** to `user`: the read is unscoped, so
     // this is a platform-wide view of every payment taken, which is an
@@ -190,6 +209,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // here would be inert against the route that exists and would suggest a save
     // route ought to.
     `${PAYMENT_DOMAIN}:refund:read`,
+    // Each vendor order's share of a payment — what was taken for it and what
+    // has gone back. Reconciliation's view, on the terms of the two reads
+    // above: unscoped, so administrative (ADR 0069).
+    `${PAYMENT_DOMAIN}:payment-allocation:read`,
     // What the platform charges this vendor, what it has taken, and what it
     // owes. Granted where `payment:read` could not be, and the difference is
     // the scope: every settlement record carries a `vendorId`, so the routes
@@ -274,14 +297,12 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // narrows that wildcard nobody should discover it by being unable to sign
     // themselves out.
     `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
-    // Closing an order across vendors. Named here as well as under `admin`
+    // Cancelling any vendor's order. Named here as well as under `admin`
     // because an operator's reach is genuinely wider rather than the same act
-    // with a different badge: a vendor fulfils the lines they owe and may cancel
-    // only an order that is theirs alone, while an operator does both over a
-    // basket spanning several vendors. That widening lives in order-service's
-    // scope predicate, and naming the verbs here is what keeps it reachable if
-    // the wildcard above is ever narrowed.
-    `${ORDER_DOMAIN}:product-order:fulfil`,
+    // with a different badge: a vendor cancels their own orders, an operator
+    // anybody's. That widening lives in order-service's scope predicate, and
+    // naming the verb here is what keeps it reachable if the wildcard above is
+    // ever narrowed.
     `${ORDER_DOMAIN}:product-order:cancel`,
   ],
 };

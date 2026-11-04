@@ -62,6 +62,8 @@ pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + RabbitMQ;
 pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
 pnpm nx run realtime-service:dev           # :3191 (Mongo + RabbitMQ; the push
                                            #        stream behind the edge)
+pnpm nx run fulfilment-service:dev         # :3110 (Mongo + RabbitMQ; a vendor's
+                                           #        shipments, per organization)
 
 # A library edit reloads by itself while any app/service runs: every app `dev`
 # starts the single root `watch-libs` watcher, which rebuilds the changed library

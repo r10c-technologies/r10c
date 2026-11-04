@@ -1,5 +1,11 @@
-import { entityApi, extendFailurePolicy } from '@entifix/service-shell';
 import {
+  endpointGroup,
+  entityApi,
+  extendFailurePolicy,
+} from '@entifix/service-shell';
+import {
+  codEndpoints,
+  paymentAllocationApi,
   paymentApi,
   refundApi,
 } from '@r10c/implementation-payment-management-http';
@@ -14,13 +20,16 @@ import {
  *
  * Platform plane throughout: the `payment` store is single-partitioned and
  * named at boot, so nothing here resolves a tenant handle. The generic reads
- * for both records are behind a session and the read grant; the two pivots
- * are behind a crossing token and no session.
+ * for every record are behind a session and the read grant; the two pivots
+ * and the two cash-on-delivery routes are behind a crossing token and no
+ * session.
  */
 export const endpoints = [
   serviceBaseGroup({ service: '@r10c/payment-service', store: 'mongo' }),
   entityApi(paymentApi),
   entityApi(refundApi),
+  entityApi(paymentAllocationApi),
+  endpointGroup('payment-cod', ...codEndpoints),
 ] as const;
 
 /**

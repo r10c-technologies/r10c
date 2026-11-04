@@ -12,8 +12,18 @@
  * ([ADR 0024](../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
  * It is also the one method with no authorization step — see
  * {@link PaymentStatus}.
+ *
+ * `cod` is cash handed to a courier on delivery: never captured at checkout,
+ * recorded as a collection once the courier reports it, for the one order it
+ * paid (ADR 0070).
  */
-export const PaymentMethods = ['cash', 'card', 'voucher', 'transfer'] as const;
+export const PaymentMethods = [
+  'cash',
+  'card',
+  'voucher',
+  'transfer',
+  'cod',
+] as const;
 
 export type PaymentMethod = (typeof PaymentMethods)[number];
 

@@ -120,7 +120,16 @@ describe('restoreStock', () => {
       restoreStock({
         organizationId: 'org',
         movement: aMovement('receipt', 2),
+        cause: 'cancellation',
         commandId: 'c',
+      }),
+    );
+    const returned = await run(
+      restoreStock({
+        organizationId: 'org',
+        movement: aMovement('receipt', 1),
+        cause: 'return',
+        commandId: undefined,
       }),
     );
     const refused = await run(
@@ -128,6 +137,7 @@ describe('restoreStock', () => {
         restoreStock({
           organizationId: 'org',
           movement: aMovement('x', -2),
+          cause: 'cancellation',
           commandId: undefined,
         }),
       ),
@@ -135,6 +145,9 @@ describe('restoreStock', () => {
 
     expect((restored as { movement: StockMovement }).movement.reason).toBe(
       'cancellation',
+    );
+    expect((returned as { movement: StockMovement }).movement.reason).toBe(
+      'return',
     );
     expect(refused).toMatchObject({ code: 'inconsistentMovement' });
   });

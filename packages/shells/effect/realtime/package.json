@@ -51,6 +51,8 @@
     "@r10c/business-ts-catalog-contracts": "workspace:*",
     "@r10c/business-ts-flow-contracts": "workspace:*",
     "@r10c/business-ts-order-contracts": "workspace:*",
+    "@r10c/business-ts-shipping-order-management": "workspace:*",
+    "@r10c/business-ts-stock-management": "workspace:*",
     "@r10c/implementation-flow-status-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",

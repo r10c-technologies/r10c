@@ -43,25 +43,26 @@ declaration as `bindingReason`.
 
 <!-- docs:begin store-register -->
 
-| Store               | Plane    | Owner slice         | Slice status | Co-deployed with | Hosts                                                         | Partitioning     | Truth                    |
-| ------------------- | -------- | ------------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------------- | ------------------------ |
-| `auth`              | control  | `auth`              | active       | —                | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record         |
-| `catalog-reference` | platform | `marketplace`       | active       | —                | `catalog-reference`                                           | single           | system-of-record         |
-| `catalog`           | tenant   | `marketplace-admin` | active       | —                | `product-configuration-management`                            | per-organization | system-of-record         |
-| `configuration`     | control  | `config`            | active       | —                | `config`                                                      | single           | system-of-record         |
-| `flow-status`       | platform | `realtime`          | active       | —                | —                                                             | single           | `projection-of:workflow` |
-| `fulfilment`        | tenant   | `fulfilment`        | **planned**  | —                | —                                                             | per-organization | system-of-record         |
-| `order`             | platform | `order`             | active       | —                | `order-management`                                            | single           | system-of-record         |
-| `payment`           | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record         |
-| `published-catalog` | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog`  |
-| `published-vendor`  | platform | `marketplace`       | active       | —                | `marketplace-vendor`                                          | single           | `projection-of:auth`     |
-| `saga`              | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record         |
-| `sales`             | tenant   | `sales`             | active       | —                | `sales-management`                                            | per-organization | system-of-record         |
-| `session`           | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record         |
-| `settlement`        | control  | `settlement`        | active       | —                | `settlement-management`                                       | single           | system-of-record         |
-| `stock-idempotency` | control  | `stock`             | active       | —                | —                                                             | single           | system-of-record         |
-| `stock`             | tenant   | `stock`             | active       | —                | `stock-management`                                            | per-organization | system-of-record         |
-| `workflow`          | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record         |
+| Store                    | Plane    | Owner slice         | Slice status | Co-deployed with | Hosts                                                         | Partitioning     | Truth                    |
+| ------------------------ | -------- | ------------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------------- | ------------------------ |
+| `auth`                   | control  | `auth`              | active       | —                | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record         |
+| `catalog-reference`      | platform | `marketplace`       | active       | —                | `catalog-reference`                                           | single           | system-of-record         |
+| `catalog`                | tenant   | `marketplace-admin` | active       | —                | `product-configuration-management`                            | per-organization | system-of-record         |
+| `configuration`          | control  | `config`            | active       | —                | `config`                                                      | single           | system-of-record         |
+| `flow-status`            | platform | `realtime`          | active       | —                | —                                                             | single           | `projection-of:workflow` |
+| `fulfilment-idempotency` | control  | `fulfilment`        | active       | —                | —                                                             | single           | system-of-record         |
+| `fulfilment`             | tenant   | `fulfilment`        | active       | —                | `shipping-order-management`                                   | per-organization | system-of-record         |
+| `order`                  | platform | `order`             | active       | —                | `order-management`                                            | single           | system-of-record         |
+| `payment`                | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record         |
+| `published-catalog`      | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog`  |
+| `published-vendor`       | platform | `marketplace`       | active       | —                | `marketplace-vendor`                                          | single           | `projection-of:auth`     |
+| `saga`                   | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record         |
+| `sales`                  | tenant   | `sales`             | active       | —                | `sales-management`                                            | per-organization | system-of-record         |
+| `session`                | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record         |
+| `settlement`             | control  | `settlement`        | active       | —                | `settlement-management`                                       | single           | system-of-record         |
+| `stock-idempotency`      | control  | `stock`             | active       | —                | —                                                             | single           | system-of-record         |
+| `stock`                  | tenant   | `stock`             | active       | —                | `stock-management`                                            | per-organization | system-of-record         |
+| `workflow`               | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record         |
 
 <!-- docs:end store-register -->
 

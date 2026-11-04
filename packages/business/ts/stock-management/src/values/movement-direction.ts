@@ -20,6 +20,7 @@ const DIRECTIONS: Record<MovementReason, MovementDirection> = {
   receipt: 'in',
   sale: 'out',
   cancellation: 'in',
+  return: 'in',
   adjustment: 'either',
 };
 

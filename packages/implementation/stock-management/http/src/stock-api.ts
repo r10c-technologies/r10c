@@ -191,7 +191,13 @@ const restoration = defineEndpoint({
   path: '/api/stock-restoration',
   payload: JsonBody,
   success: JsonBody,
-  errors: [InconsistentMovement, InvalidEnvelope, Invalid, DuplicateKey],
+  errors: [
+    InconsistentMovement,
+    InvalidBody,
+    InvalidEnvelope,
+    Invalid,
+    DuplicateKey,
+  ],
   guard: {
     kind: 'crossing',
     permission: 'stock-management:stock-movement:restore',
@@ -220,8 +226,9 @@ const endHold =
 /**
  * The hold's two endings and a cancelled order's restoration — each on its
  * own crossing permission, so a token can make exactly the correction a flow
- * needs. A restoration is a new `cancellation` movement, never an
- * un-conversion: the hold is spent by then and the ledger is append-only.
+ * needs. A restoration is a new `cancellation` or `return` movement, by the
+ * closed cause it names, never an un-conversion: the hold is spent by then and
+ * the ledger is append-only.
  */
 export const stockCrossingEndpoints = [
   implement(release, endHold('released')),
@@ -229,9 +236,17 @@ export const stockCrossingEndpoints = [
   implement(restoration, ({ payload }) =>
     Effect.gen(function* () {
       const movement = yield* readEntityEnvelope(StockMovement, payload);
+      const cause = (payload as { data?: { cause?: unknown } } | undefined)
+        ?.data?.cause;
+      if (cause !== 'cancellation' && cause !== 'return') {
+        return yield* new InvalidBody({
+          reason: "a restoration names its cause: 'cancellation' or 'return'",
+        });
+      }
       const { movement: restored } = yield* restoreStock({
         organizationId: yield* OrganizationIdTag,
         movement,
+        cause,
         commandId: yield* commandId,
       });
       return makeEntityEnvelope(StockMovement, restored, [

@@ -10,6 +10,7 @@ describe('MovementReasons', () => {
       'receipt',
       'sale',
       'cancellation',
+      'return',
       'adjustment',
     ]);
   });

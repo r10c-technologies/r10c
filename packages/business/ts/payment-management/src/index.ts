@@ -25,13 +25,19 @@
  * evidence that a customer was charged must survive the money going back
  * ([ADR 0058](../../../../docs/adr/0058-the-order-after-payment.md)).
  *
+ * One capture per checkout group, allocated per vendor order: partial refunds
+ * draw on an order's {@link PaymentAllocation} and never past it, and cash on
+ * delivery is a collection recorded for its one order (ADR 0069, ADR 0070).
+ *
  * Out of scope, and named so the silence reads as a decision: stored payment
- * methods, partial refunds, and returns — a return is goods coming back, which
- * is logistics and not this state machine.
+ * methods, and returns — a return is goods coming back, which is logistics and
+ * not this state machine.
  */
 export { PAYMENT_DOMAIN } from './domain';
 export * from './entities/payment';
+export * from './entities/payment-allocation';
 export * from './entities/refund';
+export * from './failures';
 export * from './fragments';
 export * from './ports';
 export * from './use-cases/take-payment';

@@ -1,16 +1,15 @@
 import { accessor } from '@entifix/core';
 
 /**
- * One line of an order, tagged with the vendor that owes it.
+ * One line of a vendor's order.
  *
  * A **value**, not an entity: it has no identity of its own and is never
  * addressed apart from the order that holds it, so it is embedded rather than
  * linked ([ADR 0022](../../../../../docs/adr/0022-v1-marketplace-module-boundaries.md)).
  *
- * `vendorId` on the line is what lets one checkout across several vendors be a
- * single `ProductOrder` — one receipt for the buyer — while settlement still
- * aggregates per vendor. The alternative, one order per vendor, makes settlement
- * trivial and shows the buyer N orders for one payment.
+ * It names **no vendor**. An order belongs to one vendor and says so once, on
+ * the order; the buyer's one receipt across vendors is the `CheckoutGroup`
+ * ([ADR 0069](../../../../../docs/adr/0069-a-checkout-group-of-per-vendor-orders.md)).
  *
  * The price is **captured here**, not read through to the offering. A buyer must
  * be charged the price they were shown, and an offering's price can change
@@ -20,11 +19,6 @@ import { accessor } from '@entifix/core';
  * **id, never a quantity** — which is what lets a failed order compensate by
  * releasing the hold rather than by reversing arithmetic it never performed
  * ([ADR 0010](../../../../../docs/adr/0010-stock-ledger-reservations-and-concurrency.md)).
- *
- * The known cost of embedding: "orders for vendor X" is a query into an array
- * rather than a top-level filter, so a vendor-facing order list needs an index
- * on the embedded path or a projection. Accepted, because the buyer's single
- * receipt is the shape the storefront is built around.
  *
  * ## Why this is a class with accessors, and not an interface
  *
@@ -45,25 +39,21 @@ import { accessor } from '@entifix/core';
 export class OrderItem {
   // #region properties
   #offeringId: string;
-  #vendorId: string;
   #quantity: number;
   #amount: number;
   #currency: string;
   #reservationId?: string;
-  #fulfilledAt?: Date;
   // #endregion
 
   // #region constructors
   constructor(
     offeringId = '',
-    vendorId = '',
     quantity = 0,
     amount = 0,
     currency = '',
     reservationId?: string,
   ) {
     this.#offeringId = offeringId;
-    this.#vendorId = vendorId;
     this.#quantity = quantity;
     this.#amount = amount;
     this.#currency = currency;
@@ -82,19 +72,6 @@ export class OrderItem {
   }
   set offeringId(value: string) {
     this.#offeringId = value;
-  }
-
-  /** The vendor that owes this line. See the class note on multi-vendor orders. */
-  @accessor({
-    type: 'string',
-    labelKey: 'entity:product-order.fields.item.vendorId',
-    required: true,
-  })
-  get vendorId(): string {
-    return this.#vendorId;
-  }
-  set vendorId(value: string) {
-    this.#vendorId = value;
   }
 
   @accessor({
@@ -144,36 +121,6 @@ export class OrderItem {
   }
   set reservationId(value: string | undefined) {
     this.#reservationId = value;
-  }
-
-  /**
-   * When the vendor that owes this line delivered it.
-   *
-   * ⚠️ **Fulfilment is per line, and cancellation is per order.** One order
-   * spans several vendors, so an order-level `fulfilled` flipped by one of them
-   * states something about another vendor's lines that is not true. The order
-   * reaches `fulfilled` only when every line carries a stamp
-   * ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md) §1).
-   *
-   * The asymmetry with cancellation is deliberate rather than an oversight: a
-   * promise is kept per vendor, while a cancellation moves money that was taken
-   * once, for the whole basket, on one capture.
-   *
-   * Server-owned — the fulfil route stamps it from the clock, never from the
-   * request — but **not** `@accessor({ readonly })`, for the reason `paidAt`
-   * already documents one entity up: that flag drops a member from
-   * deserialization as well as serialization, so the stamp would never reach
-   * the screen that exists to show it.
-   */
-  @accessor({
-    type: 'date',
-    labelKey: 'entity:product-order.fields.item.fulfilledAt',
-  })
-  get fulfilledAt(): Date | undefined {
-    return this.#fulfilledAt;
-  }
-  set fulfilledAt(value: Date | undefined) {
-    this.#fulfilledAt = value;
   }
   // #endregion
 }

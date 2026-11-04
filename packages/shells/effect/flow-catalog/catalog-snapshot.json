@@ -36,9 +36,746 @@
       "fingerprint": "0f76b9eb1662e5"
     },
     {
-      "ref": "order.claim-cancel@1",
-      "id": "order.claim-cancel",
+      "ref": "fulfilment.await-delivery@1",
+      "id": "fulfilment.await-delivery",
       "version": 1,
+      "module": "shipping-order-management",
+      "kind": "wait",
+      "cardinality": "one",
+      "participant": "fulfilment-service",
+      "call": {
+        "method": "GET",
+        "path": "/api/shipping-order/:id"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {
+        "entitlements": [
+          "shipping-order-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "shippingOrderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "not": {}
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1886f1e427cca1"
+    },
+    {
+      "ref": "fulfilment.await-return@1",
+      "id": "fulfilment.await-return",
+      "version": 1,
+      "module": "shipping-order-management",
+      "kind": "wait",
+      "cardinality": "one",
+      "participant": "fulfilment-service",
+      "call": {
+        "method": "GET",
+        "path": "/api/shipping-order/:id"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {
+        "entitlements": [
+          "shipping-order-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "shippingOrderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "not": {}
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1886f1e427cca1"
+    },
+    {
+      "ref": "fulfilment.dispatch@1",
+      "id": "fulfilment.dispatch",
+      "version": 1,
+      "module": "shipping-order-management",
+      "kind": "pivot",
+      "cardinality": "one",
+      "participant": "fulfilment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/shipping-order/:id/dispatch-step"
+      },
+      "readOnly": false,
+      "irreversible": true,
+      "isolation": "semanticLock",
+      "requires": {
+        "entitlements": [
+          "shipping-order-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "shippingOrderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1ad6e7ac9cf96a"
+    },
+    {
+      "ref": "fulfilment.hold@1",
+      "id": "fulfilment.hold",
+      "version": 1,
+      "module": "shipping-order-management",
+      "kind": "compensatable",
+      "cardinality": "one",
+      "participant": "fulfilment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/shipping-order/:id/hold"
+      },
+      "compensation": {
+        "method": "DELETE",
+        "path": "/api/shipping-order/:id/hold"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "semanticLock",
+      "requires": {
+        "entitlements": [
+          "shipping-order-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "shippingOrderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1ad6e7ac9cf96a"
+    },
+    {
+      "ref": "fulfilment.open@1",
+      "id": "fulfilment.open",
+      "version": 1,
+      "module": "shipping-order-management",
+      "kind": "retriable",
+      "cardinality": "perVendor",
+      "participant": "fulfilment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/shipping-order"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {
+        "entitlements": [
+          "shipping-order-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {
+        "shippingOrderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "groupId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "paymentMethod": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amountDue": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1
+              },
+              "lines": {
+                "type": "array"
+              }
+            },
+            "required": [
+              "orderId",
+              "groupId",
+              "paymentMethod",
+              "amountDue",
+              "currency",
+              "lines"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "invalidBody"
+                    ]
+                  }
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "0b62f8a1998165"
+    },
+    {
+      "ref": "fulfilment.release@1",
+      "id": "fulfilment.release",
+      "version": 1,
+      "module": "shipping-order-management",
+      "kind": "compensatable",
+      "cardinality": "one",
+      "participant": "fulfilment-service",
+      "call": {
+        "method": "DELETE",
+        "path": "/api/shipping-order/:id/hold"
+      },
+      "compensation": {
+        "method": "POST",
+        "path": "/api/shipping-order/:id/hold"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "semanticLock",
+      "requires": {
+        "entitlements": [
+          "shipping-order-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "shippingOrderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1ad6e7ac9cf96a"
+    },
+    {
+      "ref": "fulfilment.withdraw@1",
+      "id": "fulfilment.withdraw",
+      "version": 1,
+      "module": "shipping-order-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "fulfilment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/shipping-order/:id/withdrawal"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {
+        "entitlements": [
+          "shipping-order-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "shippingOrderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1ad6e7ac9cf96a"
+    },
+    {
+      "ref": "order.claim-cancel@2",
+      "id": "order.claim-cancel",
+      "version": 2,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "one",
@@ -126,8 +863,8 @@
       "fingerprint": "10257f025035a0"
     },
     {
-      "ref": "order.close-cancelled@1",
-      "id": "order.close-cancelled",
+      "ref": "order.close@1",
+      "id": "order.close",
       "version": 1,
       "module": "order-management",
       "kind": "retriable",
@@ -135,7 +872,203 @@
       "participant": "order-service",
       "call": {
         "method": "POST",
-        "path": "/api/product-order/:id/cancelled"
+        "path": "/api/product-order/:id/closed"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "fulfilled",
+                  "cancelled"
+                ]
+              }
+            },
+            "required": [
+              "outcome"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "05fba2ee7297c9"
+    },
+    {
+      "ref": "order.confirm@1",
+      "id": "order.confirm",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "perVendor",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:id/confirmed"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "0bd1c2ef37352e"
+    },
+    {
+      "ref": "order.mark-dispatched@1",
+      "id": "order.mark-dispatched",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:id/dispatched"
       },
       "readOnly": false,
       "irreversible": false,
@@ -185,11 +1118,122 @@
             "type": "object",
             "properties": {
               "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "185236d439f485"
+    },
+    {
+      "ref": "order.open-group@1",
+      "id": "order.open-group",
+      "version": 1,
+      "module": "order-management",
+      "kind": "compensatable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/checkout-group"
+      },
+      "compensation": {
+        "method": "DELETE",
+        "path": "/api/checkout-group/:id"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {
+        "groupId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "totals": {
+                "type": "array"
+              }
+            },
+            "required": [
+              "id",
+              "totals"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
                 "anyOf": [
                   {
                     "type": "string",
                     "enum": [
-                      "notFound"
+                      "invalidBody"
                     ]
                   }
                 ]
@@ -212,15 +1256,15 @@
           "definitions": {}
         }
       },
-      "fingerprint": "188c59be0aa7a2"
+      "fingerprint": "050fb4a7d174f2"
     },
     {
-      "ref": "order.write@1",
+      "ref": "order.write@2",
       "id": "order.write",
-      "version": 1,
+      "version": 2,
       "module": "order-management",
       "kind": "compensatable",
-      "cardinality": "one",
+      "cardinality": "perVendor",
       "participant": "order-service",
       "call": {
         "method": "POST",
@@ -235,7 +1279,15 @@
       "isolation": "none",
       "requires": {},
       "excludedFrom": {},
-      "consumes": {},
+      "consumes": {
+        "groupId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "provides": {
         "orderId": {
           "dialect": "draft-2020-12",
@@ -251,12 +1303,431 @@
           "schema": {
             "type": "object",
             "properties": {
+              "vendorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "paymentMethod": {
+                "type": "string",
+                "minLength": 1
+              },
               "items": {
                 "type": "array"
               }
             },
             "required": [
+              "vendorId",
+              "paymentMethod",
               "items"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "notFound"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "191a69ec46a995"
+    },
+    {
+      "ref": "payment.capture@2",
+      "id": "payment.capture",
+      "version": 2,
+      "module": "payment-management",
+      "kind": "pivot",
+      "cardinality": "one",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/payment"
+      },
+      "readOnly": false,
+      "irreversible": true,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {
+        "paymentMethod": [
+          "cod"
+        ]
+      },
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "groupId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1
+              },
+              "allocations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "vendorId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "amount": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "orderId",
+                    "vendorId",
+                    "amount"
+                  ],
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "groupId",
+              "amount",
+              "currency",
+              "allocations"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "paymentDeclined"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "03375155d1d5e3"
+    },
+    {
+      "ref": "payment.cod-eligible@1",
+      "id": "payment.cod-eligible",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "compensatable",
+      "cardinality": "perVendor",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/cod-eligibility"
+      },
+      "readOnly": true,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "vendorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "vendorId",
+              "amount"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "vendorId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "vendorId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "codOverLimit",
+                  "codNotEntitled"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "13b9bbb4650965"
+    },
+    {
+      "ref": "payment.record-collection@1",
+      "id": "payment.record-collection",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/collection"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "commutative",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "groupId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "orderId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vendorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "groupId",
+              "orderId",
+              "vendorId",
+              "amount",
+              "currency"
             ],
             "allOf": [
               {
@@ -325,136 +1796,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1ff1170df6da40"
+      "fingerprint": "01d132e382c7d6"
     },
     {
-      "ref": "payment.capture@1",
-      "id": "payment.capture",
-      "version": 1,
-      "module": "payment-management",
-      "kind": "pivot",
-      "cardinality": "one",
-      "participant": "payment-service",
-      "call": {
-        "method": "POST",
-        "path": "/api/payment"
-      },
-      "readOnly": false,
-      "irreversible": true,
-      "isolation": "none",
-      "requires": {},
-      "excludedFrom": {
-        "paymentMethod": [
-          "cashOnDelivery"
-        ]
-      },
-      "consumes": {},
-      "provides": {},
-      "contract": {
-        "input": {
-          "dialect": "draft-2020-12",
-          "schema": {
-            "type": "object",
-            "properties": {
-              "orderId": {
-                "type": "string",
-                "minLength": 1
-              },
-              "amount": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
-                ]
-              },
-              "currency": {
-                "type": "string",
-                "minLength": 1
-              }
-            },
-            "required": [
-              "orderId",
-              "amount",
-              "currency"
-            ],
-            "allOf": [
-              {
-                "type": "object",
-                "additionalProperties": {}
-              }
-            ]
-          },
-          "definitions": {}
-        },
-        "output": {
-          "dialect": "draft-2020-12",
-          "schema": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "status"
-            ],
-            "allOf": [
-              {
-                "type": "object",
-                "additionalProperties": {}
-              }
-            ]
-          },
-          "definitions": {}
-        },
-        "failure": {
-          "dialect": "draft-2020-12",
-          "schema": {
-            "type": "object",
-            "properties": {
-              "code": {
-                "type": "string",
-                "enum": [
-                  "invalidBody",
-                  "paymentDeclined"
-                ]
-              },
-              "category": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "code",
-              "category"
-            ],
-            "allOf": [
-              {
-                "type": "object",
-                "additionalProperties": {}
-              }
-            ]
-          },
-          "definitions": {}
-        }
-      },
-      "fingerprint": "0f2082c625224a"
-    },
-    {
-      "ref": "payment.refund@1",
+      "ref": "payment.refund@2",
       "id": "payment.refund",
-      "version": 1,
+      "version": 2,
       "module": "payment-management",
       "kind": "pivot",
       "cardinality": "one",
@@ -479,6 +1826,24 @@
               "orderId": {
                 "type": "string",
                 "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
@@ -528,7 +1893,8 @@
                 "enum": [
                   "invalidBody",
                   "noCapturedPayment",
-                  "refundDeclined"
+                  "refundDeclined",
+                  "refundExceedsCapture"
                 ]
               },
               "category": {
@@ -549,12 +1915,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "18dbccc9efb120"
+      "fingerprint": "0e059779e57d19"
     },
     {
-      "ref": "stock.convert@1",
+      "ref": "stock.convert@2",
       "id": "stock.convert",
-      "version": 1,
+      "version": 2,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",
@@ -773,9 +2139,9 @@
       "fingerprint": "1bb2ba0ee1a7c5"
     },
     {
-      "ref": "stock.restore@1",
+      "ref": "stock.restore@2",
       "id": "stock.restore",
-      "version": 1,
+      "version": 2,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",
@@ -819,11 +2185,19 @@
                     ]
                   }
                 ]
+              },
+              "cause": {
+                "type": "string",
+                "enum": [
+                  "cancellation",
+                  "return"
+                ]
               }
             },
             "required": [
               "offeringId",
-              "quantity"
+              "quantity",
+              "cause"
             ],
             "allOf": [
               {
@@ -885,7 +2259,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "053fae4707be81"
+      "fingerprint": "1fb5b487b86c0f"
     }
   ]
 }

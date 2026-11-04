@@ -51,8 +51,16 @@ export const paymentSlice: SliceDeclaration = {
     'GET|POST /api/refund',
     'GET /api/refund/:id',
     'GET /api/refund/$metadata',
+    'GET /api/payment-allocation',
+    'GET /api/payment-allocation/:id',
+    'GET /api/payment-allocation/$metadata',
+    'POST /api/collection',
+    'POST /api/cod-eligibility',
   ],
-  dependantAPIs: ['GET /api/config/:service'],
+  // The published vendor projection, read for whether a seller ships cash on
+  // delivery (ADR 0070) — anonymous, platform plane, another slice's store
+  // reached through its own route rather than its database.
+  dependantAPIs: ['GET /api/config/:service', 'GET /api/published-vendor'],
   // `payment.refunded` has no consumer yet; settlement grows one when it learns
   // to reverse a commission entry. It is published now for ADR 0028's reason —
   // the announcement commits with the write it announces, and retrofitting an

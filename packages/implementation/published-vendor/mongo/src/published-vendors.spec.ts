@@ -19,6 +19,7 @@ const NAMED: OrganizationAnnouncement = {
   organizationId: 'org-1',
   displayName: 'Demo Vendor',
   announcedAt: '2026-10-23T10:00:00.000Z',
+  acceptsCod: true,
 };
 const RENAMED: OrganizationAnnouncement = {
   ...NAMED,
@@ -81,6 +82,7 @@ describe('applying an announcement', () => {
         vendorId: 'org-1',
         displayName: 'Demo Vendor',
         announcedAt: new Date(NAMED.announcedAt),
+        acceptsCod: true,
       },
     ]);
   });

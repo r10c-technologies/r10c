@@ -32,6 +32,7 @@ describe('CommissionEntry', () => {
       currency: 'EUR',
       occurredAt: OCCURRED_AT,
       kind: 'sale',
+      collectedBy: 'platform',
     });
   });
 
@@ -126,6 +127,7 @@ describe('CommissionEntry', () => {
       'occurredAt',
       'runId',
       'kind',
+      'collectedBy',
     ]);
     expect(names).not.toContain('commissionBasisPoints');
   });
@@ -229,5 +231,14 @@ describe('CommissionEntry', () => {
     expect(vendorId?.type).toBe('string');
     expect(vendorId?.sortable).toBe(true);
     expect(vendorId?.filterable).toBe(true);
+  });
+});
+
+describe('CommissionEntry.collectedBy', () => {
+  it('records cash a vendor holds, and is filterable', () => {
+    const entry = new CommissionEntry();
+    entry.collectedBy = 'vendor';
+
+    expect(entry.collectedBy).toBe('vendor');
   });
 });

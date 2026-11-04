@@ -27,6 +27,8 @@ const configurationWith = (provider: Record<string, unknown>) =>
     outbox: configurationRows({ maxAttempts: 4 }),
     idempotency: configurationRows({ retentionMs: 60_000 }),
     provider: configurationRows(provider),
+    cod: configurationRows({ enabled: 'true', maxAmount: 150_000 }),
+    marketplace: configurationRows({ url: 'http://catalog/api' }),
   });
 
 describe('the payment shell', () => {

@@ -4,6 +4,8 @@
 // would import the contracts that own them.
 import '@r10c/business-ts-catalog-contracts';
 import '@r10c/business-ts-order-contracts';
+import '@r10c/business-ts-shipping-order-management';
+import '@r10c/business-ts-stock-management';
 
 import type { DomainEvent, EntityChangeEvent } from '@entifix/core';
 import { entityHint } from '@r10c/business-ts-flow-contracts';
@@ -28,10 +30,22 @@ export const PRODUCT_OFFERING: PushEntity = {
   key: 'product-offering',
 };
 
+export const SHIPPING_ORDER: PushEntity = {
+  domain: 'shipping-order-management',
+  key: 'shipping-order',
+};
+
+export const STOCK_ITEM: PushEntity = {
+  domain: 'stock-management',
+  key: 'stock-item',
+};
+
 /** Every entity some projection pushes, for the stream's read-permission check. */
 export const PUSH_ENTITIES: readonly PushEntity[] = [
   PRODUCT_ORDER,
   PRODUCT_OFFERING,
+  STOCK_ITEM,
+  SHIPPING_ORDER,
 ];
 
 /**
@@ -115,7 +129,10 @@ const flowOutcome: PushProjection = event =>
  * `order.*` carries the serialized order, which is the `ProductOrder`
  * read-model shape, so a member who may read orders receives the record.
  * `catalog.*` carries a publication snapshot rather than a `ProductOffering`,
- * so everyone receives a hint and re-reads.
+ * so everyone receives a hint and re-reads. `stock-item.changed` carries the
+ * item's counters — the `StockItem` read-model shape — so a member who may
+ * read stock receives them, and its audience is the one vendor whose store
+ * moved (#481).
  *
  * ⚠️ **`payment.*` is absent on purpose.** A payment is registered with no
  * audience and carries no vendor, so under a filter that fails closed it would
@@ -129,6 +146,22 @@ export const PUSH_PROJECTIONS: Readonly<Record<string, PushProjection>> = {
   }),
   'catalog.unpublished': recordChange(PRODUCT_OFFERING, 'updated', {
     snapshot: false,
+  }),
+  'stock-item.changed': recordChange(STOCK_ITEM, 'updated', {
+    snapshot: true,
+  }),
+  // A shipment's moves past dispatch carry the shipment itself, to its vendor.
+  'shipping-order.dispatched': recordChange(SHIPPING_ORDER, 'updated', {
+    snapshot: true,
+  }),
+  'shipping-order.delivered': recordChange(SHIPPING_ORDER, 'updated', {
+    snapshot: true,
+  }),
+  'shipping-order.refused': recordChange(SHIPPING_ORDER, 'updated', {
+    snapshot: true,
+  }),
+  'shipping-order.returned': recordChange(SHIPPING_ORDER, 'updated', {
+    snapshot: true,
   }),
   'flow.completed': flowOutcome,
   'flow.failed': flowOutcome,

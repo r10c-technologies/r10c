@@ -4,6 +4,7 @@ import {
   extendFailurePolicy,
 } from '@entifix/service-shell';
 import {
+  checkoutGroupApi,
   productOrderApi,
   productOrderEndpoints,
 } from '@r10c/implementation-order-management-http';
@@ -21,15 +22,16 @@ import {
  * Platform plane throughout: the `order` store is single-partitioned and named
  * at boot, so no endpoint here resolves a tenant handle. That is the opposite
  * of stock-service next door, and it is the store's property rather than a
- * choice — one order can span several vendors, so it cannot live in any one of
- * their databases (`docs/_shared/planes.md`).
+ * choice — a checkout group spans several vendors, so it cannot live in any one
+ * of their databases (`docs/_shared/planes.md`).
  */
 export const endpoints = [
   serviceBaseGroup({ service: '@r10c/order-service', store: 'mongo' }),
   entityApi(productOrderApi, {
     compositions: { recipes: FLOW_RECIPES, catalog: flowCatalog },
   }),
-  endpointGroup('order-cancellation', ...productOrderEndpoints),
+  entityApi(checkoutGroupApi),
+  endpointGroup('order-steps', ...productOrderEndpoints),
 ] as const;
 
 /**

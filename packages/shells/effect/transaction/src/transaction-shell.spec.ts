@@ -50,6 +50,8 @@ const CONFIGURATION = fleetConfigurationOf({
   participant: configurationRows({
     stockUrl: 'http://stock.invalid/api',
     stockToken: 'stock-token',
+    fulfilmentUrl: 'http://fulfilment.invalid/api',
+    fulfilmentToken: 'fulfilment-token',
     orderUrl: 'http://order.invalid/api',
     orderToken: 'order-token',
     paymentUrl: 'http://payment.invalid/api',

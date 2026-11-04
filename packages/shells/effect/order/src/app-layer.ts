@@ -5,7 +5,7 @@ import {
 } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
 import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
-import { MongoProductOrderStoreLayer } from '@r10c/implementation-order-mongo';
+import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
 import {
   crossingTokenLayer,
   fleetBusLayer,
@@ -114,7 +114,7 @@ export const orderComposition = (configuration: FleetConfiguration) =>
     const idempotency = yield* fleetIdempotencyLayer(configuration);
 
     const stored = Layer.provideMerge(
-      MongoProductOrderStoreLayer,
+      MongoOrderStoresLayer,
       Layer.provideMerge(
         Layer.mergeAll(
           Layer.effectDiscard(

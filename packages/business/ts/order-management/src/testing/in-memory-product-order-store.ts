@@ -1,22 +1,37 @@
-import { deserializeSingleEntity, serializeEntity } from '@entifix/core';
+import {
+  deserializeSingleEntity,
+  NotFound,
+  serializeEntity,
+} from '@entifix/core';
 import { Effect } from 'effect';
 
+import { CheckoutGroup } from '../entities/checkout-group';
 import { ProductOrder } from '../entities/product-order';
-import type { ProductOrderStore } from '../ports/product-order-store';
-import type { OrderItem } from '../values/order-item';
+import type {
+  CheckoutGroupStore,
+  OrderPlacement,
+  ProductOrderStore,
+} from '../ports/product-order-store';
+import { type OrderStatus } from '../values/order-status';
+import { orderStatusAfter } from '../values/order-transition';
 
 /**
- * A {@link ProductOrderStore} held in memory, for the specs of whatever
- * consumes the port. It runs `describeProductOrderStoreContract`, so every
- * step is conditional on the one before, the way the Mongo store's writes are.
+ * A {@link ProductOrderStore} and a {@link CheckoutGroupStore} held in memory
+ * over one shared map of groups, for the specs of whatever consumes the ports.
+ * They run `describeProductOrderStoreContract`, so every move is conditional on
+ * the statuses it is legal from, the way the Mongo store's writes are.
  */
-export const makeInMemoryProductOrderStore = (): ProductOrderStore => {
+export const makeInMemoryOrderStores = (): {
+  readonly orders: ProductOrderStore;
+  readonly groups: CheckoutGroupStore;
+} => {
   const orders = new Map<string, ProductOrder>();
-  const commands = new Map<string, ProductOrder | 'claimed'>();
+  const groups = new Map<string, CheckoutGroup>();
+  const claimedFrom = new Map<string, OrderStatus>();
+  const commands = new Map<string, unknown>();
   const events = new Set<string>();
 
-  /** A stored copy, through the same serialization a real store applies. */
-  const copy = (order: ProductOrder) =>
+  const copyOrder = (order: ProductOrder) =>
     Effect.runSync(
       deserializeSingleEntity(ProductOrder, {
         ...serializeEntity(ProductOrder, order),
@@ -24,12 +39,13 @@ export const makeInMemoryProductOrderStore = (): ProductOrderStore => {
       }),
     ) as ProductOrder;
 
-  const move = (orderId: string, from: string, to: string) => {
-    const order = orders.get(orderId);
-    if (order?.status !== from) return undefined;
-    order.status = to as ProductOrder['status'];
-    return copy(order);
-  };
+  const copyGroup = (group: CheckoutGroup) =>
+    Effect.runSync(
+      deserializeSingleEntity(CheckoutGroup, {
+        ...serializeEntity(CheckoutGroup, group),
+        id: group.id,
+      }),
+    ) as CheckoutGroup;
 
   /** Runs `step` once per command, the way a unit's command claim does. */
   const once = <A>(
@@ -39,53 +55,92 @@ export const makeInMemoryProductOrderStore = (): ProductOrderStore => {
     if (commandId !== undefined && commands.has(commandId)) return 'replayed';
     const done = step();
     if (done !== undefined && commandId !== undefined) {
-      commands.set(commandId, 'claimed');
+      commands.set(commandId, done);
     }
     return done;
   };
 
-  return {
+  const shift = (orderId: string, from: OrderStatus, to: OrderStatus) => {
+    const order = orders.get(orderId);
+    if (order?.status !== from) return undefined;
+    order.status = to;
+    return copyOrder(order);
+  };
+
+  const orderStore: ProductOrderStore = {
     get: orderId =>
       Effect.sync(() => {
         const order = orders.get(orderId);
-        return order === undefined ? undefined : copy(order);
+        return order === undefined ? undefined : copyOrder(order);
       }),
+    forGroup: groupId =>
+      Effect.sync(() =>
+        Array.from(orders.values())
+          .filter(order => order.groupId === groupId)
+          .map(copyOrder),
+      ),
     place: (order, commandId) =>
-      Effect.sync(() => {
+      Effect.suspend((): Effect.Effect<OrderPlacement, NotFound> => {
         const first =
           commandId === undefined ? undefined : commands.get(commandId);
         if (first instanceof ProductOrder) {
-          return { _tag: 'replayed', order: first };
+          return Effect.succeed({
+            _tag: 'replayed' as const,
+            order: copyOrder(first),
+          });
         }
-        orders.set(String(order.id), copy(order));
-        if (commandId !== undefined) commands.set(commandId, copy(order));
-        return { _tag: 'placed', order };
+        const group = groups.get(order.groupId);
+        if (group === undefined) {
+          return Effect.fail(new NotFound({ entity: 'checkout-group' }));
+        }
+        group.orderIds = [...group.orderIds, String(order.id)];
+        orders.set(String(order.id), copyOrder(order));
+        if (commandId !== undefined) commands.set(commandId, copyOrder(order));
+        return Effect.succeed({ _tag: 'placed' as const, order });
       }),
     remove: orderId => Effect.sync(() => orders.delete(orderId)),
-    fulfil: (orderId, items, status) =>
+    move: (orderId, transition, commandId) =>
       Effect.sync(() => {
         const order = orders.get(orderId);
-        if (order?.status !== 'paid') return undefined;
-        order.items = items as OrderItem[];
-        order.status = status as ProductOrder['status'];
-        return copy(order);
+        if (order === undefined) return undefined;
+        // A repeated command answers the order as it stands.
+        if (commandId !== undefined && commands.has(commandId)) {
+          return copyOrder(order);
+        }
+        const to = orderStatusAfter(order.status, transition);
+        if (to === undefined) return undefined;
+        order.status = to;
+        if (commandId !== undefined) commands.set(commandId, true);
+        return copyOrder(order);
       }),
     claimCancellation: (orderId, commandId) =>
       Effect.sync(() => {
-        const claimed = once(commandId, () =>
-          move(orderId, 'paid', 'cancelling'),
-        );
+        const claimed = once(commandId, () => {
+          const from = orders.get(orderId)?.status ?? 'pending';
+          const to = orderStatusAfter(from, 'claim-cancel');
+          if (to === undefined) return undefined;
+          claimedFrom.set(orderId, from);
+          return shift(orderId, from, to);
+        });
         if (claimed === 'replayed') return { _tag: 'replayed' };
         return claimed === undefined
           ? { _tag: 'notClaimable' }
           : { _tag: 'claimed', order: claimed };
       }),
     releaseCancellation: orderId =>
-      Effect.sync(() => move(orderId, 'cancelling', 'paid') !== undefined),
+      Effect.sync(() => {
+        const released = shift(
+          orderId,
+          'cancelling',
+          claimedFrom.get(orderId) ?? 'paid',
+        );
+        claimedFrom.delete(orderId);
+        return released !== undefined;
+      }),
     settleCancellation: (orderId, commandId) =>
       Effect.sync(() => {
         const settled = once(commandId, () =>
-          move(orderId, 'cancelling', 'cancelled'),
+          shift(orderId, 'cancelling', 'cancelled'),
         );
         return settled === 'replayed' ? undefined : settled;
       }),
@@ -102,4 +157,26 @@ export const makeInMemoryProductOrderStore = (): ProductOrderStore => {
         return 'claimed';
       }),
   };
+
+  const groupStore: CheckoutGroupStore = {
+    get: groupId =>
+      Effect.sync(() => {
+        const group = groups.get(groupId);
+        return group === undefined ? undefined : copyGroup(group);
+      }),
+    open: (group, commandId) =>
+      Effect.sync(() => {
+        const first =
+          commandId === undefined ? undefined : commands.get(commandId);
+        if (first instanceof CheckoutGroup) {
+          return { _tag: 'replayed' as const, group: copyGroup(first) };
+        }
+        groups.set(String(group.id), copyGroup(group));
+        if (commandId !== undefined) commands.set(commandId, copyGroup(group));
+        return { _tag: 'opened' as const, group: copyGroup(group) };
+      }),
+    remove: groupId => Effect.sync(() => groups.delete(groupId)),
+  };
+
+  return { orders: orderStore, groups: groupStore };
 };

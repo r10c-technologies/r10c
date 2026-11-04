@@ -76,6 +76,9 @@ const seedUsers = Effect.all(
 const seedTenancy = (organizationId: string) =>
   Effect.all(
     [
+      // Before the organization: its announcement says whether it ships cash
+      // on delivery, which it reads off this entitlement (ADR 0070).
+      seedCollection('entitlement', entitlementSeedData(organizationId)),
       // Through `writeOrganization`, never `seedCollection`: an organization's
       // write and its announcement share one transaction (ADR 0061).
       seedOrganizations(organizationSeedData(organizationId)),
@@ -83,7 +86,6 @@ const seedTenancy = (organizationId: string) =>
       seedCollection('party-role', partyRoleSeedData(organizationId)),
       seedCollection('role', roleSeedData(organizationId)),
       seedCollection('membership', membershipSeedData(organizationId)),
-      seedCollection('entitlement', entitlementSeedData(organizationId)),
     ],
     { discard: true },
   );

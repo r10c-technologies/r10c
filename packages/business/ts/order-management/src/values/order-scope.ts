@@ -3,8 +3,9 @@ import {
   type VerifiedContext,
   When,
 } from '@entifix/business';
-import type { EntityMemberPath, FilterGroup } from '@entifix/core';
+import type { FilterGroup } from '@entifix/core';
 
+import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
 
 /**
@@ -22,7 +23,7 @@ export interface ScopedCaller {
  * Whose orders a caller may read.
  *
  * The `order` store is **platform** plane: one database, named at boot, holding
- * every buyer's receipt and every vendor's lines. So unlike stock-service next
+ * every buyer's checkout group and every vendor's orders. So unlike stock-service next
  * door there is no tenant handle doing the isolation, and the predicate *is* the
  * boundary — the discriminator-column shape `docs/_shared/planes.md` warns makes
  * every missing filter a silent breach.
@@ -42,7 +43,7 @@ export interface ScopedCaller {
 export type OrderScope =
   /** Platform staff: every order, no predicate. */
   | { readonly kind: 'unscoped' }
-  /** A vendor: the orders that owe them a line. */
+  /** A vendor: their own orders. */
   | { readonly kind: 'vendor'; readonly organizationId: string }
   /** A buyer: the orders they placed. */
   | { readonly kind: 'buyer'; readonly partyId: string }
@@ -57,19 +58,12 @@ export type OrderScope =
   | { readonly kind: 'nothing' };
 
 /**
- * The member holding the vendor on a line.
- *
- * ⚠️ **A dotted path into a `composition`, which is legal here and nowhere
- * else.** `items` is declared unqueryable on the entity, so `coerceFiltering`
- * rejects any query string naming it; that allowlist runs at parse time and
- * nothing re-checks downstream, which is exactly what lets *server* code reach
- * an embedded path a client cannot. `translateFiltering` emits the property
- * verbatim, so Mongo matches array elements by its own semantics.
- *
- * Typed, not cast: entifix's `EntityMemberPath` names one step into a member
- * that holds an array of records, and types the value from the line.
+ * The member holding an order's vendor: top level since one order belongs to
+ * one vendor ([ADR 0069](../../../../../docs/adr/0069-a-checkout-group-of-per-vendor-orders.md)),
+ * so a vendor's reads ride an ordinary indexed filter rather than a dotted path
+ * into a composition.
  */
-const VENDOR_PATH = 'items.vendorId' satisfies EntityMemberPath<ProductOrder>;
+const VENDOR_PATH: keyof ProductOrder & string = 'vendorId';
 
 /**
  * The two `partyRole` values that change the answer, as ADR 0015 named them.
@@ -114,7 +108,7 @@ export type OrderNarrowing = 'unscoped' | 'nothing' | FilterGroup<ProductOrder>;
 /**
  * Every order read narrowed to its caller (ADR 0053, as a resolver since ADR
  * 0065), the reads' twin of {@link orderScopeFor}: platform staff unscoped, a
- * vendor to the orders that owe them a line, a buyer to the orders they placed,
+ * vendor to their own orders, a buyer to the orders they placed,
  * and anybody matching no rule — a vendor session with no organization, an
  * account with no party record — to nothing. The by-id read is a load of the
  * same narrowing, so the list and the read cannot disagree.
@@ -142,6 +136,43 @@ export const orderNarrowing: readonly ResolutionRule<
   When(
     context => context.partyRole !== VENDOR && context.partyId !== undefined,
   ).use({
+    name: 'buyer',
+    impl: context => ({
+      operator: 'and',
+      values: [
+        {
+          property: 'buyerId',
+          operator: 'eq',
+          value: context.partyId as string,
+        },
+      ],
+    }),
+  }),
+];
+
+/** Which checkout groups a caller may see: all, none, or the ones a filter keeps. */
+export type CheckoutGroupNarrowing =
+  'unscoped' | 'nothing' | FilterGroup<CheckoutGroup>;
+
+/**
+ * Every checkout-group read narrowed to its caller: platform staff unscoped, a
+ * buyer to the groups they placed, and **a vendor to nothing**. A group is the
+ * buyer's receipt across every seller in the basket, so letting one vendor read
+ * it would show them their competitors' orders; a vendor's view is their own
+ * {@link ProductOrder}, never the group around it.
+ */
+export const checkoutGroupNarrowing: readonly ResolutionRule<
+  (context: VerifiedContext) => CheckoutGroupNarrowing
+>[] = [
+  When(context => context.partyRole === OPERATOR).use({
+    name: 'operator',
+    impl: () => 'unscoped',
+  }),
+  When(context => context.partyRole === VENDOR).use({
+    name: 'vendor',
+    impl: () => 'nothing',
+  }),
+  When(context => context.partyId !== undefined).use({
     name: 'buyer',
     impl: context => ({
       operator: 'and',

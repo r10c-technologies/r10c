@@ -41,8 +41,10 @@
     }
   },
   "dependencies": {
+    "@entifix/core": "catalog:",
     "@entifix/mongo": "catalog:",
     "@entifix/service-shell": "catalog:",
+    "@entifix/transactions": "catalog:",
     "@r10c/business-ts-payment-management": "workspace:*",
     "@r10c/implementation-payment-management-http": "workspace:*",
     "@r10c/implementation-payment-mongo": "workspace:*",

@@ -21,6 +21,9 @@
       "path": "../../packages/business/ts/stock-management"
     },
     {
+      "path": "../../packages/business/ts/shipping-order-management"
+    },
+    {
       "path": "../../packages/business/ts/settlement-management"
     },
     {

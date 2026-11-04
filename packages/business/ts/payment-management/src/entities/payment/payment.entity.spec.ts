@@ -10,14 +10,14 @@ import { Payment } from './payment.entity.js';
 
 describe('Payment', () => {
   it('serializes the attempt with the provider reference it produced', () => {
-    const payment = new Payment('order-1', 1250, 'EUR');
+    const payment = new Payment('group-1', 1250, 'EUR');
     payment.id = 'pay-1';
     payment.status = 'captured';
     payment.providerReference = 'psp_abc123';
 
     expect(serializeEntity(Payment, payment)).toEqual({
       id: 'pay-1',
-      orderId: 'order-1',
+      groupId: 'group-1',
       amount: 1250,
       currency: 'EUR',
       status: 'captured',
@@ -30,13 +30,13 @@ describe('Payment', () => {
     // The case the two members exist for: before in-site selling every payment
     // was a storefront card, so both were inferable (ADR 0024). Cash has no
     // provider to answer, so `providerReference` stays absent.
-    const payment = new Payment('order-9', 500, 'EUR');
+    const payment = new Payment('group-9', 500, 'EUR');
     payment.status = 'captured';
     payment.paymentMethod = 'cash';
     payment.channelId = 'sc-1';
 
     expect(serializeEntity(Payment, payment)).toEqual({
-      orderId: 'order-9',
+      groupId: 'group-9',
       amount: 500,
       currency: 'EUR',
       status: 'captured',
@@ -68,7 +68,7 @@ describe('Payment', () => {
     const payment = await Effect.runPromise(
       deserializeSingleEntity(Payment, {
         id: 'pay-2',
-        orderId: 'order-2',
+        groupId: 'group-2',
         amount: 400,
         currency: 'USD',
         status: 'failed',
@@ -84,7 +84,7 @@ describe('Payment', () => {
   it('starts pending with no provider reference, because nothing was called yet', () => {
     const payment = new Payment();
 
-    expect(payment.orderId).toBe('');
+    expect(payment.groupId).toBe('');
     expect(payment.amount).toBe(0);
     expect(payment.currency).toBe('');
     expect(payment.status).toBe('pending');
@@ -95,7 +95,7 @@ describe('Payment', () => {
 
   it('accepts the setters a repository writes back through', () => {
     const payment = new Payment();
-    payment.orderId = 'order-3';
+    payment.groupId = 'group-3';
     payment.amount = 700;
     payment.currency = 'GBP';
     payment.status = 'authorized';
@@ -103,7 +103,7 @@ describe('Payment', () => {
     payment.channelId = 'sc-2';
     payment.providerReference = undefined;
 
-    expect(payment.orderId).toBe('order-3');
+    expect(payment.groupId).toBe('group-3');
     expect(payment.amount).toBe(700);
     expect(payment.currency).toBe('GBP');
     expect(payment.status).toBe('authorized');
@@ -126,11 +126,11 @@ describe('Payment', () => {
   it('links the order by id rather than by a link accessor', () => {
     // The target is another slice's store, and a `link` would invite the
     // storage-layer join the one-writer rule forbids.
-    const orderId = describeEntityColumns(Payment).find(
-      column => column.name === 'orderId',
+    const groupId = describeEntityColumns(Payment).find(
+      column => column.name === 'groupId',
     );
 
-    expect(orderId?.type).toBe('string');
-    expect(orderId?.filterable).toBe(true);
+    expect(groupId?.type).toBe('string');
+    expect(groupId?.filterable).toBe(true);
   });
 });

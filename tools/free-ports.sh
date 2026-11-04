@@ -18,11 +18,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # The fleet (docs/_shared/ports.md): the edge's origins 300N, the Next apps
 # behind them on 320N (the origin + 200), backends 310N, platform 319x.
-ALL_PORTS=(3000 3001 3200 3201 3100 3101 3102 3103 3105 3106 3107 3108 3109 3190 3191)
+ALL_PORTS=(3000 3001 3200 3201 3100 3101 3102 3103 3105 3106 3107 3108 3109 3110 3190 3191)
 # The Node inspector each `@nx/js:node` dev target opens, at its service port
 # + 6000. One shared 9229 meant only the first service of a fleet got a debugger
 # and every other one logged "address already in use".
-INSPECT_PORTS=(9100 9101 9102 9103 9105 9106 9107 9108 9109 9190 9191)
+INSPECT_PORTS=(9100 9101 9102 9103 9105 9106 9107 9108 9109 9110 9190 9191)
 # The flow engine's runners (ADR 0066): the service port + 31000 + 1000 × the
 # replica, so transaction-service's two land on 34103 and 35103 — clear of
 # every service port, inspector and minikube NodePort.

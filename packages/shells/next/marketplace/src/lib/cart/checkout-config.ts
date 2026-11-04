@@ -50,3 +50,11 @@ export const sagaCrossingToken = (): string =>
  */
 export const orderServiceUrl = (): string =>
   process.env['ORDER_SERVICE_URL'] ?? 'http://localhost:3105/api';
+
+/**
+ * Where realtime-service answers a flow's status, server to server: the
+ * settle action reads it to confirm a checkout completed before it writes the
+ * receipt, presenting the flow's capability (ADR 0072).
+ */
+export const realtimeServiceUrl = (): string =>
+  process.env['REALTIME_SERVICE_URL'] ?? 'http://localhost:3191/api';

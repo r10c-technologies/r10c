@@ -76,6 +76,9 @@
       "path": "./packages/business/ts/stock-management"
     },
     {
+      "path": "./packages/business/ts/shipping-order-management"
+    },
+    {
       "path": "./tools/slices"
     },
     {
@@ -247,6 +250,15 @@
       "path": "./packages/implementation/stock-management/http"
     },
     {
+      "path": "./packages/implementation/fulfilment/mongo"
+    },
+    {
+      "path": "./packages/implementation/shipping-order-management/http"
+    },
+    {
+      "path": "./packages/shells/effect/fulfilment"
+    },
+    {
       "path": "./packages/implementation/sales-management/http"
     },
     {
@@ -326,6 +338,12 @@
     },
     {
       "path": "./tools/edge"
+    },
+    {
+      "path": "./apps/fulfilment-service-e2e"
+    },
+    {
+      "path": "./apps/fulfilment-service"
     }
   ],
   "compilerOptions": {

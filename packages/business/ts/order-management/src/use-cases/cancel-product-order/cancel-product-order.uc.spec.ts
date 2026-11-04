@@ -8,8 +8,6 @@ import {
   CancelProductOrderUC,
 } from './cancel-product-order.uc.js';
 
-const line = (vendorId: string) => ({ vendorId });
-
 /** The refusal's `code`, or `undefined` when the decider allows it. */
 const codeOf = (...args: Parameters<typeof CancelProductOrderUC.run>) =>
   Effect.runSync(
@@ -38,57 +36,21 @@ describe('CancelProductOrderUC', () => {
     );
   });
 
-  it('allows an operator to cancel any paid order', () => {
-    expect(
-      codeOf(
-        { id: 'o-1', status: 'paid' },
-        [line('alpha'), line('beta')],
-        undefined,
-      ),
-    ).toBeUndefined();
+  it.each(['paid', 'confirmed'])('allows cancelling a %s order', status => {
+    expect(codeOf({ id: 'o-1', status: status as never })).toBeUndefined();
   });
 
-  it('allows a vendor an order that is theirs alone', () => {
-    expect(
-      codeOf(
-        { id: 'o-1', status: 'paid' },
-        [line('alpha'), line('alpha')],
-        'alpha',
-      ),
-    ).toBeUndefined();
-  });
-
-  it('refuses a vendor an order that names somebody else', () => {
-    expect(
-      codeOf(
-        { id: 'o-1', status: 'paid' },
-        [line('alpha'), line('beta')],
-        'alpha',
-      ),
-    ).toBe('multiVendorOrder');
-  });
-
-  it('answers the vendor question before the status one', () => {
-    // "Not cancellable right now" reads as a retry, and there is no moment at
-    // which a vendor's cancel of a shared basket succeeds.
-    expect(
-      codeOf(
-        { id: 'o-1', status: 'pending' },
-        [line('alpha'), line('beta')],
-        'alpha',
-      ),
-    ).toBe('multiVendorOrder');
-  });
-
-  it('refuses every state but paid, naming the order and its status', () => {
-    for (const status of ['pending', 'cancelling', 'cancelled', 'fulfilled']) {
+  it('refuses every state but paid and confirmed, naming the order and its status', () => {
+    for (const status of [
+      'pending',
+      'cancelling',
+      'dispatched',
+      'cancelled',
+      'fulfilled',
+    ]) {
       const refused = Effect.runSync(
         Effect.flip(
-          CancelProductOrderUC.run(
-            { id: 'o-1', status: status as never },
-            [line('alpha')],
-            undefined,
-          ),
+          CancelProductOrderUC.run({ id: 'o-1', status: status as never }),
         ),
       );
       expect(refused).toMatchObject({

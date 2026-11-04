@@ -42,7 +42,8 @@ describe('the flow catalog', () => {
       inputs: checkoutInputs,
     });
 
-    expect(outcomes).toHaveLength(8);
+    // Three tenders × two basket sizes × two entitlement sets.
+    expect(outcomes).toHaveLength(12);
     expect(() => expectAllCompositionsValid(outcomes)).not.toThrow();
     // The unentitled half is exactly the combinations the entitlement gates:
     // a caller who lacks what a step requires, not a recipe that is wrong.
@@ -50,7 +51,7 @@ describe('the flow catalog', () => {
       outcomes
         .filter(outcome => outcome.outcome === 'unmet')
         .map(outcome => outcome.context),
-    ).toEqual(Array(4).fill('entitled to []'));
+    ).toEqual(Array(6).fill('entitled to []'));
     expect(outcomes.filter(outcome => outcome.outcome === 'refused')).toEqual(
       [],
     );
@@ -65,9 +66,7 @@ describe('the flow catalog', () => {
     expect(() => expectAllCompositionsValid(outcomes)).not.toThrow();
   });
 
-  // The recipes reproduce today's sagas step for step until the engine runs
-  // them (#486, #487).
-  it("composes today's card checkout in its saga's order", () => {
+  it('composes a card checkout in its order: hold, write, take the money, convert', () => {
     const slip = Effect.runSync(
       compose(
         checkoutRecipe,
@@ -79,10 +78,12 @@ describe('the flow catalog', () => {
     );
 
     expect(slipSteps(slip).map(step => step.ref)).toEqual([
+      'order.open-group@1',
       'stock.reserve@1',
-      'order.write@1',
-      'payment.capture@1',
-      'stock.convert@1',
+      'order.write@2',
+      'payment.capture@2',
+      'order.confirm@1',
+      'stock.convert@2',
     ]);
   });
 

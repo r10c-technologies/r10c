@@ -101,6 +101,9 @@ const scopeConstraints = [
       // nothing by it, and still cannot reach `scope:auth` or
       // `scope:marketplace-admin` — only the host that mounts all of them can.
       'scope:stock',
+      // The fulfilment cells, for the same reason: the dispatch worklist is a
+      // back-office screen (#489).
+      'scope:fulfilment',
       // The order shell, for the same reason. Widening the **host** scope is how
       // a domain reaches the back office; `scope:order` gains nothing by it, and
       // still cannot reach `scope:auth`, `scope:stock` or
@@ -144,6 +147,11 @@ const scopeConstraints = [
   {
     sourceTag: 'scope:stock',
     onlyDependOnLibsWithTags: ['scope:stock', 'scope:shared'],
+  },
+  // The `fulfilment` slice's own app, cells and shell (#483).
+  {
+    sourceTag: 'scope:fulfilment',
+    onlyDependOnLibsWithTags: ['scope:fulfilment', 'scope:shared'],
   },
   // The `order` slice's own app, for the same reason as the two above.
   {

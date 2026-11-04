@@ -23,10 +23,8 @@ export const errors: EsErrors = {
   // by omission — the money was taken once, for the whole basket, on one capture
   // (ADR 0058 §1) — so the message says who can do it instead of implying a
   // retry would work.
-  multiVendorOrder:
-    'This order also covers another vendor, so only an operator can cancel it.',
-  orderNotFulfillable:
-    'This order can no longer be marked as delivered. It may have been cancelled.',
+  orderNotTransitionable:
+    'This order cannot make that move from where it stands.',
   orderNotCancellable:
     'This order can no longer be cancelled. It may already be on its way, or a cancellation may be in progress.',
   categoryParentMissing: 'The parent category does not exist.',
@@ -91,7 +89,8 @@ export const errors: EsErrors = {
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
   stockUnavailable: 'The sale could not be completed. Check the stock on hand.',
-  sagaCompensated: 'The operation could not be completed, and nothing was changed.',
+  sagaCompensated:
+    'The operation could not be completed, and nothing was changed.',
   sagaStranded: 'The operation stopped partway and is being reviewed.',
   mixedCurrencies: 'One vendor’s amounts are in more than one currency.',
   unavailable: 'A service is unavailable right now. Try again in a moment.',
@@ -118,4 +117,10 @@ export const errors: EsErrors = {
   flowSignalRejected: 'That operation is not waiting for this step.',
   invalidToken: 'Your session is not valid. Sign in again.',
   expiredToken: 'Your session has expired. Sign in again.',
+  shippingOrderNotTransitionable:
+    'This shipment cannot make that move from where it stands.',
+  refundExceedsCapture: 'That is more than is left to refund on this order.',
+  codOverLimit:
+    'This order is over the cash-on-delivery limit. Pay this seller by card instead.',
+  codNotEntitled: 'This seller does not accept cash on delivery.',
 };

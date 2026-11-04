@@ -253,6 +253,7 @@ export const entity: EsEntity = {
       vendorId: 'Vendor ID',
       displayName: 'Seller',
       announcedAt: 'Announced at',
+      acceptsCod: 'Accepts cash on delivery',
     },
   },
   'published-offering': {
@@ -274,6 +275,29 @@ export const entity: EsEntity = {
       media: 'Images',
     },
   },
+  'checkout-group': {
+    // Opened by the checkout flow, never by a person; a buyer reads it as their
+    // receipt across sellers, and a vendor never reads it at all.
+    form: {
+      editTitle: 'Checkout',
+      newTitle: 'Checkout',
+    },
+    label: 'Checkout',
+    plural: 'Checkouts',
+    fields: {
+      id: 'ID',
+      buyerId: 'Buyer ID',
+      orderIds: 'Orders',
+      totals: 'Totals',
+      total: {
+        amount: 'Amount',
+        currency: 'Currency',
+      },
+      placedAt: 'Placed at',
+      cancelDigest: 'Cancel digest',
+      cancelWindowEndsAt: 'Cancel window ends at',
+    },
+  },
   'product-order': {
     // ⚠️ A form title for a record nobody creates by hand, exactly as
     // `stock-item` carries one. `newTitle` is the catalog gate
@@ -289,6 +313,9 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       buyerId: 'Buyer ID',
+      vendorId: 'Vendor ID',
+      groupId: 'Checkout ID',
+      paymentMethod: 'Payment',
       status: 'Status',
       items: 'Lines',
       /**
@@ -299,30 +326,32 @@ export const entity: EsEntity = {
        */
       item: {
         offeringId: 'Offering ID',
-        vendorId: 'Vendor ID',
         quantity: 'Quantity',
         amount: 'Amount',
         currency: 'Currency',
         reservationId: 'Reservation ID',
-        fulfilledAt: 'Fulfilled at',
       },
       channel: 'Sales channel',
       placedAt: 'Placed at',
       paidAt: 'Paid at',
-      cancelDigest: 'Cancel digest',
-      cancelWindowEndsAt: 'Cancel window ends at',
     },
     values: {
       status: {
         pending: 'Pending',
         paid: 'Paid',
+        confirmed: 'Confirmed',
         cancelling: 'Cancelling',
+        dispatched: 'Dispatched',
         fulfilled: 'Fulfilled',
         cancelled: 'Cancelled',
       },
+      paymentMethod: {
+        card: 'Card',
+        cash: 'Cash',
+        cod: 'Cash on delivery',
+      },
     },
     useCases: {
-      fulfil: 'Mark as delivered',
       cancel: 'Cancel order',
       cancelConfirm:
         'The buyer will be refunded and the units will go back into your stock. This cannot be undone: charging again is a new purchase.',
@@ -333,7 +362,7 @@ export const entity: EsEntity = {
     plural: 'Payments',
     fields: {
       id: 'ID',
-      orderId: 'Order ID',
+      groupId: 'Checkout ID',
       amount: 'Amount',
       currency: 'Currency',
       status: 'Status',
@@ -353,7 +382,24 @@ export const entity: EsEntity = {
         card: 'Card',
         voucher: 'Voucher',
         transfer: 'Transfer',
+        cod: 'Cash on delivery',
       },
+    },
+  },
+  'payment-allocation': {
+    label: 'Payment allocation',
+    plural: 'Payment allocations',
+    fields: {
+      id: 'ID',
+      paymentId: 'Payment ID',
+      groupId: 'Checkout ID',
+      orderId: 'Order ID',
+      vendorId: 'Vendor ID',
+      authorized: 'Authorized',
+      captured: 'Captured',
+      refunded: 'Refunded',
+      currency: 'Currency',
+      paymentMethod: 'Payment method',
     },
   },
   refund: {
@@ -361,7 +407,7 @@ export const entity: EsEntity = {
     plural: 'Refunds',
     fields: {
       id: 'ID',
-      paymentId: 'Payment ID',
+      allocationId: 'Allocation ID',
       orderId: 'Order ID',
       amount: 'Amount',
       currency: 'Currency',
@@ -400,6 +446,7 @@ export const entity: EsEntity = {
     label: 'Commission entry',
     plural: 'Commission entries',
     fields: {
+      collectedBy: 'Collected by',
       id: 'ID',
       orderId: 'Order ID',
       vendorId: 'Vendor ID',
@@ -411,6 +458,10 @@ export const entity: EsEntity = {
       kind: 'Kind',
     },
     values: {
+      collectedBy: {
+        platform: 'Platform',
+        vendor: 'Vendor',
+      },
       kind: {
         sale: 'Sale',
         reversal: 'Reversal',
@@ -595,6 +646,7 @@ export const entity: EsEntity = {
         receipt: 'Receipt',
         sale: 'Sale',
         cancellation: 'Cancellation',
+        return: 'Return',
         adjustment: 'Adjustment',
       },
     },
@@ -621,6 +673,57 @@ export const entity: EsEntity = {
         converted: 'Converted',
         released: 'Released',
       },
+    },
+  },
+  'shipping-order': {
+    // Opened by a flow once a checkout commits, never by a person — so this
+    // titles a record being read; the vendor moves it with the verbs below.
+    form: {
+      editTitle: 'Shipment',
+      newTitle: 'Shipment',
+    },
+    label: 'Shipment',
+    plural: 'Shipments',
+    fields: {
+      id: 'ID',
+      orderId: 'Order',
+      groupId: 'Checkout',
+      flowId: 'Flow',
+      paymentMethod: 'Payment',
+      amountDue: 'Due on delivery',
+      currency: 'Currency',
+      lines: 'Lines',
+      line: {
+        offeringId: 'Offering ID',
+        quantity: 'Quantity',
+      },
+      status: 'Status',
+      dispatchedAt: 'Dispatched at',
+      deliveredAt: 'Delivered at',
+      refusedAt: 'Refused at',
+      returnedAt: 'Returned at',
+    },
+    values: {
+      status: {
+        'awaiting-dispatch': 'Awaiting dispatch',
+        held: 'Held',
+        dispatched: 'Dispatched',
+        delivered: 'Delivered',
+        refused: 'Refused',
+        returned: 'Returned',
+        withdrawn: 'Withdrawn',
+      },
+      paymentMethod: {
+        card: 'Card',
+        cash: 'Cash',
+        cod: 'Cash on delivery',
+      },
+    },
+    useCases: {
+      dispatch: 'Dispatch',
+      'record-delivery': 'Record delivery',
+      'record-refusal': 'Record refusal',
+      'record-return': 'Record return',
     },
   },
 };

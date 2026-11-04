@@ -5,7 +5,13 @@ import {
 import { isStoreFault } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import { COMMAND_INBOX_COLLECTION } from '@entifix/mongo/transactions';
+import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   Reservation,
   type StockLedger,
@@ -41,9 +47,13 @@ const world = (stores: Record<string, Fake> = { org: makeFakeMongoDb() }) => {
       named(fake, `stock_${org}`),
     ]),
   );
+  const bus = makeRecordingEventBus();
   const layer = MongoStockLedgerLayer.pipe(
     Layer.provide(
       Layer.mergeAll(
+        Layer.succeed(EventBusTag, bus),
+        Layer.succeed(OutboxMaxAttempts, 3),
+        Layer.succeed(EventSourceTag, 'stock'),
         Layer.succeed(MongoClientTag, client as never),
         Layer.succeed(TenantDatabaseResolverTag, {
           forOrganization: (organizationId: string) =>
@@ -67,7 +77,7 @@ const world = (stores: Record<string, Fake> = { org: makeFakeMongoDb() }) => {
         return yield* use(yield* StockLedgerTag);
       }).pipe(Effect.provide(layer)),
     );
-  return { run, stores };
+  return { run, stores, bus };
 };
 
 describeStockLedgerContract('the Mongo ledger', () => {
@@ -246,42 +256,11 @@ describe('ending a hold', () => {
   });
 
   it('reports each step of an end the driver failed as a store failure', async () => {
-    const steps = ['updateOne', 'insertOne'];
+    // The hold's own write, the sale it appends, and the one counter change.
+    const steps = ['updateOne', 'insertOne', 'findOneAndUpdate'];
     for (const op of steps) {
       const fake = seeded();
       fake.failOn(op, new Error(`${op} failed`));
-
-      const error = await world({ org: fake }).run(ledger =>
-        Effect.flip(ledger.end('org', 'r-1', 'converted')),
-      );
-
-      expect(isStoreFault(error)).toBe(true);
-    }
-    // The counter writes after the hold's own: fail only the second and third.
-    for (const skip of [1, 2]) {
-      const fake = seeded();
-      const real = (
-        fake.db as { collection: (name: string) => Record<string, unknown> }
-      ).collection;
-      let calls = 0;
-      (fake.db as { collection: unknown }).collection = (name: string) => {
-        const collection = real(name);
-        return name !== STOCK_ITEM_COLLECTION
-          ? collection
-          : {
-              ...collection,
-              updateOne: (...args: unknown[]) => {
-                calls += 1;
-                return calls === skip
-                  ? Promise.reject(new Error('counter write failed'))
-                  : (
-                      collection['updateOne'] as (
-                        ...a: unknown[]
-                      ) => Promise<unknown>
-                    )(...args);
-              },
-            };
-      };
 
       const error = await world({ org: fake }).run(ledger =>
         Effect.flip(ledger.end('org', 'r-1', 'converted')),
@@ -463,5 +442,61 @@ describe('MongoStockLedgerLayer', () => {
     );
 
     expect(isStoreFault(error)).toBe(true);
+  });
+});
+
+describe('announcing a change', () => {
+  const changes = (bus: ReturnType<typeof makeRecordingEventBus>) =>
+    bus.published
+      .filter(event => event.name === 'stock-item.changed')
+      .map(event => ({
+        version: event.version,
+        audience: event.audience,
+        data: event.data,
+      }));
+
+  it('announces every counter move once, at an increasing version, to its organization', async () => {
+    const { run, bus } = world();
+    const receipt = Object.assign(new StockMovement('off-1', 5, 'receipt'), {
+      id: 'mv-1',
+    });
+    await run(ledger => ledger.record('org', receipt));
+    const hold = Object.assign(new Reservation('off-1', 2), {
+      id: 'res-1',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await run(ledger => ledger.take('org', hold, undefined));
+    await run(ledger => ledger.end('org', 'res-1', 'converted'));
+
+    expect(changes(bus)).toEqual([
+      {
+        version: 1,
+        audience: [{ kind: 'organization', id: 'org' }],
+        data: expect.objectContaining({ onHand: 5, reserved: 0 }),
+      },
+      {
+        version: 2,
+        audience: [{ kind: 'organization', id: 'org' }],
+        data: expect.objectContaining({ onHand: 5, reserved: 2 }),
+      },
+      {
+        version: 3,
+        audience: [{ kind: 'organization', id: 'org' }],
+        data: expect.objectContaining({ onHand: 3, reserved: 0 }),
+      },
+    ]);
+  });
+
+  it('announces nothing for a hold refused or one already ended', async () => {
+    const { run, bus } = world();
+    const short = Object.assign(new Reservation('off-9', 1), {
+      id: 'res-9',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    await run(ledger => Effect.flip(ledger.take('org', short, undefined)));
+    await run(ledger => ledger.end('org', 'res-9', 'released'));
+
+    expect(changes(bus)).toEqual([]);
   });
 });

@@ -32,14 +32,25 @@ const captureIn = (paymentMethod: string): Slip => ({
 });
 
 describe('payment fragments', () => {
-  it('are two irreversible pivots', () => {
+  it('are two irreversible pivots, a retried collection and a read-only check', () => {
     expect(PAYMENT_FRAGMENTS.map(fragmentRef)).toEqual([
-      'payment.capture@1',
-      'payment.refund@1',
+      'payment.capture@2',
+      'payment.refund@2',
+      'payment.record-collection@1',
+      'payment.cod-eligible@1',
     ]);
     expect(
-      PAYMENT_FRAGMENTS.every(f => f.kind === 'pivot' && f.irreversible),
+      PAYMENT_FRAGMENTS.filter(f => f.kind === 'pivot').every(
+        f => f.irreversible,
+      ),
     ).toBe(true);
+    expect(PAYMENT_FRAGMENTS.map(f => f.kind)).toEqual([
+      'pivot',
+      'pivot',
+      'retriable',
+      'compensatable',
+    ]);
+    expect(PAYMENT_FRAGMENTS[3]?.readOnly).toBe(true);
   });
 
   it('let a card segment capture', () => {
@@ -48,8 +59,8 @@ describe('payment fragments', () => {
 
   // Cash on delivery takes no money at checkout: the courier does, later.
   it('refuse a capture inside a cash-on-delivery segment', () => {
-    expect(
-      validateSlip(captureIn('cashOnDelivery'), catalog).map(v => v.tag),
-    ).toEqual(['ExcludedFromSegment']);
+    expect(validateSlip(captureIn('cod'), catalog).map(v => v.tag)).toEqual([
+      'ExcludedFromSegment',
+    ]);
   });
 });
