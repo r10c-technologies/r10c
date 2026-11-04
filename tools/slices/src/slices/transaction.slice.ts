@@ -44,6 +44,8 @@ export const transactionSlice: SliceDeclaration = {
     // verb here would put a domain name in a permission namespace (ADR 0039).
     'POST /api/flow/checkout',
     'POST /api/flow/cancellation',
+    // Started by fulfilment-service when a vendor dispatches (ADR 0070).
+    'POST /api/flow/delivery',
   ],
   dependantAPIs: [
     'GET /api/config/:service',
@@ -86,6 +88,20 @@ export const transactionSlice: SliceDeclaration = {
     'flow.suspended',
     'flow.completed',
     'flow.failed',
+    // A delivery whose parcel never came back, ended for a person.
+    'flow.stranded',
   ],
-  subscriptions: [],
+  subscriptions: [
+    // What a courier reported, recorded by the vendor: each answers the
+    // delivery flow's wait on that shipment (ADR 0070). `dispatched` arrives
+    // on the same binding and is let go.
+    {
+      event: 'shipping-order.*',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'natural',
+      dedupeReason:
+        'a signal claims the parked wait with one conditional write, so a redelivered report finds it claimed and is let go — the engine is the inbox',
+    },
+  ],
 };

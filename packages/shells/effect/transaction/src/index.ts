@@ -12,6 +12,7 @@ export {
   transactionComposition,
 } from './app-layer.js';
 export { endpoints, policy } from './endpoints.js';
+export { type DeliveryDials, DeliveryDialsTag } from './flow/delivery-dials.js';
 export {
   httpVendorFactsLayer,
   type VendorFacts,

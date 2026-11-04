@@ -4,10 +4,13 @@ import { FlowEngineTag } from '@entifix/transactions';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { DeliveryDialsTag } from './delivery-dials.js';
 import { flowStartEndpoints } from './flow-endpoints.js';
 import { VendorFactsTag } from './vendor-facts.js';
 
-const [checkout, cancellation] = flowStartEndpoints;
+const [checkout, cancellation, delivery] = flowStartEndpoints;
+
+const DIALS = { awaitDeliveryMs: 1_209_600_000, awaitReturnMs: 2_592_000_000 };
 
 const PROVISIONED = ['stock-management', 'shipping-order-management'];
 
@@ -50,6 +53,7 @@ const world = (facts: Record<string, readonly string[]> = {}) => {
               ),
           }),
           Effect.provideService(FlowEngineTag, flows.service as never),
+          Effect.provideService(DeliveryDialsTag, DIALS),
         ),
       ),
     );
@@ -82,14 +86,14 @@ describe('the flow start routes', () => {
         descriptor.accepted,
       ]),
     ).toEqual(
-      ['checkout', 'cancellation'].map(name => [
+      [
+        ['checkout', 'order-management:product-order:write'],
+        ['cancellation', 'order-management:product-order:write'],
+        ['delivery', 'shipping-order-management:shipping-order:dispatch-step'],
+      ].map(([name, permission]) => [
         'POST',
         `/api/flow/${name}`,
-        {
-          kind: 'crossing',
-          permission: 'order-management:product-order:write',
-          organization: false,
-        },
+        { kind: 'crossing', permission, organization: false },
         'unit',
         true,
       ]),
@@ -204,6 +208,42 @@ describe('the flow start routes', () => {
     );
     expect(flows.started[0]?.stages[0]?.steps[0]?.segment).toMatchObject({
       entitlements: PROVISIONED,
+    });
+  });
+
+  it('starts a delivery in the windows configured, whatever the caller said', async () => {
+    const { flows, run } = world({ 'v-1': PROVISIONED });
+
+    const answer = await run(delivery, {
+      shippingOrderId: 'ord-1',
+      orderId: 'ord-1',
+      groupId: 'grp-1',
+      vendorId: 'v-1',
+      paymentMethod: 'cod',
+      amountDue: 1000,
+      currency: 'GTQ',
+      lines: [{ offeringId: 'o-1', quantity: 1 }],
+      // A caller that could set these would decide when a delivery gives up.
+      awaitDeliveryMs: 1,
+      awaitReturnMs: 1,
+      entitlements: ['everything'],
+    });
+
+    expect(answer).toMatchObject({ _tag: 'Success' });
+    const [slip] = flows.started;
+    expect(slip?.recipe).toBe('delivery');
+    const wait = slip?.stages[1]?.steps[0];
+    expect(wait?.parameters).toMatchObject({
+      timeoutMs: DIALS.awaitDeliveryMs,
+    });
+    expect(wait?.segment?.entitlements).toEqual(PROVISIONED);
+  });
+
+  it('refuses a delivery that names no vendor', async () => {
+    const { run } = world();
+
+    expect(await run(delivery, { shippingOrderId: 'ord-1' })).toMatchObject({
+      failure: { _tag: 'Invalid' },
     });
   });
 });

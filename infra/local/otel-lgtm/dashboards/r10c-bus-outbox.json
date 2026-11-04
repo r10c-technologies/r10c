@@ -1149,7 +1149,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Flows the engine journaled as suspended in the window: past their commit point, out of retries within the whole-step bound, and waiting for a person. Above zero is the alert ADR 0067 names.",
+      "description": "Flows the engine journaled as suspended or stranded in the window: past their commit point and waiting for a person — out of retries within the whole-step bound, or a delivery whose refused parcel never came back in the return window (ADR 0070). Above zero is the alert ADR 0067 names.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1204,7 +1204,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(increase(entifix_flow_states_total{state=\"suspended\",service_name=~\"$service_name\"}[$__range])) or vector(0)",
+          "expr": "sum(increase(entifix_flow_states_total{state=~\"suspended|stranded\",service_name=~\"$service_name\"}[$__range])) or vector(0)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"

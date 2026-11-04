@@ -7,6 +7,7 @@ import { makeAppLayer } from '@r10c/shells-effect-transaction';
 
 // Exported so the e2e `mock` profile serves the same routes over a fake engine.
 export {
+  DeliveryDialsTag,
   endpoints,
   policy,
   VendorFactsTag,

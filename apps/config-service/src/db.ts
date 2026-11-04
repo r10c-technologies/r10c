@@ -698,6 +698,23 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'concurrency',
     value: '4',
   },
+  // How long a delivery flow waits, in milliseconds (ADR 0070): fourteen days
+  // for the courier's report — none in the window is handled as a refusal —
+  // and thirty for a refused parcel to come back, after which the flow strands
+  // for a person. Stated into every delivery by the coordinator, never by the
+  // caller that starts it.
+  {
+    service: 'transaction-service',
+    group_name: 'delivery',
+    key: 'awaitDeliveryTimeout',
+    value: String(14 * 24 * 60 * 60 * 1000),
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'delivery',
+    key: 'awaitReturnTimeout',
+    value: String(30 * 24 * 60 * 60 * 1000),
+  },
   // The flow engine's announcements leave through the workflow store's own
   // outbox, under the same quarantine ceiling as every other relay.
   {
@@ -1149,6 +1166,22 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'service',
     key: 'token',
     value: 'dev-fulfilment-crossing-token-change-me',
+    is_secret: true,
+  },
+  // The coordinator, and its inbound token: a vendor's dispatch starts the
+  // delivery flow there, which makes this service the fourth holder of that
+  // secret, beside the storefront, sales-service and order-service (ADR 0070).
+  {
+    service: 'fulfilment-service',
+    group_name: 'transaction',
+    key: 'url',
+    value: 'http://localhost:3103/api',
+  },
+  {
+    service: 'fulfilment-service',
+    group_name: 'transaction',
+    key: 'crossingToken',
+    value: 'dev-flow-crossing-token-change-me',
     is_secret: true,
   },
   {
