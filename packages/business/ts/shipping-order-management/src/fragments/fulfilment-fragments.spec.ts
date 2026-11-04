@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   FULFILMENT_FRAGMENTS,
+  fulfilmentAwaitDelivery,
+  fulfilmentAwaitReturn,
   fulfilmentDispatch,
 } from './fulfilment-fragments.js';
 
@@ -14,9 +16,14 @@ describe('FULFILMENT_FRAGMENTS', () => {
       'fulfilment.release@2',
       'fulfilment.withdraw@2',
       'fulfilment.dispatch@2',
-      'fulfilment.await-delivery@2',
-      'fulfilment.await-return@2',
+      'fulfilment.await-delivery@3',
+      'fulfilment.await-return@3',
     ]);
+  });
+
+  it('declares what each wait is answered with, for the delivery flow to branch on', () => {
+    expect(fulfilmentAwaitDelivery.outcomes).toEqual(['delivered', 'refused']);
+    expect(fulfilmentAwaitReturn.outcomes).toEqual(['returned']);
   });
 
   it('makes dispatch the irreversible pivot, under the lock a hold takes', () => {

@@ -18,6 +18,9 @@ import {
   type CancellationStart,
   checkoutRecipe,
   type CheckoutStart,
+  deliveryCorrelation,
+  deliveryRecipe,
+  type DeliveryStart,
   FLOW_RECIPES,
   flowCatalog,
 } from './catalog.js';
@@ -349,9 +352,166 @@ describe('the cancellation recipe', () => {
   });
 });
 
+const delivery = (
+  paymentMethod: DeliveryStart['paymentMethod'],
+): DeliveryStart => ({
+  shippingOrderId: 'ord-1',
+  orderId: 'ord-1',
+  groupId: 'grp-1',
+  vendorId: 'v-1',
+  paymentMethod,
+  amountDue: paymentMethod === 'cod' ? 1000 : 0,
+  currency: 'GTQ',
+  lines: [{ offeringId: 'o-1', quantity: 2 }],
+  entitlements: PROVISIONED,
+  awaitDeliveryMs: 1_209_600_000,
+  awaitReturnMs: 2_592_000_000,
+});
+
+const deliverySlip = (start: DeliveryStart) =>
+  Effect.runSync(
+    compose(deliveryRecipe, flowCatalog, coordinator, start, OPTIONS),
+  );
+
+describe('the delivery recipe', () => {
+  it('composes a card and a cash-on-delivery delivery', () => {
+    const outcomes = enumerateCompositions(deliveryRecipe, flowCatalog, {
+      contexts: [{ label: 'the coordinator', value: coordinator }],
+      inputs: [
+        { label: 'card', value: delivery('card') },
+        { label: 'cod', value: delivery('cod') },
+      ],
+    });
+
+    expect(outcomes.map(outcome => outcome.outcome)).toEqual([
+      'composed',
+      'composed',
+    ]);
+  });
+
+  it('dispatches, waits, and branches on the report into a delivered and a returned tail', () => {
+    const slip = deliverySlip(delivery('cod'));
+
+    expect(
+      slipSteps(slip).map(step => [step.step, step.guard?.outcomes]),
+    ).toEqual([
+      ['v-1/cod:fulfilment.dispatch', undefined],
+      ['v-1/cod:order.mark-dispatched', undefined],
+      ['v-1/cod:fulfilment.await-delivery', undefined],
+      ['v-1/cod:payment.record-collection', ['delivered']],
+      ['v-1/cod:order.close-fulfilled', ['delivered']],
+      ['v-1/cod:fulfilment.await-return', ['refused', 'unanswered']],
+      ['v-1/cod:o-1:stock.restore', ['refused', 'unanswered']],
+      ['v-1/cod:order.close-cancelled', ['refused', 'unanswered']],
+    ]);
+    for (const step of slipSteps(slip).filter(each => each.guard))
+      expect(step.guard?.wait).toBe('v-1/cod:fulfilment.await-delivery');
+  });
+
+  it('waits on the shipment, and answers an unanswered delivery as a refusal and a lost return by stranding', () => {
+    const steps = slipSteps(deliverySlip(delivery('card')));
+    const awaitDelivery = steps.find(step =>
+      step.step.endsWith('await-delivery'),
+    );
+    const awaitReturn = steps.find(step => step.step.endsWith('await-return'));
+
+    expect(awaitDelivery?.parameters).toMatchObject({
+      correlation: deliveryCorrelation('ord-1'),
+      timeoutMs: 1_209_600_000,
+      onTimeout: { outcome: 'unanswered' },
+    });
+    expect(awaitReturn?.parameters).toMatchObject({
+      correlation: deliveryCorrelation('ord-1'),
+      timeoutMs: 2_592_000_000,
+      onTimeout: 'strand',
+    });
+  });
+
+  it('collects no cash for a card order, and refunds it once the parcel is back', () => {
+    const steps = slipSteps(deliverySlip(delivery('card')));
+
+    expect(steps.map(step => step.step)).not.toContain(
+      'v-1/card:payment.record-collection',
+    );
+    expect(steps.at(-1)).toMatchObject({
+      step: 'v-1/card:payment.refund-after-delivery',
+      parameters: { orderId: 'ord-1' },
+    });
+    expect(
+      steps.find(step => step.step.endsWith('stock.restore'))?.parameters,
+    ).toMatchObject({ cause: 'return', organizationId: 'v-1' });
+  });
+
+  it('records the cash a courier collected, for the order’s own group and vendor', () => {
+    const collection = slipSteps(deliverySlip(delivery('cod'))).find(step =>
+      step.step.endsWith('record-collection'),
+    );
+
+    expect(collection?.parameters).toEqual({
+      groupId: 'grp-1',
+      orderId: 'ord-1',
+      vendorId: 'v-1',
+      amount: 1000,
+      currency: 'GTQ',
+    });
+  });
+
+  it('reaches the vendor, and the buyer when one is named', () => {
+    expect(
+      deliverySlip({ ...delivery('card'), buyerId: 'p-1' }).audience,
+    ).toEqual([
+      { kind: 'organization', id: 'v-1' },
+      { kind: 'party', id: 'p-1' },
+    ]);
+  });
+
+  it('refuses a wait planted before the dispatch', () => {
+    const slip = deliverySlip(delivery('cod'));
+    const [dispatch, wait, ...rest] = slip.stages;
+    const planted: Slip = { ...slip, stages: [wait!, dispatch!, ...rest] };
+
+    expect(
+      validateSlip(planted, flowCatalog).map(violation => violation.tag),
+    ).toContain('WaitBeforeCommit');
+  });
+
+  it('refuses a step guarded on an outcome no wait is answered with', () => {
+    const slip = deliverySlip(delivery('cod'));
+    const planted: Slip = {
+      ...slip,
+      stages: slip.stages.map(stage => ({
+        ...stage,
+        steps: stage.steps.map(step =>
+          step.guard === undefined
+            ? step
+            : { ...step, guard: { ...step.guard, outcomes: ['lost'] } },
+        ),
+      })),
+    };
+
+    expect(
+      validateSlip(planted, flowCatalog).map(violation => violation.tag),
+    ).toContain('UnknownGuard');
+  });
+
+  it('holds a delivery whose entitlements nobody stated to none', () => {
+    const { entitlements: _none, ...unstated } = delivery('card');
+    const outcomes = enumerateCompositions(deliveryRecipe, flowCatalog, {
+      contexts: [{ label: 'the coordinator', value: coordinator }],
+      inputs: [{ label: 'unstated', value: unstated }],
+    });
+
+    expect(outcomes.map(outcome => outcome.outcome)).toEqual(['unmet']);
+  });
+});
+
 describe('the flow catalog', () => {
   it('names every recipe it holds', () => {
-    expect(Object.keys(FLOW_RECIPES)).toEqual(['checkout', 'cancellation']);
+    expect(Object.keys(FLOW_RECIPES)).toEqual([
+      'checkout',
+      'cancellation',
+      'delivery',
+    ]);
   });
 
   // A contract change without a version bump changes a fingerprint here, and

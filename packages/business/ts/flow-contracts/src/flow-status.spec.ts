@@ -61,6 +61,7 @@ describe('flowStatusFromEvent', () => {
       ['flow.started', 'running'],
       ['flow.suspended', 'suspended'],
       ['flow.completed', 'completed'],
+      ['flow.stranded', 'stranded'],
     ] as const) {
       const record = await Effect.runPromise(
         flowStatusFromEvent(
