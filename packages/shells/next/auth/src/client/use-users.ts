@@ -4,6 +4,7 @@ import { readEntityPageEnvelope } from '@entifix/core';
 import { UserIdentity } from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
 
+import { failedResponse } from './failed-response';
 import { useAsyncResource } from './use-async-resource';
 
 interface UsersPageData {
@@ -19,10 +20,8 @@ const readPage = async (
     `/api/user-identity?page=${page}&pageSize=${pageSize}`,
     { cache: 'no-store' },
   );
-  const body = await res.json();
-  if (!res.ok) {
-    throw new Error(body?.error ?? 'could not load users');
-  }
+  if (!res.ok) throw await failedResponse(res);
+  const body: unknown = await res.json();
   // The wire shape is the shared `entityPage` envelope, so the same reader the
   // REST adapters use rebuilds real entities here — which is what lets
   // `EntityTable` derive its columns from the metadata. Reading the envelope

@@ -85,6 +85,9 @@ export const transactionSlice: SliceDeclaration = {
   // audience, and every step of it into the flow-status projection.
   publishedEvents: [
     'flow.started',
+    // A flow parked past its commit point: the write that started it landed,
+    // and what it waits on is someone else's (a courier's report).
+    'flow.waiting',
     'flow.suspended',
     'flow.completed',
     'flow.failed',

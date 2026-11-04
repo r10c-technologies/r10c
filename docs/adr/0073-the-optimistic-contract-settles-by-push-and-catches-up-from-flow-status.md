@@ -10,6 +10,7 @@
 - Area: frontend
 - Read when: a write answers `202`, a screen shows a write before the server has it, or a failure has to reach the user — the server picks the mode, a pending flow is keyed by `flowId`, and a pending result never shows money taken
 - Revised: 2026-11-04 — checkout, the till's sale and both cancellations answer `202`, and the saga runner the record named is deleted (#486, #487, #490)
+- Revised: 2026-11-04 — a write whose flow parks past its commit point settles there (#489): a vendor's `dispatch` waited on a delivery flow that only ends with the courier's report, days later, which held the report's own verbs disabled until the report arrived. `flow.waiting` confirms it, and so does a catch-up reading `waiting` with `committed` (entifix 0.17.0, slip grammar 2)
 
 ## Context
 
@@ -29,7 +30,7 @@ write, the stream's `transaction.*` events settled it, and a reconnect re-read
 
 entifix 0.14.0 ships the replacement: one mutation API for both settle modes,
 a pending-flow store, and a settlement hook driven by the push channel
-([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.16.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
+([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.17.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 This record says how r10c uses it.
 
 ## Decision
@@ -74,6 +75,12 @@ value at another `v` is discarded, not migrated.
   ([ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md)).
 - `flow.completed` confirms; `flow.failed` rolls back and emits **exactly one**
   failure toast, however many times the event is redelivered.
+- `flow.waiting` confirms too. The engine announces it only at a wait **past
+  the commit point**, so the write the caller made has landed and what the flow
+  waits on — a courier's report — is not the caller's to wait on. The money rule
+  holds: a wait comes after the pivot, and the screen re-reads the record rather
+  than claiming more than the server did. A catch-up confirms a `waiting` flow
+  only when its status says `committed`.
 - On connect and on `resync`, every pending flow is re-read from flow-status
   (`GET /api/realtime/flow/:id`).
 - ⚠️ A `404` from flow-status means **not projected yet**, never failed — ADR

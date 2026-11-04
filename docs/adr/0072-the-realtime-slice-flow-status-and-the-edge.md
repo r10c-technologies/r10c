@@ -17,6 +17,7 @@
 - Area: messaging
 - Read when: pushing anything to a browser, asking where a flow stands, or putting a listener on 3000/3001 — one realtime slice owns the stream and the flow-status projection, the audience filter fails closed, and the edge owns the origins
 - Revised: 2026-11-04 — `GET /api/saga/:id` is deleted (#490); where a flow stands is answered only by `GET /api/realtime/flow/:id`
+- Revised: 2026-11-04 — `flow.waiting` is pushed to the flow's audience and projected as `waiting` and `committed`, so a write whose flow parks past its commit point settles (#489)
 
 ## Context
 
@@ -46,7 +47,7 @@ route-handler upgrade (vercel/next.js#95514), and a streamed `GET` through
 browser reaches Next directly on 3000/3001, so there is nowhere else to put it.
 
 entifix 0.14.0 ships the mechanism: `ServerPushTag` and its SSE adapter at
-`@entifix/service-shell/push` ([entifix ADR 0021](https://github.com/r10c-technologies/entifix/blob/v0.16.0/docs/adr/0021-server-push-and-the-multiplexed-channel.md)),
+`@entifix/service-shell/push` ([entifix ADR 0021](https://github.com/r10c-technologies/entifix/blob/v0.17.0/docs/adr/0021-server-push-and-the-multiplexed-channel.md)),
 and one multiplexed `PushChannel` per tab in the browser. What it leaves to the
 host is where the stream lives, who may hear what, and what is replayed.
 
@@ -105,7 +106,9 @@ by a **push projection** in the realtime shell, one per subscription:
   event carries that shape;
 - otherwise a **hint** — `{entity, change, id}` — on which the browser
   re-reads through its own guarded route;
-- `flow.completed` and `flow.failed` go to the flow's audience.
+- `flow.waiting`, `flow.completed` and `flow.failed` go to the flow's audience;
+  the flow-status projection records a `flow.waiting` as `waiting` and
+  `committed`, which a catch-up reads.
 
 `@r10c/slices` fails a broadcast subscription with no projection, and a pushable
 event whose schema does not require `meta.audience`.

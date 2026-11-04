@@ -216,6 +216,12 @@ export const r10c: EsR10c = {
       orders: 'Orders',
     },
   },
+  fulfilment: {
+    nav: {
+      title: 'Dispatch',
+      shipments: 'Shipments',
+    },
+  },
   settlement: {
     nav: {
       settlement: 'Settlement',

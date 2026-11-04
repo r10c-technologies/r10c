@@ -349,6 +349,20 @@ describe('below the shell', () => {
     60_000,
   );
 
+  it('may not answer HTTP from a business package', async () => {
+    for (const source of [
+      "import { HttpServerResponse } from 'effect/http';",
+      "import { HttpApi } from 'effect/http-api';",
+    ])
+      expect(
+        await errorsAt(
+          'packages/business/ts/stock-management/src/planted.ts',
+          source,
+        ),
+        source,
+      ).toHaveLength(1);
+  }, 60_000);
+
   it('may declare fragments in a business package', async () => {
     expect(
       await errorsAt(

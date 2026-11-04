@@ -1,5 +1,6 @@
 import type { RecordSearchSource } from '@entifix/next-shell/server';
 import { AUTH_SEARCH_SOURCES } from '@r10c/shells-next-auth/server';
+import { FULFILMENT_SEARCH_SOURCES } from '@r10c/shells-next-fulfilment/server';
 import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from '@r10c/shells-next-marketplace-admin/server';
 import { ORDER_SEARCH_SOURCES } from '@r10c/shells-next-order/server';
 import { SALES_SEARCH_SOURCES } from '@r10c/shells-next-sales/server';
@@ -35,6 +36,8 @@ export const SEARCH_SOURCES: readonly RecordSearchSource[] = [
   // serves the order screens, the nav item and the proxy, so the palette was
   // the one surface where those records did not exist.
   ...ORDER_SEARCH_SOURCES,
+  // Shipments, searched by the order each one carries.
+  ...FULFILMENT_SEARCH_SOURCES,
   ...SALES_SEARCH_SOURCES,
   ...SETTLEMENT_SEARCH_SOURCES,
   ...AUTH_SEARCH_SOURCES,

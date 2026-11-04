@@ -1,0 +1,59 @@
+{
+  "name": "@r10c/shells-next-fulfilment",
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:fulfilment",
+      "shell:domain"
+    ],
+    "sourceRoot": "packages/shells/next/fulfilment/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/next/fulfilment/dist",
+          "main": "packages/shells/next/fulfilment/src/index.ts",
+          "tsConfig": "packages/shells/next/fulfilment/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "@r10c/source": "./src/server.ts",
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    }
+  },
+  "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@r10c/business-ts-shipping-order-management": "workspace:*",
+    "@entifix/react-integration": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/rest": "catalog:",
+    "@entifix/next-shell": "catalog:",
+    "effect": "4.0.7"
+  },
+  "devDependencies": {
+    "@r10c/business-ts-i18n": "workspace:*",
+    "@entifix/testing-unit": "catalog:"
+  }
+}

@@ -310,6 +310,16 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'order-service-domain',
     value: 'http://localhost:3105/api',
   },
+  // fulfilment-service, a vendor's shipments and the dispatch worklist. Tenant
+  // plane: the service resolves the viewer's organization from the session.
+  // Rewritten to `/api/fulfilment` before the browser sees it — and, as above,
+  // the proxy entry is inert without this row.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'fulfilment-service-domain',
+    value: 'http://localhost:3110/api',
+  },
   // config-service's own address, so the admin app's system-management pages can
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
   // before the browser sees it, exactly like the admin-service domain above.

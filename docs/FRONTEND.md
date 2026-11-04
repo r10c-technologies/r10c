@@ -928,7 +928,7 @@ The decisions are [ADR 0072](adr/0072-the-realtime-slice-flow-status-and-the-edg
 the stream lives and who hears what) and
 [ADR 0073](adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md)
 (how a write settles); the mechanism is entifix's `PushChannel` and `useOptimisticMutation`
-([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.16.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
+([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.17.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 
 > **Built by #475–#478.** The back office mounts all of it in `apps/back-office-app/src/app/providers.tsx`:
 > the `ToastProvider` and its `ToastRegion`, one module-level push channel, `PendingFlowsProvider`
@@ -953,7 +953,8 @@ server-side, per connection, and an event with no audience reaches nobody.
 ```
 save / delete / verb ─▶ 200 + entity     ─▶ settled   (apply on mutate, rollback on failure)
                      └▶ 202 flowAccepted ─▶ pending   ─▶ flow.completed ─▶ confirmed
-                                                       └▶ flow.failed   ─▶ failed + rollback + one toast
+                                                       ├▶ flow.waiting   ─▶ confirmed (parked past its commit point)
+                                                       └▶ flow.failed    ─▶ failed + rollback + one toast
                          stream was down / resync     ─▶ re-read GET /api/realtime/flow/:id
 ```
 
@@ -967,6 +968,10 @@ save / delete / verb ─▶ 200 + entity     ─▶ settled   (apply on mutate, 
 - ⚠️ A reopened stream is sent `resync` for every topic, flow topics included, and the browser
   re-reads each pending flow from flow-status. The server never replays a flow's state onto the
   stream: the push adapter's resume hook is not told who is listening (ADR 0072, revised).
+- ⚠️ A flow that parks **past its commit point** settles there, not at its end: a vendor's
+  `dispatch` confirms when the delivery flow waits on the courier (`flow.waiting`, or a catch-up
+  reading `waiting` with `committed`), so the report's own verbs are free while it waits days.
+  A wait before the commit point stays pending (ADR 0073, revised).
 - ⚠️ A `404` from flow-status means _not projected yet_, never _failed_. The flow stays pending up
   to `PENDING_FLOW_MAX_AGE_MS` (30 min), then is dropped silently.
 - A failure arrives with a `code` that is its `errors` key and is toasted through
@@ -996,6 +1001,10 @@ shells, per the design-system rule.
 | `PageView({addr})` pages, registrations, adapters                                                                                                                                                 | `@r10c/shells-next-marketplace-admin` |
 | `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                                         | `@r10c/shells-next-auth`              |
 | The stock surface: items, the movement form and the read-only ledger — the first **Operaciones** screens                                                                                          | `@r10c/shells-next-stock`             |
+| The order screens: a vendor's orders, read-only, with the `cancel` verb that starts a cancellation                                                                                                | `@r10c/shells-next-order`             |
+| The dispatch worklist: shipments opening on `awaiting-dispatch`, with `dispatch` (which starts the delivery flow) and the courier's reports                                                       | `@r10c/shells-next-fulfilment`        |
+| Selling channels and the till                                                                                                                                                                     | `@r10c/shells-next-sales`             |
+| A vendor's agreement, commission ledger, settlement runs and payouts                                                                                                                              | `@r10c/shells-next-settlement`        |
 | `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions and entitlements), the three route groups, proxy route handlers | `back-office-app`                     |
 | Storefront pages, chrome, `StoreLink`, the catalog read side + cookie cart — all server components                                                                                                | `@r10c/shells-next-marketplace`       |
 | `app/[locale]` route tree, `loading.tsx`, cart route                                                                                                                                              | `marketplace-app`                     |

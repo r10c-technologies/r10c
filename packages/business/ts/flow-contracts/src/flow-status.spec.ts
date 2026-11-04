@@ -76,7 +76,33 @@ describe('flowStatusFromEvent', () => {
       expect(record).not.toHaveProperty('capabilityDigest');
       expect(record).not.toHaveProperty('step');
       expect(record).not.toHaveProperty('failure');
+      expect(record).not.toHaveProperty('committed');
     }
+  });
+
+  // Announced only past the commit point, so the write that started the flow
+  // has landed — what a catch-up confirms a pending write on.
+  it('projects a flow parked past its commit point as waiting and committed', async () => {
+    const record = await Effect.runPromise(
+      flowStatusFromEvent(
+        flowEvent({
+          name: 'flow.waiting',
+          audience: [{ kind: 'organization', id: 'org-a' }],
+          data: {
+            flowId: 'f-1',
+            definition: 'delivery',
+            slipVersion: 2,
+            step: 'await-delivery',
+          },
+        }),
+      ),
+    );
+
+    expect(record).toMatchObject({ state: 'waiting', committed: true });
+    expect(toFlowStatusBody(record)).toMatchObject({
+      state: 'waiting',
+      committed: true,
+    });
   });
 
   it('holds an event with no audience to an empty one', async () => {

@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-28
 - Revised: 2026-11-04 — the delivery flow built (#488): a vendor's `dispatch` starts it, it branches on the courier's report through guards on its waits, a refused card delivery refunds as a retried step after the dispatch pivot rather than through a child flow, a return the window never sees strands the flow, and a parcel is returned only after it was refused
+- Revised: 2026-11-04 — the dispatch worklist (#489): a vendor's `dispatch` settles when the flow parks on the courier's report, through `flow.waiting`, rather than when the flow ends
 - Area: business
 - Read when: an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout
 
@@ -39,6 +40,12 @@ report, then records the collection and closes; or — refused, or no report in
 the delivery window — waits for a return, restores the stock and closes. Which
 tail runs is decided by the report: each step after the wait is guarded on the
 outcomes it was answered with.
+
+The vendor's `dispatch` settles when the flow parks on the courier's report,
+not when the flow ends: parking past the pivot announces `flow.waiting`
+([ADR 0073](0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md)),
+so the screen shows the shipment dispatched and the report's verbs free while
+the flow still waits days for them.
 
 A refused card delivery refunds as a **retried step after the dispatch**, not
 through a child flow. A slip has one point of no return and this one already

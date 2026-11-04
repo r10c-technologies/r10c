@@ -394,7 +394,16 @@ const techConstraints = [
     ],
   })),
   // A business package declares fragments with `/flow` and never composes.
-  { sourceTag: 'layer:business', bannedExternalImports: SHELL_ONLY },
+  // Nor does it answer HTTP: a route is a descriptor in an `http` cell and a
+  // server is the slice shell's, so `effect/http*` has no business here
+  // (ADR 0071).
+  {
+    sourceTag: 'layer:business',
+    bannedExternalImports: [
+      ...SHELL_ONLY,
+      ...both(['effect/http', 'effect/http-api']),
+    ],
+  },
 ];
 
 // Strict constraints for source files. The trailing `*` catch-all lets any
@@ -452,6 +461,70 @@ const allowRootConfig = [
   '^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$',
   '^.*/tools/webpack-externals\\.cjs$',
 ];
+
+/**
+ * A failure has one shape on the wire and one way to be told apart (ADR 0064,
+ * entifix ADR 0013), and these are the two hand-rolled alternatives to it.
+ *
+ * - A `json` response carrying an `error` or `message` key is an error body
+ *   invented on the spot: no `code` the `errors` catalog holds, no `type`, and
+ *   a client that has to guess its shape. Every refusal answers
+ *   `application/problem+json`, built by the slice shell's `respond` or by
+ *   `problemOf`.
+ * - `instanceof` against a failure class decides by prototype, which is wrong
+ *   across two copies of a package and blind to a failure that crossed a
+ *   process as data. A failure is told apart by its `_tag` — `catchTag`,
+ *   `Predicate.isTagged` — and a module-load misconfiguration throws a plain
+ *   `Error` as a defect, which nothing catches by class.
+ *
+ * Every `src/` file carries them, specs and stories included. `no-restricted-syntax`
+ * does not merge across config objects — the last one to name it wins — so the
+ * narrower lists below (`NO_LOGGING_BELOW_THE_SHELL`,
+ * `CONSUMER_RETRY_RESTRICTIONS`) spread these too, or they would quietly lift
+ * them wherever they apply.
+ */
+export const FAILURE_SHAPE_SELECTORS = [
+  {
+    selector:
+      "CallExpression[callee.object.name=/^(HttpServerResponse|NextResponse)$/][callee.property.name='json'] > ObjectExpression > Property[key.name=/^(error|message)$/]",
+    message:
+      'An error answers application/problem+json with a catalog code, never an ad-hoc { error | message } body (ADR 0064).',
+  },
+  {
+    selector:
+      "CallExpression[callee.object.name=/^(HttpServerResponse|NextResponse)$/][callee.property.name='json'] > ObjectExpression > Property[key.value=/^(error|message)$/]",
+    message:
+      'An error answers application/problem+json with a catalog code, never an ad-hoc { error | message } body (ADR 0064).',
+  },
+  {
+    selector:
+      "BinaryExpression[operator='instanceof'][right.name=/(Error|Refused|Failure)$/]",
+    message:
+      'Tell a failure apart by its _tag (catchTag, Predicate.isTagged), never by instanceof (ADR 0064).',
+  },
+  {
+    selector:
+      "BinaryExpression[operator='instanceof'][right.property.name=/(Error|Refused|Failure)$/]",
+    message:
+      'Tell a failure apart by its _tag (catchTag, Predicate.isTagged), never by instanceof (ADR 0064).',
+  },
+];
+
+const FAILURE_SHAPE_RESTRICTIONS = {
+  'no-restricted-syntax': ['error', ...FAILURE_SHAPE_SELECTORS],
+};
+
+/**
+ * Spread by every project whose config pulls in a preset after the base —
+ * `flat/react`, `flat/react-typescript` — because those presets set
+ * `no-restricted-syntax` themselves and, the rule not merging, would otherwise
+ * lift the selectors above for the whole project. `@r10c/conventions` reads
+ * every project's resolved config and fails on one that lost them.
+ */
+export const failureShapeConfig = {
+  files: ['**/*.ts', '**/*.tsx'],
+  rules: FAILURE_SHAPE_RESTRICTIONS,
+};
 
 /**
  * What an Effect service's `src/` may not import (ADR 0064): apps only mount.
@@ -532,6 +605,7 @@ const CONSUMER_RETRY_RESTRICTIONS = {
       message:
         'A consumer handler never retries in process; redelivery is its retry (ADR 0064).',
     },
+    ...FAILURE_SHAPE_SELECTORS,
   ],
 };
 
@@ -571,6 +645,7 @@ const NO_LOGGING_BELOW_THE_SHELL = {
       message:
         'Only the slice shell logs: return an outcome instead (ADR 0064).',
     },
+    ...FAILURE_SHAPE_SELECTORS,
   ],
 };
 
@@ -745,6 +820,12 @@ export default [
     ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx'],
     plugins: { r10c: r10cPlugin },
     rules: { 'r10c/no-foreign-app-namespace': 'error' },
+  },
+  // Before the narrower lists below, which spread the same selectors and win
+  // where they apply — `no-restricted-syntax` does not merge.
+  {
+    files: ['**/src/**/*.ts', '**/src/**/*.tsx'],
+    rules: FAILURE_SHAPE_RESTRICTIONS,
   },
   {
     files: [

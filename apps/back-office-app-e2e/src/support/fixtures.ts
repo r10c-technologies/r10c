@@ -26,6 +26,7 @@ import {
   SettlementRun,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
+import { ShippingOrder } from '@r10c/business-ts-shipping-order-management';
 import {
   Reservation,
   StockItem,
@@ -81,6 +82,8 @@ export const SETTLEMENT_SERVICE_URL = 'http://localhost:3107/api';
 /** Where the order screens' adapters reach order-service under `mock`. */
 export const ORDER_SERVICE_URL = 'http://localhost:3105/api';
 
+export const FULFILMENT_SERVICE_URL = 'http://localhost:3110/api';
+
 export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
 export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
@@ -97,6 +100,7 @@ const CONFIGURATION = {
     { key: 'sales-service-domain', value: SALES_SERVICE_URL },
     { key: 'settlement-service-domain', value: SETTLEMENT_SERVICE_URL },
     { key: 'order-service-domain', value: ORDER_SERVICE_URL },
+    { key: 'fulfilment-service-domain', value: FULFILMENT_SERVICE_URL },
   ],
 };
 
@@ -306,6 +310,103 @@ const cancelHandlers = [
   }),
 ];
 
+/** A shipment awaiting dispatch — the one the dispatch journey hands over. */
+export const AWAITING_SHIPMENT_ID = 'shipping-order-awaiting-1';
+/** A shipment already on its way, which the worklist must not open on. */
+export const DISPATCHED_SHIPMENT_ID = 'shipping-order-dispatched-1';
+
+const shipment = (id: string, orderId: string, status: string) => ({
+  id,
+  orderId,
+  groupId: 'group-1',
+  flowId: 'checkout-flow-1',
+  paymentMethod: 'cod',
+  amountDue: 50,
+  currency: 'GTQ',
+  lines: [{ offeringId: 'product-offering-1', quantity: 2 }],
+  status,
+});
+
+/** The shipments a seeded vendor holds, one awaiting and one dispatched. */
+export const shipmentSeed = () => [
+  shipment(AWAITING_SHIPMENT_ID, 'order-awaiting-1', 'awaiting-dispatch'),
+  shipment(DISPATCHED_SHIPMENT_ID, 'order-dispatched-1', 'dispatched'),
+];
+
+const shippingOrders = entityBackendHandlers(ShippingOrder, {
+  baseUrl: `${FULFILMENT_SERVICE_URL}/shipping-order`,
+  seed: shipmentSeed(),
+});
+
+export const shippingOrderBackend = shippingOrders.backend;
+
+/** Moves one stored shipment, as fulfilment-service's conditional write does. */
+export const moveShipment = (id: string, status: string) =>
+  shippingOrders.backend.seed(
+    shippingOrders.backend
+      .rows()
+      .map(row => (row['id'] === id ? { ...row, status } : row)),
+  );
+
+/** The fulfilment screens' affordance document, on the app's own proxy path. */
+const fulfilmentMetadataHandlers = [
+  http.get(`${APP_URL}/api/fulfilment/shipping-order/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'shipping-order' },
+      data: {
+        actions: ['read'],
+        useCases: describeEntityUseCases(ShippingOrder),
+      },
+    }),
+  ),
+];
+
+/** The delivery flow every mocked dispatch starts, and a spec settles. */
+export const DELIVERY_FLOW_ID = 'delivery-flow-1';
+
+/** Every dispatch the worklist asked for in this run. */
+export const dispatches: string[] = [];
+
+/**
+ * The vendor's verbs, answered as fulfilment-service does: `dispatch` moves
+ * nothing and answers `202` with the delivery flow to follow (its pivot is the
+ * flow's dispatch step), while a courier's report is a plain move answering the
+ * record as it now stands.
+ */
+const shippingVerbHandlers = [
+  http.post(
+    `${FULFILMENT_SERVICE_URL}/shipping-order/:id/dispatch`,
+    ({ params }) => {
+      dispatches.push(String(params['id']));
+      return HttpResponse.json(
+        {
+          meta: { type: 'flowAccepted', entity: 'shipping-order' },
+          data: {
+            flowId: DELIVERY_FLOW_ID,
+            links: [
+              { rel: 'status', href: `/api/realtime/flow/${DELIVERY_FLOW_ID}` },
+              { rel: 'stream', href: '/api/realtime/stream' },
+            ],
+          },
+        },
+        { status: 202 },
+      );
+    },
+  ),
+  http.post(
+    `${FULFILMENT_SERVICE_URL}/shipping-order/:id/record-delivery`,
+    ({ params }) => {
+      const id = String(params['id']);
+      moveShipment(id, 'delivered');
+      const row = shippingOrders.backend.rows().find(r => r['id'] === id);
+      return HttpResponse.json({
+        meta: { type: 'entity', entity: 'shipping-order' },
+        data: row,
+      });
+    },
+  ),
+];
+
 const publishedOfferings = entityBackendHandlers(PublishedOffering, {
   baseUrl: `${REFERENCE_SERVICE_URL}/published-offering`,
   seed: publishedOfferingSeed,
@@ -497,6 +598,9 @@ const base = defineEntifixE2eTest({
     ...productOrders.handlers,
     ...orderMetadataHandlers,
     ...cancelHandlers,
+    ...shippingOrders.handlers,
+    ...fulfilmentMetadataHandlers,
+    ...shippingVerbHandlers,
     ...createHandlers,
     ...realtimeHandlers,
   ],
@@ -532,6 +636,8 @@ export const test = base.extend<{ session: void }>({
           'sales-management',
           // And the same for the settlement sections, in both tiers.
           'settlement-management',
+          // And for the dispatch worklist.
+          'shipping-order-management',
         ],
       });
       await use();

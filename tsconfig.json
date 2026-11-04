@@ -341,6 +341,9 @@
     },
     {
       "path": "./apps/fulfilment-service"
+    },
+    {
+      "path": "./packages/shells/next/fulfilment"
     }
   ],
   "compilerOptions": {

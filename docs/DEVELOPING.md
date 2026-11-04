@@ -513,6 +513,21 @@ every app, because Nx forwards the unknown option to `next build` and
      in any Effect shell (`sliceShellConfig`), and the slices register holds
      every subscription's `maxAttempts` to the fleet delivery budget of 5.
      In-process retries are sized by each service's config-service `retry` rows.
+   - A failure has one shape and is told apart by its tag, everywhere under
+     `packages/**` and `apps/**`, specs included: a `HttpServerResponse.json` or
+     `NextResponse.json` whose body carries an `error` or `message` key fails
+     lint (answer `application/problem+json` through `respond` or `problemOf`),
+     and so does `instanceof` against anything named `…Error`, `…Refused` or
+     `…Failure` (match with `catchTag` or `Predicate.isTagged`; a browser decodes
+     a body back into its failure with `decodeProblem` and renders it with
+     `useErrorMessage`). `no-restricted-syntax` does not merge across config
+     objects, so the two narrower lists above spread the same selectors, and a
+     project whose config adds a preset after the base — `flat/react`,
+     `flat/react-typescript` — spreads `failureShapeConfig` after it.
+     `@r10c/conventions` reads every project's resolved config and fails one
+     that lost them.
+   - A business package never answers HTTP: `effect/http` and `effect/http-api`
+     fail the boundary rule under `layer:business`, as they do in an `http` cell.
 
 ## Module boundaries
 

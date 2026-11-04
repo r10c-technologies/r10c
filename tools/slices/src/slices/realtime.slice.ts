@@ -53,6 +53,7 @@ export const realtimeSlice: SliceDeclaration = {
       'shipping-order.delivered',
       'shipping-order.refused',
       'shipping-order.returned',
+      'flow.waiting',
       'flow.completed',
       'flow.failed',
     ].map(event => ({

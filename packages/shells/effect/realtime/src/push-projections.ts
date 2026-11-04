@@ -109,8 +109,9 @@ const recordChange =
 /**
  * A flow's outcome, to the flow's own audience: the organizations and parties
  * the slip named, and any capability holder by digest. Pushed as it is — the
- * browser's pending-flow settlement reads `flow.completed` and `flow.failed`
- * by name.
+ * browser's pending-flow settlement reads `flow.completed`, `flow.failed` and
+ * `flow.waiting` by name — the last a flow parked past its commit point, whose
+ * caller's write has landed (a dispatch waiting days for its courier).
  */
 const flowOutcome: PushProjection = event =>
   event.aggregate === undefined
@@ -163,6 +164,7 @@ export const PUSH_PROJECTIONS: Readonly<Record<string, PushProjection>> = {
   'shipping-order.returned': recordChange(SHIPPING_ORDER, 'updated', {
     snapshot: true,
   }),
+  'flow.waiting': flowOutcome,
   'flow.completed': flowOutcome,
   'flow.failed': flowOutcome,
 };

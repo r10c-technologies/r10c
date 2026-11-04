@@ -12,6 +12,7 @@ import {
   useT,
 } from '@entifix/react-controls';
 
+import { failedResponse } from './failed-response';
 import { useAsyncResource } from './use-async-resource';
 
 /**
@@ -24,7 +25,7 @@ import { useAsyncResource } from './use-async-resource';
  */
 const readAccountUrl = async (): Promise<string | undefined> => {
   const res = await fetch('/api/config', { cache: 'no-store' });
-  if (!res.ok) throw new Error('config');
+  if (!res.ok) throw await failedResponse(res);
   const plain = (await res.json()) as ConfigurationPlain;
   const value = plain['zitadel']?.find(
     item => item.key === 'accountUrl',
