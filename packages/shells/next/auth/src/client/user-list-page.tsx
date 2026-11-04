@@ -22,24 +22,18 @@ export function UsersPage() {
   const { items, total, isLoading, error } = useUsers(page, pageSize);
 
   return (
-    <>
-      {error ? (
-        <p role="alert" className="text-danger">
-          {error}
-        </p>
-      ) : null}
-      <EntityTable
-        entityConstructor={UserIdentity}
-        items={items}
-        totalItems={total}
-        currentPage={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        isLoading={isLoading}
-        hrefFor={id => withLocale(`/users/${String(id)}`)}
-        newHref={withLocale('/users/new')}
-      />
-    </>
+    <EntityTable
+      entityConstructor={UserIdentity}
+      items={items}
+      totalItems={total}
+      currentPage={page}
+      pageSize={pageSize}
+      onPageChange={setPage}
+      onPageSizeChange={setPageSize}
+      isLoading={isLoading}
+      error={error}
+      hrefFor={id => withLocale(`/users/${String(id)}`)}
+      newHref={withLocale('/users/new')}
+    />
   );
 }

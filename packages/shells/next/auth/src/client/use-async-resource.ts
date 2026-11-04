@@ -1,11 +1,15 @@
 'use client';
 
+import type { EntifixFailure } from '@entifix/core';
 import { useCallback, useEffect, useState } from 'react';
+
+import { asFailure } from './failed-response';
 
 export interface AsyncResource<T> {
   data?: T;
   isLoading: boolean;
-  error?: string;
+  /** The typed failure the load ended in, for `useErrorMessage` to render. */
+  error?: EntifixFailure;
   /** Re-run the loader for the current key (after a save, say). */
   reload: () => void;
 }
@@ -13,7 +17,7 @@ export interface AsyncResource<T> {
 interface Settled<T> {
   key: string;
   data?: T;
-  error?: string;
+  error?: EntifixFailure;
 }
 
 /**
@@ -46,7 +50,7 @@ export function useAsyncResource<T>(
         if (active) {
           setSettled({
             key: currentKey,
-            error: error instanceof Error ? error.message : 'request failed',
+            error: asFailure(error),
           });
         }
       });

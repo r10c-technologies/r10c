@@ -11,6 +11,7 @@ import {
 import { useState } from 'react';
 
 import type { SessionRow } from './account-sessions-view';
+import { failedResponse } from './failed-response';
 import { useAsyncResource } from './use-async-resource';
 
 /** `null` means the caller is not allowed to see this — the panel disappears. */
@@ -21,7 +22,7 @@ const readUserSessions = async (
     cache: 'no-store',
   });
   if (res.status === 401 || res.status === 403) return null;
-  if (!res.ok) throw new Error('sessions');
+  if (!res.ok) throw await failedResponse(res);
   const body = (await res.json()) as { items: SessionRow[] };
   return body.items;
 };

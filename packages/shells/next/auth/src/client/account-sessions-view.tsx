@@ -15,6 +15,7 @@ import {
 } from '@entifix/react-controls';
 import { useState } from 'react';
 
+import { failedResponse } from './failed-response';
 import { useAsyncResource } from './use-async-resource';
 
 /** A session row as the service reports it. */
@@ -35,7 +36,7 @@ export interface SessionRow {
 
 const readSessions = async (): Promise<SessionRow[]> => {
   const res = await fetch('/api/auth/sessions', { cache: 'no-store' });
-  if (!res.ok) throw new Error('sessions');
+  if (!res.ok) throw await failedResponse(res);
   const body = (await res.json()) as { items: SessionRow[] };
   return body.items;
 };

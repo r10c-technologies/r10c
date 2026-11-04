@@ -140,8 +140,12 @@ const saveConfiguration = (
 ) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
+    // Store failures are mapped where the store is touched, so the refusal
+    // below leaves as itself and nothing downstream has to tell the two apart.
     const stored =
-      incoming.id === undefined ? undefined : yield* findStored(incoming.id);
+      incoming.id === undefined
+        ? undefined
+        : yield* findStored(incoming.id).pipe(Effect.mapError(asStoreFailure));
     const newValue = incoming.value;
 
     const decision = decideSecretWrite(
@@ -156,23 +160,25 @@ const saveConfiguration = (
     incoming.updatedBy = actor.subject;
 
     const repository = makeSqlRepository(sql, Configuration);
-    const saved = yield* sql.withTransaction(
-      Effect.gen(function* () {
-        const result = yield* repository.save(incoming);
-        yield* audit({
-          configurationId: result.id,
-          service: result.service ?? stored?.service ?? '',
-          groupName: result.groupName ?? stored?.group_name ?? '',
-          key: result.key ?? stored?.key ?? '',
-          action: stored === undefined ? 'create' : 'update',
-          oldValue: stored?.value,
-          newValue,
-          isSecret: result.isSecret ?? stored?.is_secret ?? false,
-          actor,
-        });
-        return result;
-      }),
-    );
+    const saved = yield* sql
+      .withTransaction(
+        Effect.gen(function* () {
+          const result = yield* repository.save(incoming);
+          yield* audit({
+            configurationId: result.id,
+            service: result.service ?? stored?.service ?? '',
+            groupName: result.groupName ?? stored?.group_name ?? '',
+            key: result.key ?? stored?.key ?? '',
+            action: stored === undefined ? 'create' : 'update',
+            oldValue: stored?.value,
+            newValue,
+            isSecret: result.isSecret ?? stored?.is_secret ?? false,
+            actor,
+          });
+          return result;
+        }),
+      )
+      .pipe(Effect.mapError(asStoreFailure));
 
     withoutSecretValues([saved]);
     return saved;
@@ -230,11 +236,6 @@ export const ConfigurationWriterLayer = Layer.effect(
       save: (incoming, actor) =>
         saveConfiguration(incoming, actor).pipe(
           Effect.provideService(SqlClient.SqlClient, sql),
-          Effect.mapError(error =>
-            error instanceof ConfigurationWriteRefused
-              ? error
-              : asStoreFailure(error),
-          ),
         ),
       delete: (id, actor) =>
         deleteConfiguration(id, actor).pipe(

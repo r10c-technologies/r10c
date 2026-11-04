@@ -471,6 +471,141 @@ describe('logging below the shell', () => {
 });
 
 /**
+ * A failure has one shape on the wire and is told apart by its tag (ADR 0064):
+ * no ad-hoc `{ error | message }` body, no `instanceof` on a failure class.
+ * Planted in every kind of source that carries a narrower `no-restricted-syntax`
+ * list of its own — which, because the rule does not merge, would lift these
+ * selectors if it forgot to spread them — and in kinds that carry none, linted
+ * through the root and through the package's own config.
+ */
+describe('a failure keeps its one shape', () => {
+  const shapeErrors = async (
+    cwd: string,
+    filePath: string,
+    code: string,
+  ): Promise<string[]> => {
+    const eslint = new ESLint({ cwd });
+    const [result] = await eslint.lintText(
+      [
+        "import { HttpServerResponse } from 'effect/http';",
+        "import { NextResponse } from 'next/server';",
+        'declare const failure: unknown;',
+        'declare class StoreFailure {}',
+        'declare const Failures: { OrderRefused: new () => unknown };',
+        code,
+        'export {};',
+        '',
+      ].join('\n'),
+      { filePath },
+    );
+    return (result?.messages ?? [])
+      .filter(message => message.ruleId === 'no-restricted-syntax')
+      .map(message => message.message);
+  };
+
+  const ROOTS = [
+    'packages/business/ts/authn',
+    'packages/implementation/order/mongo',
+    'packages/shells/effect/order',
+    'packages/shells/next/order',
+    'apps/order-service',
+    'apps/back-office-app',
+  ].map(root => join(REPO_ROOT, root));
+
+  it.each([
+    ["HttpServerResponse.json({ error: 'nope' });", 'an error body'],
+    [
+      "NextResponse.json({ message: 'nope' }, { status: 400 });",
+      'a message body',
+    ],
+    ["NextResponse.json({ 'error': 'nope' });", 'a quoted key'],
+    ['const refused = failure instanceof Error;', 'instanceof Error'],
+    ['const refused = failure instanceof StoreFailure;', 'a failure class'],
+    [
+      'const refused = failure instanceof Failures.OrderRefused;',
+      'a namespaced refusal',
+    ],
+  ])(
+    'refuses %s everywhere (%s)',
+    async code => {
+      for (const root of ROOTS) {
+        const file = join(root, 'src/planted.ts');
+        expect(await shapeErrors(REPO_ROOT, file, code), file).toHaveLength(1);
+        expect(await shapeErrors(root, file, code), file).toHaveLength(1);
+      }
+    },
+    180_000,
+  );
+
+  it('lets a success body and an unrelated class through', async () => {
+    for (const root of ROOTS) {
+      expect(
+        await shapeErrors(
+          root,
+          join(root, 'src/planted.ts'),
+          [
+            'NextResponse.json({ ok: true });',
+            'HttpServerResponse.json({ items: [] });',
+            'const isDate = failure instanceof Date;',
+          ].join('\n'),
+        ),
+      ).toEqual([]);
+    }
+  }, 180_000);
+
+  /**
+   * The planted roots above are a sample; this is the census. A preset spread
+   * after the base (`flat/react` did, in every React project) sets the rule
+   * itself and silently lifts the selectors, so every project's resolved
+   * config is read and must still carry each one.
+   */
+  it('reaches every project that lints a src/', async () => {
+    const { FAILURE_SHAPE_SELECTORS } = (await import(
+      join(REPO_ROOT, 'eslint.config.mjs')
+    )) as { FAILURE_SHAPE_SELECTORS: { selector: string }[] };
+    const projects = execFileSync(
+      'git',
+      ['ls-files', 'apps/*/eslint.config.mjs', 'packages/**/eslint.config.mjs'],
+      { cwd: REPO_ROOT, encoding: 'utf8' },
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map(config => dirname(config));
+    expect(projects.length).toBeGreaterThan(50);
+
+    const eslint = new ESLint({ cwd: REPO_ROOT });
+    const missing: string[] = [];
+    for (const project of projects) {
+      for (const file of ['src/planted.ts', 'src/planted.tsx']) {
+        const path = join(REPO_ROOT, project, file);
+        const config = (await eslint.calculateConfigForFile(path)) as {
+          rules?: Record<string, unknown[]>;
+        };
+        const carried = JSON.stringify(
+          config.rules?.['no-restricted-syntax'] ?? [],
+        );
+        for (const { selector } of FAILURE_SHAPE_SELECTORS) {
+          if (!carried.includes(JSON.stringify(selector).slice(1, -1)))
+            missing.push(`${project}/${file}`);
+        }
+      }
+    }
+    expect([...new Set(missing)]).toEqual([]);
+  }, 300_000);
+
+  it('does not lift the narrower list it shares a rule with', async () => {
+    const business = join(REPO_ROOT, 'packages/business/ts/authn');
+    expect(
+      await shapeErrors(
+        business,
+        join(business, 'src/planted.ts'),
+        "console.log('x');\nconst refused = failure instanceof Error;",
+      ),
+    ).toHaveLength(2);
+  }, 120_000);
+});
+
+/**
  * `Idempotency-Key` is the one idempotency header (ADR 0068): the saga-era
  * command-id header must not come back in source, where a route reading it
  * would accept a key no fingerprint guards. Spelled by parts below so this

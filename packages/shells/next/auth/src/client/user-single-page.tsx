@@ -1,5 +1,6 @@
 'use client';
 
+import type { EntifixFailure } from '@entifix/core';
 import {
   deserializeSingleEntity,
   type EntityDraft,
@@ -7,7 +8,7 @@ import {
 } from '@entifix/core';
 import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
 import { useLocaleHref } from '@entifix/next-shell';
-import { EntityForm, useT } from '@entifix/react-controls';
+import { EntityForm, useErrorMessage, useT } from '@entifix/react-controls';
 import { useEntityUseCases } from '@entifix/react-integration';
 import { UserIdentity } from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
@@ -15,6 +16,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { createClientAdapters } from './adapters/create-client-adapters';
+import { failedResponse } from './failed-response';
 import { useAsyncResource } from './use-async-resource';
 import { UserSessionsPanel } from './user-sessions-panel';
 
@@ -22,10 +24,8 @@ const { metadata: metadataSource } = createClientAdapters();
 
 const readUser = async (id: string): Promise<UserIdentity> => {
   const res = await fetch(`/api/user-identity/${id}`, { cache: 'no-store' });
-  const body = await res.json();
-  if (!res.ok) {
-    throw new Error(body?.error ?? body?.message ?? 'could not load user');
-  }
+  if (!res.ok) throw await failedResponse(res);
+  const body: unknown = await res.json();
   return Effect.runSync(
     deserializeSingleEntity(UserIdentity, body),
   ) as UserIdentity;
@@ -55,7 +55,7 @@ export function UserDetailPage({
   draft,
 }: EntityCrudSingleViewProps = {}) {
   const t = useT('r10c');
-  const errorT = useT('errors');
+  const errorMessage = useErrorMessage();
   // The back link is a plain `<a>` inside `EntityForm`, so an unprefixed href
   // costs a full document load *and* the proxy's redirect.
   const withLocale = useLocaleHref();
@@ -82,7 +82,9 @@ export function UserDetailPage({
   // the draft needs no effect to seed it.
   const [edits, setEdits] = useState<EntityDraft>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | undefined>(undefined);
+  const [saveError, setSaveError] = useState<EntifixFailure | undefined>(
+    undefined,
+  );
 
   // A persisted draft is layered over the loaded record, never substituted for
   // it: the record decides which members exist, the draft only decides their
@@ -120,13 +122,13 @@ export function UserDetailPage({
         status: readDraftString(values, 'status'),
       }),
     });
-    const body = await res.json();
     setIsSaving(false);
 
     if (!res.ok) {
       // A 403 here is the policy refusing the change — typically an attempt to
-      // touch a user who outranks the caller, or to demote yourself.
-      setSaveError(body?.error ?? errorT('unexpected'));
+      // touch a user who outranks the caller, or to demote yourself — and the
+      // problem body names which, in the reader's language.
+      setSaveError(await failedResponse(res));
       return;
     }
     setEdits({});
@@ -162,22 +164,22 @@ export function UserDetailPage({
       });
       setIsSaving(false);
       if (!res.ok) {
-        setSaveError(errorT('unexpected'));
+        setSaveError(await failedResponse(res));
         return;
       }
       reload();
     }
   };
 
-  const message = saveError ?? error;
+  const failure = saveError ?? error;
 
   return (
     <>
-      {message ? (
+      {failure === undefined ? null : (
         <p role="alert" className="text-danger">
-          {message}
+          {errorMessage(failure)}
         </p>
-      ) : null}
+      )}
       <EntityForm
         entityConstructor={UserIdentity}
         entity={user}
