@@ -27,7 +27,11 @@ export const flowAccepted = (flowId: string) => () =>
     { status: 202 },
   );
 
-export type FlowEnd = 'flow.completed' | 'flow.failed';
+/**
+ * What settles a pending write: the flow's end, or — for a flow that parks past
+ * its commit point, a delivery waiting days for its courier — `flow.waiting`.
+ */
+export type FlowEnd = 'flow.completed' | 'flow.failed' | 'flow.waiting';
 
 /** One `flow.*` frame for `flowId`, as the realtime slice pushes it. */
 export const flowFrame = (
@@ -51,7 +55,7 @@ export const flowFrame = (
   const data = {
     flowId,
     definition: 'spec',
-    slipVersion: 1,
+    slipVersion: 2,
     ...(name === 'flow.failed' ? { failure } : {}),
   };
   return `id: ${event.id}\ndata: ${JSON.stringify({

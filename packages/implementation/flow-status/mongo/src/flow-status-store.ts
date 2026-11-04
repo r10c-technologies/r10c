@@ -21,6 +21,7 @@ interface FlowStatusDocument {
   readonly slipVersion: number;
   readonly state: FlowState;
   readonly step?: string;
+  readonly committed?: true;
   readonly failure?: FlowFailure;
   readonly audience: readonly AudienceEntry[];
   readonly capabilityDigest?: string;
@@ -39,6 +40,7 @@ const recordOf = ({
   slipVersion,
   state,
   step,
+  committed,
   failure,
   audience,
   capabilityDigest,
@@ -50,6 +52,7 @@ const recordOf = ({
   slipVersion,
   state,
   ...(step === undefined ? {} : { step }),
+  ...(committed === undefined ? {} : { committed }),
   ...(failure === undefined ? {} : { failure }),
   audience,
   ...(capabilityDigest === undefined ? {} : { capabilityDigest }),

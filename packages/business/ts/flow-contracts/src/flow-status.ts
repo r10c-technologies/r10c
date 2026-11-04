@@ -37,6 +37,11 @@ export interface FlowStatusRecord {
   readonly slipVersion: number;
   readonly state: FlowState;
   readonly step?: string;
+  /**
+   * `true` while the flow waits past its commit point (`flow.waiting`): the
+   * write that started it has landed, so a catch-up confirms it.
+   */
+  readonly committed?: true;
   readonly failure?: FlowFailure;
   readonly audience: readonly AudienceEntry[];
   readonly capabilityDigest?: string;
@@ -83,6 +88,8 @@ export class FlowStatusStoreTag extends Context.Service<
 /** What each flow event says about where the flow stands. */
 export const FLOW_EVENT_STATES: Readonly<Record<FlowEventName, FlowState>> = {
   'flow.started': 'running',
+  // Parked past the commit point, on someone else — a courier's report.
+  'flow.waiting': 'waiting',
   'flow.suspended': 'suspended',
   'flow.completed': 'completed',
   'flow.failed': 'failed',
@@ -122,6 +129,8 @@ export const flowStatusFromEvent = (
       slipVersion: data.slipVersion,
       state: FLOW_EVENT_STATES[event.name],
       ...(data.step === undefined ? {} : { step: data.step }),
+      // Announced only past the commit point (entifix ADR 0016).
+      ...(event.name === 'flow.waiting' ? { committed: true as const } : {}),
       ...(data.failure === undefined ? {} : { failure: data.failure }),
       audience,
       ...(digest === undefined ? {} : { capabilityDigest: digest }),
@@ -146,6 +155,7 @@ export const toFlowStatusBody = (record: FlowStatusRecord): FlowStatusBody => ({
   flowId: record.flowId,
   state: record.state,
   ...(record.step === undefined ? {} : { step: record.step }),
+  ...(record.committed === undefined ? {} : { committed: record.committed }),
   ...(record.failure === undefined ? {} : { failure: record.failure }),
 });
 

@@ -112,6 +112,25 @@ describe('the catch-up reads', () => {
     });
   });
 
+  // A delivery parks on its courier past the dispatch pivot. The catch-up a
+  // pending dispatch settles from says so, and stops saying so once the flow
+  // moves on.
+  it('answers a flow parked past its commit point as waiting and committed', async () => {
+    const audience = [{ kind: 'organization' as const, id: 'org-a' }];
+    await deliver(flowEvent('flow.waiting', 'f-parked', 2, audience));
+
+    expect(await (await read('/f-parked', 'org-a')).json()).toEqual({
+      meta: { type: 'flowStatus', entity: 'flow' },
+      data: { flowId: 'f-parked', state: 'waiting', committed: true },
+    });
+
+    await deliver(flowEvent('flow.completed', 'f-parked', 5, audience));
+    expect(await (await read('/f-parked', 'org-a')).json()).toEqual({
+      meta: { type: 'flowStatus', entity: 'flow' },
+      data: { flowId: 'f-parked', state: 'completed' },
+    });
+  });
+
   it('answers the capability holder with no session', async () => {
     expect((await read(`/f-read?capability=${NONCE}`)).status).toBe(200);
   });

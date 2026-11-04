@@ -37,6 +37,8 @@ export const describeFlowStatusStoreContract = (
     it('reads back what it applied, and nothing for a flow it never saw', async () => {
       const { run } = make();
       const record = contractFlowStatus('f-1', 1, {
+        state: 'waiting',
+        committed: true,
         failure: { code: 'paymentDeclined', category: 'refused' },
         capabilityDigest: 'digest-1',
         audience: [
