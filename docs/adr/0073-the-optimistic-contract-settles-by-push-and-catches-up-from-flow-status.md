@@ -29,7 +29,7 @@ write, the stream's `transaction.*` events settled it, and a reconnect re-read
 
 entifix 0.14.0 ships the replacement: one mutation API for both settle modes,
 a pending-flow store, and a settlement hook driven by the push channel
-([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.14.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
+([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.15.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 This record says how r10c uses it.
 
 ## Decision
