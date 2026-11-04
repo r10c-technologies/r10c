@@ -892,7 +892,7 @@ vendor's approved offerings from tenant storage into the platform-scope
 marketplace catalog ([ADR 0009](adr/0009-catalog-authoring-and-publication.md)),
 and **checkout**, whose compensation releases a stock reservation when the order
 write fails ([ADR 0010](adr/0010-stock-ledger-reservations-and-concurrency.md)).
-Both are the "cross-domain write goes through the saga, never one transaction"
+Both are the "cross-domain write goes through a flow, never one transaction"
 rule in practice.
 
 ## Workspace tabs & client data layer

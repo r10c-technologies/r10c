@@ -19,7 +19,7 @@ import { ProductOrder } from '@r10c/business-ts-order-management';
  *
  * **Why Operaciones and not Definiciones**, since this is the call #222 asked
  * to settle: by the taxonomy's own test, which is where the record came from.
- * A `ProductOrder` is written by the checkout saga behind a crossing token and
+ * A `ProductOrder` is written by the checkout flow behind a crossing token and
  * there is deliberately no route a person can write one with; the
  * recorded rather than authored; a `Reservation` is written by the checkout
  * crossing. Not one of the three is a thing you define and then reference.

@@ -103,10 +103,10 @@ export async function CartPage({
 
         {outcome !== undefined && (
           <Card>
-            {/* ⚠️ `unavailable` is the saga's `409`: a line was refused and every
-                hold it had taken was given back. That is a stock outcome the
-                buyer can act on, not a failure to apologise for — so it reads
-                as its own message rather than folding into an error. */}
+            {/* Only what the action itself can say: an empty cart, or a start
+                the coordinator never accepted. A refused line is the flow's
+                outcome and reaches the buyer on the status page the action
+                redirects to, never here. */}
             <Text data-testid={`checkout-${outcome}`}>
               {t(`storefront.checkout.${outcome}`)}
             </Text>

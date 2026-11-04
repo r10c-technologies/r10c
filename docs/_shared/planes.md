@@ -167,10 +167,14 @@ boundary rule; the rest are review:
 - **A tenant handle can also come from an explicit `organizationId`** — but only
   with a service token _and_ a narrow route permission, and only for a caller
   acting on data whose owner it was handed rather than chosen
-  ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). There are
-  **two** such paths, both into stock and both dispatched by a flow: checkout
-  taking a hold, and a cancellation putting the goods back
-  ([ADR 0058](../adr/0058-the-order-after-payment.md)). Each is a named route
-  with its own narrow permission — `reservation:write` and
-  `stock-movement:restore` — never a general escape from the session rule above,
-  and each new one is an explicit line reviewed as one.
+  ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). Every such
+  path is dispatched by a flow, into two stores: **stock** — checkout taking,
+  releasing and converting a hold, and a cancellation putting the goods back
+  ([ADR 0058](../adr/0058-the-order-after-payment.md)) — and **fulfilment** —
+  a checkout opening a shipment, a cancellation holding and withdrawing it, and
+  the delivery flow's dispatch step
+  ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)). Each is a named
+  route with its own narrow permission in `SERVICE_CROSSING_PERMISSIONS` —
+  `reservation:write`, `stock-movement:restore`, `shipping-order:open` and the
+  rest — never a general escape from the session rule above, and each new one is
+  an explicit line reviewed as one.

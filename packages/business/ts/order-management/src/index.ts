@@ -10,7 +10,7 @@
  * A line holds a stock *reservation id*, never a quantity: reserving is a
  * synchronous call into the tenant plane because the buyer needs an answer now,
  * and a failed order write compensates by releasing the reservation through the
- * saga. That call cannot resolve its tenant from the session — a buyer holds no
+ * flow. That call cannot resolve its tenant from the session — a buyer holds no
  * organization, and the vendor comes from the item — so it crosses through
  * [ADR 0023](../../../../docs/adr/0023-service-to-service-tenant-crossing.md).
  *

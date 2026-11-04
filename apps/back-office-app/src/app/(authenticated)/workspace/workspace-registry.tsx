@@ -167,7 +167,7 @@ const wizardKind = wizardTabKind({
 export const workspaceRegistry = new TabRegistry()
   .register(entityTabKind('master', masterScreens()))
   // Operaciones: stock and orders, whose records a *process* made — a movement
-  // upserts the item, the checkout saga writes the hold and the receipt
+  // upserts the item, the checkout flow writes the hold and the receipt
   // (ADR 0033). One registration over both lists, because a tab kind is the
   // *tier* rather than the shell that contributed to it: two `entityTabKind`
   // calls for one `operation:` grammar would be two registrations racing for

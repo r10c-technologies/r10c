@@ -13,7 +13,7 @@ import { DEFAULT_PORT, SERVICE_NAME } from './index';
  * retries, reconciliation, all of which arrive on someone else's schedule — can
  * be lifted out later without touching orders (ADR 0022).
  *
- * `POST /api/payment` is the checkout saga's **pivot**. Everything before it
+ * `POST /api/payment` is the checkout flow's **pivot**. Everything before it
  * reverses and nothing after it does, which is why this service is also the one
  * whose command inbox is load-bearing rather than defensive: a redelivered
  * capture is a customer charged twice

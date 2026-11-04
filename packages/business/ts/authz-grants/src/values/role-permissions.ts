@@ -38,7 +38,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // ⚠️ **Ringing up a sale is this role's job, not an administrative one.**
     // The verb sits on the channel rather than on the order because no role
     // holds `order-management:product-order:write` and none is coming — an
-    // order is written by the checkout saga behind a crossing token. This is
+    // order is written by the checkout flow behind a crossing token. This is
     // the authority sales-service checks before presenting that token on a
     // seller's behalf (ADR 0056).
     `${SALES_DOMAIN}:sales-channel:sell`,
@@ -47,7 +47,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${STOCK_DOMAIN}:stock-item:read`,
     `${STOCK_DOMAIN}:stock-movement:read`,
     // Reading orders. `read` only, and there is deliberately no `write` for any
-    // role: an order is written by the checkout saga behind a crossing token,
+    // role: an order is written by the checkout flow behind a crossing token,
     // never by a person — see the note on `admin` below.
     `${ORDER_DOMAIN}:product-order:read`,
     // The buyer's checkout groups — their receipt across sellers. Narrowed to
@@ -140,12 +140,12 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // operator reading a report.
     //
     // ⚠️ **No `product-order:write` for any role, and none is coming.** An order
-    // is written by the checkout saga, which holds stock in a vendor's tenant
+    // is written by the checkout flow, which holds stock in a vendor's tenant
     // store before it writes anything — that is a crossing authorized by a
     // service token, not an act a session can perform. A grant here would be
     // inert against the route that exists and would suggest a save route ought
     // to, which is how a receipt becomes editable
-    // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
+    // ([ADR 0023](../../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
     `${ORDER_DOMAIN}:product-order:read`,
     // Checkout groups, read across buyers by an operator; a vendor holding this
     // grant reads nothing, because a group would show them the other sellers in
@@ -191,7 +191,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // that would let it drop a tier is ADR 0054's recorded residual.
     //
     // ⚠️ **No `payment:write` for any role, and none is coming.** A capture is
-    // the checkout saga's pivot, dispatched behind a crossing token; a grant
+    // the checkout flow's pivot, dispatched behind a crossing token; a grant
     // here would be inert against the route that exists and would suggest a
     // save route ought to, which is how a ledger becomes editable.
     `${PAYMENT_DOMAIN}:payment:read`,
@@ -205,7 +205,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // domain gains next, and what it gains next is the record of money moving.
     //
     // ⚠️ **No `refund:write` for any role.** Refunding is dispatched behind a
-    // crossing token by the cancellation saga, exactly as a capture is; a grant
+    // crossing token by the cancellation flow, exactly as a capture is; a grant
     // here would be inert against the route that exists and would suggest a save
     // route ought to.
     `${PAYMENT_DOMAIN}:refund:read`,

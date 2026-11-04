@@ -66,7 +66,7 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // later step fails. Also not a person's act: the buyer behind a checkout holds
   // no grant over the receipt the coordinator writes on their behalf, and
   // `ROLE_PERMISSIONS` grants `product-order:read` and nothing more
-  // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
+  // ([ADR 0023](../../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
   //
   // ⚠️ `delete` here is a **compensation**, not a customer-facing cancel. A
   // cancellation is a business event with its own record and its own money
@@ -78,7 +78,7 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // sellers, written on their behalf exactly as an order is (ADR 0069).
   `${ORDER_DOMAIN}:checkout-group:write`,
   `${ORDER_DOMAIN}:checkout-group:delete`,
-  // Taking the money the order above was placed for — the checkout saga's
+  // Taking the money the order above was placed for — the checkout flow's
   // **pivot**, and the one crossing on this list that cannot be undone.
   //
   // ⚠️ **There is deliberately no `payment:delete` beside it.** Every other
@@ -89,7 +89,7 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // a customer was charged
   // ([ADR 0054](../../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
   `${PAYMENT_DOMAIN}:payment:write`,
-  // Sending the money back, which the cancellation saga's pivot dispatches.
+  // Sending the money back, which the cancellation flow's pivot dispatches.
   //
   // ⚠️ **This is not the reversal the note above says `payment:write` has
   // none of, and it must not be read as one.** A reversal would undo the

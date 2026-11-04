@@ -34,7 +34,7 @@ export type CounterSalePayload = typeof CounterSalePayload.Type;
  * **A verb rather than a shape of `write`**, and the distinction is the whole
  * reason it exists. `ROLE_PERMISSIONS` states that no role holds
  * `order-management:product-order:write` "and none is coming": an order is
- * written by the checkout saga behind a crossing token, because holding a
+ * written by the checkout flow behind a crossing token, because holding a
  * vendor's stock is a crossing rather than an act a session performs. A counter
  * sale still has to be *authorized* to somebody, though — the member of staff
  * standing at the till — so the authority is named here, on the channel the

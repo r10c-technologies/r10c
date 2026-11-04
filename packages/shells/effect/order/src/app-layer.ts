@@ -40,7 +40,7 @@ export const ORDER_SLICE = 'order';
  * anyway, which is *why* it is platform plane (ADR 0022,
  * `docs/_shared/planes.md`).
  *
- * ⚠️ **A crossing token, and this service's own.** It is a saga *participant*:
+ * ⚠️ **A crossing token, and this service's own.** It is a flow *participant*:
  * the coordinator writes an order on a buyer's behalf, and the buyer holds no
  * grant over that act. Reusing stock-service's token — or the fleet's
  * `CONFIG_SERVICE_TOKEN` — would make one leaked secret reach both stores at
@@ -55,7 +55,7 @@ export const ORDER_SLICE = 'order';
  *
  * The broker earns its place twice over: the relay publishes `order.placed`
  * (#232), and the projection consumes `payment.captured` to advance an order
- * from `pending` to `paid`. The capture itself is a saga step and does not
+ * from `pending` to `paid`. The capture itself is a flow step and does not
  * arrive here as a message — only its consequence does
  * ([ADR 0054](../../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
  *

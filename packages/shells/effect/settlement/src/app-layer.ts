@@ -33,7 +33,7 @@ export const SETTLEMENT_SLICE = 'settlement';
  * from every commerce store beside it (ADR 0022 §8, `docs/_shared/planes.md`).
  *
  * ⚠️ **No crossing token, in either direction.** payment-service and
- * order-service each hold one because a saga dispatches into them on a buyer's
+ * order-service each hold one because a flow dispatches into them on a buyer's
  * behalf. Nothing dispatches into this slice: both of its inputs arrive on the
  * bus, and every route it serves is guarded by a verified session and narrowed
  * to the caller. Seeding a secret it never reads would put a fourth holder of a

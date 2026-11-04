@@ -108,7 +108,7 @@ const answer = (
  *
  * It is a **simulator, not a stub**. It answers through the same port a live
  * provider will, distinguishes authorization from capture, and never throws —
- * so the failure branches the saga's pivot depends on are exercised by real
+ * so the failure branches the flow's pivot depends on are exercised by real
  * code rather than asserted by a mock. What it does not do is move money,
  * settle, or have an opinion about a card number.
  */

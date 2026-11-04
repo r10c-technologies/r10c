@@ -91,7 +91,7 @@ export class Refund implements Entity {
    * one-writer rule forbids.
    *
    * This is the member the route is addressed by — `POST /api/refund` names an
-   * order, because the cancellation saga holds one and has never seen a payment.
+   * order, because the cancellation flow holds one and has never seen a payment.
    */
   @accessor({
     type: 'string',

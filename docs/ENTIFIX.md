@@ -220,9 +220,9 @@ that it has a **lossless string form**, so it round-trips through the string
 draft as a comma list while a composition has no string form at all.
 
 **Detail is same-store, same-slice.** One write means one transaction, and
-[planes](./_shared/planes.md) sends a cross-domain write through the saga and
+[planes](./_shared/planes.md) sends a cross-domain write through a flow and
 never through one transaction. A child in another store is not a master-detail
-form, it is a saga. The metadata cannot check this — `childType` names a class,
+form, it is a flow. The metadata cannot check this — `childType` names a class,
 not a store — so it is a review rule.
 
 The editor is not built: a composition member renders read-only in a form and as
