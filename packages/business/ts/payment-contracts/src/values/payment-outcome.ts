@@ -19,7 +19,7 @@ const invalidPayload = (detail: string) =>
 /**
  * Money was taken for an order. Routing key and register name.
  *
- * @see ADR 0054 — capture is the checkout saga's pivot, and this event is what
+ * @see ADR 0054 — capture is the checkout flow's pivot, and this event is what
  * the steps *after* the decision read.
  */
 export const PAYMENT_CAPTURED = 'payment.captured';

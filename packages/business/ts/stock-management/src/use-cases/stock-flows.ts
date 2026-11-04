@@ -23,7 +23,7 @@ export class InconsistentMovement extends Failure.invalid<InconsistentMovement>(
 ) {}
 
 /**
- * Take a hold — the checkout saga's `reserve` step, for the organization the
+ * Take a hold — the checkout flow's `reserve` step, for the organization the
  * crossing named. The id, the status and the expiry are this domain's.
  */
 export const takeReservation = (input: {

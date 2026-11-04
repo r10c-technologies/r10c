@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 
 /**
  * The code a participant answers when an order is past cancelling — named
- * because the cancellation saga's fragment reads it off a refusal.
+ * because the cancellation flow's fragment reads it off a refusal.
  */
 export const ORDER_NOT_CANCELLABLE = 'orderNotCancellable';
 

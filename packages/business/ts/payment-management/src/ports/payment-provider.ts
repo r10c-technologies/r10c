@@ -85,7 +85,7 @@ export interface RefundProviderOutcome extends Omit<
  * ⚠️ **Never `Promise`-shaped, and never throwing.** A provider failure is an
  * outcome — `status: 'failed'` with a reason — not an error channel. The error
  * channel is for *not reaching* the provider, which is a different thing the
- * saga treats differently: a refusal compensates the flow, an unreachable
+ * flow treats differently: a refusal compensates the flow, an unreachable
  * provider is retried.
  *
  * v1 provides a simulated adapter. Swapping in a live PSP is a `Layer` at a

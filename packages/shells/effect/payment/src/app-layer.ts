@@ -42,7 +42,7 @@ export const PAYMENT_SLICE = 'payment';
  * of their tenant databases even if it wanted to (ADR 0022,
  * `docs/_shared/planes.md`).
  *
- * ⚠️ **A crossing token, and this service's own.** It is a saga *participant*:
+ * ⚠️ **A crossing token, and this service's own.** It is a flow *participant*:
  * the coordinator captures on a buyer's behalf, and the buyer holds no grant
  * over that act. Reusing order-service's token — or the fleet's
  * `CONFIG_SERVICE_TOKEN` — would make one leaked secret reach both stores at
@@ -64,7 +64,7 @@ export const paymentComposition = (configuration: FleetConfiguration) =>
     const { store } = configuration;
 
     // Configuration rather than a build flag, so a live pass can force a decline
-    // without a rebuild — which is the only way to exercise the saga's
+    // without a rebuild — which is the only way to exercise the flow's
     // compensation path against a running fleet.
     const providerOutcome = yield* store.in('provider').getString('outcome');
     const declineReason = yield* store

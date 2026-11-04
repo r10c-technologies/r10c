@@ -18,7 +18,7 @@
  * recorded both as the cost, with this package as the fix if it ever bit).
  *
  * What made it bite is the counter sale actually being built: a type now travels
- * from a vendor's channel record, through the saga, onto an order and into a
+ * from a vendor's channel record, through the flow, onto an order and into a
  * commission — four hops across three domains, on a set nothing kept in step. A
  * type added in one list and not the other silently became unpriceable and fell
  * through to the agreement's default rate, which is a wrong invoice rather than

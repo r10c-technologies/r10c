@@ -637,7 +637,7 @@ and the scope of the slice that owns its domain.
   the service to composition — routes and persistence are cells, rules are use
   cases (ARCHITECTURE → [Where a service's code lives](ARCHITECTURE.md#where-a-services-code-lives)).
   Health and shutdown come from the base.
-- A write that emits an event, a fold that must run once, and a saga step that
+- A write that emits an event, a fold that must run once, and a flow step that
   may be redelivered all run on the **unit of work** (entifix 0009) — never on a
   driver session opened by hand.
 - A route set whose handlers need the host's services names them with

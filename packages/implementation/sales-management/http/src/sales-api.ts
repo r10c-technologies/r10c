@@ -21,7 +21,7 @@ import { Effect } from 'effect';
  * only credential any endpoint here accepts ([ADR 0024](../../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
  *
  * ⚠️ **`sell` is a write this slice does not persist.** It starts the checkout
- * saga, which reserves stock, writes the order and captures the payment
+ * flow, which reserves stock, writes the order and captures the payment
  * through the slices that own those stores. Only once the use case has decided
  * the sale is the caller's to make does this process present the coordinator's
  * crossing token on their behalf ([ADR 0056](../../../../../../docs/adr/0056-the-counter-sale-is-the-checkout-saga.md)).

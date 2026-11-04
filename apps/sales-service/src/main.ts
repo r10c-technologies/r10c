@@ -14,7 +14,7 @@ import { seedSales } from './seed';
  * databases, three writing slices, one handle each (ADR 0020, ADR 0022).
  *
  * ⚠️ **It owns the channel, never the sale.** A counter sale is a
- * `ProductOrder` with a channel on it, written by the checkout saga through
+ * `ProductOrder` with a channel on it, written by the checkout flow through
  * order-service — the same order the storefront produces, which is what keeps a
  * vendor's takings one query instead of two
  * ([ADR 0024](../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).

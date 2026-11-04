@@ -71,7 +71,10 @@
               "@r10c/sales-service",
               "@r10c/settlement-service",
               "@r10c/transaction-service",
-              "@r10c/realtime-service"
+              "@r10c/realtime-service",
+              "@r10c/order-service",
+              "@r10c/payment-service",
+              "@r10c/fulfilment-service"
             ],
             "target": "dev"
           }

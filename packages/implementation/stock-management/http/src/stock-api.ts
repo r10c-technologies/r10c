@@ -203,7 +203,7 @@ const restoration = defineEndpoint({
 
 /**
  * Both ways a hold ends answer **`200` when it was already gone**: they are
- * compensations a saga dispatches at least once, and one that errored on its
+ * compensations a flow dispatches at least once, and one that errored on its
  * second delivery would strand a flow that had in fact been reversed. The
  * body says which happened. Remembered at the edge, since ending a hold
  * claims nothing in its own write.

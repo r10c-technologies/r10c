@@ -19,7 +19,7 @@ import { ORDER_SERVICE_URL } from '@r10c/shells-next-order/server';
  * ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md) §4).
  *
  * ⚠️ **`PUT`, `PATCH` and `DELETE` stay off deliberately.** `DELETE` upstream is
- * the checkout saga's compensation, behind a crossing token; there is no save
+ * the checkout flow's compensation, behind a crossing token; there is no save
  * route and no role holds `product-order:write`. A method forwarded here that
  * nothing session-guarded serves is a `401` a reader has to go and explain.
  *
