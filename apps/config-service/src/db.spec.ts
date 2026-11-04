@@ -57,7 +57,7 @@ describe('the seed', () => {
     ).toEqual(['stock-service.stepBoundMs']);
   });
 
-  it('seeds the workflow store and its runners beside the saga rows', () => {
+  it('seeds the workflow store and its runners', () => {
     const transaction = SEED_ROWS.filter(
       row => row.service === 'transaction-service',
     );

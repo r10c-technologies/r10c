@@ -53,6 +53,7 @@ describe('checkoutStartBody', () => {
     expect(
       checkoutStartBody({ parts, cancelDigest: 'cd', capabilityDigest: 'fd' }),
     ).toEqual({
+      channel: { type: 'storefront' },
       vendors: parts,
       totals: [{ currency: 'GTQ', amount: 300 }],
       cancelDigest: 'cd',

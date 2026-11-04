@@ -1,4 +1,5 @@
-import { expect, ringUps, test } from './support/fixtures';
+import { expect, ringUps, test, TILL_FLOW_ID } from './support/fixtures';
+import { scriptStream } from './support/flow-stream';
 
 /**
  * The selling surface: the channels a vendor authors, and the till they sell at.
@@ -82,9 +83,11 @@ test('addresses the till as a wizard', async ({ page }) => {
   await expect(page.getByRole('combobox', { name: 'Canal' })).toBeVisible();
 });
 
-test('rings up a sale through the channel’s own sell verb', async ({
+test('rings up a sale through the channel’s own sell verb, and waits on its checkout', async ({
   page,
+  network,
 }) => {
+  const checkout = scriptStream(network, TILL_FLOW_ID);
   await page.goto('/sales/counter-sale');
 
   await page
@@ -99,6 +102,9 @@ test('rings up a sale through the channel’s own sell verb', async ({
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: /Finalizar/ }).click();
 
+  // Accepted is not sold: the till waits until the checkout completes.
+  await expect(page.getByText('Venta registrada')).toHaveCount(0);
+  checkout.outcome = 'flow.completed';
   await expect(page.getByText('Venta registrada')).toBeVisible();
   // The verb bound to the channel, under a key so a retried charge is one
   // checkout — and a body with no price in it, because the service re-prices.

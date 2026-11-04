@@ -5,7 +5,8 @@ import { Schema } from 'effect';
  * The code a participant answers when a shipment cannot make the move asked
  * of it — named because the delivery flow's fragments read it off a refusal.
  */
-export const SHIPPING_ORDER_NOT_TRANSITIONABLE = 'shippingOrderNotTransitionable';
+export const SHIPPING_ORDER_NOT_TRANSITIONABLE =
+  'shippingOrderNotTransitionable';
 
 /**
  * A move the shipment's status does not allow: a dispatch landing on a held

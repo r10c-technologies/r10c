@@ -37,16 +37,22 @@ const capture = (
   body: Record<string, unknown> = {},
   extra: Record<string, string> = {},
 ) => {
-  const { orderId = `order-${crypto.randomUUID()}`, ...rest } = body;
-  const amount = (rest['amount'] as number | undefined) ?? 1999;
+  const { orderId: named, amount = 1999, ...rest } = body;
+  // One order id for the one vendor, or every vendor's, by vendor.
+  const orderId =
+    typeof named === 'object' && named !== null
+      ? named
+      : { 'vendor-1': named ?? `order-${crypto.randomUUID()}` };
+  // As a checkout's flow asks: each card vendor's share, and the order each
+  // vendor's segment wrote, by vendor. The charge is the shares' sum.
   return service.client.post(
     '/api/payment',
     {
       groupId: `group-${crypto.randomUUID()}`,
-      amount,
       currency: 'GTQ',
       paymentMethod: 'card',
-      allocations: [{ orderId, vendorId: 'vendor-1', amount }],
+      shares: [{ vendorId: 'vendor-1', amount }],
+      orderId,
       ...rest,
     },
     { headers: crossing(extra) },
@@ -65,11 +71,11 @@ describe('capturing a payment', () => {
   it('takes one charge for a group and allocates a share to each vendor order', async () => {
     const [first, second] = [crypto.randomUUID(), crypto.randomUUID()];
     const res = await capture({
-      amount: 3000,
-      allocations: [
-        { orderId: first, vendorId: 'vendor-1', amount: 2000 },
-        { orderId: second, vendorId: 'vendor-2', amount: 1000 },
+      shares: [
+        { vendorId: 'vendor-1', amount: 2000 },
+        { vendorId: 'vendor-2', amount: 1000 },
       ],
+      orderId: { 'vendor-1': first, 'vendor-2': second },
     });
 
     expect(res.status).toBe(200);
@@ -87,11 +93,11 @@ describe('capturing a payment', () => {
     ]);
   });
 
-  it('refuses shares that do not add up to the charge', async () => {
+  it('refuses a share whose vendor wrote no order', async () => {
     const res = await capture({
-      amount: 3000,
-      allocations: [
-        { orderId: crypto.randomUUID(), vendorId: 'vendor-1', amount: 1 },
+      shares: [
+        { vendorId: 'vendor-1', amount: 2000 },
+        { vendorId: 'vendor-2', amount: 1000 },
       ],
     });
 
@@ -162,9 +168,9 @@ describe('the capture route takes one credential', () => {
 
 describe('a redelivered command', () => {
   /**
-   * ⚠️ **The assertion this whole service exists to make safe.** `runSaga`
-   * re-dispatches a post-pivot step on a stable command id, and a capture that
-   * ran twice is a customer charged twice.
+   * ⚠️ **The assertion this whole service exists to make safe.** The flow
+   * engine re-dispatches a step on a stable `Idempotency-Key`, and a capture
+   * that ran twice is a customer charged twice.
    */
   it('answers the first decision rather than taking the money again', async () => {
     const commandId = `cmd-${String(Date.now())}`;

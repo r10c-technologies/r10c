@@ -1,5 +1,10 @@
 import { type EntityApiContext, IdempotencyKeyTag } from '@entifix/business';
 import { makeEntityEnvelope } from '@entifix/core';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import {
+  acceptedAnswer,
+  makeScriptedFlowStarter,
+} from '@r10c/business-ts-flow-contracts/testing';
 import {
   CancelWindowSeconds,
   CheckoutGroup,
@@ -10,8 +15,6 @@ import {
   ProductOrderStoreTag,
 } from '@r10c/business-ts-order-management';
 import { makeInMemoryOrderStores } from '@r10c/business-ts-order-management/testing';
-import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
-import { makeScriptedSagaStarter } from '@r10c/business-ts-saga-contracts/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -44,27 +47,30 @@ const anOrder = (vendorId = 'v-1') =>
   });
 
 /**
- * One pair of stores per case; the coordinator completes every cancellation
- * the way its last step does.
+ * One pair of stores per case; the coordinator accepts every cancellation and
+ * answers the flow to follow.
  */
 const world = () => {
   const stores = makeInMemoryOrderStores();
-  const sagas = makeScriptedSagaStarter(definition =>
-    definition === 'cancellation' ? { status: 200, body: {} } : undefined,
-  );
+  const started: { recipe: string; input: unknown }[] = [];
+  const flows = makeScriptedFlowStarter((recipe, input) => {
+    started.push({ recipe, input });
+    return recipe === 'cancellation' ? acceptedAnswer('flow-1') : undefined;
+  });
   const layer = Layer.mergeAll(
     Layer.succeed(ProductOrderStoreTag, stores.orders),
     Layer.succeed(CheckoutGroupStoreTag, stores.groups),
-    Layer.succeed(SagaStarterTag, sagas),
+    Layer.succeed(FlowStarterTag, flows),
     Layer.succeed(CancelWindowSeconds, 600),
   );
   type R =
     | ProductOrderStoreTag
     | CheckoutGroupStoreTag
-    | SagaStarterTag
+    | FlowStarterTag
     | CancelWindowSeconds;
   return {
     stores,
+    started,
     run: <A, E>(effect: Effect.Effect<A, E, R>) =>
       Effect.runPromise(Effect.provide(effect, layer)),
     refusal: <A, E>(effect: Effect.Effect<A, E, R>) =>
@@ -88,10 +94,15 @@ const [
   close,
 ] = productOrderEndpoints;
 
+/** A flow step's body: the record's members, flat — an envelope's `data`. */
+const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
+  (makeEntityEnvelope(...args) as unknown as { data: Record<string, unknown> })
+    .data;
+
 const open = () =>
   checkoutGroupApi.options.override.create.handler(
     {
-      payload: makeEntityEnvelope(
+      payload: flatOf(
         CheckoutGroup,
         Object.assign(new CheckoutGroup(), {
           id: GROUP,
@@ -104,10 +115,8 @@ const open = () =>
   );
 
 const place = (order: ProductOrder, extraLines: unknown[] = []) => {
-  const payload = makeEntityEnvelope(ProductOrder, order) as unknown as {
-    data: { items: unknown[] };
-  };
-  payload.data.items = [...payload.data.items, ...extraLines];
+  const payload = flatOf(ProductOrder, order);
+  payload['items'] = [...(payload['items'] as unknown[]), ...extraLines];
   return productOrderApi.options.override.create.handler({ payload }, operator);
 };
 
@@ -173,10 +182,8 @@ describe('a checkout', () => {
   it('refuses a write that carries no lines at all', async () => {
     const w = world();
     await w.run(open());
-    const payload = makeEntityEnvelope(ProductOrder, anOrder()) as unknown as {
-      data: Record<string, unknown>;
-    };
-    delete payload.data['items'];
+    const payload = flatOf(ProductOrder, anOrder());
+    delete payload['items'];
 
     const refused = await w.refusal(
       productOrderApi.options.override.create.handler({ payload }, operator),
@@ -342,14 +349,22 @@ describe('the buyer', () => {
     const answer = await w.run(
       at(buyerCancellation, {
         params: { id: orderId },
-        payload: { cancelNonce: NONCE },
+        payload: { cancelNonce: NONCE, capabilityDigest: 'cap' },
       }),
     );
     const refused = await w.refusal(
       at(buyerCancellation, { params: { id: orderId }, payload: {} }),
     );
 
-    expect(answer.data.id).toBe(orderId);
+    expect(answer).toMatchObject({
+      meta: { type: 'flowAccepted' },
+      data: { flowId: 'flow-1' },
+    });
+    expect(w.started[0]?.input).toMatchObject({
+      orderId,
+      capabilityDigest: 'cap',
+    });
+    expect(buyerCancellation.descriptor.accepted).toBe(true);
     expect(refused.code).toBe('cancelNotAuthorized');
   });
 
@@ -400,7 +415,11 @@ describe('the staff cancel verb', () => {
       cancel.handler({ params: { id: orderId } }, context()) as never,
     );
 
-    expect((answer as { data: { id: string } }).data.id).toBe(orderId);
+    expect(answer).toMatchObject({
+      meta: { type: 'flowAccepted' },
+      data: { flowId: 'flow-1' },
+    });
+    expect(cancel.accepted).toBe(true);
     expect(hidden.code).toBe('notFound');
     expect(nobody.code).toBe('notFound');
   });

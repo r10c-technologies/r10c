@@ -2,14 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   checkoutServiceUrl,
+  coordinatorCrossingToken,
   orderServiceUrl,
   realtimeServiceUrl,
-  sagaCrossingToken,
 } from './checkout-config';
 
 const VARIABLES = [
   'TRANSACTION_SERVICE_URL',
-  'SAGA_CROSSING_TOKEN',
+  'COORDINATOR_CROSSING_TOKEN',
   'ORDER_SERVICE_URL',
   'REALTIME_SERVICE_URL',
 ] as const;
@@ -37,15 +37,15 @@ describe('checkout-config', () => {
   });
 
   it('reads the crossing token from the environment', () => {
-    process.env['SAGA_CROSSING_TOKEN'] = 'rotated';
+    process.env['COORDINATOR_CROSSING_TOKEN'] = 'rotated';
 
-    expect(sagaCrossingToken()).toBe('rotated');
+    expect(coordinatorCrossingToken()).toBe('rotated');
   });
 
   it('falls back to the seeded development secret', () => {
     // The same literal config-service seeds, so a fresh lab works without a
     // variable and a real deployment overrides it.
-    expect(sagaCrossingToken()).toBe('dev-saga-crossing-token-change-me');
+    expect(coordinatorCrossingToken()).toBe('dev-flow-crossing-token-change-me');
   });
 
   it('reads order-service’s address from the environment', () => {

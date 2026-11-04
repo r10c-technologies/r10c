@@ -9,6 +9,7 @@
   the app.
 - Area: frontend
 - Read when: a write answers `202`, a screen shows a write before the server has it, or a failure has to reach the user — the server picks the mode, a pending flow is keyed by `flowId`, and a pending result never shows money taken
+- Revised: 2026-11-04 — checkout, the till's sale and both cancellations answer `202`, and the saga runner the record named is deleted (#486, #487, #490)
 
 ## Context
 
@@ -28,7 +29,7 @@ write, the stream's `transaction.*` events settled it, and a reconnect re-read
 
 entifix 0.14.0 ships the replacement: one mutation API for both settle modes,
 a pending-flow store, and a settlement hook driven by the push channel
-([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.14.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
+([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.15.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 This record says how r10c uses it.
 
 ## Decision

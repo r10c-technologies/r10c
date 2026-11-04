@@ -33,16 +33,13 @@ const open = (extra: Record<string, string> = {}) =>
   service.client.post(
     '/api/shipping-order',
     {
-      meta: { type: 'entity', entity: 'shipping-order' },
-      data: {
-        orderId: `order-${crypto.randomUUID()}`,
-        groupId: 'group-1',
-        flowId: 'flow-1',
-        paymentMethod: 'cod',
-        amountDue: 2500,
-        currency: 'GTQ',
-        lines: [{ offeringId: 'o-1', quantity: 2 }],
-      },
+      orderId: `order-${crypto.randomUUID()}`,
+      groupId: 'group-1',
+      flowId: 'flow-1',
+      paymentMethod: 'cod',
+      amountDue: 2500,
+      currency: 'GTQ',
+      lines: [{ offeringId: 'o-1', quantity: 2 }],
     },
     { headers: crossing(extra) },
   );
@@ -98,7 +95,7 @@ describe('the flow’s steps', () => {
   it('refuses a session on a crossing step, even super-admin', async () => {
     const res = await service.client.post(
       '/api/shipping-order',
-      { meta: { type: 'entity', entity: 'shipping-order' }, data: {} },
+      {},
       { headers: { Authorization: await bearerFor(['super-admin']) } },
     );
 

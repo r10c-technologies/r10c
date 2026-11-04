@@ -36,16 +36,16 @@
       "fingerprint": "0f76b9eb1662e5"
     },
     {
-      "ref": "fulfilment.await-delivery@1",
+      "ref": "fulfilment.await-delivery@2",
       "id": "fulfilment.await-delivery",
-      "version": 1,
+      "version": 2,
       "module": "shipping-order-management",
       "kind": "wait",
       "cardinality": "one",
       "participant": "fulfilment-service",
       "call": {
         "method": "GET",
-        "path": "/api/shipping-order/:id"
+        "path": "/api/shipping-order/:shippingOrderId"
       },
       "readOnly": false,
       "irreversible": false,
@@ -70,9 +70,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "shippingOrderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "shippingOrderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -127,19 +139,19 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1886f1e427cca1"
+      "fingerprint": "0aa292e4ffe970"
     },
     {
-      "ref": "fulfilment.await-return@1",
+      "ref": "fulfilment.await-return@2",
       "id": "fulfilment.await-return",
-      "version": 1,
+      "version": 2,
       "module": "shipping-order-management",
       "kind": "wait",
       "cardinality": "one",
       "participant": "fulfilment-service",
       "call": {
         "method": "GET",
-        "path": "/api/shipping-order/:id"
+        "path": "/api/shipping-order/:shippingOrderId"
       },
       "readOnly": false,
       "irreversible": false,
@@ -164,9 +176,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "shippingOrderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "shippingOrderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -221,19 +245,19 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1886f1e427cca1"
+      "fingerprint": "0aa292e4ffe970"
     },
     {
-      "ref": "fulfilment.dispatch@1",
+      "ref": "fulfilment.dispatch@2",
       "id": "fulfilment.dispatch",
-      "version": 1,
+      "version": 2,
       "module": "shipping-order-management",
       "kind": "pivot",
       "cardinality": "one",
       "participant": "fulfilment-service",
       "call": {
         "method": "POST",
-        "path": "/api/shipping-order/:id/dispatch-step"
+        "path": "/api/shipping-order/:shippingOrderId/dispatch-step"
       },
       "readOnly": false,
       "irreversible": true,
@@ -258,9 +282,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "shippingOrderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "shippingOrderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -319,23 +355,23 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1ad6e7ac9cf96a"
+      "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "fulfilment.hold@1",
+      "ref": "fulfilment.hold@2",
       "id": "fulfilment.hold",
-      "version": 1,
+      "version": 2,
       "module": "shipping-order-management",
       "kind": "compensatable",
       "cardinality": "one",
       "participant": "fulfilment-service",
       "call": {
         "method": "POST",
-        "path": "/api/shipping-order/:id/hold"
+        "path": "/api/shipping-order/:shippingOrderId/hold"
       },
       "compensation": {
         "method": "DELETE",
-        "path": "/api/shipping-order/:id/hold"
+        "path": "/api/shipping-order/:shippingOrderId/hold"
       },
       "readOnly": false,
       "irreversible": false,
@@ -360,9 +396,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "shippingOrderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "shippingOrderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -421,12 +469,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1ad6e7ac9cf96a"
+      "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "fulfilment.open@1",
+      "ref": "fulfilment.open@2",
       "id": "fulfilment.open",
-      "version": 1,
+      "version": 2,
       "module": "shipping-order-management",
       "kind": "retriable",
       "cardinality": "perVendor",
@@ -444,7 +492,22 @@
         ]
       },
       "excludedFrom": {},
-      "consumes": {},
+      "consumes": {
+        "groupId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "provides": {
         "shippingOrderId": {
           "dialect": "draft-2020-12",
@@ -570,23 +633,23 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0b62f8a1998165"
+      "fingerprint": "0e6e38c327a57a"
     },
     {
-      "ref": "fulfilment.release@1",
+      "ref": "fulfilment.release@2",
       "id": "fulfilment.release",
-      "version": 1,
+      "version": 2,
       "module": "shipping-order-management",
       "kind": "compensatable",
       "cardinality": "one",
       "participant": "fulfilment-service",
       "call": {
         "method": "DELETE",
-        "path": "/api/shipping-order/:id/hold"
+        "path": "/api/shipping-order/:shippingOrderId/hold"
       },
       "compensation": {
         "method": "POST",
-        "path": "/api/shipping-order/:id/hold"
+        "path": "/api/shipping-order/:shippingOrderId/hold"
       },
       "readOnly": false,
       "irreversible": false,
@@ -611,9 +674,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "shippingOrderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "shippingOrderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -672,19 +747,19 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1ad6e7ac9cf96a"
+      "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "fulfilment.withdraw@1",
+      "ref": "fulfilment.withdraw@2",
       "id": "fulfilment.withdraw",
-      "version": 1,
+      "version": 2,
       "module": "shipping-order-management",
       "kind": "retriable",
       "cardinality": "one",
       "participant": "fulfilment-service",
       "call": {
         "method": "POST",
-        "path": "/api/shipping-order/:id/withdrawal"
+        "path": "/api/shipping-order/:shippingOrderId/withdrawal"
       },
       "readOnly": false,
       "irreversible": false,
@@ -709,9 +784,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "shippingOrderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "shippingOrderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -770,38 +857,58 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1ad6e7ac9cf96a"
+      "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "order.claim-cancel@2",
+      "ref": "order.claim-cancel@3",
       "id": "order.claim-cancel",
-      "version": 2,
+      "version": 3,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "one",
       "participant": "order-service",
       "call": {
         "method": "POST",
-        "path": "/api/product-order/:id/cancelling"
+        "path": "/api/product-order/:orderId/cancelling"
       },
       "compensation": {
         "method": "DELETE",
-        "path": "/api/product-order/:id/cancelling"
+        "path": "/api/product-order/:orderId/cancelling"
       },
       "readOnly": false,
       "irreversible": false,
       "isolation": "semanticLock",
       "requires": {},
       "excludedFrom": {},
-      "consumes": {},
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "provides": {},
       "contract": {
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -860,26 +967,34 @@
           "definitions": {}
         }
       },
-      "fingerprint": "10257f025035a0"
+      "fingerprint": "0305c417f5c821"
     },
     {
-      "ref": "order.close@1",
+      "ref": "order.close@2",
       "id": "order.close",
-      "version": 1,
+      "version": 2,
       "module": "order-management",
       "kind": "retriable",
       "cardinality": "one",
       "participant": "order-service",
       "call": {
         "method": "POST",
-        "path": "/api/product-order/:id/closed"
+        "path": "/api/product-order/:orderId/closed"
       },
       "readOnly": false,
       "irreversible": false,
       "isolation": "reRead",
       "requires": {},
       "excludedFrom": {},
-      "consumes": {},
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "provides": {},
       "contract": {
         "input": {
@@ -887,6 +1002,9 @@
           "schema": {
             "type": "object",
             "properties": {
+              "orderId": {
+                "type": "string"
+              },
               "outcome": {
                 "type": "string",
                 "enum": [
@@ -896,6 +1014,7 @@
               }
             },
             "required": [
+              "orderId",
               "outcome"
             ],
             "allOf": [
@@ -962,19 +1081,19 @@
           "definitions": {}
         }
       },
-      "fingerprint": "05fba2ee7297c9"
+      "fingerprint": "068baf3ce4c750"
     },
     {
-      "ref": "order.confirm@1",
+      "ref": "order.confirm@2",
       "id": "order.confirm",
-      "version": 1,
+      "version": 2,
       "module": "order-management",
       "kind": "retriable",
       "cardinality": "perVendor",
       "participant": "order-service",
       "call": {
         "method": "POST",
-        "path": "/api/product-order/:id/confirmed"
+        "path": "/api/product-order/:orderId/confirmed"
       },
       "readOnly": false,
       "irreversible": false,
@@ -995,9 +1114,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -1056,34 +1187,54 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0bd1c2ef37352e"
+      "fingerprint": "0a8ea1f52627fb"
     },
     {
-      "ref": "order.mark-dispatched@1",
+      "ref": "order.mark-dispatched@2",
       "id": "order.mark-dispatched",
-      "version": 1,
+      "version": 2,
       "module": "order-management",
       "kind": "retriable",
       "cardinality": "one",
       "participant": "order-service",
       "call": {
         "method": "POST",
-        "path": "/api/product-order/:id/dispatched"
+        "path": "/api/product-order/:orderId/dispatched"
       },
       "readOnly": false,
       "irreversible": false,
       "isolation": "reRead",
       "requires": {},
       "excludedFrom": {},
-      "consumes": {},
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "provides": {},
       "contract": {
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -1142,12 +1293,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "185236d439f485"
+      "fingerprint": "0a8ea1f52627fb"
     },
     {
-      "ref": "order.open-group@1",
+      "ref": "order.open-group@2",
       "id": "order.open-group",
-      "version": 1,
+      "version": 2,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "one",
@@ -1187,6 +1338,16 @@
               },
               "totals": {
                 "type": "array"
+              },
+              "cancelDigest": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
@@ -1256,12 +1417,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "050fb4a7d174f2"
+      "fingerprint": "1fcc19a3b7447e"
     },
     {
-      "ref": "order.write@2",
+      "ref": "order.write@3",
       "id": "order.write",
-      "version": 2,
+      "version": 3,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "perVendor",
@@ -1303,6 +1464,9 @@
           "schema": {
             "type": "object",
             "properties": {
+              "groupId": {
+                "type": "string"
+              },
               "vendorId": {
                 "type": "string",
                 "minLength": 1
@@ -1316,6 +1480,7 @@
               }
             },
             "required": [
+              "groupId",
               "vendorId",
               "paymentMethod",
               "items"
@@ -1384,12 +1549,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "191a69ec46a995"
+      "fingerprint": "11e0a95db0cfdd"
     },
     {
-      "ref": "payment.capture@2",
+      "ref": "payment.capture@3",
       "id": "payment.capture",
-      "version": 2,
+      "version": 3,
       "module": "payment-management",
       "kind": "pivot",
       "cardinality": "one",
@@ -1407,7 +1572,22 @@
           "cod"
         ]
       },
-      "consumes": {},
+      "consumes": {
+        "groupId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "provides": {},
       "contract": {
         "input": {
@@ -1419,34 +1599,15 @@
                 "type": "string",
                 "minLength": 1
               },
-              "amount": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
-                ]
-              },
               "currency": {
                 "type": "string",
                 "minLength": 1
               },
-              "allocations": {
+              "shares": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
-                    "orderId": {
-                      "type": "string",
-                      "minLength": 1
-                    },
                     "vendorId": {
                       "type": "string",
                       "minLength": 1
@@ -1468,7 +1629,6 @@
                     }
                   },
                   "required": [
-                    "orderId",
                     "vendorId",
                     "amount"
                   ],
@@ -1479,13 +1639,19 @@
                     }
                   ]
                 }
+              },
+              "orderId": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
             },
             "required": [
               "groupId",
-              "amount",
               "currency",
-              "allocations"
+              "shares",
+              "orderId"
             ],
             "allOf": [
               {
@@ -1551,7 +1717,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "03375155d1d5e3"
+      "fingerprint": "0817be67af17e5"
     },
     {
       "ref": "payment.cod-eligible@1",
@@ -1918,16 +2084,16 @@
       "fingerprint": "0e059779e57d19"
     },
     {
-      "ref": "stock.convert@2",
+      "ref": "stock.convert@3",
       "id": "stock.convert",
-      "version": 2,
+      "version": 3,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",
       "participant": "stock-service",
       "call": {
         "method": "POST",
-        "path": "/api/reservation/:id/conversion"
+        "path": "/api/reservation/:reservationId/conversion"
       },
       "readOnly": false,
       "irreversible": false,
@@ -1952,9 +2118,21 @@
         "input": {
           "dialect": "draft-2020-12",
           "schema": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object",
+            "properties": {
+              "reservationId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reservationId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
           },
           "definitions": {}
         },
@@ -2009,12 +2187,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "09d8088a8946da"
+      "fingerprint": "027b108c32d686"
     },
     {
-      "ref": "stock.reserve@1",
+      "ref": "stock.reserve@2",
       "id": "stock.reserve",
-      "version": 1,
+      "version": 2,
       "module": "stock-management",
       "kind": "compensatable",
       "cardinality": "perLine",
@@ -2139,9 +2317,9 @@
       "fingerprint": "1bb2ba0ee1a7c5"
     },
     {
-      "ref": "stock.restore@2",
+      "ref": "stock.restore@3",
       "id": "stock.restore",
-      "version": 2,
+      "version": 3,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",

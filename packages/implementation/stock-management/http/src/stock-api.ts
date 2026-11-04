@@ -12,12 +12,11 @@ import {
   entityKey,
   implement,
   Invalid,
-  InvalidEnvelope,
   JsonBody,
   makeEntityEnvelope,
   readEntityEnvelope,
 } from '@entifix/core';
-import { InvalidBody } from '@r10c/business-ts-common';
+import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import {
   InconsistentMovement,
   InsufficientStock,
@@ -124,12 +123,14 @@ export const reservationApi = defineEntityApi(
       write: { kind: 'crossing', organization: true },
     },
     override: {
+      // A flow step: the line's offering and quantity, flat.
       create: {
         idempotent: 'unit',
+        payload: JsonBody,
         errors: [InvalidBody, InsufficientStock, Invalid],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
-            const reservation = yield* readEntityEnvelope(
+            const reservation = yield* readStepRecord(
               Reservation,
               request.payload,
             );
@@ -191,13 +192,7 @@ const restoration = defineEndpoint({
   path: '/api/stock-restoration',
   payload: JsonBody,
   success: JsonBody,
-  errors: [
-    InconsistentMovement,
-    InvalidBody,
-    InvalidEnvelope,
-    Invalid,
-    DuplicateKey,
-  ],
+  errors: [InconsistentMovement, InvalidBody, Invalid, DuplicateKey],
   guard: {
     kind: 'crossing',
     permission: 'stock-management:stock-movement:restore',
@@ -235,9 +230,8 @@ export const stockCrossingEndpoints = [
   implement(conversion, endHold('converted')),
   implement(restoration, ({ payload }) =>
     Effect.gen(function* () {
-      const movement = yield* readEntityEnvelope(StockMovement, payload);
-      const cause = (payload as { data?: { cause?: unknown } } | undefined)
-        ?.data?.cause;
+      const movement = yield* readStepRecord(StockMovement, payload);
+      const cause = (payload as { cause?: unknown } | undefined)?.cause;
       if (cause !== 'cancellation' && cause !== 'return') {
         return yield* new InvalidBody({
           reason: "a restoration names its cause: 'cancellation' or 'return'",

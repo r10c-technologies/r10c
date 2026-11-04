@@ -33,12 +33,22 @@ const fragments = (
   }
 ).fragments;
 
+/**
+ * A path's shape: each `:name` as one parameter, whatever it is called. A
+ * fragment names a parameter after the key the step is given it under
+ * (`/api/reservation/:reservationId/conversion`); the participant's route names
+ * its own (`/:id/conversion`). Both address the same route.
+ */
+const shapeOf = (path: string | undefined) =>
+  path?.replace(/:[A-Za-z0-9_]+/g, ':');
+
 /** Whether `apis` — `GET|POST /api/x` entries — names `call`. */
 const names = (apis: readonly string[], call: Call) =>
   apis.some(api => {
     const [methods, path] = api.split(' ');
     return (
-      path === call.path && (methods ?? '').split('|').includes(call.method)
+      shapeOf(path) === shapeOf(call.path) &&
+      (methods ?? '').split('|').includes(call.method)
     );
   });
 
@@ -92,7 +102,7 @@ describe('Every call a flow makes is declared on both ends (ADR 0065)', () => {
     );
 
     expect(undeclaredCalls(planted, fragments)).toEqual([
-      'stock.restore@2 POST /api/stock-restoration: not exposed by stock-service',
+      'stock.restore@3 POST /api/stock-restoration: not exposed by stock-service',
     ]);
   });
 });

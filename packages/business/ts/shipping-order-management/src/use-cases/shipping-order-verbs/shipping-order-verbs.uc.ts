@@ -107,4 +107,3 @@ export const DISPATCH_SHIPPING_ORDER = permissionForUseCase(
 export const RECORD_DELIVERY = permissionForUseCase(RecordDeliveryUC);
 export const RECORD_REFUSAL = permissionForUseCase(RecordRefusalUC);
 export const RECORD_RETURN = permissionForUseCase(RecordReturnUC);
-

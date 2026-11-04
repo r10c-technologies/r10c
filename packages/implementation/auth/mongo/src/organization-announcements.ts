@@ -27,21 +27,39 @@ export const ENTITLEMENT_COLLECTION = 'entitlement';
 
 /** The domain whose entitlement makes a seller ship cash on delivery. */
 const SHIPPING_DOMAIN = 'shipping-order-management';
+const STOCK_DOMAIN = 'stock-management';
 
-/** Whether an entitlement row provisions shipping, and so cash on delivery. */
-export const shipsCod = (entitlement: Document | null | undefined) => {
+/** What an organization's entitlement says about how it sells, in public. */
+export interface CommerceFacts {
+  readonly acceptsCod: boolean;
+  readonly holdsStock: boolean;
+}
+
+const NO_COMMERCE: CommerceFacts = { acceptsCod: false, holdsStock: false };
+
+/**
+ * What an entitlement row provisions that a buyer or a flow may know: shipping,
+ * and so cash on delivery; stock, and so a hold a checkout may take.
+ */
+export const commerceOf = (
+  entitlement: Document | null | undefined,
+): CommerceFacts => {
   const domains = entitlement?.['domains'];
-  return Array.isArray(domains) && domains.includes(SHIPPING_DOMAIN);
+  if (!Array.isArray(domains)) return NO_COMMERCE;
+  return {
+    acceptsCod: domains.includes(SHIPPING_DOMAIN),
+    holdsStock: domains.includes(STOCK_DOMAIN),
+  };
 };
 
 /**
  * What an organization says about itself in public, or `undefined` when the
- * stored row cannot be announced: no name, or no stamp to order it by.
- * `acceptsCod` comes from its entitlement, read beside it in the same store.
+ * stored row cannot be announced: no name, or no stamp to order it by. Its
+ * commerce facts come from its entitlement, read beside it in the same store.
  */
 export const announcementOf = (
   row: Document,
-  acceptsCod = false,
+  commerce: CommerceFacts = NO_COMMERCE,
 ): OrganizationAnnouncement | undefined => {
   const { id, name, updatedAt } = row;
   if (typeof id !== 'string' || id === '') return undefined;
@@ -53,7 +71,8 @@ export const announcementOf = (
     organizationId: id,
     displayName: name,
     announcedAt: updatedAt.toISOString(),
-    acceptsCod,
+    acceptsCod: commerce.acceptsCod,
+    holdsStock: commerce.holdsStock,
   };
 };
 
@@ -134,7 +153,10 @@ export const writeOrganization = (
                 ),
               catch: storeUnavailable,
             });
-            const announcement = announcementOf(written, shipsCod(entitlement));
+            const announcement = announcementOf(
+              written,
+              commerceOf(entitlement),
+            );
             if (announcement !== undefined) {
               unit.emit(organizationAnnouncedEvent(announcement, source));
             }
@@ -227,14 +249,15 @@ export const rebuildOrganizationAnnouncements = (
       try: () => db.collection(ENTITLEMENT_COLLECTION).find({}).toArray(),
       catch: storeUnavailable,
     });
-    const codSellers = new Set(
-      entitlements
-        .filter(entitlement => shipsCod(entitlement))
-        .map(entitlement => entitlement['organizationId'] as unknown),
+    const commerceBy = new Map(
+      entitlements.map(entitlement => [
+        entitlement['organizationId'] as unknown,
+        commerceOf(entitlement),
+      ]),
     );
 
     for (const row of rows) {
-      const announcement = announcementOf(row, codSellers.has(row['id']));
+      const announcement = announcementOf(row, commerceBy.get(row['id']));
       if (announcement === undefined) {
         report.unannounceable += 1;
         continue;

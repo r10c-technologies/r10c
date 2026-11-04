@@ -44,14 +44,13 @@
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@r10c/business-ts-common": "workspace:*",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
     "@r10c/business-ts-order-management": "workspace:*",
-    "@r10c/business-ts-payment-contracts": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.7"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",
-    "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/testing-cells": "workspace:*"
   }
 }

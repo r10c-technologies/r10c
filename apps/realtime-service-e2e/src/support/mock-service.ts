@@ -95,7 +95,10 @@ const MockAppLayer = Layer.provideMerge(
         audience: AUTH_TOKEN_AUDIENCE,
       }),
     ),
-    Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision(ROLE_PERMISSIONS)),
+    Layer.succeed(
+      PolicyDecisionTag,
+      makeStaticPolicyDecision(ROLE_PERMISSIONS),
+    ),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   ),

@@ -14,7 +14,7 @@ import {
   fleetOutboxLayer,
   fleetSecurityLayer,
   fleetSingleMongoLayer,
-  httpSagaStarterLayer,
+  httpFlowStarterLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
@@ -100,7 +100,7 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       yield* crossingTokenLayer(configuration),
       yield* fleetOutboxLayer(configuration, ORDER_SLICE),
       Layer.succeed(CancelWindowSeconds, cancelWindowSeconds),
-      httpSagaStarterLayer({
+      httpFlowStarterLayer({
         url: coordinatorUrl,
         crossingToken: coordinatorToken,
       }),

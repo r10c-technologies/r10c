@@ -1,13 +1,13 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { NotFound, useCase } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
+import { FlowNotStarted } from '@r10c/business-ts-flow-contracts';
 import { Effect, Schema } from 'effect';
 
 import { SalesChannel } from '../../entities/sales-channel';
 import {
   ChannelInactive,
   OfferingNotYours,
-  StockUnavailable,
 } from '../../failures/sales-failures';
 
 /**
@@ -22,7 +22,8 @@ export const CounterSalePayload = Schema.Struct({
       quantity: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
     }),
   ).check(Schema.isMinLength(1)),
-  paymentMethod: Schema.String.check(Schema.isMinLength(1)),
+  /** Card or cash: what a counter takes. Cash on delivery is the storefront's. */
+  paymentMethod: Schema.Literals(['card', 'cash']),
 });
 
 export type CounterSalePayload = typeof CounterSalePayload.Type;
@@ -62,7 +63,7 @@ export type CounterSalePayload = typeof CounterSalePayload.Type;
     ChannelInactive,
     OfferingNotYours,
     InvalidBody,
-    StockUnavailable,
+    FlowNotStarted,
   ],
 })
 export class SellAtChannelUC {

@@ -18,12 +18,6 @@
     },
     {
       "path": "../flow-catalog/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../business/ts/common/tsconfig.lib.json"
     }
   ],
   "exclude": [

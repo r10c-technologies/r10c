@@ -49,22 +49,30 @@ const world = (declined?: string) => {
   };
 };
 
-const capture = (groupId: string, amount = 40, method?: 'cash') =>
+/**
+ * A capture as a checkout's flow asks for it: each card vendor's share, and
+ * the order each vendor's segment wrote, by vendor.
+ */
+const capture = (
+  groupId: string,
+  amount = 40,
+  method?: 'cash',
+  orderId: Record<string, string> = {
+    'vendor-1': `${groupId}-a`,
+    'vendor-2': `${groupId}-b`,
+  },
+) =>
   paymentApi.options.override.create.handler(
     {
       payload: {
         groupId,
-        amount,
         currency: 'GTQ',
         ...(method === undefined ? {} : { paymentMethod: method }),
-        allocations: [
-          {
-            orderId: `${groupId}-a`,
-            vendorId: 'vendor-1',
-            amount: amount - 10,
-          },
-          { orderId: `${groupId}-b`, vendorId: 'vendor-2', amount: 10 },
+        shares: [
+          { vendorId: 'vendor-1', amount: amount - 10 },
+          { vendorId: 'vendor-2', amount: 10 },
         ],
+        orderId,
       },
     },
     context,
@@ -138,6 +146,9 @@ describe('a capture', () => {
 
     const declined = await refusal(capture('group-2'));
     const empty = await refusal(capture('group-3', 0));
+    const unordered = await refusal(
+      capture('group-4', 40, undefined, { 'vendor-1': 'group-4-a' }),
+    );
 
     expect(declined).toMatchObject({
       code: 'paymentDeclined',
@@ -145,6 +156,10 @@ describe('a capture', () => {
       reason: 'declined',
     });
     expect(empty).toMatchObject({ code: 'invalidBody' });
+    expect(unordered).toMatchObject({
+      code: 'invalidBody',
+      reason: "a capture names no order for vendor 'vendor-2'",
+    });
   });
 });
 

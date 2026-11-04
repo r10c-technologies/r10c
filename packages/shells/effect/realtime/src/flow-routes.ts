@@ -34,7 +34,10 @@ const callerOf = Effect.gen(function* () {
   const request = yield* HttpServerRequest.HttpServerRequest;
   const capabilities = queryOf(request).getAll(CAPABILITY_PARAM);
   if (capabilities.length > MAX_CAPABILITIES)
-    return yield* invalid(`/query/${CAPABILITY_PARAM}`, 'too many capabilities');
+    return yield* invalid(
+      `/query/${CAPABILITY_PARAM}`,
+      'too many capabilities',
+    );
   return yield* resolveCaller(capabilities);
 });
 

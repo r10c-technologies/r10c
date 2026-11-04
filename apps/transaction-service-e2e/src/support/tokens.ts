@@ -93,7 +93,7 @@ export const bearerFor = async (roles: readonly Role[]): Promise<string> =>
   `Bearer ${await signTokenFor(roles)}`;
 
 /**
- * The token `POST /api/saga/:definition` expects.
+ * The token `POST /api/flow/:recipe` expects.
  *
  * This service's **inbound** crossing secret — what a caller presents to start
  * a flow — and deliberately not one of its outbound participant tokens: the
@@ -102,4 +102,4 @@ export const bearerFor = async (roles: readonly Role[]): Promise<string> =>
  * (ADR 0023).
  */
 export const E2E_CROSSING_TOKEN =
-  process.env['TRANSACTION_CROSSING_TOKEN'] ?? 'e2e-saga-crossing-token';
+  process.env['TRANSACTION_CROSSING_TOKEN'] ?? 'e2e-flow-crossing-token';

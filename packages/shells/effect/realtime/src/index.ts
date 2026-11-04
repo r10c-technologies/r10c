@@ -3,7 +3,11 @@
  * edge, the broadcast queues that feed it, and the projections deciding what a
  * browser may hear. realtime-service only mounts it (ADR 0064, ADR 0072).
  */
-export { makeAppLayer, readPushDials, realtimeComposition } from './app-layer.js';
+export {
+  makeAppLayer,
+  readPushDials,
+  realtimeComposition,
+} from './app-layer.js';
 export {
   type Caller,
   CAPABILITY_PARAM,

@@ -761,180 +761,6 @@
         "x": 0,
         "y": 27
       },
-      "id": 8,
-      "panels": [],
-      "title": "Sagas",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "Saga instances a sweep found stuck in RUNNING or COMPENSATING. A number that stays above zero across passes is a flow nothing can finish, holding a vendor's stock until the reaper expires it.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 0,
-        "y": 28
-      },
-      "id": 11,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "title": "Stale saga instances",
-      "type": "stat",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "max(saga_stale_instances_ratio{service_name=~\"$service_name\"}) or vector(0)",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "How resumed sagas settled. COMPLETED and COMPENSATED are the sweep working; STRANDED is the one an operator has to act on, because it means something is still held or still paid for.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 6,
-        "y": 28
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "title": "Saga resumes by settled state",
-      "type": "timeseries",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum by (state) (increase(saga_resumes_total{service_name=~\"$service_name\"}[$__rate_interval]))",
-          "legendFormat": "{{state}}",
-          "range": true,
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 36
-      },
       "id": 15,
       "panels": [],
       "title": "Participants and flows",
@@ -1004,7 +830,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 37
+        "y": 28
       },
       "id": 16,
       "options": {
@@ -1098,7 +924,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 37
+        "y": 28
       },
       "id": 17,
       "options": {
@@ -1192,7 +1018,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 45
+        "y": 36
       },
       "id": 18,
       "options": {
@@ -1286,7 +1112,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 45
+        "y": 36
       },
       "id": 19,
       "options": {
@@ -1351,7 +1177,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 45
+        "y": 36
       },
       "id": 20,
       "options": {
@@ -1447,7 +1273,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 53
+        "y": 44
       },
       "id": 21,
       "options": {
@@ -1541,7 +1367,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 53
+        "y": 44
       },
       "id": 22,
       "options": {

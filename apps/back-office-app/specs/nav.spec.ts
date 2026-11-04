@@ -22,7 +22,9 @@ const labels = (nav: ReturnType<typeof visibleNav>): string[] =>
 
 describe('visibleNav', () => {
   it('shows a provisioned organization its own catalog', () => {
-    expect(labels(visibleNav(principal()))).toContain('r10c:marketplaceAdmin.nav.products');
+    expect(labels(visibleNav(principal()))).toContain(
+      'r10c:marketplaceAdmin.nav.products',
+    );
   });
 
   it('hides Productos from an organization provisioned for nothing', () => {

@@ -1,6 +1,6 @@
 import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
-import { participantRefusal } from '@r10c/business-ts-saga-contracts';
+import { participantRefusal } from '@r10c/business-ts-flow-contracts';
 import { Schema } from 'effect';
 
 import { ORDER_NOT_CANCELLABLE } from '../failures/order-failures';
@@ -8,7 +8,11 @@ import { ORDER_NOT_CANCELLABLE } from '../failures/order-failures';
 /** The participant every order fragment calls. */
 const PARTICIPANT = 'order-service';
 
-/** An order's id, provided by its write. */
+/**
+ * An order's id, provided by its write — or, in a flow on an order that
+ * already exists, stated by its start input. Every path that addresses an
+ * order names it `:orderId`, the key a step is given it under.
+ */
 const OrderId = Schema.String;
 
 /** A checkout group's id — the flow's own — provided by its opening. */
@@ -21,11 +25,12 @@ const MOVE_REFUSAL = participantRefusal(['notFound', 'orderNotTransitionable']);
 
 /**
  * Open the buyer's checkout group under the flow's id, before any vendor's
- * order. Compensated by deleting it (ADR 0069).
+ * order. Compensated by deleting it (ADR 0069). The body is the group's own
+ * members, flat, as every flow step's is.
  */
 export const orderOpenGroup = defineFragment({
   id: 'order.open-group',
-  version: 1,
+  version: 2,
   module: 'order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -38,6 +43,7 @@ export const orderOpenGroup = defineFragment({
     input: openStruct({
       id: Schema.NonEmptyString,
       totals: Schema.Array(Schema.Unknown),
+      cancelDigest: Schema.optional(Schema.String),
     }),
     output: openStruct({ id: GroupId }),
     failure: participantRefusal(['invalidBody']),
@@ -50,7 +56,7 @@ export const orderOpenGroup = defineFragment({
  */
 export const orderWrite = defineFragment({
   id: 'order.write',
-  version: 2,
+  version: 3,
   module: 'order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -62,6 +68,7 @@ export const orderWrite = defineFragment({
   provides: { orderId: OrderId },
   contract: {
     input: openStruct({
+      groupId: GroupId,
       vendorId: Schema.NonEmptyString,
       paymentMethod: Schema.NonEmptyString,
       items: Schema.Array(Schema.Unknown),
@@ -79,19 +86,20 @@ export const orderWrite = defineFragment({
  */
 export const orderClaimCancel = defineFragment({
   id: 'order.claim-cancel',
-  version: 2,
+  version: 3,
   module: 'order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/product-order/:id/cancelling' },
+  call: { method: 'POST', path: '/api/product-order/:orderId/cancelling' },
   compensation: {
     method: 'DELETE',
-    path: '/api/product-order/:id/cancelling',
+    path: '/api/product-order/:orderId/cancelling',
   },
   cardinality: 'one',
   isolation: 'semanticLock',
+  consumes: { orderId: OrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ orderId: OrderId }),
     output: ORDER,
     failure: participantRefusal(['notFound', ORDER_NOT_CANCELLABLE]),
   },
@@ -104,16 +112,16 @@ export const orderClaimCancel = defineFragment({
  */
 export const orderConfirm = defineFragment({
   id: 'order.confirm',
-  version: 1,
+  version: 2,
   module: 'order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/product-order/:id/confirmed' },
+  call: { method: 'POST', path: '/api/product-order/:orderId/confirmed' },
   cardinality: 'perVendor',
   isolation: 'reRead',
   consumes: { orderId: OrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ orderId: OrderId }),
     output: ORDER,
     failure: MOVE_REFUSAL,
   },
@@ -122,15 +130,16 @@ export const orderConfirm = defineFragment({
 /** Mark a vendor order dispatched, once its shipment left. Retried. */
 export const orderMarkDispatched = defineFragment({
   id: 'order.mark-dispatched',
-  version: 1,
+  version: 2,
   module: 'order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/product-order/:id/dispatched' },
+  call: { method: 'POST', path: '/api/product-order/:orderId/dispatched' },
   cardinality: 'one',
   isolation: 'reRead',
+  consumes: { orderId: OrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ orderId: OrderId }),
     output: ORDER,
     failure: MOVE_REFUSAL,
   },
@@ -144,15 +153,17 @@ export const orderMarkDispatched = defineFragment({
  */
 export const orderClose = defineFragment({
   id: 'order.close',
-  version: 1,
+  version: 2,
   module: 'order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/product-order/:id/closed' },
+  call: { method: 'POST', path: '/api/product-order/:orderId/closed' },
   cardinality: 'one',
   isolation: 'reRead',
+  consumes: { orderId: OrderId },
   contract: {
     input: openStruct({
+      orderId: OrderId,
       outcome: Schema.Literals(['fulfilled', 'cancelled']),
     }),
     output: ORDER,

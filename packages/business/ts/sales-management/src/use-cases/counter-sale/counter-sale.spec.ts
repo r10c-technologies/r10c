@@ -4,11 +4,12 @@ import {
   type PublishedPrice,
   PublishedPriceReaderTag,
 } from '@r10c/business-ts-catalog-contracts';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import {
-  type SagaInputs,
-  SagaStarterTag,
-  type SagaStartOutcome,
-} from '@r10c/business-ts-saga-contracts';
+  acceptedAnswer,
+  type FlowCoordinatorScript,
+  makeScriptedFlowStarter,
+} from '@r10c/business-ts-flow-contracts/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -29,9 +30,11 @@ const prices: Record<string, PublishedPrice> = {
 };
 
 const world = (
-  outcome: SagaStartOutcome = { _tag: 'completed', result: 'r' },
+  answer:
+    | NonNullable<ReturnType<FlowCoordinatorScript>>
+    | 'unreachable' = acceptedAnswer('flow-1'),
 ) => {
-  const started: SagaInputs[] = [];
+  const started: { recipe: string; input: unknown; key: string }[] = [];
   const layer = Layer.mergeAll(
     Layer.succeed(EntityRepositoryFactoryTag, {
       for: () =>
@@ -45,13 +48,13 @@ const world = (
     Layer.succeed(PublishedPriceReaderTag, {
       priceOf: offeringId => Effect.succeed(prices[offeringId]),
     }),
-    Layer.succeed(SagaStarterTag, {
-      start: (_definition, inputs) =>
-        Effect.sync(() => {
-          started.push(inputs);
-          return outcome;
-        }),
-    }),
+    Layer.succeed(
+      FlowStarterTag,
+      makeScriptedFlowStarter((recipe, input, key) => {
+        started.push({ recipe, input, key });
+        return answer === 'unreachable' ? undefined : answer;
+      }),
+    ),
   );
   const sale = (channelId: string, offeringId = 'mine') =>
     sellAtCounter({
@@ -85,22 +88,34 @@ describe('validateSalesChannel', () => {
 });
 
 describe('sellAtCounter', () => {
-  it('starts the checkout at published prices, with the channel copied onto the order', async () => {
+  it('starts the checkout at published prices, with the channel on it, and answers the flow', async () => {
     const { sold, started } = world();
 
-    expect(await sold('c-open')).toBe('r');
-    expect(started[0]?.['reserve']).toEqual([
+    expect(await sold('c-open')).toMatchObject({ flowId: 'flow-1' });
+    expect(started).toEqual([
       {
-        organizationId: 'org-1',
-        body: {
-          meta: { type: 'entity', entity: 'reservation' },
-          data: { offeringId: 'mine', quantity: 2 },
+        recipe: 'checkout',
+        key: 'sale-1',
+        input: {
+          channel: { type: 'counter', id: 'c-open', name: 'Till c-open' },
+          vendors: [
+            {
+              vendorId: 'org-1',
+              paymentMethod: 'cash',
+              lines: [
+                {
+                  offeringId: 'mine',
+                  quantity: 2,
+                  amount: 500,
+                  currency: 'GTQ',
+                },
+              ],
+            },
+          ],
+          totals: [{ currency: 'GTQ', amount: 1000 }],
         },
       },
     ]);
-    expect(JSON.stringify(started[0]?.['write-order'])).toContain(
-      '"name":"Till c-open"',
-    );
   });
 
   it('refuses an unknown channel, a retired one, an unpublished offering and somebody else’s', async () => {
@@ -122,13 +137,21 @@ describe('sellAtCounter', () => {
     expect(started).toEqual([]);
   });
 
-  it('answers a compensated flow as unavailable stock, and a failed one as the coordinator unavailable', async () => {
+  it('answers the coordinator’s refusal, and a coordinator it cannot reach, as they are', async () => {
     expect(
-      await world({ _tag: 'compensated', result: {} }).sell('c-open'),
-    ).toMatchObject({ _tag: 'StockUnavailable', channelId: 'c-open' });
-    expect(
-      await world({ _tag: 'failed', status: 502, result: {} }).sell('c-open'),
-    ).toMatchObject({
+      await world({
+        status: 403,
+        contentType: 'application/problem+json',
+        body: {
+          type: 'about:blank',
+          title: 'notFound',
+          status: 404,
+          code: 'notFound',
+          category: 'notFound',
+        },
+      }).sell('c-open'),
+    ).toMatchObject({ code: 'flowNotStarted', refusal: 'notFound' });
+    expect(await world('unreachable').sell('c-open')).toMatchObject({
       _tag: 'UpstreamUnavailable',
       upstream: 'transaction-service',
     });

@@ -16,6 +16,7 @@
   read answered to a session **or** a capability fits no endpoint guard kind.
 - Area: messaging
 - Read when: pushing anything to a browser, asking where a flow stands, or putting a listener on 3000/3001 — one realtime slice owns the stream and the flow-status projection, the audience filter fails closed, and the edge owns the origins
+- Revised: 2026-11-04 — `GET /api/saga/:id` is deleted (#490); where a flow stands is answered only by `GET /api/realtime/flow/:id`
 
 ## Context
 
@@ -45,7 +46,7 @@ route-handler upgrade (vercel/next.js#95514), and a streamed `GET` through
 browser reaches Next directly on 3000/3001, so there is nowhere else to put it.
 
 entifix 0.14.0 ships the mechanism: `ServerPushTag` and its SSE adapter at
-`@entifix/service-shell/push` ([entifix ADR 0021](https://github.com/r10c-technologies/entifix/blob/v0.14.0/docs/adr/0021-server-push-and-the-multiplexed-channel.md)),
+`@entifix/service-shell/push` ([entifix ADR 0021](https://github.com/r10c-technologies/entifix/blob/v0.15.0/docs/adr/0021-server-push-and-the-multiplexed-channel.md)),
 and one multiplexed `PushChannel` per tab in the browser. What it leaves to the
 host is where the stream lives, who may hear what, and what is replayed.
 

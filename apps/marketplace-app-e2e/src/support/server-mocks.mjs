@@ -121,7 +121,7 @@ const collections = [
  * The id's prefix is how the rest of this file knows which journey it is in —
  * what is in the basket is the only thing a server action lets through.
  */
-const CHECKOUT_URL = 'http://localhost:3103/api/saga/checkout';
+const CHECKOUT_URL = 'http://localhost:3103/api/flow/checkout';
 
 /** Where the settle action verifies a flow completed, server to server. */
 const FLOW_STATUS_URL = 'http://localhost:3191/api/realtime/flow/:id';
@@ -191,7 +191,7 @@ const holds = (vendors, offeringId) =>
 
 const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
   const body = await request.json().catch(() => undefined);
-  const vendors = body?.inputs?.vendors;
+  const vendors = body?.vendors;
   if (!Array.isArray(vendors) || vendors.length === 0) {
     return problem('InvalidBody', 'invalidBody', 'invalid', 400);
   }
@@ -223,9 +223,13 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
  * capability is *present* and nothing more — the digest comparison is the
  * service's own decision — and `404` is a flow it never started.
  */
+/** Every cancellation a buyer started, by its flow id. */
+const cancellations = new Set();
+
 const flowStatusHandler = http.get(FLOW_STATUS_URL, ({ request, params }) => {
   const capability = new URL(request.url).searchParams.get('capability');
-  if (!capability || !baskets.has(params.id)) return notFound();
+  if (!capability || !(baskets.has(params.id) || cancellations.has(params.id)))
+    return notFound();
   return HttpResponse.json({
     meta: { type: 'flowStatus', entity: 'flow' },
     data: {
@@ -308,10 +312,23 @@ const buyerCancelHandler = http.post(
         orderId: params.id,
       });
     }
-    return HttpResponse.json({
-      meta: { type: 'entity', entity: 'product-order' },
-      data: { id: params.id, status: 'cancelled' },
-    });
+    // A cancellation is a flow (ADR 0066): started, answered `202`, and
+    // followed by the receipt to its end on the stream.
+    const flowId = `e2e-cancel-${params.id}`;
+    cancellations.add(flowId);
+    return HttpResponse.json(
+      {
+        meta: { type: 'flowAccepted', entity: 'product-order' },
+        data: {
+          flowId,
+          links: [
+            { rel: 'status', href: `/api/realtime/flow/${flowId}` },
+            { rel: 'stream', href: '/api/realtime/stream' },
+          ],
+        },
+      },
+      { status: 202 },
+    );
   },
 );
 

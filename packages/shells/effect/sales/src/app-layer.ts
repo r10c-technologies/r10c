@@ -3,8 +3,8 @@ import {
   type FleetConfiguration,
   fleetSecurityLayer,
   fleetTenantMongoLayer,
+  httpFlowStarterLayer,
   httpPublishedPriceReaderLayer,
-  httpSagaStarterLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
@@ -74,7 +74,7 @@ export const salesComposition =
       const connections = Layer.mergeAll(
         yield* fleetTenantMongoLayer(configuration, ['sales']),
         yield* fleetSecurityLayer(configuration),
-        httpSagaStarterLayer({
+        httpFlowStarterLayer({
           url: coordinatorUrl,
           crossingToken: coordinatorToken,
         }),

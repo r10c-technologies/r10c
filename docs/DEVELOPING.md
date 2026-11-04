@@ -922,11 +922,12 @@ checks keep them honest, and each fails the build:
   `defineVariants(` with no spec beside it calling `forEachVariant(`.
 - **A variant is chosen from verified facts.** `@r10c/conventions` fails a
   `When(` predicate that names the request, its body, params, query or input.
-- **The recipes lead; the saga runner lags.** The commerce domain (#479–#485)
-  moved the recipes to per-vendor orders and per-order payment allocations, and
-  the saga runner's `sagas/*.saga.ts` were deliberately left behind: a live
-  checkout or counter sale fails until #486 and #487 move both flows onto the
-  engine from the recipes. Nothing checks the two against each other any more.
+- **A step's body is flat, and its path names its keys.** A participant's
+  crossing route reads the step's inputs — its pinned parameters and the keys
+  it consumes — as a flat body (`readStepRecord` for a record), never an
+  entity envelope; a fragment's path names a parameter after the key the step
+  is given it under (`/api/reservation/:reservationId/conversion`), and the
+  register compares a call to a route by shape.
 
 A verb that starts a flow names its recipe on its `@useCase()`, and the cell's
 route builder takes the shell's `MetadataCompositions`, so `$metadata` reports

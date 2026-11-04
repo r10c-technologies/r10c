@@ -81,6 +81,8 @@ export const errors = {
   // una escritura atómica condicionada a eso. Cero documentos alcanzados *es* la
   // respuesta de falta de existencia, no un error del sistema.
   insufficientStock: 'No hay existencia suficiente para reservar.',
+  flowNotStarted:
+    'No se pudo iniciar. Revisa lo solicitado e inténtalo de nuevo.',
   // La venta se compensó por completo: alguna línea fue rechazada y toda
   // existencia que se había apartado volvió a quedar disponible. Es un
   // resultado de inventario sobre el que el vendedor puede actuar, no una
@@ -111,9 +113,6 @@ export const errors = {
   unexpected: 'Algo salió mal.',
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
-  stockUnavailable: 'No se pudo completar la venta. Revisa la existencia.',
-  sagaCompensated: 'No se pudo completar la operación y no se cambió nada.',
-  sagaStranded: 'La operación se detuvo a medias y se está revisando.',
   mixedCurrencies:
     'Los montos de un mismo vendedor están en más de una moneda.',
   unavailable:

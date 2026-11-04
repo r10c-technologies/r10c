@@ -249,32 +249,6 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-service-domain',
     value: 'http://localhost:3100/api',
   },
-  // Where checkout starts. The storefront's server action calls
-  // transaction-service directly, so this address stays server-side for the
-  // reason the row above does — and here it *must*, because the call carries a
-  // crossing token no browser may ever hold.
-  {
-    service: 'marketplace-app',
-    group_name: 'uri',
-    key: 'transaction-service-domain',
-    value: 'http://localhost:3103/api',
-  },
-  // ⚠️ **The token the storefront presents to start a checkout**, matching
-  // transaction-service's inbound `service.token`. It is read in a server action
-  // and never reaches the browser: a storefront with no auth gate cannot prove
-  // who the buyer is, so what it proves instead is that the *fleet* is asking —
-  // which is exactly what a crossing token is for
-  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
-  //
-  // It is deliberately **not** a participant token: it starts a flow, it does
-  // not write a vendor's stock.
-  {
-    service: 'marketplace-app',
-    group_name: 'service',
-    key: 'sagaToken',
-    value: 'dev-saga-crossing-token-change-me',
-    is_secret: true,
-  },
   {
     service: 'back-office-app',
     group_name: 'uri',
@@ -361,7 +335,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // this service owns no single named database. Every catalog handle is a
   // per-organization `tenant_<id>` resolved inside the request, so a name here
   // would create a database nothing writes — the phantom store ADR 0020 rules
-  // out. The saga store below names its own.
+  // out.
   {
     service: 'marketplace-admin-service',
     group_name: 'mongo',
@@ -677,29 +651,17 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'metricIntervalMs',
     value: '60000',
   },
-  // transaction-service — the saga coordinator. It owns the `saga` store:
-  // control plane, single, one named Mongo database.
-  //
-  // ⚠️ **These rows moved off marketplace-admin-service on 2026-09-08 (#229).**
-  // The `transaction` slice used to be co-deployed there, so it needed no `uri`
-  // of its own — the pool and the bus were already that service's, and only the
-  // database name was the slice's own. This block is what the split carried
-  // with it, exactly as that row's note predicted.
-  // How long a crossing write's `Idempotency-Key` replays its first answer
-  // (ADR 0068): past it the key is free again. A day outlasts every redelivery
-  // and every coordinator retry.
+  // transaction-service — the flow coordinator. It owns the `workflow` store
+  // (Postgres, below) and no Mongo store: a start's idempotency is the
+  // engine's own registration of its `Idempotency-Key` (ADR 0066).
+  // The published vendor projection, read for what each vendor a flow acts
+  // for is provisioned for: the coordinator states a vendor segment's
+  // entitlements itself rather than take the caller's word for them.
   {
     service: 'transaction-service',
-    group_name: 'idempotency',
-    key: 'retentionMs',
-    value: '86400000',
-  },
-  {
-    service: 'transaction-service',
-    group_name: 'mongo',
-    key: 'uri',
-    value: MONGO_URI,
-    is_secret: true,
+    group_name: 'marketplace',
+    key: 'url',
+    value: 'http://localhost:3100/api',
   },
   {
     service: 'transaction-service',
@@ -707,41 +669,6 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'uri',
     value: 'amqp://admin:password@127.0.0.1:30672',
     is_secret: true,
-  },
-  {
-    service: 'transaction-service',
-    group_name: 'saga',
-    key: 'db',
-    value: 'transaction_manager',
-  },
-  // How long a *saga instance* may sit untouched before a sweep presumes its
-  // coordinator is gone and finishes the flow itself (#233).
-  //
-  // ⚠️ `updatedAt` is re-stamped before every
-  // dispatch, so this must stay above the longest a step legitimately takes —
-  // below it, a resume runs underneath a coordinator still waiting on a slow
-  // participant, and both dispatch.
-  {
-    service: 'transaction-service',
-    group_name: 'saga',
-    key: 'resumeStaleAfterMs',
-    value: '60000',
-  },
-  // How often the resume sweep runs.
-  {
-    service: 'transaction-service',
-    group_name: 'saga',
-    key: 'resumeIntervalMs',
-    value: '30000',
-  },
-  // How many sweeps may pick one instance up before it is settled `STRANDED`
-  // and logged instead. The ceiling ADR 0030 gives an outbox entry, applied to
-  // the record that already exists rather than to a second one beside it.
-  {
-    service: 'transaction-service',
-    group_name: 'saga',
-    key: 'maxResumeAttempts',
-    value: '3',
   },
   // The durable flow engine's store (ADR 0066): one Postgres database holding
   // every flow's journal, the runners' registrations and shard locks, each
@@ -802,7 +729,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     service: 'transaction-service',
     group_name: 'service',
     key: 'token',
-    value: 'dev-saga-crossing-token-change-me',
+    value: 'dev-flow-crossing-token-change-me',
     is_secret: true,
   },
   // The participants checkout dispatches to, and **one crossing token each**.
@@ -975,7 +902,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   //
   // ⚠️ The value carries the `/api` suffix, matching sales-service's row and not
   // transaction-service's own `participant.*Url` rows, which do not. The route
-  // composes `${url}/saga/<definition>`.
+  // composes `${url}/flow/<recipe>`.
   {
     service: 'order-service',
     group_name: 'transaction',
@@ -986,7 +913,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     service: 'order-service',
     group_name: 'transaction',
     key: 'crossingToken',
-    value: 'dev-saga-crossing-token-change-me',
+    value: 'dev-flow-crossing-token-change-me',
     is_secret: true,
   },
   {
@@ -1103,7 +1030,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // hold, the *contra entrega* shape) or `decline`.
   //
   // ⚠️ Configuration rather than a build flag **so a live pass can exercise the
-  // saga's compensation path** — forcing a refusal is the only way to prove the
+  // checkout's compensation path** — forcing a refusal is the only way to prove the
   // flow unwinds, and it must not need a rebuild to do it.
   {
     service: 'payment-service',
@@ -1690,7 +1617,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // presents to start a flow through it.
   //
   // ⚠️ **The coordinator's *inbound* token, not a participant's.** It starts a
-  // saga; it does not write a vendor's stock or an order — transaction-service
+  // flow; it does not write a vendor's stock or an order — transaction-service
   // holds those separately, so a leak here cannot reach a tenant store directly
   // (ADR 0023). It is the same secret the storefront's checkout action presents,
   // and this is the second holder: the storefront holds it because it has no
@@ -1705,7 +1632,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     service: 'sales-service',
     group_name: 'transaction',
     key: 'crossingToken',
-    value: 'dev-saga-crossing-token-change-me',
+    value: 'dev-flow-crossing-token-change-me',
     is_secret: true,
   },
   // The published projection a counter sale is priced from. Anonymous, because

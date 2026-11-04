@@ -47,8 +47,8 @@ describe('a next cell', () => {
     ],
     ["import { useQuery } from '@tanstack/react-query';", 'a state mechanism'],
     [
-      "import { runSaga } from '@entifix/transactions/engine';",
-      'the saga engine',
+      "import { InMemoryBulkheadLayer } from '@entifix/transactions/engine';",
+      'a resilience engine',
     ],
     [
       "import { makeService } from '@entifix/service-shell/runtime';",
@@ -82,7 +82,7 @@ describe('a next cell', () => {
     ["import { loadUCFactory } from '@entifix/business';", 'a use case'],
     ["import type { EntityPage } from '@entifix/core';", 'an entity contract'],
     [
-      "import type { SagaStore } from '@entifix/transactions';",
+      "import type { FlowEngine } from '@entifix/transactions';",
       'a transactions port',
     ],
     [
@@ -243,7 +243,10 @@ describe('a service app', () => {
   it.each([
     ["import { HttpRouter } from 'effect/http';", 'the router'],
     ["import { HttpApi } from 'effect/http-api';", 'an HTTP API'],
-    ["import { runSaga } from '@entifix/transactions/engine';", 'the engine'],
+    [
+      "import { InMemoryBulkheadLayer } from '@entifix/transactions/engine';",
+      'the engine',
+    ],
     [
       "import { logSliceOutcome } from '@r10c/shells-effect-service';",
       'the shell log',

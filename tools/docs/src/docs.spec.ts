@@ -1332,11 +1332,6 @@ describe('The dashboard charts the metrics the fleet declares', () => {
       'status',
       'flow-status-store.js',
     ),
-    // The saga sweep's metrics, with the `saga` store's owner since the
-    // `transaction` slice took `:3103` (#229). A module missing from this list
-    // is not a loud failure — the dashboard check would simply stop knowing the
-    // metric is declared and call every panel querying it undeclared.
-    'packages/shells/effect/transaction/src/observability/metrics.ts',
   ];
 
   /** The provisioning directory whose contents a mount must never replace. */
@@ -1443,13 +1438,13 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   };
 
   it('finds the metrics it is meant to check', () => {
-    // Nineteen: five bus counters and the paused-consumer gauge, three outbox
+    // Seventeen: five bus counters and the paused-consumer gauge, three outbox
     // gauges, the breaker's gauge and two counters, the bulkhead's gauge, the
-    // retry budget's three counters, the flow engine's state counter, and the
-    // saga sweep's gauge and counter. Pinned as a count rather than a Set size,
+    // retry budget's three counters, and the flow engine's state counter.
+    // Pinned as a count rather than a Set size,
     // so the doc-comment over-match the DECLARATION regex is written to avoid
     // cannot hide behind dedup.
-    expect(declared()).toHaveLength(19);
+    expect(declared()).toHaveLength(17);
     expect(new Set(queried()).size).toBeGreaterThanOrEqual(8);
   });
 

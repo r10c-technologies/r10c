@@ -9,13 +9,13 @@ import {
 describe('FULFILMENT_FRAGMENTS', () => {
   it('declares the seven steps a delivery or a cancellation takes', () => {
     expect(FULFILMENT_FRAGMENTS.map(fragmentRef)).toEqual([
-      'fulfilment.open@1',
-      'fulfilment.hold@1',
-      'fulfilment.release@1',
-      'fulfilment.withdraw@1',
-      'fulfilment.dispatch@1',
-      'fulfilment.await-delivery@1',
-      'fulfilment.await-return@1',
+      'fulfilment.open@2',
+      'fulfilment.hold@2',
+      'fulfilment.release@2',
+      'fulfilment.withdraw@2',
+      'fulfilment.dispatch@2',
+      'fulfilment.await-delivery@2',
+      'fulfilment.await-return@2',
     ]);
   });
 

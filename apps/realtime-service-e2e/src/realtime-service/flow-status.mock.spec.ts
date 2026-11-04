@@ -134,6 +134,9 @@ describe('the catch-up reads', () => {
     expect(((await response.json()) as { data: unknown }).data).toEqual([
       { flowId: 'f-read', state: 'completed' },
     ]);
-    expect(((await (await read('?ids=f-read', 'org-b')).json()) as { data: unknown }).data).toEqual([]);
+    expect(
+      ((await (await read('?ids=f-read', 'org-b')).json()) as { data: unknown })
+        .data,
+    ).toEqual([]);
   });
 });

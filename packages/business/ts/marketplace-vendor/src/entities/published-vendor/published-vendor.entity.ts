@@ -33,6 +33,7 @@ export class PublishedVendor implements Entity {
   // every real announcement rather than as newer than all of them.
   #announcedAt = new Date(0);
   #acceptsCod = false;
+  #holdsStock = false;
   // #endregion
 
   // #region constructors
@@ -114,6 +115,24 @@ export class PublishedVendor implements Entity {
   }
   set acceptsCod(value: boolean) {
     this.#acceptsCod = value;
+  }
+
+  /**
+   * Whether a checkout may hold this seller's stock — whether it is
+   * provisioned for `stock-management`, as auth-service announced it. Read by
+   * the coordinator to state a vendor segment's entitlements itself rather
+   * than take the caller's word for them (ADR 0066). Serialized like any
+   * member — a hidden one would never reach the projection it is read from.
+   */
+  @accessor({
+    type: 'boolean',
+    labelKey: 'entity:published-vendor.fields.holdsStock',
+  })
+  get holdsStock(): boolean {
+    return this.#holdsStock;
+  }
+  set holdsStock(value: boolean) {
+    this.#holdsStock = value;
   }
   // #endregion
 }

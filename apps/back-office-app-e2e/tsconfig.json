@@ -33,6 +33,9 @@
       "path": "../../packages/business/ts/settlement-management"
     },
     {
+      "path": "../../packages/business/ts/order-management"
+    },
+    {
       "path": "../../packages/business/ts/sales-management"
     },
     {

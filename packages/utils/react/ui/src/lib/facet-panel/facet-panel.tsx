@@ -224,7 +224,7 @@ export function FacetPanel({ label, facets, collapsible }: FacetPanelProps) {
   // One that does not shows the summary on every screen, so the desktop panel
   // starts closed but can still be opened, rather than being hidden for good.
   return (
-    <details className="sm:supports-[selector(::details-content)]:[&::details-content]:[content-visibility:visible] sm:supports-[selector(::details-content)]:[&::details-content]:block">
+    <details className="sm:supports-[selector(::details-content)]:[&::details-content]:block sm:supports-[selector(::details-content)]:[&::details-content]:[content-visibility:visible]">
       <summary className="cursor-pointer rounded-md border border-border px-xs py-2xs font-semibold sm:supports-[selector(::details-content)]:hidden">
         {collapsible.summary}
       </summary>

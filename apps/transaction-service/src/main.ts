@@ -9,19 +9,18 @@ import { fleetToken } from '@r10c/utils-ts-fleet';
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
 
 /**
- * transaction-service — the saga coordinator (port 3103).
+ * transaction-service — the flow coordinator (port 3103).
  *
- * Owns the `saga` store: control plane, single, one Mongo database. It folds
- * `transaction.*` events into the record a browser polls after its `202`, and
- * it orchestrates multi-step flows from declarative definitions.
+ * It starts flows: `POST /api/flow/checkout` and `/api/flow/cancellation`
+ * compose a slip from what they verified and hand it to the durable flow
+ * engine over the Postgres `workflow` store, answering `202` (ADR 0066). This
+ * process is the engine's replica 0, whose runner listens on
+ * `runnerPort(port, 0)`; `runner.ts` is the replica beside it.
  *
  * It hosts **no domain** (`domains: []`): orchestration is a mechanism, and a
  * domain name is simultaneously a package identity, a permission namespace and
  * an entitlement key — none of which anything would ever be provisioned for
  * here (ADR 0039).
- *
- * It is also replica 0 of the durable flow engine (ADR 0066), whose runner
- * listens on `runnerPort(port, 0)`; `runner.ts` is the replica beside it.
  */
 const port = Number(process.env.PORT) || DEFAULT_PORT;
 

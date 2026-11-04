@@ -38,7 +38,7 @@
       "path": "../../packages/business/ts/sales-management/tsconfig.lib.json"
     },
     {
-      "path": "../../packages/business/ts/saga-contracts/tsconfig.lib.json"
+      "path": "../../packages/business/ts/flow-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../packages/business/ts/catalog-contracts/tsconfig.lib.json"

@@ -11,12 +11,12 @@ import {
 describe('order fragments', () => {
   it('are pinned and owned by order-management', () => {
     expect(ORDER_FRAGMENTS.map(fragmentRef)).toEqual([
-      'order.open-group@1',
-      'order.write@2',
-      'order.claim-cancel@2',
-      'order.confirm@1',
-      'order.mark-dispatched@1',
-      'order.close@1',
+      'order.open-group@2',
+      'order.write@3',
+      'order.claim-cancel@3',
+      'order.confirm@2',
+      'order.mark-dispatched@2',
+      'order.close@2',
     ]);
     expect(new Set(ORDER_FRAGMENTS.map(f => f.module))).toEqual(
       new Set(['order-management']),

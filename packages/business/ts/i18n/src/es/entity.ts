@@ -288,6 +288,7 @@ export const entity = {
       displayName: 'Vendedor',
       announcedAt: 'Anunciado el',
       acceptsCod: 'Acepta pago contra entrega',
+      holdsStock: 'Maneja inventario',
     },
   },
   'published-offering': {

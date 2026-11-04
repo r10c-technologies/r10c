@@ -4,11 +4,15 @@ import {
   type Slip,
   validateSlip,
 } from '@entifix/business/flow';
+import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { PAYMENT_FRAGMENTS, paymentCapture } from './payment-fragments.js';
 
 const catalog = defineCatalog([...PAYMENT_FRAGMENTS]);
+
+/** What the steps before the capture bind: the group, and each vendor's order. */
+const bound = { start: { groupId: Schema.String, orderId: Schema.String } };
 
 const captureIn = (paymentMethod: string): Slip => ({
   slipVersion: 1,
@@ -34,7 +38,7 @@ const captureIn = (paymentMethod: string): Slip => ({
 describe('payment fragments', () => {
   it('are two irreversible pivots, a retried collection and a read-only check', () => {
     expect(PAYMENT_FRAGMENTS.map(fragmentRef)).toEqual([
-      'payment.capture@2',
+      'payment.capture@3',
       'payment.refund@2',
       'payment.record-collection@1',
       'payment.cod-eligible@1',
@@ -54,13 +58,13 @@ describe('payment fragments', () => {
   });
 
   it('let a card segment capture', () => {
-    expect(validateSlip(captureIn('card'), catalog)).toEqual([]);
+    expect(validateSlip(captureIn('card'), catalog, bound)).toEqual([]);
   });
 
   // Cash on delivery takes no money at checkout: the courier does, later.
   it('refuse a capture inside a cash-on-delivery segment', () => {
-    expect(validateSlip(captureIn('cod'), catalog).map(v => v.tag)).toEqual([
-      'ExcludedFromSegment',
-    ]);
+    expect(
+      validateSlip(captureIn('cod'), catalog, bound).map(v => v.tag),
+    ).toEqual(['ExcludedFromSegment']);
   });
 });

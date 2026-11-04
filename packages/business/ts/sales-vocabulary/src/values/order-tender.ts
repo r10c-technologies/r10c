@@ -22,4 +22,5 @@ export type OrderTender = (typeof OrderTenders)[number];
 
 /** Narrow an unknown value (a request body, a Mongo document) to a tender. */
 export const isOrderTender = (value: unknown): value is OrderTender =>
-  typeof value === 'string' && (OrderTenders as readonly string[]).includes(value);
+  typeof value === 'string' &&
+  (OrderTenders as readonly string[]).includes(value);

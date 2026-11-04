@@ -1,14 +1,14 @@
 import { InMemoryRetryBudgetLayer } from '@entifix/transactions/engine';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { describePublishedPriceReaderContract } from '@r10c/business-ts-catalog-contracts/testing';
-import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
-import { describeSagaStarterContract } from '@r10c/business-ts-saga-contracts/testing';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import { describeFlowStarterContract } from '@r10c/business-ts-flow-contracts/testing';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  httpFlowStarterLayer,
   httpPublishedPriceReaderLayer,
-  httpSagaStarterLayer,
 } from './http-adapters.js';
 
 afterEach(() => {
@@ -20,19 +20,6 @@ const respond = (status: number, body?: unknown) =>
     Promise.resolve(
       new Response(body === undefined ? null : JSON.stringify(body), {
         status,
-      }),
-    ),
-  );
-
-const start = () =>
-  Effect.gen(function* () {
-    const starter = yield* SagaStarterTag;
-    return yield* starter.start('checkout', {}, 'k');
-  }).pipe(
-    Effect.provide(
-      httpSagaStarterLayer({
-        url: 'http://coordinator/api',
-        crossingToken: 't',
       }),
     ),
   );
@@ -59,7 +46,7 @@ const serve = (
     url: URL,
     body: unknown,
     headers: Record<string, string>,
-  ) => { status: number; body?: unknown } | undefined,
+  ) => { status: number; contentType?: string; body?: unknown } | undefined,
 ) =>
   vi.stubGlobal('fetch', (input: string, init?: RequestInit) => {
     const answered = answer(
@@ -72,26 +59,31 @@ const serve = (
       : Promise.resolve(
           new Response(
             answered.body === undefined ? null : JSON.stringify(answered.body),
-            { status: answered.status },
+            {
+              status: answered.status,
+              ...(answered.contentType === undefined
+                ? {}
+                : { headers: { 'content-type': answered.contentType } }),
+            },
           ),
         );
   });
 
-describeSagaStarterContract('the HTTP saga starter', coordinator => {
+describeFlowStarterContract('the HTTP flow starter', coordinator => {
   serve((url, body, headers) =>
     coordinator(
-      url.pathname.replace('/api/saga/', ''),
-      (body as { inputs: never }).inputs,
+      url.pathname.replace('/api/flow/', ''),
+      body,
       // Sent as an RFC 9651 String; the script sees the key itself.
       (headers['idempotency-key'] ?? '').replace(/^"|"$/g, ''),
     ),
   );
   return Effect.runPromise(
     Effect.gen(function* () {
-      return yield* SagaStarterTag;
+      return yield* FlowStarterTag;
     }).pipe(
       Effect.provide(
-        httpSagaStarterLayer({
+        httpFlowStarterLayer({
           url: 'http://coordinator/api',
           crossingToken: 't',
         }),
@@ -119,26 +111,6 @@ describePublishedPriceReaderContract('the HTTP price reader', catalog => {
       return yield* PublishedPriceReaderTag;
     }).pipe(Effect.provide(priceReaderLayer())),
   );
-});
-
-describe('httpSagaStarterLayer', () => {
-  it('answers the outcome the coordinator’s status means', async () => {
-    respond(409, { stepId: 'reserve' });
-
-    expect(await Effect.runPromise(start())).toEqual({
-      _tag: 'compensated',
-      result: { stepId: 'reserve' },
-    });
-  });
-
-  it('reports a coordinator it could not reach as an unavailable upstream', async () => {
-    vi.stubGlobal('fetch', () => Promise.reject(new Error('refused')));
-
-    expect(await Effect.runPromise(start().pipe(Effect.flip))).toMatchObject({
-      _tag: 'UpstreamUnavailable',
-      upstream: 'transaction-service',
-    });
-  });
 });
 
 describe('httpPublishedPriceReaderLayer', () => {

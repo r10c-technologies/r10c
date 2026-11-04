@@ -39,21 +39,40 @@ const commandId = Effect.map(
   Option.getOrUndefined,
 );
 
+/** One card vendor's share of a capture, by the vendor it is owed to. */
 const Share = Schema.Struct({
-  orderId: Schema.NonEmptyString,
   vendorId: Schema.NonEmptyString,
   amount: Schema.Number,
 });
 
-/** What a capture is asked for: one charge for a group, split per vendor order. */
+/**
+ * What a capture is asked for: one charge for a group, as each card vendor's
+ * share, and the order each vendor's segment wrote — by vendor, as a flow step
+ * outside every segment is given them. The charge is the shares' sum, so the
+ * total and its split can never disagree.
+ */
 const CaptureRequest = Schema.Struct({
   groupId: Schema.NonEmptyString,
-  amount: Schema.Number,
   currency: Schema.NonEmptyString,
   paymentMethod: Schema.optional(Schema.Literals(PaymentMethods)),
   channelId: Schema.optional(Schema.String),
-  allocations: Schema.Array(Share),
+  shares: Schema.NonEmptyArray(Share),
+  orderId: Schema.Record(Schema.String, Schema.String),
 });
+type CaptureRequest = typeof CaptureRequest.Type;
+
+/** Each share allocated to the order its vendor wrote; a vendor with none is refused. */
+const allocationsOf = (body: CaptureRequest) =>
+  Effect.forEach(body.shares, share => {
+    const orderId = body.orderId[share.vendorId];
+    return orderId === undefined
+      ? Effect.fail(
+          new InvalidBody({
+            reason: `a capture names no order for vendor '${share.vendorId}'`,
+          }),
+        )
+      : Effect.succeed({ ...share, orderId });
+  });
 
 /**
  * `POST /api/payment` — checkout's pivot, behind a crossing token and **no
@@ -79,9 +98,11 @@ export const paymentApi = defineEntityApi(
         errors: [InvalidBody, PaymentDeclined, DuplicateKey],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
-            const body = request.payload as typeof CaptureRequest.Type;
+            const body = request.payload as CaptureRequest;
+            const shares = yield* allocationsOf(body);
+            const amount = shares.reduce((sum, share) => sum + share.amount, 0);
             const payment = Object.assign(
-              new Payment(body.groupId, body.amount, body.currency),
+              new Payment(body.groupId, amount, body.currency),
               {
                 paymentMethod: body.paymentMethod ?? 'card',
                 channelId: body.channelId,
@@ -89,7 +110,7 @@ export const paymentApi = defineEntityApi(
             );
             const { payment: decided } = yield* capturePayment({
               payment,
-              shares: body.allocations,
+              shares,
               commandId: yield* commandId,
             });
             return makeEntityEnvelope(

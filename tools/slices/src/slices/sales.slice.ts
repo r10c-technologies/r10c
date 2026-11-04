@@ -57,7 +57,7 @@ export const salesSlice: SliceDeclaration = {
   ],
   dependantAPIs: [
     'GET /api/config/:service',
-    'POST /api/saga/checkout',
+    'POST /api/flow/checkout',
     'GET /api/published-offering',
   ],
   publishedEvents: [],

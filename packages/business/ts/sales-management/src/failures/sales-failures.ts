@@ -26,17 +26,3 @@ export class OfferingNotYours extends Failure.forbidden<OfferingNotYours>()(
       `the offering "${offeringId}" is not this organization's to sell`,
   },
 ) {}
-
-/**
- * A line could not be held, and every hold the checkout took was given back.
- * An outcome the seller can act on — count the shelf — not a fault.
- */
-export class StockUnavailable extends Failure.conflict<StockUnavailable>()(
-  'StockUnavailable',
-  'stockUnavailable',
-  { channelId: Schema.String },
-  {
-    message: () =>
-      'a line could not be held, and every hold taken was released',
-  },
-) {}

@@ -45,10 +45,7 @@ const crossing = (extra: Record<string, string> = {}) => ({
 const takeHold = (quantity: number, extra: Record<string, string> = {}) =>
   service.client.post(
     '/api/reservation',
-    {
-      meta: { type: 'entity', entity: 'reservation' },
-      data: { offeringId: OFFERING, quantity },
-    },
+    { offeringId: OFFERING, quantity },
     { headers: crossing(extra) },
   );
 
@@ -103,9 +100,9 @@ describe('releasing a hold', () => {
   });
 
   /**
-   * ⚠️ The property the saga depends on. `runSaga` dispatches this as a
+   * ⚠️ The property a flow depends on. The engine dispatches this as a
    * compensation, delivery is at-least-once, and a second delivery erroring
-   * would strand a saga that had in fact been fully reversed.
+   * would strand a flow that had in fact been fully reversed.
    */
   it('answers 200 and moves nothing when the hold is already gone', async () => {
     const held = await takeHold(2);

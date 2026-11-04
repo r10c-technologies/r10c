@@ -2,11 +2,16 @@ import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
 import { type EntityWriter, settled } from '@entifix/core';
 import { useDraftsState } from '@entifix/next-shell';
-import { EntifixQueryProvider } from '@entifix/react-integration';
+import {
+  EntifixQueryProvider,
+  makePendingFlowStore,
+  type PendingFlowStore,
+  PendingFlowStoreProvider,
+} from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context, Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -94,14 +99,41 @@ const adapters = (): SalesAdapters => ({
   metadata: real.metadata,
 });
 
+/** The till's pending flows: what a `202` hands off to, and settles from. */
+let flows: PendingFlowStore;
+
 const renderTill = (props: { step?: string; onFinished?: () => void } = {}) =>
   render(
     <EntifixQueryProvider>
-      <SalesProvider adapters={adapters()}>
-        <CounterSaleWizard {...props} />
-      </SalesProvider>
+      <PendingFlowStoreProvider store={flows}>
+        <SalesProvider adapters={adapters()}>
+          <CounterSaleWizard {...props} />
+        </SalesProvider>
+      </PendingFlowStoreProvider>
     </EntifixQueryProvider>,
   );
+
+/** The service accepted the sale: a checkout is running under `flowId`. */
+const accepted = (flowId = 'flow-1') => ({
+  status: 202,
+  json: async () => ({
+    meta: { type: 'flowAccepted', entity: 'counter-sale' },
+    data: { flowId, links: [] },
+  }),
+});
+
+/** The checkout the till is waiting on ends, as its push would say. */
+const settle = async (
+  outcome: Parameters<PendingFlowStore['settle']>[1] = { kind: 'confirmed' },
+  flowId = 'flow-1',
+) => {
+  await waitFor(() =>
+    expect(flows.list().map(flow => flow.flowId)).toContain(flowId),
+  );
+  act(() => {
+    flows.settle(flowId, outcome);
+  });
+};
 
 /** Walks the flow to the summary, leaving one line of two units on it. */
 const ringUp = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -137,6 +169,7 @@ beforeEach(() => {
   // carry the first one's lines and the assertion would pass or fail on
   // ordering. Clearing the *store*, not `localStorage`, is what resets it.
   useDraftsState.setState({ drafts: {} });
+  flows = makePendingFlowStore();
   vi.spyOn(useDraftsState.persist, 'rehydrate').mockResolvedValue(undefined);
 });
 
@@ -204,10 +237,7 @@ describe('the till', () => {
   });
 
   it('sends offering ids and quantities, never prices', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      status: 200,
-      json: async () => ({ data: {} }),
-    });
+    const fetchMock = vi.fn().mockResolvedValue(accepted());
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     renderTill();
@@ -231,9 +261,9 @@ describe('the till', () => {
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce({
         status: 409,
-        json: async () => ({ code: 'stockUnavailable' }),
+        json: async () => ({ code: 'channelInactive' }),
       })
-      .mockResolvedValue({ status: 200, json: async () => ({}) });
+      .mockResolvedValue(accepted());
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     renderTill();
@@ -243,8 +273,9 @@ describe('the till', () => {
     await user.click(finish);
     await screen.findByText('Algo salió mal.');
     await user.click(finish);
-    await screen.findByText(/No se pudo completar la venta/);
+    await screen.findByText('Ese canal de venta está inactivo.');
     await user.click(finish);
+    await settle();
     await screen.findByText('Venta registrada');
 
     const keys = fetchMock.mock.calls.map(
@@ -260,15 +291,15 @@ describe('the till', () => {
   });
 
   it('tells the seller the sale landed, and offers the next one', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ status: 200, json: async () => ({}) }),
-    );
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(accepted()));
     const user = userEvent.setup();
     renderTill();
 
     await ringUp(user);
     await user.click(screen.getByRole('button', { name: /Finalizar/i }));
+    // Nothing is sold until the checkout completes.
+    expect(screen.queryByText('Venta registrada')).toBeNull();
+    await settle();
 
     expect(await screen.findByText('Venta registrada')).toBeInTheDocument();
     expect(
@@ -295,25 +326,35 @@ describe('the till', () => {
     expect(await screen.findByText('Algo salió mal.')).toBeVisible();
   });
 
-  it('keeps the basket when the sale is refused', async () => {
-    // A `409` is the saga's own answer for "compensated": a line was refused
-    // and every hold taken was released. The seller can act on that, so the
-    // lines they typed have to still be there.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        status: 409,
-        json: async () => ({ code: 'stockUnavailable' }),
-      }),
-    );
+  it('says something generic for a checkout that failed without saying why', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(accepted()));
     const user = userEvent.setup();
     renderTill();
 
     await ringUp(user);
     await user.click(screen.getByRole('button', { name: /Finalizar/i }));
+    await settle({ kind: 'failed' });
+
+    expect(await screen.findByText('Algo salió mal.')).toBeVisible();
+  });
+
+  it('keeps the basket when the checkout fails', async () => {
+    // A line's hold was refused and every hold taken was released: the flow
+    // fails with the refusal's code. The seller can act on that, so the lines
+    // they typed have to still be there.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(accepted()));
+    const user = userEvent.setup();
+    renderTill();
+
+    await ringUp(user);
+    await user.click(screen.getByRole('button', { name: /Finalizar/i }));
+    await settle({
+      kind: 'failed',
+      failure: { code: 'insufficientStock' } as never,
+    });
 
     expect(
-      await screen.findByText(/No se pudo completar la venta/),
+      await screen.findByText('No hay existencia suficiente para reservar.'),
     ).toBeInTheDocument();
     expect(screen.getByText(/Total: 50 GTQ/)).toBeInTheDocument();
   });
@@ -442,9 +483,7 @@ describe('the lines step', () => {
 
 describe('charging', () => {
   it('sends the payment method the seller picked', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue({ status: 200, json: async () => ({}) });
+    const fetchMock = vi.fn().mockResolvedValue(accepted());
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     renderTill();
@@ -493,15 +532,13 @@ describe('charging', () => {
 
   it('hands the host its ending, and starts the next sale at the top', async () => {
     const onFinished = vi.fn();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ status: 200, json: async () => ({}) }),
-    );
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(accepted()));
     const user = userEvent.setup();
     renderTill({ onFinished });
 
     await ringUp(user);
     await user.click(screen.getByRole('button', { name: /Finalizar/i }));
+    await settle();
     await user.click(
       await screen.findByRole('button', { name: 'Nueva venta' }),
     );

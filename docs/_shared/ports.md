@@ -104,56 +104,40 @@ made sayable: a deployment earns its existence by owning a store.
 ³ **transaction-service, bound — and this index is the one that proves the
 claim it was reserved on.**
 
-> **The engine runs; the flows have not moved to it yet ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).**
-> The durable flow engine is composed here over the Postgres `workflow` store,
-> on two runners at `34103` and `35103` with a breaker and a bulkhead per
-> participant (#462). Everything below describes the saga runner, which keeps
-> serving checkout and cancellation until wave 4 moves them onto the engine: a
-> start answering `202 { flowId }`, and the `saga` store and
-> `GET /api/saga/:id` deleted (#490). The single-step tracker is gone already:
-> its only producer, the specification create, became a plain unit of work
-> (#463).
-
 The `transaction` slice was **co-deployed** into
 marketplace-admin-service, and the note here said that ownership had not moved,
 only the process, so splitting it back out would mean pointing its declaration
-in `tools/slices/` at a new app rather than untangling a database.
+in `tools/slices/` at a new app rather than untangling a database. That is
+exactly what happened on 2026-09-08 (#229), when checkout's participants turned
+out to be stock-service (`:3108`) and order-service (`:3105`) — ADR 0039's stated
+trigger — and no data moved at all.
 
-That is exactly what happened on 2026-09-08 (#229). ADR 0039 deferred the split
-with a stated condition — _"the first flow with a participant outside
-marketplace-admin-service"_ — and checkout's participants turned out to be
-stock-service (`:3108`) and order-service (`:3105`). The trigger fired; the
-`saga` store's handle was already an explicit `client.db(name)`, so the module
-moved unchanged and no data moved at all.
+It is the **flow coordinator** ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).
+`POST /api/flow/checkout` and `POST /api/flow/cancellation` compose a slip from
+what they verified and hand it to the durable flow engine over the Postgres
+`workflow` store, answering `202 flowAccepted` with the flow's status and stream
+links; the outcome reaches a browser through the realtime slice. The routes are
+`/api/flow/<recipe>` rather than business verbs because this slice declares **no
+domain**, and a verb here would put a domain name in a permission namespace
+nothing is provisioned for. Both run on `order-management:product-order:write`,
+so neither adds an entry to `SERVICE_CROSSING_PERMISSIONS`.
 
-It serves `POST /api/saga/:definition`, the coordinator that walks a declarative flow
-([ADR 0052](../adr/0052-the-checkout-saga.md)). That route is generic rather than
-`/api/checkout` because this slice declares **no domain**, and a business verb
-here would put a domain name in a permission namespace nothing is provisioned
-for.
+⚠️ **The coordinator verifies, the caller states.** A vendor segment's
+entitlements are read from the published vendor projection (`holdsStock`,
+`acceptsCod`, announced by auth-service off the organization's entitlement) and
+overwrite whatever the start input said; a checkout's group id is the flow's own.
+A start's idempotency is the engine's registration of its `Idempotency-Key`, in
+the `workflow` store, so the slice owns no Mongo store at all.
 
-It now knows **two** definitions: `checkout`, and `cancellation` — claim the
-order, refund, restore the stock, close the record. That second one is what ADR
-0052 named as the trigger to reconsider the step grammar, and the answer was that
-the grammar held: the flow is sequential with one fan-out, which `defineSaga`
-already expresses ([ADR 0058](../adr/0058-the-order-after-payment.md) §7). Both
-run on `order-management:product-order:write`, so neither adds an entry to
-`SERVICE_CROSSING_PERMISSIONS`; registering a definition is what makes it
-resumable, because the sweep looks an instance's flow up by name.
+The engine runs on two runners, `34103` beside the HTTP process and `35103` as
+`dev-runner`, with a breaker and a bulkhead per participant whose dials are
+config rows (#462). The saga runner, its `saga` store, its resume sweep and
+`GET /api/saga/:id` were deleted when checkout and cancellation moved onto the
+engine (#490).
 
-`GET /api/saga/:id` answers where a flow stopped and what has been reversed. It
-is scoped to the organizations the flow's own **calls** named rather than to one
-member on the record, because a basket spanning two vendors belongs to both — and
-for the same reason it carries no permission of its own
-([ADR 0055](../adr/0055-a-coordinator-resumes-from-its-own-record.md)).
-
-It also runs the resume sweep, which finishes multi-step flows whose
-coordinator died, claiming each instance with a conditional write so two
-replicas cannot walk one flow together.
-
-⚠️ **`back-office:dev` starts it**, because the till's counter sale starts its
-checkout here through sales-service. It does **not** start order-service or
-payment-service, so a live checkout still needs those two by hand.
+⚠️ **Both app `dev` targets start it**: the storefront's checkout and the till's
+counter sale both start here. Neither starts order-service or payment-service,
+so a live checkout still needs those two by hand.
 
 It holds a **crossing token per participant**, which is the concentration
 ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
@@ -454,7 +438,8 @@ It takes a **session and no token**, checks
 `sales-management:sales-channel:sell`, loads the channel from the caller's own
 tenant handle, re-prices every line from the published projection, and only then
 presents the coordinator's inbound crossing token to
-`POST /api/saga/checkout`. So this process is the **second** holder of that
+`POST /api/flow/checkout`, answering the till `202` with the checkout to follow.
+So this process is the **second** holder of that
 secret, beside the storefront — which holds it for the opposite reason, having no
 session to check at all
 ([ADR 0056](../adr/0056-the-counter-sale-is-the-checkout-saga.md)).

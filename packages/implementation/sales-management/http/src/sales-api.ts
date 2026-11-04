@@ -36,18 +36,20 @@ export const salesChannelApi = defineEntityApi(
     guard: { kind: 'organization' },
     prepare: validateSalesChannel,
     useCases: [
+      // Answered `202` with the checkout to follow, never with its outcome.
       verbEndpoint(SellAtChannelUC, {
         idempotent: 'unit',
+        accepted: true,
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
-            const result = yield* sellAtCounter({
+            const accepted = yield* sellAtCounter({
               // The organization guard always names one.
               organizationId: context.organizationId as string,
               channelId: request.params?.id as string,
               sale: request.payload as CounterSalePayload,
               idempotencyKey: yield* IdempotencyKeyTag,
             });
-            return makeEnvelope('sagaResult', 'counter-sale', result);
+            return makeEnvelope('flowAccepted', 'counter-sale', accepted);
           }),
       }),
     ],

@@ -27,7 +27,10 @@ import {
   useTranslateKey,
   Wizard,
 } from '@entifix/react-controls';
-import { useDataLoading } from '@entifix/react-integration';
+import {
+  useDataLoading,
+  usePendingFlowStore,
+} from '@entifix/react-integration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -227,6 +230,27 @@ export function CounterSaleWizard({
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
   const [charging, setCharging] = useState(false);
   const [failure, setFailure] = useState<string | undefined>(undefined);
+  // The checkout the till started and is waiting on: the sale is written when
+  // it completes, never when the service answers (ADR 0073).
+  const [pendingFlow, setPendingFlow] = useState<string | undefined>(undefined);
+  const flows = usePendingFlowStore();
+
+  useEffect(() => {
+    if (pendingFlow === undefined || flows === undefined) return undefined;
+    flows.add({ flowId: pendingFlow });
+    return flows.onSettled(pendingFlow, outcome => {
+      setPendingFlow(undefined);
+      setCharging(false);
+      if (outcome.kind === 'confirmed') {
+        // The draft is cleared only once the sale is written: a till emptied
+        // before the flow completed loses a basket the seller would retry.
+        draft.clear();
+        setReceiptId(pendingFlow);
+        return;
+      }
+      setFailure(outcome.failure?.code ?? 'unexpected');
+    });
+  }, [pendingFlow, flows, draft]);
 
   const save = draft.save;
   const setChannel = (id: string) =>
@@ -305,18 +329,17 @@ export function CounterSaleWizard({
         }),
       },
     ).catch(() => undefined);
-    setCharging(false);
     if (response !== undefined) saleKey.current = undefined;
 
-    if (response?.status === 200) {
-      // The draft is cleared only once the sale is written: a till emptied
-      // before the answer loses a basket the seller would otherwise retry.
-      draft.clear();
-      setReceiptId(String(Date.now()));
+    const body = (await response?.json().catch(() => undefined)) as
+      { code?: string; data?: { flowId?: string } } | undefined;
+    // Accepted: the checkout is running, and the till waits on its outcome
+    // with the button still busy.
+    if (response?.status === 202 && typeof body?.data?.flowId === 'string') {
+      setPendingFlow(body.data.flowId);
       return;
     }
-    const body = (await response?.json().catch(() => undefined)) as
-      { code?: string } | undefined;
+    setCharging(false);
     setFailure(body?.code ?? 'unexpected');
   };
 

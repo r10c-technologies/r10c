@@ -20,6 +20,7 @@ describe('PublishedVendor', () => {
       displayName: 'Demo Vendor',
       announcedAt: new Date('2026-10-23T10:00:00.000Z'),
       acceptsCod: false,
+      holdsStock: false,
     });
   });
 
@@ -31,6 +32,7 @@ describe('PublishedVendor', () => {
         displayName: 'Terra Studio',
         announcedAt: new Date('2026-10-23T11:00:00.000Z'),
         acceptsCod: true,
+        holdsStock: true,
       }),
     );
 
@@ -38,6 +40,7 @@ describe('PublishedVendor', () => {
     expect(vendor?.displayName).toBe('Terra Studio');
     expect(vendor?.announcedAt.toISOString()).toBe('2026-10-23T11:00:00.000Z');
     expect(vendor?.acceptsCod).toBe(true);
+    expect(vendor?.holdsStock).toBe(true);
   });
 
   it('defaults to the epoch, so an unstamped record loses every comparison', () => {

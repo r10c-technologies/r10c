@@ -10,6 +10,7 @@
 - Read when: adding a package under `packages/implementation/`, or a UI file imports an adapter — a cell depends on entities, use cases and ports, never on another cell or an adapter
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — an http cell translates and never decides a status, a retry or a log line; composition moves out of the apps into one Effect shell per slice, and the coordinator exception below ends — it moves into `shells-effect-transaction` (#447)
 - Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — an `http` cell exports descriptors, handlers and entity declarations, and the slice shell builds and serves the API; `entityApi` replaced `makeEntityRoutes`
+- Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — the coordinator exception is gone: the saga route and dispatcher are deleted, and the flow start routes live in the transaction slice's shell (#490)
 
 ## Context
 

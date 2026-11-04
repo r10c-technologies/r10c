@@ -217,9 +217,6 @@
       "path": "./packages/business/ts/flow-contracts"
     },
     {
-      "path": "./packages/business/ts/saga-contracts"
-    },
-    {
       "path": "./packages/implementation/configuration/sql"
     },
     {

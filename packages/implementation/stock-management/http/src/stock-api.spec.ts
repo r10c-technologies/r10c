@@ -59,8 +59,13 @@ const receipt = (quantity: number) =>
     StockMovement,
     new StockMovement('o-1', quantity, 'receipt'),
   );
+/** A flow step's body: the record's members, flat — an envelope's `data`. */
+const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
+  (makeEntityEnvelope(...args) as unknown as { data: Record<string, unknown> })
+    .data;
+
 const hold = (quantity: number) =>
-  makeEntityEnvelope(Reservation, new Reservation('o-1', quantity));
+  flatOf(Reservation, new Reservation('o-1', quantity));
 
 const record = stockMovementApi.options.override.create.handler;
 const take = reservationApi.options.override.create.handler;
@@ -153,11 +158,8 @@ describe('the crossing endpoints', () => {
   it('put an order’s goods back by its cause, once per key', async () => {
     const { run, refusal } = world();
     const envelope = (quantity: number, cause?: string) => {
-      const payload = makeEntityEnvelope(
-        StockMovement,
-        new StockMovement('o-1', quantity),
-      ) as unknown as { data: Record<string, unknown> };
-      if (cause !== undefined) payload.data['cause'] = cause;
+      const payload = flatOf(StockMovement, new StockMovement('o-1', quantity));
+      if (cause !== undefined) payload['cause'] = cause;
       return payload;
     };
     const restore = (

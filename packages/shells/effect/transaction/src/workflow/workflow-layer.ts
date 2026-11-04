@@ -27,13 +27,18 @@ import { Effect, Layer, Redacted } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { SqlClient } from 'effect/sql';
 
-import type { Participant } from '../saga/http-dispatcher.js';
 import {
   type ParticipantDials,
   readAllParticipantDials,
 } from './participant-dials.js';
 
 /** The slice the engine's `flow.*` events are announced as (ADR 0029). */
+/** One participant's address and the crossing token that reaches it. */
+export interface Participant {
+  readonly baseUrl: string;
+  readonly crossingToken: string;
+}
+
 export const WORKFLOW_SOURCE = 'transaction';
 
 /** The store the engine's journal, status and outbox live in. */

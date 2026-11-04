@@ -1,7 +1,9 @@
+import { IdempotencyKeyTag } from '@entifix/business';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import {
-  SagaStarterTag,
-  type SagaStartOutcome,
-} from '@r10c/business-ts-saga-contracts';
+  acceptedAnswer,
+  makeScriptedFlowStarter,
+} from '@r10c/business-ts-flow-contracts/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -17,8 +19,8 @@ import { OrderItem } from '../values/order-item.js';
 import type { OrderScope } from '../values/order-scope.js';
 import {
   buyerReceipt,
-  CANCELLATION_SAGA,
-  cancellationInputs,
+  CANCELLATION_RECIPE,
+  cancellationInput,
   cancelOrderAsBuyer,
   cancelOrderAsStaff,
   foreignLinesProblem,
@@ -45,27 +47,22 @@ const aGroup = (extra: Partial<CheckoutGroup> = {}) =>
     ...extra,
   });
 
-type R = ProductOrderStoreTag | CheckoutGroupStoreTag | SagaStarterTag;
+type R = ProductOrderStoreTag | CheckoutGroupStoreTag | FlowStarterTag;
 
 /** The in-memory stores, and a record of every flow started on their behalf. */
-const world = (
-  saga: SagaStartOutcome = { _tag: 'completed', result: {} },
-  onStart: (stores: ReturnType<typeof makeInMemoryOrderStores>) => void = () =>
-    undefined,
-) => {
+const world = () => {
   const stores = makeInMemoryOrderStores();
-  const started: Array<{ definition: string; inputs: unknown }> = [];
+  const started: Array<{ recipe: string; input: unknown; key: string }> = [];
   const layer = Layer.mergeAll(
     Layer.succeed(ProductOrderStoreTag, stores.orders),
     Layer.succeed(CheckoutGroupStoreTag, stores.groups),
-    Layer.succeed(SagaStarterTag, {
-      start: (definition, inputs) =>
-        Effect.sync(() => {
-          started.push({ definition, inputs });
-          onStart(stores);
-          return saga;
-        }),
-    }),
+    Layer.succeed(
+      FlowStarterTag,
+      makeScriptedFlowStarter((recipe, input, key) => {
+        started.push({ recipe, input, key });
+        return acceptedAnswer(`flow-${String(started.length)}`);
+      }),
+    ),
   );
   const run = <A, E>(effect: Effect.Effect<A, E, R>) =>
     Effect.runPromise(effect.pipe(Effect.provide(layer)));
@@ -240,24 +237,33 @@ describe('moveOrder', () => {
   });
 });
 
-describe('cancellationInputs', () => {
-  it('puts each line back in the order’s own vendor’s stock', () => {
+describe('cancellationInput', () => {
+  it('states the order, its vendor and tender, each line to put back, and whether it shipped', () => {
     const order = Object.assign(anOrder('v-9'), { id: 'o-1' });
 
-    expect(cancellationInputs(order)).toEqual({
-      claim: [{ body: { orderId: 'o-1' } }],
-      refund: [{ body: { orderId: 'o-1' } }],
-      'restore-stock': [
-        {
-          organizationId: 'v-9',
-          body: {
-            meta: { type: 'entity', entity: 'stock-movement' },
-            data: { offeringId: 'o-1', quantity: 2, cause: 'cancellation' },
-          },
-        },
-      ],
-      settle: [{ body: { orderId: 'o-1' } }],
+    expect(cancellationInput(order, 'cap')).toEqual({
+      orderId: 'o-1',
+      vendorId: 'v-9',
+      paymentMethod: 'card',
+      lines: [{ offeringId: 'o-1', quantity: 2 }],
+      shipped: true,
+      buyerId: 'buyer-1',
+      capabilityDigest: 'cap',
     });
+  });
+
+  it('ships nothing handed over at a counter, and names no buyer a walk-in lacks', () => {
+    const order = Object.assign(new ProductOrder(), {
+      id: 'o-2',
+      vendorId: 'v-9',
+      paymentMethod: 'cash',
+      channel: { id: 'c-1', name: 'Till', type: 'counter' },
+      items: [new OrderItem('o-1', 1, 10, 'GTQ')],
+    });
+
+    expect(cancellationInput(order)).toMatchObject({ shipped: false });
+    expect(cancellationInput(order)).not.toHaveProperty('buyerId');
+    expect(cancellationInput(order)).not.toHaveProperty('capabilityDigest');
   });
 });
 
@@ -269,10 +275,13 @@ describe('cancelOrderAsStaff', () => {
     await run(cancelOrderAsStaff({ orderId, scope: vendor('v-1') }));
     await run(cancelOrderAsStaff({ orderId, scope: operator }));
 
-    expect(started.map(entry => entry.definition)).toEqual([
-      CANCELLATION_SAGA,
-      CANCELLATION_SAGA,
+    expect(started.map(entry => entry.recipe)).toEqual([
+      CANCELLATION_RECIPE,
+      CANCELLATION_RECIPE,
     ]);
+    // Never keyed on the order alone: a cancellation that failed can be
+    // asked for again.
+    expect(new Set(started.map(entry => entry.key)).size).toBe(2);
   });
 
   it('answers another vendor, a buyer and an absent order alike: not found', async () => {
@@ -300,55 +309,20 @@ describe('cancelOrderAsStaff', () => {
     ]);
   });
 
-  it('answers a refused refund, a refused claim and a stranded flow as each is', async () => {
-    const refund = world({
-      _tag: 'compensated',
-      result: { refusedStep: 'refund' },
-    });
-    const claim = world({ _tag: 'compensated', result: undefined });
-    const stranded = world({ _tag: 'failed', result: undefined } as never);
-    const ids = await Promise.all([
-      refund.placed(),
-      claim.placed(),
-      stranded.placed(),
-    ]);
+  it('answers the flow to follow, keyed on the request’s own key when it sent one', async () => {
+    const { run, started, placed } = world();
+    const orderId = await placed();
 
-    const outcomes = await Promise.all(
-      [refund, claim, stranded].map((w, index) =>
-        w.refusal(
-          cancelOrderAsStaff({
-            orderId: ids[index] as string,
-            scope: operator,
-          }),
-        ),
+    const accepted = await run(
+      Effect.provideService(
+        cancelOrderAsStaff({ orderId, scope: operator }),
+        IdempotencyKeyTag,
+        'request-1',
       ),
     );
 
-    expect(outcomes.map(outcome => outcome.code)).toEqual([
-      'refundDeclined',
-      'orderNotCancellable',
-      'upstreamUnavailable',
-    ]);
-  });
-
-  it('answers with the order as the flow left it, or as it was when nothing is left to read', async () => {
-    const kept = world();
-    const keptId = await kept.placed();
-    let goneId = '';
-    const gone = world({ _tag: 'completed', result: {} }, stores => {
-      Effect.runSync(stores.orders.remove(goneId));
-    });
-    goneId = await gone.placed();
-
-    const answer = await kept.run(
-      cancelOrderAsStaff({ orderId: keptId, scope: operator }),
-    );
-    const fallback = await gone.run(
-      cancelOrderAsStaff({ orderId: goneId, scope: operator }),
-    );
-
-    expect(answer.id).toBe(keptId);
-    expect(fallback.id).toBe(goneId);
+    expect(accepted.flowId).toBe('flow-1');
+    expect(started[0]?.key).toBe(`cancellation:${orderId}:request-1`);
   });
 
   it('refuses an order no longer cancellable before starting anything', async () => {
@@ -367,9 +341,12 @@ describe('cancelOrderAsBuyer', () => {
     const { run, started, placed } = world();
     const orderId = await placed('confirmed');
 
-    await run(cancelOrderAsBuyer({ orderId, nonce: NONCE }));
+    await run(
+      cancelOrderAsBuyer({ orderId, nonce: NONCE, capabilityDigest: 'cap' }),
+    );
 
     expect(started).toHaveLength(1);
+    expect(started[0]?.input).toMatchObject({ capabilityDigest: 'cap' });
   });
 
   it('answers every capability failure alike', async () => {

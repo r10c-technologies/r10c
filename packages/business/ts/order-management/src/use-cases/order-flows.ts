@@ -1,14 +1,13 @@
-import { NotFound, UpstreamUnavailable } from '@entifix/core';
+import { IdempotencyKeyTag } from '@entifix/business';
+import { NotFound } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
-import { RefundDeclined } from '@r10c/business-ts-payment-contracts';
-import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
-import { Effect } from 'effect';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import { Effect, Option } from 'effect';
 
 import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
 import {
   CancelNotAuthorized,
-  OrderNotCancellable,
   OrderNotTransitionable,
   PaymentPending,
 } from '../failures/order-failures';
@@ -23,8 +22,8 @@ import { CancelProductOrderUC } from './cancel-product-order';
 
 const MILLISECONDS = 1000;
 
-/** The flow a cancellation runs on the coordinator. */
-export const CANCELLATION_SAGA = 'cancellation';
+/** The recipe a cancellation runs on the coordinator. */
+export const CANCELLATION_RECIPE = 'cancellation';
 
 /** A group id is the checkout flow's id: a UUID, and nothing else. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -165,77 +164,56 @@ export const moveOrder = (input: {
   });
 
 /**
- * What the cancellation flow is given: claim, refund, put the goods back in the
- * vendor's stock, close the record. The organization comes from the *order*,
+ * What the cancellation flow starts from, all of it read off the stored order —
+ * which is the authority on it: the order, its vendor, how it was paid, the
+ * lines to put back, and whether a shipment was opened for it. A sale handed
+ * over at a counter shipped nothing; the coordinator narrows the rest by
+ * whether the vendor ships at all. The organization comes from the *order*,
  * because the buyer behind a cancellation names none.
  */
-export const cancellationInputs = (order: ProductOrder) => ({
-  claim: [{ body: { orderId: order.id } }],
-  refund: [{ body: { orderId: order.id } }],
-  'restore-stock': order.items.map(line => ({
-    organizationId: order.vendorId,
-    body: {
-      meta: { type: 'entity', entity: 'stock-movement' },
-      data: {
-        offeringId: line.offeringId,
-        quantity: line.quantity,
-        cause: 'cancellation',
-      },
-    },
+export const cancellationInput = (
+  order: ProductOrder,
+  capabilityDigest?: string,
+) => ({
+  orderId: String(order.id),
+  vendorId: order.vendorId,
+  paymentMethod: order.paymentMethod,
+  lines: order.items.map(line => ({
+    offeringId: line.offeringId,
+    quantity: line.quantity,
   })),
-  settle: [{ body: { orderId: order.id } }],
+  shipped: order.channel === undefined || order.channel.type === 'storefront',
+  ...(order.buyerId === undefined ? {} : { buyerId: order.buyerId }),
+  ...(capabilityDigest === undefined ? {} : { capabilityDigest }),
 });
 
 /**
- * Which step refused, as the failure the browser can render. A refused refund
- * is a different fact for the customer from an order past cancelling: the
- * order is still theirs and still paid for.
- */
-const refusalOf = (order: ProductOrder, result: unknown) => {
-  const orderId = String(order.id);
-  const refusedStep = (result as { refusedStep?: unknown } | undefined)
-    ?.refusedStep;
-  return refusedStep === 'refund'
-    ? new RefundDeclined({ orderId })
-    : new OrderNotCancellable({
-        orderId,
-        reason: 'a step of the cancellation refused, and nothing moved',
-      });
-};
-
-/**
- * Start the cancellation flow, having already decided the caller may.
+ * Start the cancellation flow, having already decided the caller may, and
+ * answer the flow to follow — never its outcome (ADR 0066, ADR 0073). A
+ * refused refund or an order already past cancelling arrives as the flow's
+ * failure.
+ *
+ * Keyed on the order **and** on the request: the caller's `Idempotency-Key`
+ * when it sent one, so a retried request is the same flow, and a fresh key
+ * otherwise. Never on the order alone — a cancellation whose refund was
+ * declined must be askable again. Two starts racing on one order are safe,
+ * because the claim is the lock: the second fails there and moves nothing.
  *
  * ⚠️ **This service is both the caller and a participant**, the cycle ADR 0058
  * §6 accepts: a cancellation's authority is a buyer's capability or a vendor's
  * session, and neither is verifiable anywhere but here.
  */
-const startCancellation = (order: ProductOrder) =>
+const startCancellation = (order: ProductOrder, capabilityDigest?: string) =>
   Effect.gen(function* () {
-    const sagas = yield* SagaStarterTag;
-    // Keyed on the order: one order is cancelled once, so asking again is a
-    // replay of the first answer rather than a second flow.
-    const outcome = yield* sagas.start(
-      CANCELLATION_SAGA,
-      cancellationInputs(order),
-      `cancellation:${String(order.id)}`,
+    const requestKey = Option.getOrUndefined(
+      yield* Effect.serviceOption(IdempotencyKeyTag),
     );
-    if (outcome._tag === 'compensated') {
-      // Fully compensated: nothing moved, and the order is exactly as it was.
-      return yield* refusalOf(order, outcome.result);
-    }
-    if (outcome._tag === 'failed') {
-      // Stranded past the pivot, or the coordinator itself failed. Either way
-      // the order is visibly `cancelling`, which a sweep or a person can act on.
-      return yield* new UpstreamUnavailable({
-        upstream: 'transaction-service',
-      });
-    }
-    // Read back rather than assumed: the flow's last step wrote `cancelled`,
-    // and echoing what this believed a moment ago would be a receipt that
-    // guesses.
-    const store = yield* ProductOrderStoreTag;
-    return (yield* store.get(String(order.id))) ?? order;
+    const flows = yield* FlowStarterTag;
+    return yield* flows.start(
+      CANCELLATION_RECIPE,
+      cancellationInput(order, capabilityDigest),
+      `cancellation:${String(order.id)}:${requestKey ?? globalThis.crypto.randomUUID()}`,
+    );
   });
 
 /**
@@ -284,6 +262,8 @@ const groupForBuyer = (groupId: string, nonce: string | undefined) =>
 export const cancelOrderAsBuyer = (input: {
   readonly orderId: string;
   readonly nonce: string | undefined;
+  /** The digest of the capability the buyer follows this cancellation by. */
+  readonly capabilityDigest?: string;
 }) =>
   Effect.gen(function* () {
     const store = yield* ProductOrderStoreTag;
@@ -295,7 +275,7 @@ export const cancelOrderAsBuyer = (input: {
       return yield* new PaymentPending({ orderId: input.orderId });
     }
     yield* CancelProductOrderUC.run(order);
-    return yield* startCancellation(order);
+    return yield* startCancellation(order, input.capabilityDigest);
   });
 
 /**

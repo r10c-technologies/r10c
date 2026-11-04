@@ -1,21 +1,15 @@
 /**
  * The service as a *composable definition*, separate from `main.ts` which boots
  * it — the same split every other backend makes, so an e2e `mock` profile can
- * launch the real endpoints in-process against driver fakes.
+ * launch the real endpoints in-process against fakes.
  */
 import { makeAppLayer } from '@r10c/shells-effect-transaction';
 
-// Exported so the e2e `mock` profile composes the same layers over a fake pool
-// rather than stubbing the routes the catalog's own `202` points at.
+// Exported so the e2e `mock` profile serves the same routes over a fake engine.
 export {
-  cancellationSaga,
-  checkoutSaga,
   endpoints,
-  HttpSagaDispatcherLayer,
-  ParticipantsTag,
   policy,
-  SAGAS,
-  sagaStoresLayer,
+  VendorFactsTag,
 } from '@r10c/shells-effect-transaction';
 
 export const SERVICE_NAME = '@r10c/transaction-service';

@@ -178,12 +178,12 @@ Effect Layers.
 - **auth-service** (`:3102`, Mongo + Redis) — serves `UserIdentity`/`EntityIdentifier`
   and owns the credential flow: `register`/`login`/`logout`/`refresh` (see
   [Auth: sessions + tokens](#auth-sessions--tokens)).
-- **transaction-service** (`:3103`; Mongo) — the `transaction` slice: the
-  saga coordinator (`POST /api/saga/:definition`), its instance read and its
-  resume sweep. The single-step tracker that once ran beside it left with its
-  only producer (#463). It was co-deployed into marketplace-admin-service until
-  #229 split it out, which was a `deployments` edit because its store's handle
-  was already named. See
+- **transaction-service** (`:3103`; Postgres) — the `transaction` slice: the
+  flow coordinator. `POST /api/flow/<recipe>` composes a slip and starts it on
+  the durable flow engine over the `workflow` store, answering `202`
+  ([ADR 0066](adr/0066-flows-run-on-a-durable-workflow-engine.md)). It was
+  co-deployed into marketplace-admin-service until #229 split it out, which was
+  a `deployments` edit because its store's handle was already named. See
   [Stores, slices & data planes](../docs/_shared/planes.md).
 
 ### Where a service's code lives
@@ -206,11 +206,10 @@ seed, and the daemons it starts. What it serves and stores is in cells
   `packages/business/ts/<domain>`, which is why the same rule can be tested
   without a driver.
 
-A slice that declares no domain (`transaction`) has no business package, so
-its cell carries the one service tag it implements. Its coordinator — the
-generic saga route and the dispatcher — is the one routing code that stays in
-its app, because it composes the transaction engine no cell may import; ADR
-0060 records the exception and what would lift it.
+A slice that declares no domain (`transaction`) has no business package. Its
+start routes live in its shell, `@r10c/shells-effect-transaction`, because they
+compose the flow engine no cell may import
+([ADR 0064](adr/0064-failures-reach-the-slice-shell.md)).
 
 **A host binds what a cell's routes cannot know.** auth-service's routes are
 the `authn/http` cell, written against ports for the identity provider
@@ -291,11 +290,11 @@ and mounts the routes.
 
 A probe also says **what** it is for: `kind` (`datastore` / `broker` /
 `upstream`) and `targets`, the logical names it covers — a Store's register name
-(`catalog`, `saga`), an exchange (`entifix.events`), a service (`zitadel`).
+(`catalog`, `workflow`), an exchange (`entifix.events`), a service (`zitadel`).
 Readiness ignores both, and its wire format is unchanged; they exist so the
 description below generates from this one registration. `targets` is a **list**
 because one connection routinely backs several Stores, and the datastore layers
-take it as an argument (`MongoHealthProbeLayer(['catalog', 'saga'])`) because a
+take it as an argument (`MongoHealthProbeLayer(['catalog', 'stock'])`) because a
 client package cannot know a Store's register name.
 
 Two properties the implementation is load-bearing on:
@@ -791,30 +790,28 @@ the tracker, `/api/transaction/*` and the Redis lock and sequence went with it
 `UnitOfWork.run(body, { claim?, replay?, afterCommit? })` gives the body one
 transaction, records the events it `emit`s into the outbox in that transaction,
 and takes at most one claim — an event's (`consumer` + `eventId`, so a fold runs
-exactly once) or a command's (`Idempotency-Key`, so a redelivered saga step answers
+exactly once) or a command's (`Idempotency-Key`, so a redelivered flow step answers
 what the first attempt decided). A body that fails with its own reason is
 `aborted` and wrote nothing; `afterCommit: drainOutboxNow(db)` publishes before
 the sweep would. Every outbox, inbox and command-claim site in the fleet runs on
 it — a driver session opened by hand for one of those is the copy it replaced.
 
-**A flow that spans slices is orchestrated instead, per flow**
-([ADR 0039](adr/0039-multi-step-sagas-are-orchestrated.md)). Single-step writes
-are untouched; a multi-step flow declares a `SagaDefinition` — steps classified
-`compensatable` / `pivot` / `retriable`, Richardson's taxonomy — that a generic
-engine walks. It is **data rather than a class** because an orchestrator knowing
-checkout's four steps would have to import three domains, and a `business:domain`
-package may not import another; the boundary rule is what shaped the design.
-Commands go out over HTTP on
-[ADR 0023](adr/0023-service-to-service-tenant-crossing.md)'s path — a synchronous
-`400` is not a saga failure — and results come back over the bus, which is where
-durable at-least-once completion lives. Dispatch goes through the **outbox**,
-extending ADR 0028's persist-before-publish rule to commands. The coordinator
-lives in the `transaction` slice, on `:3103`, and its state in the `saga` store
-([ADR 0052](adr/0052-the-checkout-saga.md),
-[ADR 0055](adr/0055-a-coordinator-resumes-from-its-own-record.md)). The reactive
-stream ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md))
-carried the tracker's events to the back office; it left with the tracker
-(#463) and returns as the push of flow outcomes (ADR 0066).
+**A flow that spans slices runs on a durable workflow engine**
+([ADR 0066](adr/0066-flows-run-on-a-durable-workflow-engine.md)). A recipe names
+fragments by `id@n` — each declared by the domain that owns the step, classified
+`compensatable` / `pivot` / `retriable` / `wait` — and the coordinator composes
+it, from what it verified, into a pinned, validated slip
+([ADR 0065](adr/0065-use-case-resolution-and-the-routing-slip.md)). It is **data
+rather than a class** because an orchestrator knowing checkout's steps would have
+to import several domains, and a `business:domain` package may not import
+another. The engine runs the slip on Effect Workflow over the Postgres
+`workflow` store, each step an Activity keyed on the flow and the step and
+called over [ADR 0023](adr/0023-service-to-service-tenant-crossing.md)'s
+crossing with a flat body of what the step was given and what earlier steps
+bound. A start answers `202`, and the flow's outcome reaches a browser as a
+`flow.*` push from the realtime slice
+([ADR 0072](adr/0072-the-realtime-slice-flow-status-and-the-edge.md),
+[ADR 0073](adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md)).
 
 **An event ships with the write**
 ([ADR 0028](adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).

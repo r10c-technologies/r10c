@@ -46,7 +46,9 @@ export const describeFlowStatusStoreContract = (
       });
 
       expect(
-        await run(store => store.apply(record, { consumer: 'c', eventId: 'e-1' })),
+        await run(store =>
+          store.apply(record, { consumer: 'c', eventId: 'e-1' }),
+        ),
       ).toBe('applied');
       expect(await run(store => store.read('f-1'))).toEqual(record);
       expect(await run(store => store.read('f-404'))).toBeUndefined();
@@ -70,7 +72,9 @@ export const describeFlowStatusStoreContract = (
       await run(store => store.apply(newer, { consumer: 'c', eventId: 'e-4' }));
 
       expect(
-        await run(store => store.apply(older, { consumer: 'c', eventId: 'e-2' })),
+        await run(store =>
+          store.apply(older, { consumer: 'c', eventId: 'e-2' }),
+        ),
       ).toBe('stale');
       expect((await run(store => store.read('f-3')))?.state).toBe('completed');
     });
@@ -95,7 +99,10 @@ export const describeFlowStatusStoreContract = (
       const { run } = make();
 
       await run(store =>
-        store.apply(contractFlowStatus('f-5', 1), { consumer: 'c', eventId: '1' }),
+        store.apply(contractFlowStatus('f-5', 1), {
+          consumer: 'c',
+          eventId: '1',
+        }),
       );
       await run(store =>
         store.apply(contractFlowStatus('f-5', 2, { state: 'completed' }), {
@@ -111,8 +118,14 @@ export const describeFlowStatusStoreContract = (
       const { run } = make();
       await run(store =>
         Effect.all([
-          store.apply(contractFlowStatus('f-6', 1), { consumer: 'c', eventId: 'x' }),
-          store.apply(contractFlowStatus('f-7', 1), { consumer: 'c', eventId: 'y' }),
+          store.apply(contractFlowStatus('f-6', 1), {
+            consumer: 'c',
+            eventId: 'x',
+          }),
+          store.apply(contractFlowStatus('f-7', 1), {
+            consumer: 'c',
+            eventId: 'y',
+          }),
         ]),
       );
 

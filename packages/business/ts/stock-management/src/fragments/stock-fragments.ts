@@ -1,6 +1,6 @@
 import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
-import { participantRefusal } from '@r10c/business-ts-saga-contracts';
+import { participantRefusal } from '@r10c/business-ts-flow-contracts';
 import { Schema } from 'effect';
 
 /** The participant every stock fragment calls. */
@@ -18,7 +18,7 @@ const REQUIRES = { entitlements: ['stock-management'] } as const;
  */
 export const stockReserve = defineFragment({
   id: 'stock.reserve',
-  version: 1,
+  version: 2,
   module: 'stock-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -46,17 +46,17 @@ export const stockReserve = defineFragment({
  */
 export const stockConvert = defineFragment({
   id: 'stock.convert',
-  version: 2,
+  version: 3,
   module: 'stock-management',
   kind: 'retriable',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/reservation/:id/conversion' },
+  call: { method: 'POST', path: '/api/reservation/:reservationId/conversion' },
   cardinality: 'perLine',
   isolation: 'commutative',
   requires: REQUIRES,
   consumes: { reservationId: ReservationId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ reservationId: ReservationId }),
     output: openStruct({ id: ReservationId, status: Schema.String }),
     failure: participantRefusal([]),
   },
@@ -69,7 +69,7 @@ export const stockConvert = defineFragment({
  */
 export const stockRestore = defineFragment({
   id: 'stock.restore',
-  version: 2,
+  version: 3,
   module: 'stock-management',
   kind: 'retriable',
   participant: PARTICIPANT,

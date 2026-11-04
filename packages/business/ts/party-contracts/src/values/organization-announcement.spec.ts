@@ -15,6 +15,7 @@ const ANNOUNCEMENT: OrganizationAnnouncement = {
   displayName: 'Demo Vendor',
   announcedAt: '2026-10-23T10:00:00.000Z',
   acceptsCod: true,
+  holdsStock: true,
 };
 
 const read = (data: unknown) =>
