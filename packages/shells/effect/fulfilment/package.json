@@ -45,6 +45,7 @@
     "@entifix/service-shell": "catalog:",
     "@r10c/implementation-fulfilment-mongo": "workspace:*",
     "@r10c/implementation-shipping-order-management-http": "workspace:*",
+    "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.7"

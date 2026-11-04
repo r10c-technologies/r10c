@@ -16,7 +16,6 @@ const LEGAL: Record<string, string> = {
   'awaiting-dispatch dispatch': 'dispatched',
   'dispatched record-delivery': 'delivered',
   'dispatched record-refusal': 'refused',
-  'delivered record-return': 'returned',
   'refused record-return': 'returned',
 };
 
@@ -29,6 +28,10 @@ describe('shippingStatusAfter', () => {
     expect(shippingStatusAfter(status, transition)).toBe(
       LEGAL[`${status} ${transition}`],
     );
+  });
+
+  it('takes back only a refused parcel: a delivered one is the delivery flow’s end', () => {
+    expect(shippingStatusAfter('delivered', 'record-return')).toBeUndefined();
   });
 
   it('never dispatches a held shipment, so a hold and a dispatch cannot both win', () => {

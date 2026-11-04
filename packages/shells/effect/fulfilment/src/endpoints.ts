@@ -3,6 +3,7 @@ import {
   shippingOrderApi,
   shippingOrderEndpoints,
 } from '@r10c/implementation-shipping-order-management-http';
+import { FLOW_RECIPES, flowCatalog } from '@r10c/shells-effect-flow-catalog';
 import {
   fleetFailurePolicy,
   serviceBaseGroup,
@@ -19,7 +20,11 @@ import {
  */
 export const endpoints = [
   serviceBaseGroup({ service: '@r10c/fulfilment-service', store: 'mongo' }),
-  entityApi(shippingOrderApi),
+  // `dispatch` starts the delivery flow, and `$metadata` reports what it
+  // composes from the same recipes the coordinator runs (ADR 0065).
+  entityApi(shippingOrderApi, {
+    compositions: { recipes: FLOW_RECIPES, catalog: flowCatalog },
+  }),
   endpointGroup('fulfilment-crossings', ...shippingOrderEndpoints),
 ] as const;
 

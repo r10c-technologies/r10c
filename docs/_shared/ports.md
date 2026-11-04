@@ -113,14 +113,29 @@ out to be stock-service (`:3108`) and order-service (`:3105`) — ADR 0039's sta
 trigger — and no data moved at all.
 
 It is the **flow coordinator** ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).
-`POST /api/flow/checkout` and `POST /api/flow/cancellation` compose a slip from
-what they verified and hand it to the durable flow engine over the Postgres
-`workflow` store, answering `202 flowAccepted` with the flow's status and stream
-links; the outcome reaches a browser through the realtime slice. The routes are
-`/api/flow/<recipe>` rather than business verbs because this slice declares **no
-domain**, and a verb here would put a domain name in a permission namespace
-nothing is provisioned for. Both run on `order-management:product-order:write`,
-so neither adds an entry to `SERVICE_CROSSING_PERMISSIONS`.
+`POST /api/flow/checkout`, `POST /api/flow/cancellation` and `POST
+/api/flow/delivery` compose a slip from what they verified and hand it to the
+durable flow engine over the Postgres `workflow` store, answering `202
+flowAccepted` with the flow's status and stream links; the outcome reaches a
+browser through the realtime slice. The routes are `/api/flow/<recipe>` rather
+than business verbs because this slice declares **no domain**, and a verb here
+would put a domain name in a permission namespace nothing is provisioned for.
+Checkout and cancellation run on `order-management:product-order:write`, and a
+delivery on `shipping-order-management:shipping-order:dispatch-step` — the
+crossing its own pivot takes — so none adds an entry to
+`SERVICE_CROSSING_PERMISSIONS`.
+
+⚠️ **A delivery waits days, and branches on what it is told.** After the
+dispatch pivot it parks on the courier's report — `delivered`, `refused`, or
+nothing inside the `delivery.awaitDeliveryTimeout` window, handled as a
+refusal — and a refused parcel parks again on its return, inside
+`delivery.awaitReturnTimeout`; both are config rows the coordinator states into
+every delivery. A return that never comes **strands** the flow (`flow.stranded`)
+for a person rather than retrying it. The waits are answered by this slice's one
+subscription, `shipping-order.*` as a `work` queue: each report signals the
+wait parked on that shipment, a report arriving before its flow reached the wait
+is retried by redelivery, and one the parked wait is not answered with — or
+already took — is let go, which is the dedupe ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)).
 
 ⚠️ **The coordinator verifies, the caller states.** A vendor segment's
 entitlements are read from the published vendor projection (`holdsStock`,
@@ -499,12 +514,23 @@ vendor's `dispatch`.
 and a cancellation's hold racing on one shipment leave exactly one winner. A move
 past dispatch announces `shipping-order.*` from the organization's own outbox,
 drained at commit and walked by the tenant relay; the realtime slice pushes it to
-the vendor, and the delivery flow (#488) waits on it.
+the vendor, and the delivery flow waits on it.
 
-**It holds its own crossing token and accepts the coordinator's** —
-`participant.fulfilmentToken` on transaction-service, `service.token` here — and
-nothing else. Both app `dev` targets start it, since a checkout opens a
-shipment; the dispatch worklist that gives it a back-office surface is #489.
+⚠️ **A vendor's `dispatch` starts the delivery flow and moves nothing itself.**
+It answers `202` with the flow to follow; the flow's pivot is `dispatch-step`,
+so a shipment a cancellation holds is refused there and exactly one of the two
+wins. The courier's reports — `record-delivery`, `record-refusal` and
+`record-return` — stay plain moves whose events answer the flow's waits, and a
+parcel is returned only after it was refused: one delivered is the delivery
+flow's end.
+
+**It holds its own crossing token, accepts the coordinator's, and holds the
+coordinator's inbound one too** — `participant.fulfilmentToken` on
+transaction-service and `service.token` here, plus `transaction.crossingToken`
+to start a delivery — which makes it the fourth holder of that secret, and,
+like order-service for a cancellation, a participant in the flow it starts.
+Both app `dev` targets start it, since a checkout opens a shipment; the
+dispatch worklist that gives it a back-office surface is #489.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

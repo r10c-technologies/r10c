@@ -1,5 +1,6 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { NotFound, useCase } from '@entifix/core';
+import { FlowNotStarted } from '@r10c/business-ts-flow-contracts';
 import { Effect } from 'effect';
 
 import { ShippingOrder } from '../../entities/shipping-order';
@@ -47,7 +48,11 @@ export const decideShippingMove = (
   binding: 'entity',
   placement: 'context-independent',
   labelKey: 'entity:shipping-order.useCases.dispatch',
-  errors: [NotFound, ShippingOrderNotTransitionable],
+  recipe: 'delivery',
+  // A dispatch starts the delivery flow, whose pivot is the dispatch itself:
+  // the verb answers `202` once the flow started, and a hold that won the
+  // race arrives as the flow's failure (ADR 0070, ADR 0073).
+  errors: [NotFound, ShippingOrderNotTransitionable, FlowNotStarted],
 })
 export class DispatchShippingOrderUC {
   static run(order: Pick<ShippingOrder, 'id' | 'status'>) {

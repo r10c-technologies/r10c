@@ -1,6 +1,6 @@
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
-import { bus, startMockService } from '../support/mock-service';
+import { bus, flowStarts, startMockService } from '../support/mock-service';
 import {
   bearerFor,
   E2E_CROSSING_TOKEN,
@@ -129,6 +129,48 @@ describe('the vendor', () => {
 
     expect(res.status).toBe(200);
     expect(res.data.data.paymentMethod).toBe('cod');
+  });
+
+  it('dispatches by starting the delivery flow, answered 202 with the flow to follow', async () => {
+    const id = (await open()).data.data.id as string;
+
+    const res = await service.client.post(
+      `/api/shipping-order/${id}/dispatch`,
+      {},
+    );
+
+    expect(res.status).toBe(202);
+    expect(res.data.meta.type).toBe('flowAccepted');
+    expect(flowStarts.at(-1)).toEqual({
+      recipe: 'delivery',
+      input: expect.objectContaining({
+        shippingOrderId: id,
+        vendorId: E2E_ORGANIZATION_ID,
+        paymentMethod: 'cod',
+        amountDue: 2500,
+      }),
+      // Keyed on the shipment and the request, never the shipment alone: a
+      // dispatch whose flow lost to a hold can be asked again once released.
+      key: expect.stringMatching(new RegExp(`^delivery:${id}:.+`)),
+    });
+    // The flow's pivot dispatches the parcel; the verb moves nothing itself.
+    const read = await service.client.get(`/api/shipping-order/${id}`);
+    expect(read.data.data.status).toBe('awaiting-dispatch');
+  });
+
+  it('refuses to dispatch a held shipment before any flow starts', async () => {
+    const id = (await open()).data.data.id as string;
+    await step(id, 'hold');
+    const before = flowStarts.length;
+
+    const res = await service.client.post(
+      `/api/shipping-order/${id}/dispatch`,
+      {},
+    );
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('shippingOrderNotTransitionable');
+    expect(flowStarts).toHaveLength(before);
   });
 
   it('is refused the verbs without the grant', async () => {

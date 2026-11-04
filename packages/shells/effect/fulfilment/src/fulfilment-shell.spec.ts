@@ -31,6 +31,10 @@ const CONFIGURATION = fleetConfigurationOf({
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
   idempotency: configurationRows({ retentionMs: 60_000 }),
+  transaction: configurationRows({
+    url: 'http://127.0.0.1:1/api',
+    crossingToken: 'spec-flow-token',
+  }),
 });
 
 describe('the fulfilment shell', () => {

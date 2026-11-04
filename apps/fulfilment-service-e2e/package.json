@@ -32,6 +32,7 @@
     "@entifix/testing-unit": "catalog:",
     "@entifix/transactions": "catalog:",
     "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/business-ts-shipping-order-management": "workspace:*",
     "@r10c/fulfilment-service": "workspace:*",
