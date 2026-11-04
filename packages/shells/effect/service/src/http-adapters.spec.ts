@@ -1,12 +1,15 @@
 import { InMemoryRetryBudgetLayer } from '@entifix/transactions/engine';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { describePublishedPriceReaderContract } from '@r10c/business-ts-catalog-contracts/testing';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import { describeFlowStarterContract } from '@r10c/business-ts-flow-contracts/testing';
 import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
 import { describeSagaStarterContract } from '@r10c/business-ts-saga-contracts/testing';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  httpFlowStarterLayer,
   httpPublishedPriceReaderLayer,
   httpSagaStarterLayer,
 } from './http-adapters.js';
@@ -59,7 +62,7 @@ const serve = (
     url: URL,
     body: unknown,
     headers: Record<string, string>,
-  ) => { status: number; body?: unknown } | undefined,
+  ) => { status: number; contentType?: string; body?: unknown } | undefined,
 ) =>
   vi.stubGlobal('fetch', (input: string, init?: RequestInit) => {
     const answered = answer(
@@ -72,7 +75,12 @@ const serve = (
       : Promise.resolve(
           new Response(
             answered.body === undefined ? null : JSON.stringify(answered.body),
-            { status: answered.status },
+            {
+              status: answered.status,
+              ...(answered.contentType === undefined
+                ? {}
+                : { headers: { 'content-type': answered.contentType } }),
+            },
           ),
         );
   });
@@ -92,6 +100,29 @@ describeSagaStarterContract('the HTTP saga starter', coordinator => {
     }).pipe(
       Effect.provide(
         httpSagaStarterLayer({
+          url: 'http://coordinator/api',
+          crossingToken: 't',
+        }),
+      ),
+    ),
+  );
+});
+
+describeFlowStarterContract('the HTTP flow starter', coordinator => {
+  serve((url, body, headers) =>
+    coordinator(
+      url.pathname.replace('/api/flow/', ''),
+      body,
+      // Sent as an RFC 9651 String; the script sees the key itself.
+      (headers['idempotency-key'] ?? '').replace(/^"|"$/g, ''),
+    ),
+  );
+  return Effect.runPromise(
+    Effect.gen(function* () {
+      return yield* FlowStarterTag;
+    }).pipe(
+      Effect.provide(
+        httpFlowStarterLayer({
           url: 'http://coordinator/api',
           crossingToken: 't',
         }),

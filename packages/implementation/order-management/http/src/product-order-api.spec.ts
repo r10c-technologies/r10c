@@ -88,10 +88,15 @@ const [
   close,
 ] = productOrderEndpoints;
 
+/** A flow step's body: the record's members, flat — an envelope's `data`. */
+const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
+  (makeEntityEnvelope(...args) as unknown as { data: Record<string, unknown> })
+    .data;
+
 const open = () =>
   checkoutGroupApi.options.override.create.handler(
     {
-      payload: makeEntityEnvelope(
+      payload: flatOf(
         CheckoutGroup,
         Object.assign(new CheckoutGroup(), {
           id: GROUP,
@@ -104,10 +109,8 @@ const open = () =>
   );
 
 const place = (order: ProductOrder, extraLines: unknown[] = []) => {
-  const payload = makeEntityEnvelope(ProductOrder, order) as unknown as {
-    data: { items: unknown[] };
-  };
-  payload.data.items = [...payload.data.items, ...extraLines];
+  const payload = flatOf(ProductOrder, order);
+  payload['items'] = [...(payload['items'] as unknown[]), ...extraLines];
   return productOrderApi.options.override.create.handler({ payload }, operator);
 };
 
@@ -173,10 +176,8 @@ describe('a checkout', () => {
   it('refuses a write that carries no lines at all', async () => {
     const w = world();
     await w.run(open());
-    const payload = makeEntityEnvelope(ProductOrder, anOrder()) as unknown as {
-      data: Record<string, unknown>;
-    };
-    delete payload.data['items'];
+    const payload = flatOf(ProductOrder, anOrder());
+    delete payload['items'];
 
     const refused = await w.refusal(
       productOrderApi.options.override.create.handler({ payload }, operator),

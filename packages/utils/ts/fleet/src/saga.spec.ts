@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CROSSING_TOKEN_HEADER, postSaga } from './saga.js';
+import { CROSSING_TOKEN_HEADER } from './flow.js';
+import { postSaga } from './saga.js';
 
 afterEach(() => {
   vi.unstubAllGlobals();

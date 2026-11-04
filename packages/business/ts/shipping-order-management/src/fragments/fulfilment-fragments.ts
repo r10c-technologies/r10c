@@ -1,6 +1,6 @@
 import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
-import { participantRefusal } from '@r10c/business-ts-saga-contracts';
+import { participantRefusal } from '@r10c/business-ts-flow-contracts';
 import { Schema } from 'effect';
 
 import { SHIPPING_ORDER_NOT_TRANSITIONABLE } from '../failures/shipping-failures';
@@ -8,7 +8,11 @@ import { SHIPPING_ORDER_NOT_TRANSITIONABLE } from '../failures/shipping-failures
 /** The participant every fulfilment fragment calls. */
 const PARTICIPANT = 'fulfilment-service';
 
-/** A shipment's id, provided by its opening. */
+/**
+ * A shipment's id, provided by its opening. It is the vendor order's own id —
+ * one shipment per order — so a flow on an order that already exists names its
+ * shipment without having opened it.
+ */
 const ShippingOrderId = Schema.String;
 
 const SHIPMENT = openStruct({ id: ShippingOrderId, status: Schema.String });
@@ -28,7 +32,7 @@ const MOVE_REFUSAL = participantRefusal([
  */
 export const fulfilmentOpen = defineFragment({
   id: 'fulfilment.open',
-  version: 1,
+  version: 2,
   module: 'shipping-order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -36,6 +40,7 @@ export const fulfilmentOpen = defineFragment({
   cardinality: 'perVendor',
   isolation: 'none',
   requires: REQUIRES,
+  consumes: { orderId: Schema.String, groupId: Schema.String },
   provides: { shippingOrderId: ShippingOrderId },
   contract: {
     input: openStruct({
@@ -58,18 +63,21 @@ export const fulfilmentOpen = defineFragment({
  */
 export const fulfilmentHold = defineFragment({
   id: 'fulfilment.hold',
-  version: 1,
+  version: 2,
   module: 'shipping-order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/shipping-order/:id/hold' },
-  compensation: { method: 'DELETE', path: '/api/shipping-order/:id/hold' },
+  call: { method: 'POST', path: '/api/shipping-order/:shippingOrderId/hold' },
+  compensation: {
+    method: 'DELETE',
+    path: '/api/shipping-order/:shippingOrderId/hold',
+  },
   cardinality: 'one',
   isolation: 'semanticLock',
   requires: REQUIRES,
   consumes: { shippingOrderId: ShippingOrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ shippingOrderId: ShippingOrderId }),
     output: SHIPMENT,
     failure: MOVE_REFUSAL,
   },
@@ -78,18 +86,21 @@ export const fulfilmentHold = defineFragment({
 /** Let a held shipment go back to awaiting dispatch; undone by holding again. */
 export const fulfilmentRelease = defineFragment({
   id: 'fulfilment.release',
-  version: 1,
+  version: 2,
   module: 'shipping-order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
-  call: { method: 'DELETE', path: '/api/shipping-order/:id/hold' },
-  compensation: { method: 'POST', path: '/api/shipping-order/:id/hold' },
+  call: { method: 'DELETE', path: '/api/shipping-order/:shippingOrderId/hold' },
+  compensation: {
+    method: 'POST',
+    path: '/api/shipping-order/:shippingOrderId/hold',
+  },
   cardinality: 'one',
   isolation: 'semanticLock',
   requires: REQUIRES,
   consumes: { shippingOrderId: ShippingOrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ shippingOrderId: ShippingOrderId }),
     output: SHIPMENT,
     failure: MOVE_REFUSAL,
   },
@@ -98,17 +109,20 @@ export const fulfilmentRelease = defineFragment({
 /** Withdraw a shipment that will never ship. After a cancellation's pivot. */
 export const fulfilmentWithdraw = defineFragment({
   id: 'fulfilment.withdraw',
-  version: 1,
+  version: 2,
   module: 'shipping-order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/shipping-order/:id/withdrawal' },
+  call: {
+    method: 'POST',
+    path: '/api/shipping-order/:shippingOrderId/withdrawal',
+  },
   cardinality: 'one',
   isolation: 'reRead',
   requires: REQUIRES,
   consumes: { shippingOrderId: ShippingOrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ shippingOrderId: ShippingOrderId }),
     output: SHIPMENT,
     failure: MOVE_REFUSAL,
   },
@@ -121,18 +135,21 @@ export const fulfilmentWithdraw = defineFragment({
  */
 export const fulfilmentDispatch = defineFragment({
   id: 'fulfilment.dispatch',
-  version: 1,
+  version: 2,
   module: 'shipping-order-management',
   kind: 'pivot',
   participant: PARTICIPANT,
-  call: { method: 'POST', path: '/api/shipping-order/:id/dispatch-step' },
+  call: {
+    method: 'POST',
+    path: '/api/shipping-order/:shippingOrderId/dispatch-step',
+  },
   cardinality: 'one',
   irreversible: true,
   isolation: 'semanticLock',
   requires: REQUIRES,
   consumes: { shippingOrderId: ShippingOrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ shippingOrderId: ShippingOrderId }),
     output: SHIPMENT,
     failure: MOVE_REFUSAL,
   },
@@ -145,16 +162,16 @@ export const fulfilmentDispatch = defineFragment({
  */
 export const fulfilmentAwaitDelivery = defineFragment({
   id: 'fulfilment.await-delivery',
-  version: 1,
+  version: 2,
   module: 'shipping-order-management',
   kind: 'wait',
   participant: PARTICIPANT,
-  call: { method: 'GET', path: '/api/shipping-order/:id' },
+  call: { method: 'GET', path: '/api/shipping-order/:shippingOrderId' },
   cardinality: 'one',
   requires: REQUIRES,
   consumes: { shippingOrderId: ShippingOrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ shippingOrderId: ShippingOrderId }),
     output: SHIPMENT,
     failure: participantRefusal([]),
   },
@@ -163,16 +180,16 @@ export const fulfilmentAwaitDelivery = defineFragment({
 /** Wait for a refused or returned parcel to reach the vendor again. */
 export const fulfilmentAwaitReturn = defineFragment({
   id: 'fulfilment.await-return',
-  version: 1,
+  version: 2,
   module: 'shipping-order-management',
   kind: 'wait',
   participant: PARTICIPANT,
-  call: { method: 'GET', path: '/api/shipping-order/:id' },
+  call: { method: 'GET', path: '/api/shipping-order/:shippingOrderId' },
   cardinality: 'one',
   requires: REQUIRES,
   consumes: { shippingOrderId: ShippingOrderId },
   contract: {
-    input: Schema.Struct({}),
+    input: openStruct({ shippingOrderId: ShippingOrderId }),
     output: SHIPMENT,
     failure: participantRefusal([]),
   },

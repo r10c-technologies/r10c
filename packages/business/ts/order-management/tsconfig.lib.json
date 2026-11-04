@@ -20,6 +20,9 @@
       "path": "../saga-contracts/tsconfig.lib.json"
     },
     {
+      "path": "../flow-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../payment-contracts/tsconfig.lib.json"
     },
     {

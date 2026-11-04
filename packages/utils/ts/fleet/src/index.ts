@@ -49,4 +49,5 @@ export const configSourceFor = (key: string) => ({
   headers: { [SERVICE_TOKEN_HEADER]: serviceToken() },
 });
 
+export * from './flow.js';
 export * from './saga.js';

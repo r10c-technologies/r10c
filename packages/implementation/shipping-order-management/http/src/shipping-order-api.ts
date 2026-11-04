@@ -12,13 +12,11 @@ import {
   entityKey,
   implement,
   Invalid,
-  InvalidEnvelope,
   JsonBody,
   makeEntityEnvelope,
   NotFound,
-  readEntityEnvelope,
 } from '@entifix/core';
-import { InvalidBody } from '@r10c/business-ts-common';
+import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import {
   DispatchShippingOrderUC,
   RecordDeliveryUC,
@@ -123,7 +121,7 @@ const openShipment = defineEndpoint({
   path: BASE,
   payload: JsonBody,
   success: JsonBody,
-  errors: [InvalidBody, InvalidEnvelope, Invalid, DuplicateKey],
+  errors: [InvalidBody, Invalid, DuplicateKey],
   guard: crossing('open'),
   idempotent: 'unit',
 });
@@ -184,13 +182,16 @@ const dispatchStep = defineEndpoint({
 export const shippingOrderEndpoints = [
   implement(openShipment, ({ payload }) =>
     Effect.gen(function* () {
-      const order = yield* readEntityEnvelope(ShippingOrder, payload);
+      const order = yield* readStepRecord(ShippingOrder, payload);
       if (order.orderId === '' || order.lines.length === 0) {
         return yield* new InvalidBody({
           reason: 'a shipment ships one vendor order, and at least one line',
         });
       }
-      order.id = globalThis.crypto.randomUUID();
+      // One shipment per vendor order, under the order's own id: a flow on an
+      // order that already exists — a cancellation's hold — names its shipment
+      // without having opened it.
+      order.id = order.orderId;
       const store = yield* ShippingOrderStoreTag;
       const { order: opened } = yield* store.open(
         yield* OrganizationIdTag,

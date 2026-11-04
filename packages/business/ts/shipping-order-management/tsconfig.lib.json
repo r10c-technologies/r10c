@@ -8,17 +8,13 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../saga-contracts/tsconfig.lib.json"
+      "path": "../flow-contracts/tsconfig.lib.json"
     },
     {
       "path": "../sales-vocabulary/tsconfig.lib.json"

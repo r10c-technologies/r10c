@@ -5,10 +5,15 @@ import {
   PublishedPriceReaderTag,
 } from '@r10c/business-ts-catalog-contracts';
 import {
+  coordinatorUnreachable,
+  FlowStarterTag,
+  flowStartOutcome,
+} from '@r10c/business-ts-flow-contracts';
+import {
   sagaOutcomeFor,
   SagaStarterTag,
 } from '@r10c/business-ts-saga-contracts';
-import { postSaga } from '@r10c/utils-ts-fleet';
+import { postFlow, postSaga } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 /**
@@ -35,6 +40,34 @@ export const httpSagaStarterLayer = (coordinator: {
           new UpstreamUnavailable({ upstream: 'transaction-service' }),
       }).pipe(
         Effect.map(({ status, payload }) => sagaOutcomeFor(status, payload)),
+      ),
+  });
+
+/**
+ * The {@link FlowStarterTag} over the coordinator's HTTP start route,
+ * presenting its **inbound** crossing token — the secret that starts a flow,
+ * never the one a participant accepts when the coordinator calls it.
+ */
+export const httpFlowStarterLayer = (coordinator: {
+  readonly url: string;
+  readonly crossingToken: string;
+}) =>
+  Layer.succeed(FlowStarterTag, {
+    start: (recipe, input, idempotencyKey) =>
+      Effect.tryPromise({
+        try: () =>
+          postFlow(
+            coordinator.url,
+            coordinator.crossingToken,
+            recipe,
+            input,
+            idempotencyKey,
+          ),
+        catch: coordinatorUnreachable,
+      }).pipe(
+        Effect.flatMap(({ status, contentType, payload }) =>
+          flowStartOutcome({ status, contentType, body: payload }),
+        ),
       ),
   });
 

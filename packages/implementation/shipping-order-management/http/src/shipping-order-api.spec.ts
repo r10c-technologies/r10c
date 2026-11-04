@@ -62,8 +62,13 @@ const verb = (
     context as never,
   ) as Effect.Effect<unknown, unknown, R>;
 
+/** A flow step's body: the record's members, flat — an envelope's `data`. */
+const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
+  (makeEntityEnvelope(...args) as unknown as { data: Record<string, unknown> })
+    .data;
+
 const shipment = (extra: Partial<ShippingOrder> = {}) =>
-  makeEntityEnvelope(
+  flatOf(
     ShippingOrder,
     Object.assign(new ShippingOrder(), {
       orderId: 'order-1',
@@ -76,9 +81,9 @@ const shipment = (extra: Partial<ShippingOrder> = {}) =>
     }),
   );
 
-/** A shipment opened awaiting dispatch, its id answered. */
-const opened = async (w: ReturnType<typeof world>) =>
-  (await w.run(at(open, { payload: shipment() }))).data.id;
+/** A shipment opened awaiting dispatch for one order, its id answered. */
+const opened = async (w: ReturnType<typeof world>, orderId = 'order-1') =>
+  (await w.run(at(open, { payload: shipment({ orderId }) }))).data.id;
 
 describe('the declarations', () => {
   it('read a vendor’s own shipments behind their organization, and move them by crossing', () => {
@@ -114,6 +119,8 @@ describe('the flow’s steps', () => {
     );
 
     expect(first.data.status).toBe('awaiting-dispatch');
+    // One shipment per vendor order, under the order's own id.
+    expect(first.data.id).toBe('order-1');
     expect(again.data.id).toBe(first.data.id);
   });
 
@@ -153,7 +160,7 @@ describe('the vendor’s verbs', () => {
   it('dispatch a parcel and record its delivery, refusal and return', async () => {
     const w = world();
     const delivered = await opened(w);
-    const refused = await opened(w);
+    const refused = await opened(w, 'order-2');
 
     await w.run(verb(dispatch, delivered));
     const done = await w.run(verb(delivery, delivered));

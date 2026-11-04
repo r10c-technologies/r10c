@@ -1,8 +1,4 @@
-/** The header a caller presents the saga coordinator's inbound crossing token in. */
-export const CROSSING_TOKEN_HEADER = 'x-crossing-token';
-
-/** The header a flow start is made idempotent on (ADR 0068). */
-export const IDEMPOTENCY_KEY_HEADER = 'idempotency-key';
+import { CROSSING_TOKEN_HEADER, IDEMPOTENCY_KEY_HEADER } from './flow.js';
 
 /** What the coordinator answered: its status, and its body when it had one. */
 export interface SagaResponse {

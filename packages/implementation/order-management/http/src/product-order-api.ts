@@ -15,9 +15,8 @@ import {
   JsonBody,
   makeEntityEnvelope,
   NotFound,
-  readEntityEnvelope,
 } from '@entifix/core';
-import { InvalidBody } from '@r10c/business-ts-common';
+import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import {
   buyerReceipt,
   CancelNotAuthorized,
@@ -73,8 +72,7 @@ const idOf = (request: EntityApiRequest) => request.params?.id as string;
 
 /** The lines a write carried, as sent — before a line's vendor is dropped. */
 const rawLinesOf = (payload: unknown): readonly unknown[] => {
-  const items = (payload as { data?: { items?: unknown } } | undefined)?.data
-    ?.items;
+  const items = (payload as { items?: unknown } | undefined)?.items;
   return Array.isArray(items) ? items : [];
 };
 
@@ -100,15 +98,14 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
   },
   narrowing: orderNarrowing,
   override: {
+    // A flow step: the order's members, flat, beside the group the flow bound.
     create: {
       idempotent: 'unit',
+      payload: JsonBody,
       errors: [InvalidBody, Invalid, DuplicateKey, NotFound],
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         Effect.gen(function* () {
-          const order = yield* readEntityEnvelope(
-            ProductOrder,
-            request.payload,
-          );
+          const order = yield* readStepRecord(ProductOrder, request.payload);
           const placement = yield* placeOrder({
             order,
             rawLines: rawLinesOf(request.payload),
@@ -158,15 +155,14 @@ export const checkoutGroupApi = defineEntityApi(CheckoutGroup, GROUP_KEY, {
   },
   narrowing: checkoutGroupNarrowing,
   override: {
+    // A flow step: the group's members, flat.
     create: {
       idempotent: 'unit',
+      payload: JsonBody,
       errors: [InvalidBody, Invalid, DuplicateKey],
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         Effect.gen(function* () {
-          const group = yield* readEntityEnvelope(
-            CheckoutGroup,
-            request.payload,
-          );
+          const group = yield* readStepRecord(CheckoutGroup, request.payload);
           const opening = yield* openGroup({
             group,
             commandId: yield* commandId,

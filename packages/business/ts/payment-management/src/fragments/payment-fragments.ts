@@ -1,6 +1,6 @@
 import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
-import { participantRefusal } from '@r10c/business-ts-saga-contracts';
+import { participantRefusal } from '@r10c/business-ts-flow-contracts';
 import { Schema } from 'effect';
 
 /** The participant every payment fragment calls. */
@@ -8,9 +8,8 @@ const PARTICIPANT = 'payment-service';
 
 const PAYMENT = openStruct({ id: Schema.String, status: Schema.String });
 
-/** One vendor order's share of a capture. */
+/** One card vendor's share of a capture, by the vendor it is owed to. */
 const Share = openStruct({
-  orderId: Schema.NonEmptyString,
   vendorId: Schema.NonEmptyString,
   amount: Schema.Number,
 });
@@ -20,10 +19,14 @@ const Share = openStruct({
  * — a refund is a new record with its own money movement, never the capture's
  * absence (ADR 0054) — and split into one allocation per vendor order. A
  * cash-on-delivery segment takes no capture.
+ *
+ * It runs outside every vendor segment, so the order ids it consumes arrive
+ * as one map, by vendor: each share is allocated to the order its vendor's
+ * segment wrote.
  */
 export const paymentCapture = defineFragment({
   id: 'payment.capture',
-  version: 2,
+  version: 3,
   module: 'payment-management',
   kind: 'pivot',
   participant: PARTICIPANT,
@@ -31,12 +34,13 @@ export const paymentCapture = defineFragment({
   cardinality: 'one',
   irreversible: true,
   excludedFrom: { paymentMethod: ['cod'] },
+  consumes: { groupId: Schema.String, orderId: Schema.String },
   contract: {
     input: openStruct({
       groupId: Schema.NonEmptyString,
-      amount: Schema.Number,
       currency: Schema.NonEmptyString,
-      allocations: Schema.Array(Share),
+      shares: Schema.Array(Share),
+      orderId: Schema.Record(Schema.String, Schema.String),
     }),
     output: PAYMENT,
     failure: participantRefusal(['invalidBody', 'paymentDeclined']),

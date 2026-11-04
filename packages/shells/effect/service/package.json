@@ -54,6 +54,7 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-catalog-contracts": "workspace:*",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "@swc/helpers": "0.5.23",
