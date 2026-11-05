@@ -1,0 +1,36 @@
+name: Cache Cleanup
+
+# A closed pull request's caches can never be read again — a cache is scoped to
+# the ref that wrote it, and nothing writes `refs/pull/<n>/merge` once the pull
+# request is closed — but they count against the repository's 10 GB until
+# GitHub evicts them, and eviction picks the oldest entry first, which is
+# `main`'s. So they are deleted the moment they become dead.
+#
+# ⚠️ `pull_request_target`, deliberately, and safe only because of what this
+# job does not do. Under `pull_request` a Dependabot pull request gets a
+# read-only token and could never delete its own caches. `pull_request_target`
+# runs this file as it is on `main`, with a token that can — so this job must
+# never check out, install or run anything from the pull request. It calls the
+# GitHub API with a number, and that is all.
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  actions: write
+
+jobs:
+  delete:
+    name: Delete the pull request's caches
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REF: refs/pull/${{ github.event.pull_request.number }}/merge
+        run: |
+          set -euo pipefail
+          gh cache list --repo "$GITHUB_REPOSITORY" --ref "$REF" --limit 100 --json id --jq '.[].id' \
+            | while read -r id; do
+                gh cache delete "$id" --repo "$GITHUB_REPOSITORY"
+              done

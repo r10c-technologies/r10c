@@ -1,0 +1,25 @@
+name: Upload this job's Nx cache
+description: >-
+  Hands the Nx cache entries this job wrote, and the journal of every entry it
+  used, to later jobs in the run and to the job that saves the run's cache.
+  Run it with `if: always()`: a job that failed still wrote the entries of the
+  tasks that passed.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        [[ -n "${NX_REMOTE_CACHE_NAME:-}" ]] || { echo "the setup action ran without nx-cache"; exit 1; }
+        node tools/ci/nx-remote-cache.mjs stage .nx-remote/entries \
+          "$RUNNER_TEMP/$NX_REMOTE_CACHE_NAME" "$RUNNER_TEMP/nx-cache-out"
+    - uses: actions/upload-artifact@v7
+      with:
+        name: nx-cache-${{ env.NX_REMOTE_CACHE_NAME }}
+        path: ${{ runner.temp }}/nx-cache-out
+        # Only ever read by later jobs of this same run.
+        retention-days: 1
+        if-no-files-found: ignore
+        # The entries are already compressed tarballs.
+        compression-level: 0

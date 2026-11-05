@@ -283,7 +283,7 @@ describe('the enforcement surfaces are wired to that predicate', () => {
 
   it('CI checks the pull-request body, which no git hook can see', () => {
     const workflow = readFileSync(
-      join(REPO_ROOT, '.github/workflows/pull_request_check.yml'),
+      join(REPO_ROOT, '.github/workflows/change_validation.yml'),
       'utf8',
     );
     expect(workflow).toContain('tools/conventions/check-pull-request.mjs');

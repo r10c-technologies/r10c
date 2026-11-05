@@ -1023,8 +1023,14 @@ the flow per caller and omits a verb the caller cannot reach.
 ## Verifying a change
 
 - Static: `pnpm nx affected -t lint,build,typecheck,test` (or `run-many` on the
-  touched projects). Pre-commit runs the `lint,build` subset; CI runs `lint`, then
-  `build,typecheck` together, then `test` and `e2e`.
+  touched projects). Pre-commit runs the `lint,build` subset. CI is
+  `change_validation.yml`, on every pull request, every push to `main` and by
+  hand: `lint` and `test` beside `build,typecheck` (libraries once, then the
+  applications fanned out), service and browser `e2e` apart, and the
+  repository assertions unconditional and uncached. Only `Done` is required, so
+  a new job belongs in its `needs`. The Nx cache travels between jobs and runs
+  through GitHub alone, and a check that reads outside its own project must run
+  `--skip-nx-cache` ([ADR 0074](adr/0074-change-validation-and-the-cache-it-may-trust.md)).
 - Coverage: `pnpm nx run-many -t test --coverage` — every `packages/*` project
   must stay at 100%.
 - Runtime: bring up `infra/local`, then `pnpm nx run <service>:dev` and exercise
