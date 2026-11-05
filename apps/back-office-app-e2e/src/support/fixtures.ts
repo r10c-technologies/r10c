@@ -1,4 +1,4 @@
-import { describeEntityUseCases } from '@entifix/core';
+import { describeEntityUseCases, problemOf } from '@entifix/core';
 import {
   configurationHandler,
   entityBackendHandlers,
@@ -27,7 +27,10 @@ import {
   SettlementRun,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
-import { ShippingOrder } from '@r10c/business-ts-shipping-order-management';
+import {
+  ShippingOrder,
+  ShippingOrderNotTransitionable,
+} from '@r10c/business-ts-shipping-order-management';
 import {
   Reservation,
   StockItem,
@@ -401,6 +404,25 @@ const shippingVerbHandlers = [
     `${FULFILMENT_SERVICE_URL}/shipping-order/:id/record-delivery`,
     ({ params }) => {
       const id = String(params['id']);
+      const standing = shippingOrders.backend
+        .rows()
+        .find(r => r['id'] === id)?.['status'];
+      // The conditional write: delivery is recorded only on a dispatched parcel.
+      if (standing !== 'dispatched') {
+        return HttpResponse.json(
+          problemOf(
+            new ShippingOrderNotTransitionable({
+              shippingOrderId: id,
+              standing: String(standing),
+              transition: 'record-delivery',
+            }),
+          ),
+          {
+            status: 409,
+            headers: { 'content-type': 'application/problem+json' },
+          },
+        );
+      }
       moveShipment(id, 'delivered');
       const row = shippingOrders.backend.rows().find(r => r['id'] === id);
       return HttpResponse.json({

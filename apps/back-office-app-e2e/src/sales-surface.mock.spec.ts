@@ -99,7 +99,13 @@ test('rings up a sale through the channel’s own sell verb, and waits on its ch
     .selectOption('product-offering-1');
   await page.getByRole('button', { name: 'Agregar producto' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  // Tender codes are copy: no wire value reaches a Spanish-speaking cashier.
+  const tender = page.getByRole('combobox', { name: 'Forma de pago' });
+  await expect(tender.getByRole('option', { name: 'Efectivo' })).toBeAttached();
+  await expect(tender).not.toContainText(/\b(cash|card|voucher|transfer)\b/);
   await page.getByRole('button', { name: 'Continuar' }).click();
+  // 6499 minor units is 64,99 quetzales, never "6499 GTQ" (#524).
+  await expect(page.getByText(/Total: 64,99\sGTQ/)).toBeVisible();
   await page.getByRole('button', { name: /Finalizar/ }).click();
 
   // Accepted is not sold: the till waits until the checkout completes.

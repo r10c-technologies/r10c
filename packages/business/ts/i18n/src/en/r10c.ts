@@ -262,6 +262,13 @@ export const r10c: EsR10c = {
       linesHint: 'Add the published products you are selling.',
       addLine: 'Add product',
       removeLine: 'Remove',
+      removeLineNamed: 'Remove {{name}}',
+      tender: {
+        cash: 'Cash',
+        card: 'Card',
+        voucher: 'Voucher',
+        transfer: 'Transfer',
+      },
       quantity: 'Quantity',
       offering: 'Product',
       total: 'Total',

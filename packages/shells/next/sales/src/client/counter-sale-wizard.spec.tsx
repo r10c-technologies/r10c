@@ -69,7 +69,7 @@ const publishedOffering = () => {
   offering.offeringId = 'product-offering-1';
   offering.vendorId = 'demo-organization';
   offering.name = 'Café de altura';
-  offering.amount = 25;
+  offering.amount = 6499;
   offering.currency = 'GTQ';
   offering.publishedAt = new Date('2026-09-01T00:00:00.000Z');
   return offering;
@@ -94,7 +94,11 @@ const adapters = (): SalesAdapters => ({
   ),
   publishedOfferingRest: Context.make(
     EntityRepositoryTag,
-    makeInMemoryEntityRepository([publishedOffering()] as Entity[]),
+    makeInMemoryEntityRepository([
+      publishedOffering(),
+      // The projection answering the same offering twice: the picker lists it once.
+      Object.assign(publishedOffering(), { id: 'published-1-again' }),
+    ] as Entity[]),
   ),
   metadata: real.metadata,
 });
@@ -160,6 +164,9 @@ const ringUp = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /Continuar/i }));
 
   await screen.findByRole('combobox', { name: 'Forma de pago' });
+  // Tender codes are copy, never the wire value.
+  expect(screen.getByRole('option', { name: 'Efectivo' })).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: 'cash' })).toBeNull();
   await user.click(screen.getByRole('button', { name: /Continuar/i }));
 };
 
@@ -230,10 +237,12 @@ describe('the till', () => {
 
     await ringUp(user);
 
-    // 2 × 25 — display only. The route re-prices every line server-side, so a
+    // 2 × 6499 minor units — display only. The route re-prices every line server-side, so a
     // total computed here that disagreed would be a bug in this file alone,
     // never a mischarge.
-    expect(await screen.findByText(/Total: 50 GTQ/)).toBeInTheDocument();
+    // Minor units, formatted: 12998 is 129,98 quetzales, never "12998 GTQ".
+    expect(await screen.findByText(/Total: 129,98\sGTQ/)).toBeInTheDocument();
+    expect(screen.getByText(/2 × Café de altura — 129,98\sGTQ/)).toBeVisible();
   });
 
   it('sends offering ids and quantities, never prices', async () => {
@@ -356,7 +365,7 @@ describe('the till', () => {
     expect(
       await screen.findByText('No hay existencia suficiente para reservar.'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Total: 50 GTQ/)).toBeInTheDocument();
+    expect(screen.getByText(/Total: 129,98\sGTQ/)).toBeInTheDocument();
   });
 });
 
@@ -471,9 +480,16 @@ describe('the lines step', () => {
     await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
     // The offering's name is also an `<option>` in the picker above, so the
     // line is found by the button that removes it rather than by its text.
-    expect(await screen.findByRole('button', { name: 'Quitar' })).toBeVisible();
+    expect(
+      screen.getAllByRole('option', { name: 'Café de altura' }),
+    ).toHaveLength(1);
+    expect(
+      await screen.findByRole('button', { name: 'Quitar Café de altura' }),
+    ).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Quitar' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Quitar Café de altura' }),
+    );
 
     expect(
       await screen.findByText('Agrega al menos un producto para cobrar.'),
