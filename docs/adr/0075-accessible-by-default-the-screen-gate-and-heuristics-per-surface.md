@@ -34,7 +34,7 @@ A live audit of 24 screens on 2026-11-05 found the following.
 - After a save, a delete, a checkout or a cancel, focus lands on `<body>`.
 - An empty toast region covered two focused links.
 
-**Heuristics** — 8 findings that block a task, 38 that slow one, 6 cosmetic.
+**Heuristics** — 4 distinct findings that block a task (8 raw, deduplicated), 38 that slow one, 6 cosmetic.
 The blocking ones:
 
 - a generated Delete that hard-deletes in one click;
@@ -104,6 +104,10 @@ are used:
   - no stop has an invisible indicator;
   - no stop is obscured;
   - focus is never on `<body>` after a save, a delete, a checkout or a cancel.
+- **The walk's thresholds ratchet like the fingerprints.** The back office
+  meets neither target today (no skip link, first stop in `main` at #71), so its
+  measured values are committed beside the issue that tightens them, and the
+  record holds when that issue closes, not before.
 - **The live fleet is for research only.** No gate depends on it.
 
 ### Heuristics are weighed per surface, and never gate
