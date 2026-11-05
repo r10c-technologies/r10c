@@ -1,0 +1,135 @@
+name: Setup
+description: >-
+  pnpm, Node and the workspace's node_modules for one Change Validation job,
+  and — when asked — the Nx task cache this run and earlier runs produced.
+
+# Every job runs `actions/checkout` first and this second: the action lives in
+# the repository, so it cannot check that repository out.
+
+inputs:
+  install:
+    description: >-
+      'true' in Initialize only: install on a miss and save the result. Every
+      other job restores the entry Initialize just made, and a miss fails it.
+    default: 'false'
+  nx-cache:
+    description: >-
+      A name for this job's share of the Nx cache, unique in the run (a matrix
+      job includes its matrix value). Empty leaves the Nx cache off, which is
+      what the repository-wide assertions want.
+    default: ''
+  nx-cache-from:
+    description: >-
+      Artifacts of earlier jobs in this run to read from, as a download-artifact
+      pattern (e.g. `nx-cache-build-*`). Empty reads only earlier runs.
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+      with:
+        version: '11.9'
+    # No `cache: pnpm`: the pnpm store is what `pnpm install` reads, and no job
+    # here installs — they restore `node_modules` itself. The store cache was
+    # ~300 MB saved per ref for nothing.
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: package.json
+
+    # The key must change whenever what `pnpm install` would produce changes:
+    # the lockfile, the workspace member globs, and the Node version native
+    # modules were resolved for. The version is read from the runtime rather
+    # than written here, so a Node bump cannot leave a stale key behind.
+    - id: key
+      shell: bash
+      run: |
+        echo "deps=deps-${RUNNER_OS}-node$(node --version | tr -d v)-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json') }}" >> "$GITHUB_OUTPUT"
+
+    # The paths are the root `node_modules`, which holds pnpm's virtual store
+    # in `.pnpm`, plus each workspace member's own `node_modules` of symlinks
+    # into it. A restore without the member directories resolves nothing.
+    - id: deps
+      uses: actions/cache/restore@v6
+      with:
+        key: ${{ steps.key.outputs.deps }}
+        # A miss outside Initialize fails the job rather than falling back to
+        # an install: Initialize saved this exact key moments ago, so a miss
+        # means the key expression drifted, and a silent reinstall would hide it.
+        fail-on-cache-miss: ${{ inputs.install != 'true' }}
+        path: |
+          node_modules
+          apps/*/node_modules
+          packages/business/ts/*/node_modules
+          packages/utils/*/*/node_modules
+          packages/implementation/*/*/node_modules
+          packages/shells/*/*/node_modules
+          packages/testing/*/node_modules
+          tools/*/node_modules
+    - if: inputs.install == 'true' && steps.deps.outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile
+    # Saved only on a miss, so a pull request that leaves the lockfile alone
+    # reads `main`'s entry and writes nothing. One that changes it writes an
+    # entry scoped to itself, which `cache_cleanup.yml` deletes on close.
+    - if: inputs.install == 'true' && steps.deps.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        key: ${{ steps.key.outputs.deps }}
+        path: |
+          node_modules
+          apps/*/node_modules
+          packages/business/ts/*/node_modules
+          packages/utils/*/*/node_modules
+          packages/implementation/*/*/node_modules
+          packages/shells/*/*/node_modules
+          packages/testing/*/node_modules
+          tools/*/node_modules
+
+    # The Nx task cache, served from `.nx-remote/entries` by
+    # `tools/ci/nx-remote-cache.mjs`; that file says why a server and not a
+    # copied `.nx/cache`. The newest entry in this ref's scope wins, and
+    # GitHub falls back to `main`'s when the ref has none.
+    - if: inputs.nx-cache != ''
+      uses: actions/cache/restore@v6
+      with:
+        key: nx-remote-${{ runner.os }}-${{ github.sha }}-${{ github.run_attempt }}
+        restore-keys: nx-remote-${{ runner.os }}-
+        path: .nx-remote/entries
+    # What earlier jobs in this run wrote. An entry is named by its content's
+    # hash, so merging several jobs' entries is copying files.
+    - if: inputs.nx-cache != '' && inputs.nx-cache-from != ''
+      uses: actions/download-artifact@v8
+      with:
+        pattern: ${{ inputs.nx-cache-from }}
+        path: .nx-remote/entries
+        merge-multiple: true
+    - if: inputs.nx-cache != ''
+      shell: bash
+      env:
+        NAME: ${{ inputs.nx-cache }}
+      run: |
+        set -euo pipefail
+        # The journals other jobs uploaded beside their entries are theirs; this
+        # job's own is started empty.
+        rm -f .nx-remote/entries/journal-*
+        mkdir -p .nx-remote/entries
+        token=$(openssl rand -hex 24)
+        echo "::add-mask::$token"
+        port=47001
+        NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$token" nohup node tools/ci/nx-remote-cache.mjs \
+          serve .nx-remote/entries "$RUNNER_TEMP/$NAME" "$port" \
+          > "$RUNNER_TEMP/nx-remote-cache.log" 2>&1 &
+        for _ in $(seq 1 50); do
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "authorization: Bearer $token" "http://127.0.0.1:$port/v1/cache/0" || true)
+          [[ "$code" == "404" ]] && break
+          sleep 0.2
+        done
+        [[ "$code" == "404" ]] || { cat "$RUNNER_TEMP/nx-remote-cache.log"; exit 1; }
+        echo "restored $(find .nx-remote/entries -type f | wc -l) entries ($(du -sh .nx-remote/entries | cut -f1))"
+        {
+          echo "NX_SELF_HOSTED_REMOTE_CACHE_SERVER=http://127.0.0.1:$port"
+          echo "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN=$token"
+          echo "NX_REMOTE_CACHE_NAME=$NAME"
+        } >> "$GITHUB_ENV"
