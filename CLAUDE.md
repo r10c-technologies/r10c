@@ -185,6 +185,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0045](docs/adr/0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md) **The wizard: a step graph, a draft above the forms, and a submit that hands off** — read when building a multi-step screen — the step graph is data, Back pops a history stack, and a validation gate belongs to a step.
 - [0051](docs/adr/0051-the-storefront-reads-the-projection.md) **The storefront reads the projection** — read when the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read renders an empty catalog and logs.
 - [0073](docs/adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md) **The optimistic contract settles by push, and catches up from flow-status** — read when a write answers `202`, a screen shows a write before the server has it, or a failure has to reach the user — the server picks the mode, a pending flow is keyed by `flowId`, and a pending result never shows money taken.
+- [0075](docs/adr/0075-accessible-by-default-the-screen-gate-and-heuristics-per-surface.md) _(Proposed)_ **Accessible by default: the screen gate, and heuristics weighed per surface** — read when a screen fails an accessibility check, adding a screen or a palette, or weighing a usability finding on the storefront versus the back office — r10c only narrows entifix's WCAG 2.2 AA, deterministic checks gate every screen type, heuristics never do.
 
 **Messaging, transactions and sagas**
 
