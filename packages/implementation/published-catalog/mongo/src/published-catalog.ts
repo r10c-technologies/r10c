@@ -4,7 +4,10 @@ import {
   Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
-import { MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
+import {
+  mongoUnitFault,
+  MongoUnitOfWorkTag,
+} from '@entifix/mongo/transactions';
 import {
   CATALOG_PUBLISHED,
   type CatalogPublication,
@@ -29,8 +32,6 @@ const momentOf = (stamp: { publishedAt?: unknown } | null): number =>
   // epoch, so a real publication supersedes it. Comparing against a string
   // would yield `NaN`, false in every direction, and freeze the offering.
   stamp?.publishedAt instanceof Date ? stamp.publishedAt.getTime() : 0;
-
-const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
 /** What the storefront reads: the snapshot, keyed on the offering. */
 const recordOf = (publication: CatalogPublication, at: Date) => {
@@ -96,7 +97,7 @@ export const MongoPublishedCatalogLayer = Layer.effect(
         Effect.gen(function* () {
           const at = new Date(publication.publishedAt);
           const key = { offeringId: publication.offeringId };
-          const fail = storeUnavailable;
+          const fail = mongoUnitFault;
 
           const outcome = yield* units.run(unit =>
             Effect.tryPromise({

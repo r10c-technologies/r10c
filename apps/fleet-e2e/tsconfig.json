@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/fleet-e2e",
+    "esModuleInterop": true,
+    "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "types": ["node", "vitest/globals"],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/business/ts/authn"
+    },
+    {
+      "path": "../../packages/utils/ts/fleet"
+    }
+  ]
+}

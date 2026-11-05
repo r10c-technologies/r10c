@@ -48,7 +48,6 @@ const CONFIGURATION = fleetConfigurationOf({
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
-  tenant: configurationRows({ demoOrganizationId: 'demo' }),
   zitadel: configurationRows({
     issuer: 'http://zitadel.invalid',
     clientId: 'spec-client',
@@ -58,6 +57,7 @@ const CONFIGURATION = fleetConfigurationOf({
     actionSigningKey: 'spec-signing-key',
   }),
   lifecycle: configurationRows({ sweepIntervalMs: 60_000 }),
+  session: configurationRows({ accessTokenTtlSeconds: 900 }),
 });
 
 const seed = () => Effect.succeed([]);
@@ -80,6 +80,26 @@ describe('the auth shell', () => {
 
     expect(exit._tag).toBe('Failure');
   });
+
+  it.each([
+    ['under the floor', 30],
+    ['a fraction', 90.5],
+  ])(
+    'refuses an access-token lifetime %s, at boot, naming the row',
+    async (_case, accessTokenTtlSeconds) => {
+      const exit = await Effect.runPromiseExit(
+        authComposition({ seed })(
+          fleetConfigurationOf({
+            ...CONFIGURATION.plain,
+            session: configurationRows({ accessTokenTtlSeconds }),
+          }),
+        ),
+      );
+
+      expect(exit._tag).toBe('Failure');
+      expect(String(exit)).toContain('session.accessTokenTtlSeconds');
+    },
+  );
 
   it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seed }))).toBe(true);

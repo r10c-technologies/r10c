@@ -6,6 +6,7 @@ import { SqlHealthProbeLayer } from '@entifix/sql';
 import {
   ensureSqlTransactionTables,
   makeSqlOutbox,
+  SqlOutboxDrainLayer,
   startSqlOutboxRelay,
 } from '@entifix/sql/transactions';
 import { CircuitBreakerTag, OutboxTag } from '@entifix/transactions';
@@ -159,6 +160,12 @@ export const workflowComposition = (
       ).pipe(Layer.provide(FetchHttpClient.layer)),
       NodeCrypto.layer,
       announcing,
+      // Each `flow.*` announcement drained the moment it is enqueued, rather
+      // than at the relay's next sweep fifteen seconds on — the push a pending
+      // write settles by, and the flow-status projection read from it (#492).
+      SqlOutboxDrainLayer(WORKFLOW_STORE, logMechanismOutcome).pipe(
+        Layer.provide(announcing),
+      ),
     );
 
     return Layer.mergeAll(

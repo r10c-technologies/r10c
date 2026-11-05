@@ -1,5 +1,6 @@
 import { MongoClientTag } from '@entifix/mongo';
 import { seedCollection } from '@r10c/shells-effect-service';
+import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
 import { SALES_CHANNEL_COLLECTION } from './sales-channel-index';
@@ -26,7 +27,9 @@ const asRecords = (
  * difference between this seed and stock's: stock's makes the lab *useful*,
  * this one makes a whole screen reachable.
  */
-export const seedSales = (tenantDbName: string) =>
+// The vendor is not read: every seeded vendor gets the same two channels, and
+// their ids are private to each vendor's own `sales_<organizationId>`.
+export const seedSales = (tenantDbName: string, _vendor: SeededVendor) =>
   Effect.gen(function* () {
     const client = yield* MongoClientTag;
     const db = client.db(tenantDbName);

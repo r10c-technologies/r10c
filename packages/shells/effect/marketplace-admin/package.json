@@ -48,6 +48,7 @@
     "@r10c/implementation-catalog-mongo": "workspace:*",
     "@r10c/implementation-product-configuration-management-http": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.7"
   },

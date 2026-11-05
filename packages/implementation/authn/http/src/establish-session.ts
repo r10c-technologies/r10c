@@ -4,7 +4,7 @@ import {
   TokenServiceTag,
 } from '@entifix/business';
 import {
-  ACCESS_TOKEN_TTL_SECONDS,
+  AccessTokenLifetimeTag,
   AccountRepositoryTag,
   type AuthSubject,
   DEFAULT_SESSION_LIFETIME,
@@ -48,6 +48,7 @@ export const establishSession = (
 ): Effect.Effect<
   AuthResult,
   never,
+  | AccessTokenLifetimeTag
   | AccountRepositoryTag
   | SessionScopeResolverTag
   | NotificationPortTag
@@ -58,6 +59,7 @@ export const establishSession = (
   Effect.gen(function* () {
     const sessions = yield* SessionStoreTag;
     const tokens = yield* TokenServiceTag;
+    const lifetime = yield* AccessTokenLifetimeTag;
 
     if (device !== undefined) {
       const devices = yield* UserDeviceRepositoryTag;
@@ -131,13 +133,13 @@ export const establishSession = (
         partyId,
         entitlements,
       },
-      ACCESS_TOKEN_TTL_SECONDS,
+      lifetime.seconds,
     );
 
     return {
       accessToken,
       sessionId,
-      expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      expiresIn: lifetime.seconds,
       sessionExpiresIn: DEFAULT_SESSION_LIFETIME.absoluteTtlSeconds,
       principal: {
         ...subject,

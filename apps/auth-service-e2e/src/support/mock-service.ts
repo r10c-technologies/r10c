@@ -57,6 +57,8 @@ import {
   userIdentitySeedData,
 } from '@r10c/auth-service';
 import {
+  ACCESS_TOKEN_TTL_SECONDS,
+  AccessTokenLifetimeTag,
   AccountRepositoryTag,
   IdentityProviderTag,
   NotificationPortTag,
@@ -179,6 +181,8 @@ const base = Layer.mergeAll(
       audience: JWT_AUDIENCE,
     }),
   ),
+  // The value auth-service's `session.accessTokenTtlSeconds` row is seeded with.
+  Layer.succeed(AccessTokenLifetimeTag, { seconds: ACCESS_TOKEN_TTL_SECONDS }),
   // One in-memory directory behind both halves; see `makeFakeZitadel`.
   Layer.succeed(ZitadelOidcTag, fakeZitadel.oidc),
   Layer.succeed(ZitadelManagementTag, fakeZitadel.management),

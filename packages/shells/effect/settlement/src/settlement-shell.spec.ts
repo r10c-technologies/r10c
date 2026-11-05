@@ -44,7 +44,6 @@ const CONFIGURATION = fleetConfigurationOf({
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
-  tenant: configurationRows({ demoOrganizationId: 'demo' }),
   settlement: configurationRows({ runIntervalMs: 60_000 }),
 });
 

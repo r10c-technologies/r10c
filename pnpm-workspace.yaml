@@ -38,31 +38,31 @@ packages:
 catalog:
   # Read by the @effect/platform-node-shared override below.
   '@effect/platform-node-shared': 4.0.7
-  '@entifix/amqp': 0.17.0
-  '@entifix/authz': 0.17.0
-  '@entifix/business': 0.17.0
-  '@entifix/core': 0.17.0
-  '@entifix/i18n': 0.17.0
-  '@entifix/jwt': 0.17.0
-  '@entifix/mongo': 0.17.0
-  '@entifix/next-i18n': 0.17.0
-  '@entifix/next-shell': 0.17.0
-  '@entifix/posthog': 0.17.0
-  '@entifix/react-controls': 0.17.0
-  '@entifix/react-integration': 0.17.0
-  '@entifix/redis': 0.17.0
-  '@entifix/rest': 0.17.0
-  '@entifix/service-shell': 0.17.0
-  '@entifix/sql': 0.17.0
-  '@entifix/static': 0.17.0
-  '@entifix/style': 0.17.0
-  '@entifix/testing-auth': 0.17.0
-  '@entifix/testing-e2e': 0.17.0
-  '@entifix/testing-unit': 0.17.0
-  '@entifix/tooling': 0.17.0
-  '@entifix/transactions': 0.17.0
-  '@entifix/workflow': 0.17.0
-  '@entifix/zitadel': 0.17.0
+  '@entifix/amqp': 0.18.0
+  '@entifix/authz': 0.18.0
+  '@entifix/business': 0.18.0
+  '@entifix/core': 0.18.0
+  '@entifix/i18n': 0.18.0
+  '@entifix/jwt': 0.18.0
+  '@entifix/mongo': 0.18.0
+  '@entifix/next-i18n': 0.18.0
+  '@entifix/next-shell': 0.18.0
+  '@entifix/posthog': 0.18.0
+  '@entifix/react-controls': 0.18.0
+  '@entifix/react-integration': 0.18.0
+  '@entifix/redis': 0.18.0
+  '@entifix/rest': 0.18.0
+  '@entifix/service-shell': 0.18.0
+  '@entifix/sql': 0.18.0
+  '@entifix/static': 0.18.0
+  '@entifix/style': 0.18.0
+  '@entifix/testing-auth': 0.18.0
+  '@entifix/testing-e2e': 0.18.0
+  '@entifix/testing-unit': 0.18.0
+  '@entifix/tooling': 0.18.0
+  '@entifix/transactions': 0.18.0
+  '@entifix/workflow': 0.18.0
+  '@entifix/zitadel': 0.18.0
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

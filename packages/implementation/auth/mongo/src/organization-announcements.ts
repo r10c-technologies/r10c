@@ -4,6 +4,7 @@ import {
   drainOutboxNow,
   makeMongoOutbox,
   makeMongoUnitsOfWork,
+  mongoUnitFault,
   reviveQuarantined,
 } from '@entifix/mongo/transactions';
 import {
@@ -126,7 +127,7 @@ export const writeOrganization = (
             const organizations = handle.collection(ORGANIZATION_COLLECTION);
             const stored = yield* Effect.tryPromise({
               try: () => organizations.findOne({ id: row['id'] }, { session }),
-              catch: storeUnavailable,
+              catch: mongoUnitFault,
             });
             if (
               stored !== null &&
@@ -141,7 +142,7 @@ export const writeOrganization = (
                 handle
                   .collection(ENTITLEMENT_COLLECTION)
                   .findOne({ organizationId: row['id'] }, { session }),
-              catch: storeUnavailable,
+              catch: mongoUnitFault,
             });
             const written = { ...row, updatedAt: now };
             yield* Effect.tryPromise({
@@ -151,7 +152,7 @@ export const writeOrganization = (
                   { $set: written },
                   { upsert: true, session },
                 ),
-              catch: storeUnavailable,
+              catch: mongoUnitFault,
             });
             const announcement = announcementOf(
               written,

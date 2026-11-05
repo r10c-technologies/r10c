@@ -21,7 +21,6 @@ const CONFIGURATION = fleetConfigurationOf({
   }),
   tenant: configurationRows({
     dbPrefix: 'sales_',
-    demoOrganizationId: 'demo',
   }),
   transaction: configurationRows({
     url: 'http://coordinator.invalid/api',

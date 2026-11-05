@@ -1,3 +1,5 @@
+import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
+
 /**
  * A specification's brand and category are **plain ids** into
  * `catalog-reference`, which is a store this service does not own
@@ -76,16 +78,23 @@ const mediaOf = (
  * Temporary, in-memory mock dataset. 60 specifications, each naming a brand and
  * a category by id. Not a production source.
  */
-export const productTempData: ProductSpecificationRecord[] = Array.from(
-  { length: 60 },
-  (_, index) => {
+/**
+ * One seeded vendor's specifications, every id under its `idPrefix` so two
+ * vendors' catalogs stay apart once both are published into one projection.
+ * Brand and category ids are **not** prefixed: they point into the one
+ * platform vocabulary both vendors classify against.
+ */
+export const productTempDataFor = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+): ProductSpecificationRecord[] =>
+  Array.from({ length: vendor.offerings }, (_, index) => {
     const number = index + 1;
     const brandNumber = (index % BRAND_COUNT) + 1;
     const categoryNumber = (index % CATEGORY_COUNT) + 1;
     const family = FAMILIES[index % FAMILIES.length];
     const withinFamily = Math.floor(index / FAMILIES.length) + 1;
     return {
-      id: `product-${number}`,
+      id: `${vendor.idPrefix}product-${number}`,
       code: `P-${String(number).padStart(4, '0')}`,
       name: `${family} ${withinFamily}`,
       description: `${family} #${withinFamily}`,
@@ -93,5 +102,8 @@ export const productTempData: ProductSpecificationRecord[] = Array.from(
       categoryId: `product-category-${categoryNumber}`,
       ...mediaOf(number, `${family} ${withinFamily}`),
     };
-  },
-);
+  });
+
+/** The demo vendor's specifications. */
+export const productTempData: ProductSpecificationRecord[] =
+  productTempDataFor(DEMO_VENDOR);

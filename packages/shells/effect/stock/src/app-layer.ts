@@ -13,6 +13,7 @@ import {
   fleetTenantMongoLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
+import { SEEDED_VENDORS, type SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { startReservationSweep } from './reservation-sweep.js';
@@ -52,9 +53,10 @@ export const STOCK_SLICE = 'stock';
  * app's data, so it is handed in rather than owned here (ADR 0064).
  */
 export interface StockShellOptions {
-  /** Writes the lab's stock positions into the named tenant database. */
+  /** Writes one seeded vendor's stock positions into its tenant database. */
   readonly seed: (
     tenantDbName: string,
+    vendor: SeededVendor,
   ) => Effect.Effect<void, unknown, MongoClientTag>;
 }
 
@@ -69,14 +71,6 @@ export const stockComposition =
       // `stock_`, read again here for the seed; `fleetTenantMongoLayer`
       // builds the tenant resolver from the same row.
       const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
-
-      // The local demo vendor, whose stock positions this service seeds. The same
-      // id auth-service provisions and marketplace-admin-service seeds a catalog
-      // under — three services now agree on it, which is why it is a
-      // configuration row rather than a constant in three codebases.
-      const demoOrganizationId = yield* store
-        .in('tenant')
-        .getString('demoOrganizationId');
 
       // How long a hold survives. Configuration rather than a constant for the
       // reason `tenant.dbPrefix` is — see `ReservationTtlSecondsTag`.
@@ -114,8 +108,15 @@ export const stockComposition =
       const seeded = Layer.provideMerge(
         Layer.mergeAll(MongoStockLedgerLayer, idempotency),
         Layer.provideMerge(
+          // Every seeded vendor, from the one list auth-service provisions
+          // and the catalog seeds under (`SEEDED_VENDORS`).
           Layer.effectDiscard(
-            options.seed(`${tenantPrefix}${demoOrganizationId}`),
+            Effect.all(
+              SEEDED_VENDORS.map(vendor =>
+                options.seed(`${tenantPrefix}${vendor.organizationId}`, vendor),
+              ),
+              { discard: true },
+            ),
           ),
           connections,
         ),

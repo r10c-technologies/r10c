@@ -19,7 +19,7 @@ import {
   Unauthenticated,
 } from '@entifix/core';
 import {
-  ACCESS_TOKEN_TTL_SECONDS,
+  AccessTokenLifetimeTag,
   AccountInactive,
   AccountRepositoryTag,
   IdTokenStoreTag,
@@ -369,6 +369,7 @@ export const authFlowEndpoints = [
       }
       const sessions = yield* SessionStoreTag;
       const tokens = yield* TokenServiceTag;
+      const lifetime = yield* AccessTokenLifetimeTag;
 
       // Revoked, idle past its window or at its ceiling: all one answer.
       const record = yield* sessions
@@ -388,11 +389,11 @@ export const authFlowEndpoints = [
           partyId: record.partyId,
           entitlements: record.entitlements,
         },
-        ACCESS_TOKEN_TTL_SECONDS,
+        lifetime.seconds,
       );
       return {
         accessToken,
-        expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+        expiresIn: lifetime.seconds,
         sessionExpiresIn: Math.max(
           0,
           Math.floor(

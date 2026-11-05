@@ -14,6 +14,7 @@ import {
   drainOutboxNow,
   ensureOutboxIndexes,
   makeMongoUnitsOfWork,
+  mongoUnitFault,
 } from '@entifix/mongo/transactions';
 import {
   EventBusTag,
@@ -140,7 +141,7 @@ export const MongoShippingOrderStoreLayer = Layer.effect(
                       },
                       { session: unit.handle.session },
                     ),
-                catch: storeUnavailable,
+                catch: mongoUnitFault,
               }),
             {
               ...claimFor(commandId),
@@ -197,7 +198,7 @@ export const MongoShippingOrderStoreLayer = Layer.effect(
                             session: unit.handle.session,
                           },
                         ),
-                    catch: storeUnavailable,
+                    catch: mongoUnitFault,
                   });
                   if (moved === null) continue;
                   if (announces !== undefined) {

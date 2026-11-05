@@ -8,6 +8,7 @@ import {
   fleetSingleMongoLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
+import { SEEDED_VENDORS, type SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -62,9 +63,9 @@ export const ensureBusIndexes = (database: Db) => ensureInboxIndexes(database);
  * app's data, so it is handed in rather than owned here (ADR 0064).
  */
 export interface SettlementShellOptions {
-  /** Writes the lab's agreement for the named organization. */
+  /** Writes the lab's agreements, one per seeded vendor. */
   readonly seed: (
-    organizationId: string,
+    vendors: readonly SeededVendor[],
   ) => Effect.Effect<void, unknown, MongoDatabaseTag>;
 }
 
@@ -72,13 +73,6 @@ export const settlementComposition =
   (options: SettlementShellOptions) => (configuration: FleetConfiguration) =>
     Effect.gen(function* () {
       const { store } = configuration;
-
-      // The vendor whose agreement the lab seeds. The same id auth-service seeds
-      // the `Organization` under and every other slice hangs its demo data off, so
-      // it is configuration rather than a constant duplicated per codebase.
-      const demoOrganizationId = yield* store
-        .in('tenant')
-        .getString('demoOrganizationId');
 
       // How often the sweep looks for unsettled lines. A dial rather than a
       // constant because nothing about it is baked into a queue declaration or an
@@ -113,7 +107,7 @@ export const settlementComposition =
       // The store ensures the ledger's own indexes as it builds; the seed is
       // chained after it, so the agreement it writes lands under them.
       const seeded = Layer.provideMerge(
-        Layer.effectDiscard(options.seed(demoOrganizationId)),
+        Layer.effectDiscard(options.seed(SEEDED_VENDORS)),
         Layer.provideMerge(MongoSettlementStoreLayer, indexed),
       );
 

@@ -50,7 +50,7 @@ import {
   seedStock,
   SERVICE_NAME,
 } from '@r10c/stock-service';
-import { fleetToken } from '@r10c/utils-ts-fleet';
+import { DEMO_VENDOR, fleetToken } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { E2E_CROSSING_TOKEN, E2E_ORGANIZATION_ID } from './tokens';
@@ -70,10 +70,7 @@ const RESERVATION_TTL_SECONDS = 900;
  */
 const CONFIGURATION = {
   mongo: [{ key: 'uri', value: 'mongodb://mock/stock' }],
-  tenant: [
-    { key: 'dbPrefix', value: 'stock_' },
-    { key: 'demoOrganizationId', value: E2E_ORGANIZATION_ID },
-  ],
+  tenant: [{ key: 'dbPrefix', value: 'stock_' }],
   jwt: [
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
@@ -151,7 +148,9 @@ const MockAppLayer = (() => {
     Layer.mergeAll(MongoStockLedgerLayer, MongoTenantRepositoryFactoryLayer),
     Layer.provideMerge(
       Layer.mergeAll(
-        Layer.effectDiscard(seedStock(`stock_${E2E_ORGANIZATION_ID}`)),
+        Layer.effectDiscard(
+          seedStock(`stock_${E2E_ORGANIZATION_ID}`, DEMO_VENDOR),
+        ),
         directory,
       ),
       connections,

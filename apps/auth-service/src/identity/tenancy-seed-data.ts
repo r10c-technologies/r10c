@@ -1,3 +1,5 @@
+import type { SeededVendor } from '@r10c/utils-ts-fleet';
+
 /**
  * Control-plane seed for the local demo tenant, in the entity wire shape.
  *
@@ -21,15 +23,96 @@
  * and marketplace-admin-service must agree on it; it lives in config-service.
  */
 export const organizationSeedData = (
-  organizationId: string,
+  vendor: Pick<SeededVendor, 'organizationId' | 'name' | 'slug'>,
 ): ReadonlyArray<Record<string, unknown>> => [
   {
-    id: organizationId,
-    name: 'Demo Vendor',
-    slug: 'demo-vendor',
+    id: vendor.organizationId,
+    name: vendor.name,
+    slug: vendor.slug,
     status: 'active',
   },
 ];
+
+/**
+ * A person a seeded vendor is run by: the one member of that organization,
+ * playing `vendor` in it.
+ */
+export interface VendorMember {
+  readonly userId: string;
+  readonly partyId: string;
+  readonly fullName: string;
+}
+
+/** The demo vendor's member. */
+export const ALAN: VendorMember = {
+  userId: 'user-2',
+  partyId: 'party-user-2',
+  fullName: 'Alan Turing',
+};
+
+/**
+ * The second vendor's member (#492): a vendor with its own person, so a session
+ * scoped to it is a real sign-in rather than a token minted for an id nobody
+ * belongs to.
+ */
+export const MARGARET: VendorMember = {
+  userId: 'user-5',
+  partyId: 'party-user-5',
+  fullName: 'Margaret Hamilton',
+};
+
+/**
+ * Who runs each seeded vendor, **by position in `SEEDED_VENDORS`**. The spec
+ * beside this file fails when the two lists differ in length, so a vendor added
+ * to the fleet's list without a member here is caught before it seeds an
+ * organization nobody can sign in to.
+ */
+export const VENDOR_MEMBERS: readonly VendorMember[] = [ALAN, MARGARET];
+
+/**
+ * One vendor member's party role, tenant role and membership.
+ *
+ * The role's grants stay inside the organization's entitlement below — that is
+ * the second assignment ceiling, and seeding a role that violated it would
+ * model something the platform must refuse.
+ */
+export const vendorMemberSeedData = (
+  organizationId: string,
+  member: VendorMember,
+) => {
+  const roleId = `role-${organizationId}-catalog`;
+  return {
+    partyRole: [
+      {
+        id: `party-role-${member.userId}-vendor`,
+        partyId: member.partyId,
+        role: 'vendor',
+        organizationId,
+      },
+    ],
+    role: [
+      {
+        id: roleId,
+        organizationId,
+        name: 'Catalog',
+        permissions: [
+          'product-configuration-management:*:read',
+          'product-configuration-management:*:write',
+          'product-configuration-management:*:delete',
+        ],
+      },
+    ],
+    membership: [
+      {
+        id: `membership-${member.userId}`,
+        partyId: member.partyId,
+        organizationId,
+        roleIds: [roleId],
+        isDefault: true,
+      },
+    ],
+  } satisfies Record<string, ReadonlyArray<Record<string, unknown>>>;
+};
 
 /**
  * The people behind the seeded accounts, as parties rather than as logins.
@@ -38,11 +121,11 @@ export const organizationSeedData = (
  * {@link partyRoleSeedData} below. See ADR 0022 for why.
  */
 export const individualSeedData: ReadonlyArray<Record<string, unknown>> = [
-  {
-    id: 'party-user-2',
-    fullName: 'Alan Turing',
-    userId: 'user-2',
-  },
+  ...VENDOR_MEMBERS.map(member => ({
+    id: member.partyId,
+    fullName: member.fullName,
+    userId: member.userId,
+  })),
   {
     id: 'party-user-1',
     fullName: 'Ada Lovelace',
@@ -78,51 +161,35 @@ export const individualSeedData: ReadonlyArray<Record<string, unknown>> = [
 export const partyRoleSeedData = (
   organizationId: string,
 ): ReadonlyArray<Record<string, unknown>> => [
-  {
-    id: 'party-role-user-2-vendor',
-    partyId: 'party-user-2',
-    role: 'vendor',
-    organizationId,
-  },
-  {
-    id: 'party-role-user-1-operator',
-    partyId: 'party-user-1',
-    role: 'operator',
-  },
+  ...vendorMemberSeedData(organizationId, ALAN).partyRole,
+  ...operatorPartyRoleSeedData,
 ];
 
+/** Ada's row: a role played on the platform, so it names no organization. */
+export const operatorPartyRoleSeedData: ReadonlyArray<Record<string, unknown>> =
+  [
+    {
+      id: 'party-role-user-1-operator',
+      partyId: 'party-user-1',
+      role: 'operator',
+    },
+  ];
+
 /**
- * One tenant role for the demo vendor. Its grants stay inside the organization's
+ * The demo vendor's tenant role. Its grants stay inside the organization's
  * entitlement below — that is the second assignment ceiling, and seeding a role
  * that violated it would model something the platform must refuse.
  */
 export const roleSeedData = (
   organizationId: string,
-): ReadonlyArray<Record<string, unknown>> => [
-  {
-    id: 'role-demo-catalog',
-    organizationId,
-    name: 'Catalog',
-    permissions: [
-      'product-configuration-management:*:read',
-      'product-configuration-management:*:write',
-      'product-configuration-management:*:delete',
-    ],
-  },
-];
+): ReadonlyArray<Record<string, unknown>> =>
+  vendorMemberSeedData(organizationId, ALAN).role;
 
-/** Only Alan is a member; Ada is platform staff and deliberately is not. */
+/** Only Alan is a member of the demo vendor; Ada is platform staff and deliberately is not. */
 export const membershipSeedData = (
   organizationId: string,
-): ReadonlyArray<Record<string, unknown>> => [
-  {
-    id: 'membership-user-2',
-    partyId: 'party-user-2',
-    organizationId,
-    roleIds: ['role-demo-catalog'],
-    isDefault: true,
-  },
-];
+): ReadonlyArray<Record<string, unknown>> =>
+  vendorMemberSeedData(organizationId, ALAN).membership;
 
 /**
  * What the demo organization is provisioned for.

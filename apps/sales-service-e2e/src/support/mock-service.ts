@@ -36,7 +36,7 @@ import {
   httpFlowStarterLayer,
   httpPublishedPriceReaderLayer,
 } from '@r10c/shells-effect-service';
-import { fleetToken } from '@r10c/utils-ts-fleet';
+import { DEMO_VENDOR, fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
 import { E2E_ORGANIZATION_ID } from './tokens';
@@ -56,10 +56,7 @@ const E2E_CROSSING_TOKEN = 'e2e-saga-crossing-token';
  */
 const CONFIGURATION = {
   mongo: [{ key: 'uri', value: 'mongodb://mock/sales' }],
-  tenant: [
-    { key: 'dbPrefix', value: 'sales_' },
-    { key: 'demoOrganizationId', value: E2E_ORGANIZATION_ID },
-  ],
+  tenant: [{ key: 'dbPrefix', value: 'sales_' }],
   jwt: [
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
@@ -127,7 +124,9 @@ const MockAppLayer = (() => {
   return Layer.provideMerge(
     MongoTenantRepositoryFactoryLayer,
     Layer.provideMerge(
-      Layer.effectDiscard(seedSales(`sales_${E2E_ORGANIZATION_ID}`)),
+      Layer.effectDiscard(
+        seedSales(`sales_${E2E_ORGANIZATION_ID}`, DEMO_VENDOR),
+      ),
       connections,
     ),
   ).pipe(Layer.orDie);

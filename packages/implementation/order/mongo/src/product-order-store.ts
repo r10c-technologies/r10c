@@ -8,6 +8,7 @@ import {
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
+  mongoUnitFault,
   MongoUnitOfWorkTag,
 } from '@entifix/mongo/transactions';
 import {
@@ -158,7 +159,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
               { $set: set },
               { returnDocument: 'after', ...WITHOUT_ID, session },
             ),
-        catch: storeUnavailable,
+        catch: mongoUnitFault,
       });
 
     const claimFor = (commandId: string | undefined) =>
@@ -219,7 +220,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
                         { $addToSet: { orderIds: orderId } },
                         { session },
                       ),
-                  catch: storeUnavailable,
+                  catch: mongoUnitFault,
                 });
                 if (joined.matchedCount === 0) {
                   return yield* Effect.fail(
@@ -231,7 +232,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
                     handle
                       .collection(ORDER_COLLECTION)
                       .insertOne(document, { session }),
-                  catch: storeUnavailable,
+                  catch: mongoUnitFault,
                 });
                 unit.emit(placed);
               }),
@@ -387,7 +388,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
                       { $set: { status: 'paid', paidAt } },
                       { session: unit.handle.session },
                     ),
-                catch: storeUnavailable,
+                catch: mongoUnitFault,
               }),
             { claim: { kind: 'event', ...claim } },
           ),
@@ -437,7 +438,7 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
                   unit.handle.db
                     .collection(GROUP_COLLECTION)
                     .insertOne(document, { session: unit.handle.session }),
-                catch: storeUnavailable,
+                catch: mongoUnitFault,
               }),
             {
               ...(commandId === undefined

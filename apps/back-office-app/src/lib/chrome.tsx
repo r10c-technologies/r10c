@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 import { BackOfficeCommandPalette } from './command-palette';
 import { visibleCommands } from './commands';
 import { sidebarNav } from './nav';
-import { navPrincipal } from './nav-principal';
+import { accessTokenExpiresIn, navPrincipal } from './nav-principal';
 
 /**
  * The back-office chrome, shared by all three route groups.
@@ -43,6 +43,7 @@ export async function BackOfficeChrome({
   label?: string;
 }) {
   const principal = await navPrincipal();
+  const tokenExpiresInSeconds = await accessTokenExpiresIn();
   const locale = await getRequestLocale();
   const t = await getServerT('app');
   // Nav labels are keys held in a route table, so they need the widened form.
@@ -108,9 +109,15 @@ export async function BackOfficeChrome({
         session and only the permission they additionally demand differs. It
         renders nothing until the session is close to its ceiling; what it does
         unconditionally is keep the access token fresh, which nothing in this
-        fleet did before (#252).
+        fleet did before (#252). Its first refresh is scheduled from the
+        token this page rendered with, and every later one from the token the
+        refresh mints, because the lifetime is a configuration row (#492).
       */}
-      <SessionKeepalive />
+      <SessionKeepalive
+        {...(tokenExpiresInSeconds === undefined
+          ? {}
+          : { tokenExpiresInSeconds })}
+      />
       {children}
     </BackOfficeShell>
   );

@@ -344,6 +344,9 @@
     },
     {
       "path": "./packages/shells/next/fulfilment"
+    },
+    {
+      "path": "./apps/fleet-e2e"
     }
   ],
   "compilerOptions": {

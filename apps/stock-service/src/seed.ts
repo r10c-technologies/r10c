@@ -5,9 +5,13 @@ import {
   STOCK_ITEM_COLLECTION,
 } from '@r10c/implementation-stock-mongo';
 import { seedCollection } from '@r10c/shells-effect-service';
+import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
-import { stockItemTempData, stockMovementTempData } from './stock-temp-data';
+import {
+  stockItemTempDataFor,
+  stockMovementTempDataFor,
+} from './stock-temp-data';
 
 /** The movement ledger's collection, matching `@entity({ key })`. */
 const asRecords = (
@@ -40,7 +44,7 @@ const asRecords = (
  * only: they are independent inserts under independent empty-checks, and a
  * crash between them re-seeds whichever one is still empty on the next boot.
  */
-export const seedStock = (tenantDbName: string) =>
+export const seedStock = (tenantDbName: string, vendor: SeededVendor) =>
   Effect.gen(function* () {
     const client = yield* MongoClientTag;
     const db = client.db(tenantDbName);
@@ -61,11 +65,11 @@ export const seedStock = (tenantDbName: string) =>
     yield* seedCollection(
       db,
       MOVEMENT_COLLECTION,
-      asRecords(stockMovementTempData),
+      asRecords(stockMovementTempDataFor(vendor)),
     );
     yield* seedCollection(
       db,
       STOCK_ITEM_COLLECTION,
-      asRecords(stockItemTempData),
+      asRecords(stockItemTempDataFor(vendor)),
     );
   });

@@ -129,7 +129,7 @@
           }
         ],
         "options": {
-          "command": "node --watch --disable-warning=DEP0205 apps/transaction-service/dist/runner.js",
+          "command": "curl -sf --max-time 3 --retry 180 --retry-delay 1 --retry-all-errors -o /dev/null http://localhost:3190/api/health/ready && node --watch --disable-warning=DEP0205 apps/transaction-service/dist/runner.js",
           "env": {
             "WORKFLOW_REPLICA": "1"
           }

@@ -16,19 +16,15 @@
  */
 
 import type { MovementReason } from '@r10c/business-ts-stock-management';
+import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
 
 /**
- * How many offerings the catalog seed writes.
+ * How many of a vendor's offerings carry stock at all: two thirds, so the
+ * demo vendor's 60 stock 40.
  *
- * ⚠️ **Deliberately fewer than that number get stock**, see {@link STOCKED}.
- * This constant only has to be *no larger* than the catalog's count: naming a
- * higher one would seed stock for offerings that do not exist, which is the
- * dangling id above turned from a tolerable gap into a screen full of them.
- */
-const SEEDED_OFFERINGS = 60;
-
-/**
- * How many of them carry stock at all.
+ * The catalog's count comes from the same {@link SeededVendor} the catalog seed
+ * reads, which is what keeps this from naming offerings that do not exist —
+ * the dangling id above turned from a tolerable gap into a screen full of them.
  *
  * The tail — `product-offering-41 … -60` — is seeded with **no `StockItem` row
  * whatsoever**, and that is the point of the number rather than an economy.
@@ -37,9 +33,14 @@ const SEEDED_OFFERINGS = 60;
  * answers `409` from a branch nothing else reaches. A seed that gave every
  * offering a row would leave that branch unexercised on every machine.
  */
-const STOCKED = 40;
+const stockedOf = (vendor: Pick<SeededVendor, 'offerings'>): number =>
+  Math.floor((vendor.offerings * 2) / 3);
 
-const offeringId = (index: number): string => `product-offering-${index + 1}`;
+/** The catalog seed's offering id at `index`, under the vendor's prefix. */
+const offeringId = (
+  vendor: Pick<SeededVendor, 'idPrefix'>,
+  index: number,
+): string => `${vendor.idPrefix}product-offering-${index + 1}`;
 
 /** A movement as it is stored — the `StockMovement` wire shape. */
 export interface StockMovementRecord {
@@ -113,15 +114,20 @@ const movementsFor = (
  * row, and #223 exists because an assertion that passes against an empty store
  * proves nothing.
  */
-export const stockMovementTempData: readonly StockMovementRecord[] = Array.from(
-  { length: Math.min(STOCKED, SEEDED_OFFERINGS) },
-  (_, index) =>
+export const stockMovementTempDataFor = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+): readonly StockMovementRecord[] =>
+  Array.from({ length: stockedOf(vendor) }, (_, index) =>
     movementsFor(index).map((movement, position) => ({
-      id: `stock-movement-${index + 1}-${position + 1}`,
-      offeringId: offeringId(index),
+      id: `${vendor.idPrefix}stock-movement-${index + 1}-${position + 1}`,
+      offeringId: offeringId(vendor, index),
       ...movement,
     })),
-).flat();
+  ).flat();
+
+/** The demo vendor's ledger. */
+export const stockMovementTempData: readonly StockMovementRecord[] =
+  stockMovementTempDataFor(DEMO_VENDOR);
 
 /**
  * The fold of {@link stockMovementTempData}, computed rather than written.
@@ -136,15 +142,19 @@ export const stockMovementTempData: readonly StockMovementRecord[] = Array.from(
  * one would be a hold with no checkout behind it that the (unbuilt) reaper
  * would then have to explain.
  */
-export const stockItemTempData: readonly StockItemRecord[] = Array.from(
-  { length: Math.min(STOCKED, SEEDED_OFFERINGS) },
-  (_, index) => ({
-    id: `stock-item-${index + 1}`,
-    offeringId: offeringId(index),
+export const stockItemTempDataFor = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+): readonly StockItemRecord[] =>
+  Array.from({ length: stockedOf(vendor) }, (_, index) => ({
+    id: `${vendor.idPrefix}stock-item-${index + 1}`,
+    offeringId: offeringId(vendor, index),
     onHand: movementsFor(index).reduce(
       (total, movement) => total + movement.quantity,
       0,
     ),
     reserved: 0,
-  }),
-);
+  }));
+
+/** The demo vendor's stock positions. */
+export const stockItemTempData: readonly StockItemRecord[] =
+  stockItemTempDataFor(DEMO_VENDOR);

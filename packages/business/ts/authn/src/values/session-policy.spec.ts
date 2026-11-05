@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   DEFAULT_SESSION_LIFETIME,
+  isAccessTokenTtl,
+  MIN_ACCESS_TOKEN_TTL_SECONDS,
   refreshDelaySeconds,
   SESSION_ABSOLUTE_TTL_SECONDS,
   SESSION_IDLE_TTL_SECONDS,
@@ -35,5 +37,14 @@ describe('session policy', () => {
     // A zero-second interval would spin the browser against the refresh route.
     expect(refreshDelaySeconds(0)).toBe(1);
     expect(refreshDelaySeconds(1)).toBe(1);
+  });
+
+  it('accepts a lifetime only from the floor up, in whole seconds', () => {
+    expect(isAccessTokenTtl(ACCESS_TOKEN_TTL_SECONDS)).toBe(true);
+    expect(isAccessTokenTtl(MIN_ACCESS_TOKEN_TTL_SECONDS)).toBe(true);
+    // Under the floor a stream would be told to reauthenticate on open.
+    expect(isAccessTokenTtl(MIN_ACCESS_TOKEN_TTL_SECONDS - 1)).toBe(false);
+    expect(isAccessTokenTtl(90.5)).toBe(false);
+    expect(isAccessTokenTtl(Number.NaN)).toBe(false);
   });
 });
