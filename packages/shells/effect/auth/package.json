@@ -56,6 +56,7 @@
     "@r10c/implementation-authn-http": "workspace:*",
     "@r10c/implementation-session-redis": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.7"
   },

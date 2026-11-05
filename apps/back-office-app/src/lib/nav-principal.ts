@@ -49,3 +49,23 @@ export async function navPrincipal(): Promise<NavPrincipal> {
     entitlements: Array.isArray(entitlements) ? entitlements : [],
   };
 }
+
+/**
+ * Seconds left on the access cookie this page is rendered with, from its `exp`
+ * — **unverified**, for the same reason as {@link navPrincipal}, and safe for
+ * the same reason: it decides only when the browser next asks for a refresh.
+ * A forged `exp` makes a tab refresh early or late; the refresh route and every
+ * service behind it still verify the token they are actually handed.
+ *
+ * `undefined` when there is no cookie or no `exp`, and the keepalive falls back
+ * to its default schedule.
+ */
+export async function accessTokenExpiresIn(): Promise<number | undefined> {
+  const claims = unverifiedClaims(
+    (await cookies()).get(ACCESS_COOKIE)?.value ?? '',
+  ) as { readonly exp?: unknown } | undefined;
+  const exp = claims?.exp;
+  return typeof exp === 'number'
+    ? Math.max(0, Math.floor(exp - Date.now() / 1000))
+    : undefined;
+}

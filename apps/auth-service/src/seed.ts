@@ -9,15 +9,16 @@ import {
   DEV_SEED_PASSWORD,
   type SeedShortfall,
 } from '@r10c/shells-effect-auth';
+import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
 import {
   entitlementSeedData,
   individualSeedData,
-  membershipSeedData,
+  operatorPartyRoleSeedData,
   organizationSeedData,
-  partyRoleSeedData,
-  roleSeedData,
+  VENDOR_MEMBERS,
+  vendorMemberSeedData,
 } from './identity/tenancy-seed-data';
 import {
   entityIdentifierSeedData,
@@ -65,30 +66,59 @@ const seedUsers = Effect.all(
 );
 
 /**
- * Control-plane tenancy seed: the demo organization, the parties behind the
- * seeded accounts, one tenant role, the membership that makes a sign-in resolve
- * to an organization, and what that organization is provisioned for.
+ * Control-plane tenancy seed: every seeded vendor organization, the parties
+ * behind the seeded accounts, each vendor's tenant role and the membership that
+ * makes its member's sign-in resolve to it, and what each is provisioned for.
  *
  * These are control-plane records — they live in the shared database, not in a
  * tenant one. The organization record is precisely what makes a tenant handle
  * derivable, so it cannot itself live behind one.
  */
-const seedTenancy = (organizationId: string) =>
+const seedTenancy = (vendors: readonly SeededVendor[]) =>
   Effect.all(
     [
-      // Before the organization: its announcement says whether it ships cash
-      // on delivery, which it reads off this entitlement (ADR 0070).
-      seedCollection('entitlement', entitlementSeedData(organizationId)),
+      // Before the organizations: each announcement says whether that vendor
+      // ships cash on delivery, which it reads off its entitlement (ADR 0070).
+      seedCollection(
+        'entitlement',
+        vendors.flatMap(vendor => entitlementSeedData(vendor.organizationId)),
+      ),
       // Through `writeOrganization`, never `seedCollection`: an organization's
       // write and its announcement share one transaction (ADR 0061).
-      seedOrganizations(organizationSeedData(organizationId)),
+      seedOrganizations(vendors.flatMap(organizationSeedData)),
       seedCollection('individual', individualSeedData),
-      seedCollection('party-role', partyRoleSeedData(organizationId)),
-      seedCollection('role', roleSeedData(organizationId)),
-      seedCollection('membership', membershipSeedData(organizationId)),
+      // Each vendor's member by position, then Ada's operator row.
+      seedCollection('party-role', [
+        ...membersOf(vendors).flatMap(
+          ({ vendor, member }) =>
+            vendorMemberSeedData(vendor.organizationId, member).partyRole,
+        ),
+        ...operatorPartyRoleSeedData,
+      ]),
+      seedCollection(
+        'role',
+        membersOf(vendors).flatMap(
+          ({ vendor, member }) =>
+            vendorMemberSeedData(vendor.organizationId, member).role,
+        ),
+      ),
+      seedCollection(
+        'membership',
+        membersOf(vendors).flatMap(
+          ({ vendor, member }) =>
+            vendorMemberSeedData(vendor.organizationId, member).membership,
+        ),
+      ),
     ],
     { discard: true },
   );
+
+/** Each seeded vendor beside the member who runs it, by position. */
+const membersOf = (vendors: readonly SeededVendor[]) =>
+  vendors.flatMap((vendor, index) => {
+    const member = VENDOR_MEMBERS[index];
+    return member === undefined ? [] : [{ vendor, member }];
+  });
 
 /**
  * Give each seeded user a human at the identity provider to sign in as, and
@@ -139,7 +169,7 @@ export const seedIdentityProvider = Effect.gen(function* () {
  * organization's tenancy, then a human at the identity provider for each
  * account, which links against the records the first step wrote.
  */
-export const seedAuth = (organizationId: string) =>
-  Effect.all([seedUsers, seedTenancy(organizationId)], {
+export const seedAuth = (vendors: readonly SeededVendor[]) =>
+  Effect.all([seedUsers, seedTenancy(vendors)], {
     discard: true,
   }).pipe(Effect.andThen(seedIdentityProvider));

@@ -1,6 +1,9 @@
-import { type AudienceEntry, Unavailable } from '@entifix/core';
+import { type AudienceEntry, Contention, Unavailable } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
-import { MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
+import {
+  mongoUnitFault,
+  MongoUnitOfWorkTag,
+} from '@entifix/mongo/transactions';
 import {
   type FlowFailure,
   type FlowState,
@@ -33,6 +36,9 @@ const unavailable = () => new Unavailable({ dependency: 'mongo' });
 
 const promise = <A>(run: () => Promise<A>) =>
   Effect.tryPromise({ try: run, catch: unavailable });
+
+const inUnitPromise = <A>(run: () => Promise<A>) =>
+  Effect.tryPromise({ try: run, catch: mongoUnitFault });
 
 const recordOf = ({
   flowId,
@@ -90,8 +96,8 @@ const applyIn = (
   db: Db,
   session: ClientSession,
   record: FlowStatusRecord,
-): Effect.Effect<FlowStatusApplied, Unavailable> =>
-  promise(async () => {
+): Effect.Effect<FlowStatusApplied, Unavailable | Contention> =>
+  inUnitPromise(async () => {
     const collection = db.collection<FlowStatusDocument>(
       FLOW_STATUS_COLLECTION,
     );

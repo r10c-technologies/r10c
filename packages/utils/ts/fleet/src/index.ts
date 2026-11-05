@@ -50,3 +50,4 @@ export const configSourceFor = (key: string) => ({
 });
 
 export * from './flow.js';
+export * from './seeded-vendors.js';

@@ -1,9 +1,13 @@
 import { MongoClientTag } from '@entifix/mongo';
 import { seedCollection } from '@r10c/shells-effect-service';
+import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
-import { offeringPriceTempData, offeringTempData } from './offering-temp-data';
-import { productTempData } from './product-temp-data';
+import {
+  offeringPriceTempDataFor,
+  offeringTempDataFor,
+} from './offering-temp-data';
+import { productTempDataFor } from './product-temp-data';
 
 const asRecords = (
   data: ReadonlyArray<object>,
@@ -30,7 +34,7 @@ const asRecords = (
  * Mongo creates a database lazily on first write, so no provisioning step runs
  * ahead of this.
  */
-export const seedCatalog = (tenantDbName: string) =>
+export const seedCatalog = (tenantDbName: string, vendor: SeededVendor) =>
   Effect.gen(function* () {
     const client = yield* MongoClientTag;
     const db = client.db(tenantDbName);
@@ -38,15 +42,19 @@ export const seedCatalog = (tenantDbName: string) =>
     yield* seedCollection(
       db,
       'product-specification',
-      asRecords(productTempData),
+      asRecords(productTempDataFor(vendor)),
     );
 
     // The offering and its price, in the same tenant database and by the same
     // rule: the collection name is the entity's `key`.
-    yield* seedCollection(db, 'product-offering', asRecords(offeringTempData));
+    yield* seedCollection(
+      db,
+      'product-offering',
+      asRecords(offeringTempDataFor(vendor)),
+    );
     yield* seedCollection(
       db,
       'product-offering-price',
-      asRecords(offeringPriceTempData),
+      asRecords(offeringPriceTempDataFor(vendor)),
     );
   });

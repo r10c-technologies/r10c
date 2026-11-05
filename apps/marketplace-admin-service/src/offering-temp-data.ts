@@ -1,4 +1,6 @@
-import { productTempData } from './product-temp-data';
+import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
+
+import { productTempDataFor } from './product-temp-data';
 
 /**
  * Seed offerings and their prices, generated **from** the specifications this
@@ -54,9 +56,12 @@ const STATUSES = ['draft', 'published', 'unpublished', 'pending-review'];
  */
 const SEEDED_AT = new Date('2026-01-01T00:00:00.000Z');
 
-export const offeringTempData: ProductOfferingRecord[] = productTempData.map(
-  (specification, index) => ({
-    id: `product-offering-${index + 1}`,
+/** One seeded vendor's offerings, one per specification, under its prefix. */
+export const offeringTempDataFor = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+): ProductOfferingRecord[] =>
+  productTempDataFor(vendor).map((specification, index) => ({
+    id: `${vendor.idPrefix}product-offering-${index + 1}`,
     name: `${specification.name} — oferta`,
     specificationId: specification.id,
     status: STATUSES[index % STATUSES.length],
@@ -64,8 +69,11 @@ export const offeringTempData: ProductOfferingRecord[] = productTempData.map(
     // reports them `unstamped`, and a fresh lab still serves an empty
     // storefront — which is the whole defect this seed change exists to close.
     statusChangedAt: SEEDED_AT,
-  }),
-);
+  }));
+
+/** The demo vendor's offerings. */
+export const offeringTempData: ProductOfferingRecord[] =
+  offeringTempDataFor(DEMO_VENDOR);
 
 /**
  * One price per offering, in **minor units** — `amount` is an integer number of
@@ -78,12 +86,18 @@ export const offeringTempData: ProductOfferingRecord[] = productTempData.map(
  */
 const CURRENCIES = ['GTQ', 'USD', 'EUR'];
 
-export const offeringPriceTempData: ProductOfferingPriceRecord[] =
-  offeringTempData.map((offering, index) => ({
-    id: `product-offering-price-${index + 1}`,
+export const offeringPriceTempDataFor = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+): ProductOfferingPriceRecord[] =>
+  offeringTempDataFor(vendor).map((offering, index) => ({
+    id: `${vendor.idPrefix}product-offering-price-${index + 1}`,
     offeringId: offering.id,
     // 19.99, 24.99, 29.99 … in minor units. Never a round number, so a display
     // that drops the fractional part is visible at a glance.
     amount: 1999 + index * 500,
     currency: CURRENCIES[index % CURRENCIES.length],
   }));
+
+/** The demo vendor's prices. */
+export const offeringPriceTempData: ProductOfferingPriceRecord[] =
+  offeringPriceTempDataFor(DEMO_VENDOR);

@@ -1,6 +1,7 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
 import { AGREEMENT_COLLECTION } from '@r10c/implementation-settlement-mongo';
 import { seedCollection } from '@r10c/shells-effect-service';
+import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
 import { agreementTempData } from './settlement-temp-data';
@@ -31,13 +32,15 @@ const asRecords = (
  * one named database rather than a per-organization handle, so it takes no
  * database name — the layer already resolved it.
  */
-export const seedSettlement = (organizationId: string) =>
+export const seedSettlement = (vendors: readonly SeededVendor[]) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
 
     yield* seedCollection(
       db,
       AGREEMENT_COLLECTION,
-      asRecords(agreementTempData(organizationId)),
+      asRecords(
+        vendors.flatMap(vendor => agreementTempData(vendor.organizationId)),
+      ),
     );
   });

@@ -18,6 +18,7 @@
 - Read when: pushing anything to a browser, asking where a flow stands, or putting a listener on 3000/3001 — one realtime slice owns the stream and the flow-status projection, the audience filter fails closed, and the edge owns the origins
 - Revised: 2026-11-04 — `GET /api/saga/:id` is deleted (#490); where a flow stands is answered only by `GET /api/realtime/flow/:id`
 - Revised: 2026-11-04 — `flow.waiting` is pushed to the flow's audience and projected as `waiting` and `committed`, so a write whose flow parks past its commit point settles (#489)
+- Revised: 2026-11-04 — measured by the live pass (#492): a stream is drained on the shutdown **signal**, not when its scope closes, and a `flow.*` announcement is drained the moment it is enqueued; both had been read as built and were not. See Consequences
 
 ## Context
 
@@ -185,6 +186,35 @@ here needs it today.
   drain window — are config rows for `realtime-service`, not constants.
 - Immediate close on revocation is still not built. A revoked session stops
   hearing within one access-token lifetime, the same bound every REST call has.
+- **Measured by the live pass (#492)**, `pnpm nx e2e fleet-e2e` with
+  `E2E_PROFILE=live` (DEVELOPING.md → The live pass). Two defects in what this
+  record assumed, both entifix's, both fixed in place:
+  - **A restart cut every stream without its `retry:`.** The SSE adapter drained
+    from its scope's finalizer, and the server's close — which runs first —
+    waits for every open response; a stream never finishes by itself, so thirty
+    streams heartbeated for 21 s after SIGTERM and were then cut with no drain
+    frame, every browser reconnecting on its own default at once. The adapter
+    now drains on `ShutdownRegistry.whenTerminating`, the signal itself: thirty
+    streams ended 86 ms after SIGTERM, each with its own `retry:` (thirty
+    distinct values, 1.0–5.0 s), realtime-service down 0.7 s, every reconnect
+    admitted, and a checkout settled during the outage caught up from
+    flow-status.
+  - **A flow's push waited for the relay's sweep.** `flow.*` events are written
+    into the `workflow` store's outbox and left for the relay's fifteen-second
+    sweep, so `flow.completed` reached its capability holder about 8 s after
+    the flow completed and the flow-status projection lagged by as much — a
+    browser settling by push heard its checkout later than one polling would
+    have. The interpreter now drains the outbox after each announcement where
+    the host provides an `OutboxDrainTag`, which transaction-service does:
+    the same event arrived 3 ms after it was written.
+- **The audience filter held under load.** Fifty streams through the edge —
+  twenty members of each seeded vendor and ten anonymous capability holders —
+  across a burst of checkouts on both vendors: no frame reached a stream outside
+  its audience, every member stream heard all seventeen of its own
+  organization's events, and every holder its own flow. realtime-service went
+  from 180 MB and 18 sockets to 198 MB and 69 sockets, the first data point.
+- **Reauth lands inside the margin.** A stream on a 70 s token was sent
+  `event: reauth` 29.99 s before `exp` (margin 30 s) and nothing after it.
 
 ## Supersedes and revises
 

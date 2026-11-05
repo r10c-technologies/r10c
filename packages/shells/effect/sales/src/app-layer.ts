@@ -7,6 +7,7 @@ import {
   httpPublishedPriceReaderLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
+import { SEEDED_VENDORS, type SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 const SERVICE_NAME = 'sales-service';
@@ -35,9 +36,10 @@ const SERVICE_NAME = 'sales-service';
  * app's data, so it is handed in rather than owned here (ADR 0064).
  */
 export interface SalesShellOptions {
-  /** Writes the lab's selling channels into the named tenant database. */
+  /** Writes one seeded vendor's selling channels into its tenant database. */
   readonly seed: (
     tenantDbName: string,
+    vendor: SeededVendor,
   ) => Effect.Effect<void, unknown, MongoClientTag>;
 }
 
@@ -50,12 +52,6 @@ export const salesComposition =
       // organization id; the prefix is read by `fleetTenantMongoLayer` below, and again
       // here for the seed's own database name.
       const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
-
-      // The local demo vendor, whose channels this service seeds. The same id
-      // auth-service provisions and the catalog and stock services seed under.
-      const demoOrganizationId = yield* store
-        .in('tenant')
-        .getString('demoOrganizationId');
 
       // Where the checkout coordinator answers, and what this service presents to
       // start a flow. The token is an `is_secret` row — the security boundary
@@ -89,8 +85,15 @@ export const salesComposition =
       // `sales_<id>` would race the seed on a fresh `dev:reset` and see a store
       // that is empty, half-seeded or seeded depending on scheduling.
       return Layer.provideMerge(
+        // Every seeded vendor: `SEEDED_VENDORS` is the list auth-service
+        // provisions and the catalog and stock services seed under.
         Layer.effectDiscard(
-          options.seed(`${tenantPrefix}${demoOrganizationId}`),
+          Effect.all(
+            SEEDED_VENDORS.map(vendor =>
+              options.seed(`${tenantPrefix}${vendor.organizationId}`, vendor),
+            ),
+            { discard: true },
+          ),
         ),
         connections,
       );

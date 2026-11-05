@@ -67,12 +67,7 @@ const sharedCoverageExclude = [
 // `@opentelemetry/api`, selects an ESM entry using extensionless imports that
 // Node's loader rejects; without it OTel packages resolve to their `import`/
 // `default` (working) entries. `@r10c/source` still wins for workspace packages.
-const workspaceConditions = [
-  '@r10c/source',
-  'import',
-  'node',
-  'default',
-];
+const workspaceConditions = ['@r10c/source', 'import', 'node', 'default'];
 
 export interface EntifixTestOptions {
   /** Project name, as reported by the Vitest runner (`@r10c/…`). */
@@ -107,6 +102,14 @@ export interface EntifixTestOptions {
    * default and every spec in the file fails before it starts.
    */
   hookTimeout?: number;
+  /** Overrides Vitest's 5s per-test budget — the live pass drives whole flows. */
+  testTimeout?: number;
+  /**
+   * `false` runs one spec file at a time. The live pass needs it: its specs
+   * kill and restart fleet processes, and two files at once would measure each
+   * other's outages.
+   */
+  fileParallelism?: boolean;
 }
 
 export const defineEntifixTest = ({
@@ -119,6 +122,8 @@ export const defineEntifixTest = ({
   coverageExclude = [],
   exclude = [],
   hookTimeout,
+  testTimeout,
+  fileParallelism,
 }: EntifixTestOptions) =>
   defineConfig(() => ({
     root,
@@ -153,6 +158,8 @@ export const defineEntifixTest = ({
           : setupFiles,
       globalSetup,
       ...(hookTimeout === undefined ? {} : { hookTimeout }),
+      ...(testTimeout === undefined ? {} : { testTimeout }),
+      ...(fileParallelism === undefined ? {} : { fileParallelism }),
       include: [
         '{src,specs,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],

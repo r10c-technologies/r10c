@@ -6,10 +6,10 @@
  * sessions with them, and every Next app schedules its refresh against them. Two
  * copies of "fifteen minutes" is how a signer and a verifier silently disagree.
  *
- * Tuning the module's behaviour means editing this file and nothing else. The
- * documented next step — not built yet — is for these to become *defaults* that
- * `session.*` rows in config-service override, the same way `jwt.secret` already
- * arrives from there.
+ * The access-token lifetime is the one of these that is a configuration row
+ * (`auth-service` / `session` / `accessTokenTtlSeconds`, through
+ * `AccessTokenLifetimeTag`); {@link ACCESS_TOKEN_TTL_SECONDS} is the value that
+ * row is seeded with. The rest are still decided here.
  */
 
 /**
@@ -25,11 +25,26 @@ export const SESSION_IDLE_TTL_SECONDS = 60 * 60 * 24;
 export const SESSION_ABSOLUTE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 /**
- * Access-token lifetime. Short on purpose: it is the bound on how long a
- * revoked session keeps working, because verification is stateless and never
- * consults the store.
+ * Access-token lifetime, as seeded. Short on purpose: it is the bound on how
+ * long a revoked session keeps working, because verification is stateless and
+ * never consults the store.
  */
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
+
+/**
+ * The shortest access-token lifetime a deployment may be configured with.
+ *
+ * ⚠️ It has to clear the push stream's reauthentication margin (realtime's
+ * `reauthMarginMs`, 30 s as seeded) with room to spare: a stream is told to
+ * reauthenticate that long before `exp`, so a token barely longer than the
+ * margin would be told to reauthenticate the moment it opened, and again after
+ * every refresh.
+ */
+export const MIN_ACCESS_TOKEN_TTL_SECONDS = 60;
+
+/** Whether `seconds` is a lifetime a deployment may mint tokens with. */
+export const isAccessTokenTtl = (seconds: number): boolean =>
+  Number.isInteger(seconds) && seconds >= MIN_ACCESS_TOKEN_TTL_SECONDS;
 
 /**
  * Fraction of the token's life after which the client refreshes (→ 12 min for a

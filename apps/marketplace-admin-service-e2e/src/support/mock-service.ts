@@ -46,7 +46,7 @@ import {
   seedCatalog,
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
-import { fleetToken } from '@r10c/utils-ts-fleet';
+import { DEMO_VENDOR, fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
 /**
@@ -65,10 +65,7 @@ const CONFIGURATION = {
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
   ],
-  tenant: [
-    { key: 'dbPrefix', value: 'tenant_' },
-    { key: 'demoOrganizationId', value: 'e2e-organization' },
-  ],
+  tenant: [{ key: 'dbPrefix', value: 'tenant_' }],
   outbox: [{ key: 'maxAttempts', value: '5' }],
 };
 
@@ -141,7 +138,7 @@ const MockAppLayer = (() => {
   );
 
   return Layer.provideMerge(
-    Layer.effectDiscard(seedCatalog('tenant_e2e-organization')),
+    Layer.effectDiscard(seedCatalog('tenant_e2e-organization', DEMO_VENDOR)),
     stored,
   ).pipe(Layer.orDie);
 })();

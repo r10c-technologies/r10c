@@ -19,6 +19,7 @@ import {
   isDuplicateKey,
   makeMongoUnitsOfWork,
   type MongoUnit,
+  mongoUnitFault,
 } from '@entifix/mongo/transactions';
 import type { OutboxEvent } from '@entifix/transactions';
 import {
@@ -148,7 +149,9 @@ export const MongoStockLedgerLayer = Layer.effect(
             },
           ),
         catch: error =>
-          isDuplicateKey(error) ? new FirstCounterRaced() : storeUnavailable(),
+          isDuplicateKey(error)
+            ? new FirstCounterRaced()
+            : mongoUnitFault(error),
       }).pipe(
         Effect.map(item => {
           if (item !== null) {
@@ -207,7 +210,7 @@ export const MongoStockLedgerLayer = Layer.effect(
               { ...serializeEntity(StockMovement, movement), id: movement.id },
               { session: unit.session },
             ),
-        catch: storeUnavailable,
+        catch: mongoUnitFault,
       });
 
     /**
@@ -306,7 +309,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                       { $set: { status: to } },
                       { session: unit.handle.session },
                     ),
-                catch: storeUnavailable,
+                catch: mongoUnitFault,
               });
               if (moved.matchedCount === 0) return 'not-held' as const;
 
@@ -374,7 +377,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                       },
                       { session: unit.handle.session },
                     ),
-                  catch: storeUnavailable,
+                  catch: mongoUnitFault,
                 });
                 return reservation;
               }),

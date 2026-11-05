@@ -376,22 +376,6 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'maxAttempts',
     value: '5',
   },
-  // The local demo vendor. Both services need the same id — auth-service seeds
-  // the `Organization`/`Membership` records under it, marketplace-admin-service
-  // seeds that vendor's catalog into its database — so it is configuration
-  // rather than a constant duplicated in two codebases.
-  {
-    service: 'marketplace-admin-service',
-    group_name: 'tenant',
-    key: 'demoOrganizationId',
-    value: 'demo-organization',
-  },
-  {
-    service: 'auth-service',
-    group_name: 'tenant',
-    key: 'demoOrganizationId',
-    value: 'demo-organization',
-  },
   {
     service: 'auth-service',
     group_name: 'mongo',
@@ -505,6 +489,19 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'lifecycle',
     key: 'sweepIntervalMs',
     value: '180000',
+  },
+  // How long an access token lives (ADR 0004). Short on purpose — it bounds how
+  // long a revoked session keeps working, since verification never consults the
+  // store — and a dial rather than a constant so a live pass can shorten it and
+  // watch a push stream reauthenticate before `exp` (#492). The browser follows
+  // whatever this mints: every refresh answers the new token's `expiresIn`, and
+  // the next refresh is scheduled from it. It must stay well above realtime's
+  // `reauthMarginMs`; auth-service refuses to boot under 60 s.
+  {
+    service: 'auth-service',
+    group_name: 'session',
+    key: 'accessTokenTtlSeconds',
+    value: '900',
   },
   // The browser comes back to the APP, never to the service: the app is what
   // owns cookies. It must match a redirect URI registered on the OIDC app or
@@ -1261,17 +1258,6 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'keyId',
     value: DEV_KEY_ID,
   },
-  // The vendor whose agreement the lab seeds — the same id auth-service seeds
-  // the `Organization` under. ⚠️ Without an agreement on file the fold prices
-  // nothing and logs, deliberately: there is no default commission in this
-  // system, only a default *within* an agreement, and guessing one would put a
-  // term nobody negotiated into a ledger built to be defensible in a dispute.
-  {
-    service: 'settlement-service',
-    group_name: 'tenant',
-    key: 'demoOrganizationId',
-    value: 'demo-organization',
-  },
   // ⚠️ **No `service.token` row, and the omission is deliberate.** This slice
   // holds no crossing token and accepts none: both of its inputs arrive on the
   // bus, so nothing dispatches into it, and every route it serves is guarded by
@@ -1532,20 +1518,6 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'dbPrefix',
     value: 'stock_',
   },
-  // The same demo vendor the catalog is seeded under, for the same reason it is
-  // configuration in the two rows above rather than a constant: three services
-  // now have to agree on the id, and this one seeds its stock positions against
-  // offerings marketplace-admin-service wrote.
-  //
-  // ⚠️ **A different database, though.** `tenant.dbPrefix` above is what keeps
-  // `stock_<id>` and `tenant_<id>` apart; this row only names the organization,
-  // so the two stores stay separate stores with separate writers.
-  {
-    service: 'stock-service',
-    group_name: 'tenant',
-    key: 'demoOrganizationId',
-    value: 'demo-organization',
-  },
   // The public half only. This service verifies access tokens and never mints
   // one, so it cannot sign.
   {
@@ -1632,15 +1604,6 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'tenant',
     key: 'dbPrefix',
     value: 'sales_',
-  },
-  // The same demo vendor the catalog and the stock positions are seeded under.
-  // ⚠️ A lab with no channel cannot ring up a counter sale at all: the till asks
-  // for one and `POST /api/sales-channel/:id/sell` refuses without it.
-  {
-    service: 'sales-service',
-    group_name: 'tenant',
-    key: 'demoOrganizationId',
-    value: 'demo-organization',
   },
   // The public half only. This service verifies access tokens and never mints
   // one, so it cannot sign.

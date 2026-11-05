@@ -13,6 +13,7 @@ import {
   fleetTenantMongoLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
+import { SEEDED_VENDORS, type SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { startRebuildWalk } from './rebuild-walk.js';
@@ -36,9 +37,10 @@ const SLICE_NAME = 'marketplace-admin';
  * app's data, so it is handed in rather than owned here (ADR 0064).
  */
 export interface MarketplaceAdminShellOptions {
-  /** Writes the lab's catalog into the named tenant database. */
+  /** Writes one seeded vendor's catalog into its tenant database. */
   readonly seed: (
     tenantDbName: string,
+    vendor: SeededVendor,
   ) => Effect.Effect<void, unknown, MongoClientTag>;
 }
 
@@ -49,9 +51,6 @@ export const marketplaceAdminComposition =
       const { store } = configuration;
 
       const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
-      const demoOrganizationId = yield* store
-        .in('tenant')
-        .getString('demoOrganizationId');
 
       const connections = Layer.mergeAll(
         // The pool only. This service owns no single named database: every catalog
@@ -79,9 +78,12 @@ export const marketplaceAdminComposition =
           // empty, intermittently, which is the failure this walk exists to
           // remove.
           Layer.effectDiscard(
-            options
-              .seed(`${tenantPrefix}${demoOrganizationId}`)
-              .pipe(Effect.andThen(startRebuildWalk)),
+            Effect.all(
+              SEEDED_VENDORS.map(vendor =>
+                options.seed(`${tenantPrefix}${vendor.organizationId}`, vendor),
+              ),
+              { discard: true },
+            ).pipe(Effect.andThen(startRebuildWalk)),
           ),
           Layer.effectDiscard(
             startTenantOutboxRelay({ onOutcome: logMechanismOutcome }),

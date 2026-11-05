@@ -19,9 +19,12 @@ import {
   ZitadelOidcLayer,
 } from '@entifix/zitadel';
 import {
+  AccessTokenLifetimeTag,
   AccountRepositoryTag,
   IdentityProviderTag,
+  isAccessTokenTtl,
   makeSessionIdentityProvider,
+  MIN_ACCESS_TOKEN_TTL_SECONDS,
   NotificationPortTag,
   SessionScopeResolverTag,
   UserDeviceRepositoryTag,
@@ -46,6 +49,7 @@ import {
   logSliceOutcome,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
+import { SEEDED_VENDORS, type SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -117,13 +121,13 @@ export const IdentityProviderLayer = Layer.effect(
  */
 export interface AuthShellOptions<R> {
   /**
-   * Writes the lab's accounts and the named organization's tenancy, and answers
+   * Writes the lab's accounts and every seeded vendor's tenancy, and answers
    * what it could not provision. Best-effort by design — a provider that is not
    * up yet must not stop the boot — so a shortfall is reported, not failed, and
    * this shell is what logs it.
    */
   readonly seed: (
-    organizationId: string,
+    vendors: readonly SeededVendor[],
   ) => Effect.Effect<ReadonlyArray<SeedShortfall>, unknown, R>;
 }
 
@@ -150,6 +154,23 @@ export const reportSeedShortfalls = (
     { discard: true },
   );
 
+/**
+ * The configured access-token lifetime, or a defect at boot.
+ *
+ * A row under {@link MIN_ACCESS_TOKEN_TTL_SECONDS} or with a fraction is a
+ * misconfiguration rather than a choice — the same answer entifix gives a
+ * missing key — because the fleet would come up minting tokens a push stream
+ * is told to reauthenticate the moment it opens.
+ */
+const readAccessTokenTtl = (seconds: number): Effect.Effect<number> =>
+  isAccessTokenTtl(seconds)
+    ? Effect.succeed(seconds)
+    : Effect.die(
+        new Error(
+          `Configuration key "session.accessTokenTtlSeconds" cannot be ${String(seconds)}: it takes whole seconds, at least ${String(MIN_ACCESS_TOKEN_TTL_SECONDS)}`,
+        ),
+      );
+
 export const authComposition =
   <R>(options: AuthShellOptions<R>) =>
   (configuration: FleetConfiguration) =>
@@ -165,12 +186,6 @@ export const authComposition =
       const jwtPrivateKey = yield* store.in('jwt').getString('privateKey');
       const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
       const jwtKeyId = yield* store.in('jwt').getString('keyId');
-      // Shared with marketplace-admin-service, which seeds this organization's
-      // catalog into its own database — so the id is configuration rather than a
-      // constant duplicated in two codebases.
-      const demoOrganizationId = yield* store
-        .in('tenant')
-        .getString('demoOrganizationId');
 
       // Where identity actually lives. The PAT is per-instance and disposable —
       // the local ladder extracts it after Zitadel's first init and seeds it here,
@@ -195,6 +210,9 @@ export const authComposition =
       const lifecycleSweepIntervalMs = yield* store
         .in('lifecycle')
         .getNumber('sweepIntervalMs');
+      const accessTokenTtlSeconds = yield* readAccessTokenTtl(
+        yield* store.in('session').getNumber('accessTokenTtlSeconds'),
+      );
 
       const infra = Layer.mergeAll(
         yield* fleetSingleMongoLayer(configuration, ['auth']),
@@ -226,6 +244,10 @@ export const authComposition =
         }),
         ZitadelActionsLayer({ signingKey: zitadelActionSigningKey }),
         Layer.succeed(LifecycleSweepIntervalMs, lifecycleSweepIntervalMs),
+        // What every minted token's `exp` and every `expiresIn` are read from.
+        Layer.succeed(AccessTokenLifetimeTag, {
+          seconds: accessTokenTtlSeconds,
+        }),
         // The authorization policy behind `requirePermission`. Static
         // role→permission table today; an attribute-aware engine would replace
         // this one line.
@@ -277,7 +299,7 @@ export const authComposition =
       // of racing it.
       const seed = Layer.effectDiscard(
         Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes).pipe(
-          Effect.andThen(options.seed(demoOrganizationId)),
+          Effect.andThen(options.seed(SEEDED_VENDORS)),
           Effect.flatMap(reportSeedShortfalls),
           Effect.andThen(startOrganizationRebuild),
         ),

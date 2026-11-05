@@ -14,6 +14,7 @@ import {
 } from '@entifix/business';
 import { Declined, NotFound, Unavailable } from '@entifix/core';
 import {
+  AccessTokenLifetimeTag,
   AccountRepositoryTag,
   DevMailboxTag,
   IdentityProviderTag,
@@ -117,6 +118,9 @@ const makeSessions = () => {
 };
 
 /** One-time tokens held in memory: each is consumed once. */
+/** The configured access-token lifetime the cell must mint with. */
+const LIFETIME_SECONDS = 321;
+
 const makeOneTimeTokens = (): OneTimeTokenStore => {
   const tokens = new Map<string, string>();
   let next = 0;
@@ -187,9 +191,13 @@ const world = (
   const layer = Layer.mergeAll(
     Layer.succeed(SessionStoreTag, sessions.store),
     Layer.succeed(OneTimeTokenStoreTag, makeOneTimeTokens()),
+    // Not the seeded 900: a cell still reading the constant would pass.
+    Layer.succeed(AccessTokenLifetimeTag, { seconds: LIFETIME_SECONDS }),
     Layer.succeed(TokenServiceTag, {
-      sign: (claims: TokenClaims) =>
-        Effect.succeed(`token-${claims.sessionId}`),
+      sign: (claims: TokenClaims, ttlSeconds: number) =>
+        ttlSeconds === LIFETIME_SECONDS
+          ? Effect.succeed(`token-${claims.sessionId}`)
+          : Effect.die(`signed for ${String(ttlSeconds)}s, not the dial`),
       verify: () => Effect.die('unused'),
     }),
     Layer.succeed(AccountRepositoryTag, accounts),
@@ -325,7 +333,10 @@ describe('the sign-in flow', () => {
     await signIn('code-plain');
     await signIn('code-anon', { device: { deviceId: 'd-9' } });
 
-    expect(first).toMatchObject({ redirect: '/after', expiresIn: 900 });
+    expect(first).toMatchObject({
+      redirect: '/after',
+      expiresIn: LIFETIME_SECONDS,
+    });
     // Announced on first sight only, and never to an account with no address.
     const delivered = success(
       await run(notices.mailbox.read(undefined)),
@@ -495,7 +506,10 @@ describe('a live session', () => {
     );
     const unnamed = failure(await run(refresh.handler({ payload: {} })));
 
-    expect(fresh).toMatchObject({ accessToken: `token-${sessionId}` });
+    expect(fresh).toMatchObject({
+      accessToken: `token-${sessionId}`,
+      expiresIn: LIFETIME_SECONDS,
+    });
     expect(gone).toMatchObject({ code: 'sessionExpired' });
     expect(unnamed).toMatchObject({ code: 'invalidRequest' });
   });

@@ -11,6 +11,7 @@
   every other decision here, stands.
 - Revised: 2026-10-29 — `/api/transaction/events` left with the tracker that fed it (#463); the decision stands for the push of flow outcomes ADR 0066 builds
 - Revised: 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md) — partly superseded: the stream's placement in the publishing slice, the rejection of a stream deployment and "the server does not replay"; and corrected in place, since a same-origin WebSocket handshake does carry the `Lax` cookie
+- Revised: 2026-11-04 — the access token's lifetime that bounds a revoked session's stream is the `session.accessTokenTtlSeconds` row rather than a constant (#492)
 
 ## Context
 
@@ -197,8 +198,8 @@ The stream closes when the verified access token expires. `EventSource`
 reconnects, the browser sends the cookie the app refreshed in the meantime, and
 the new connection is authenticated from a new token.
 
-A revoked session therefore stops receiving within `ACCESS_TOKEN_TTL_SECONDS`
-(15 min). That is not a weaker bound than the rest of the system — it is exactly
+A revoked session therefore stops receiving within the access token's lifetime
+(the `session.accessTokenTtlSeconds` row, 15 min as seeded). That is not a weaker bound than the rest of the system — it is exactly
 the bound `requirePrincipal` already gives every REST call, since verification is
 stateless and never consults the session store. A held-open connection with a
 handshake-only check would have been weaker, which is the difference this decides.

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Revised: 2026-11-04 — ten concurrent checkouts on a cold coordinator lost a third of their stock reservations to `overloaded` and then `breakerOpen`: the retry budget's adaptive throttling counted requests at admission and accepts at answer, so a burst read as a dependency accepting nothing (entifix ADR 0014, fixed), and stock's counter answered contention as `Unavailable`, which opened the breaker (ADR 0064). Measured after: ten of ten (#492)
 - Area: messaging
 - Read when: a participant is down and its callers pile up, or a consumer quarantines during an outage — one breaker and bulkhead per participant per process, every dial a config row
 

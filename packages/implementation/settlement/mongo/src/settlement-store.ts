@@ -5,7 +5,10 @@ import {
   Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
-import { MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
+import {
+  mongoUnitFault,
+  MongoUnitOfWorkTag,
+} from '@entifix/mongo/transactions';
 import {
   Agreement,
   type CollectedBy,
@@ -135,6 +138,9 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
 
     const promise = <A>(run: () => Promise<A>) =>
       Effect.tryPromise({ try: run, catch: storeUnavailable });
+    /** {@link promise}, for a driver call inside a unit's session. */
+    const inUnitPromise = <A>(run: () => Promise<A>) =>
+      Effect.tryPromise({ try: run, catch: mongoUnitFault });
 
     const agreementsFor = (vendorIds: readonly string[]) =>
       Effect.gen(function* () {
@@ -173,7 +179,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
         const sales = db.collection<PendingSale>(PENDING_SALE_COLLECTION);
         const ledger = db.collection(COMMISSION_ENTRY_COLLECTION);
 
-        const merged = (yield* promise(() =>
+        const merged = (yield* inUnitPromise(() =>
           sales.findOneAndUpdate(
             { orderId },
             {
@@ -203,7 +209,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             merged.cancelledAt !== undefined &&
             merged.decidedAt === undefined)
         ) {
-          yield* promise(() =>
+          yield* inUnitPromise(() =>
             sales.updateOne(
               { orderId },
               { $set: { voided: true } },
@@ -224,7 +230,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           merged.commissions !== undefined &&
           merged.decidedAt !== undefined
         ) {
-          yield* promise(() =>
+          yield* inUnitPromise(() =>
             sales.updateOne(
               { orderId },
               { $set: { folded: true } },
@@ -240,7 +246,9 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             collectedBy,
           );
           if (documents.length > 0) {
-            yield* promise(() => ledger.insertMany(documents, { session }));
+            yield* inUnitPromise(() =>
+              ledger.insertMany(documents, { session }),
+            );
           }
           folded = documents.length;
         }
@@ -254,14 +262,14 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           merged.refundedAt !== undefined
         ) {
           const refundedAt = merged.refundedAt;
-          yield* promise(() =>
+          yield* inUnitPromise(() =>
             sales.updateOne(
               { orderId },
               { $set: { reversed: true } },
               { session },
             ),
           );
-          const lines = (yield* promise(() =>
+          const lines = (yield* inUnitPromise(() =>
             ledger.find({ orderId, kind: 'sale' }, { session }).toArray(),
           )) as unknown as LedgerLine[];
           // A refund half carries its amount, and a folded sale its capture.
@@ -275,7 +283,9 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             collectedBy,
           );
           if (documents.length > 0) {
-            yield* promise(() => ledger.insertMany(documents, { session }));
+            yield* inUnitPromise(() =>
+              ledger.insertMany(documents, { session }),
+            );
           }
           reversed = documents.length;
         }
@@ -302,7 +312,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           return { ...serializeEntity(SettlementRun, run), id: runId };
         };
 
-        const claimed = yield* promise(() =>
+        const claimed = yield* inUnitPromise(() =>
           entries.updateMany(
             {
               runId: { $exists: false },
@@ -315,7 +325,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
         if (claimed.modifiedCount === 0) {
           // A sibling sweep took them first: record the empty attempt rather
           // than leave it unexplained.
-          yield* promise(() =>
+          yield* inUnitPromise(() =>
             db
               .collection(SETTLEMENT_RUN_COLLECTION)
               .insertOne(runDocument('cancelled'), { session }),
@@ -323,7 +333,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           return undefined;
         }
 
-        const rows = yield* promise(() =>
+        const rows = yield* inUnitPromise(() =>
           entries.find({ runId }, { session }).toArray(),
         );
         const byVendor = new Map<string, LedgerLine[]>();
@@ -353,12 +363,12 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             id: payout.id,
           });
         }
-        yield* promise(() =>
+        yield* inUnitPromise(() =>
           db
             .collection(VENDOR_PAYOUT_COLLECTION)
             .insertMany(payouts, { session }),
         );
-        yield* promise(() =>
+        yield* inUnitPromise(() =>
           db
             .collection(SETTLEMENT_RUN_COLLECTION)
             .insertOne(runDocument('calculated'), { session }),

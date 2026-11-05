@@ -16,6 +16,7 @@
   described an intention rather than the code until #252. This record fixed the
   **server** half and left the client half unmounted: `useSessionRefresh` was
   written, specced and referenced by nothing. Corrected in place below.
+- Revised: 2026-11-04 — the access-token lifetime is a configuration row, `auth-service` / `session` / `accessTokenTtlSeconds` (seeded 900), read into `AccessTokenLifetimeTag`; the browser schedules each refresh from the `expiresIn` the last one answered (#492)
 
 ## Context
 
@@ -78,6 +79,22 @@ copies of "fifteen minutes" is how a signer and a verifier silently disagree.
 >
 > The numbers, the sliding model and the idle rule below are unchanged. What
 > changed is that something now reads them.
+
+> **Corrected 2026-11-04 (#492).** "All five numbers live in one file" no
+> longer holds for the access token's. Its lifetime is the configuration row
+> `session.accessTokenTtlSeconds` (seeded `900`), which auth-service reads at
+> boot into `AccessTokenLifetimeTag` and refuses under 60 s or with a fraction;
+> `ACCESS_TOKEN_TTL_SECONDS` is only the seed. The constant could not be
+> shortened without a release, which is what a live pass needs to watch a
+> stream reauthenticate and an operator needs to tighten revocation.
+>
+> The browser does not read the row, and does not have to: every refresh
+> answers the minted token's `expiresIn`, and `useSessionRefresh` schedules the
+> next one from it, the first from the `exp` of the token the page was rendered
+> with. Before that it refreshed on a period fixed at mount from a 15-minute
+> default — so a shorter server lifetime lapsed between refreshes. Measured:
+> a 120 s dial, refreshed by the back office at 89.7 s of a page whose token had
+> 112 s left, where the fixed period would have waited 720 s.
 
 ### Activity means a person, not an open tab
 

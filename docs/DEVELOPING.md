@@ -303,13 +303,25 @@ entities moved to the `marketplace` database entirely. A corrected seed _value_
 behaves the same way — the row is already there, so the fix never lands. Neither
 is a code change; both are `dev:reset`, and a fresh machine needs nothing.
 
+**Two vendors are seeded, from one list.** `SEEDED_VENDORS` in
+`@r10c/utils-ts-fleet` names them — `demo-organization` (run by Alan,
+`alan@example.com`) and `second-organization` (run by Margaret,
+`margaret@example.com`, password `Password123!` like every seeded account) — and
+every seeding service reads it, so auth, the catalog, stock, sales and
+settlement cannot disagree about who exists. Each vendor's catalog and stock ids
+carry its own `idPrefix` (`second-product-offering-10`): the published catalog
+is one platform projection keyed by offering id, and two vendors seeded with the
+same ids would overwrite each other's publications. A basket spanning sellers, a
+ledger with two payouts and a stream with two audiences all need the second
+one.
+
 **Each slice seeds its own stores, and only its own.** config-service writes the
 `configuration` rows, auth-service the identities and tenancy,
-marketplace-service the platform-plane vocabulary, marketplace-admin-service the
-demo vendor's catalog into `tenant_<id>`, stock-service the stock positions into
-`stock_<id>`, sales-service the vendor's selling channels into
+marketplace-service the platform-plane vocabulary, marketplace-admin-service
+each seeded vendor's catalog into its `tenant_<id>`, stock-service the stock positions into
+`stock_<id>`, sales-service each vendor's selling channels into
 `sales_<id>` — without which the till has nothing to sell _through_ and refuses
-the sale — and settlement-service the demo vendor's `Agreement` into the
+the sale — and settlement-service each vendor's `Agreement` into the
 control-plane `settlement` database, without which every sale completes and the
 commission ledger stays empty with only an error log to say why. The catalog-and-stock pair is the one worth stating: `catalog` and `stock`
 are the same plane and the same partitioning but different stores with different
@@ -913,6 +925,56 @@ where omitting or corrupting the header is the point.
 from `nx.json`. Vitest applies that condition itself, but Playwright resolves
 specs with plain Node and would otherwise land on a package's `dist/` — which
 works on a machine with a stale build and fails on a clean checkout.
+
+### The live pass
+
+A sequential live check proves nothing about a race, a killed process or a
+stream under load — flows have shipped green with defects only a parallel burst
+found. `@r10c/fleet-e2e` is the run that does, and it has **no mock half**: under
+the default profile it collects nothing.
+
+```sh
+pnpm run back-office:dev:reset        # a fresh lab: the specs consume stock
+# then, in another shell, once every port answers:
+E2E_PROFILE=live pnpm nx e2e fleet-e2e
+```
+
+It needs the whole fleet `back-office:dev` starts — both flow runners
+(`34103`, `35103`) included — and nothing else: every URL defaults to the lab's
+canonical port, the signing key and the crossing tokens are read from
+config-service where the fleet reads them, and the stores are read directly at
+`mongodb://…:30017` for the invariants. Files run one at a time, because the
+specs kill fleet processes: a process the pass killed is started again from its
+build, detached and outside Nx, so **restart the fleet before working in it
+again**.
+
+| Spec                 | What it does                                                                                                           | The invariant                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `cancel-vs-dispatch` | ten COD orders, `cancel` and `dispatch` fired at each at once                                                          | exactly one wins per order, and the loser leaves nothing half-done                                                       |
+| `refund-burst`       | twenty partial refunds at one paid order, each its own command                                                         | refunded ≤ captured, and the counter, the records and the answers agree                                                  |
+| `mixed-basket`       | one basket across both seeded vendors, card and COD, then delivery                                                     | one capture allocated to the card order; one sale line per vendor at its cut, `collectedBy` the vendor for COD           |
+| `runner-kill`        | ten checkouts, runner 1 SIGKILLed with all ten in flight                                                               | every flow completes once: one order, one allocation, the ledger down by ten, no hold left                               |
+| `fanout`             | fifty streams through the edge — two vendors' members, ten capability holders — under a checkout burst on both vendors | no frame outside its audience; every member hears its own burst, every holder its flow                                   |
+| `restart`            | realtime-service SIGTERMed under thirty streams, a checkout while it is down                                           | every stream drained with a `retry:` inside the dial and not all alike; every reconnect `200`; the missed flow caught up |
+| `reauth`             | a stream on a 70 s token                                                                                               | `event: reauth` inside the margin before `exp`, nothing after                                                            |
+
+**The first measured data point** (2026-11-04, one laptop, the whole fleet in
+`dev`): the suite runs in about a minute. realtime-service held fifty streams at
+198 → 229 MB RSS and 5 → 56 TCP sockets; thirty streams drained 88 ms after
+SIGTERM with thirty distinct retries between 1.0 and 4.8 s, the service down
+0.7 s; a `flow.completed` reached its holder 3 ms after it was written.
+
+Each of those numbers was much worse before the pass, and what it found is
+recorded where it belongs — the SSE drain and the flow push in ADR 0072, the
+throttling in entifix ADR 0014 and ADR 0067, the masked write conflict in
+ADR 0064, the access-token lifetime in ADR 0004.
+
+⚠️ **`dev-runner` waits for config-service before it starts.** A runner booted
+on a cold fleet ran out of `loadRemoteConfiguration`'s twenty-second window while
+config-service was still seeding, and `node --watch` then waits for a file
+change, not a retry — so it came up only when a rebuild happened to touch it.
+The target now curls `GET :3190/api/health/ready` first, with a three-second
+deadline per attempt: one without it hung on a half-open socket.
 
 ## Flows, fragments and the checks that hold them
 

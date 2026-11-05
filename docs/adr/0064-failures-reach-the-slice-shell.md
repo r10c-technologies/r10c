@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Revised: 2026-11-04 — a Mongo cell's driver call inside a unit of work answers `mongoUnitFault` (`@entifix/mongo/transactions`), never its own `Unavailable`: nine cells mapped every driver error to one, which hid the write conflict the unit retries on, and a burst of partial refunds answered `503` to 18 requests in 20 (#492)
 - Area: platform
 - Read when: adding a refusal, a status mapping, an error body or a log call, or about to write `Effect.retry` in a consumer — `code` is the `errors` key, business and implementation never log, and the slice shell decides status, retry and logging
 

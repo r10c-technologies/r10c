@@ -34,7 +34,6 @@ const CONFIGURATION = fleetConfigurationOf({
   }),
   tenant: configurationRows({
     dbPrefix: 'stock_',
-    demoOrganizationId: 'demo',
   }),
   reservation: configurationRows({ ttlSeconds: 900 }),
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),

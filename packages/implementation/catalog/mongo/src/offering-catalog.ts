@@ -2,17 +2,14 @@ import {
   type TenantDatabaseResolver,
   TenantDatabaseResolverTag,
 } from '@entifix/business';
-import {
-  envelopeEntityName,
-  serializeEntity,
-  Unavailable,
-} from '@entifix/core';
+import { envelopeEntityName, serializeEntity } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
   ensureOutboxIndexes,
   makeMongoOutbox,
   makeMongoUnitsOfWork,
+  mongoUnitFault,
   reviveQuarantined,
 } from '@entifix/mongo/transactions';
 import { EventBusTag, OutboxMaxAttempts } from '@entifix/transactions';
@@ -84,7 +81,7 @@ export const MongoOfferingCatalogLayer = Layer.effect(
                       .replaceOne({ id: offering.id, status: from }, document, {
                         session: unit.handle.session,
                       }),
-                  catch: () => new Unavailable({ dependency: 'mongo' }),
+                  catch: mongoUnitFault,
                 });
                 if (written.matchedCount === 0) {
                   return yield* Effect.fail(new OfferingMoved());

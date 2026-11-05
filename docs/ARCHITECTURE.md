@@ -507,12 +507,14 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   the next `refresh` (or direct `read`) 401s even though old tokens haven't
   expired yet.
 * **Session lifetime is sliding-under-a-ceiling**: idle 1 day, absolute 7 days,
-  access token 15 min, all five constants in one `scope:shared` module
-  (`business-ts-authn/values/session-policy.ts`) because the service and every
-  app need the same numbers. What slides the session is _user_ activity, not
-  traffic: `requirePrincipal` stays stateless and never reads Redis, so the
-  browser's `useSessionRefresh` hook (`@entifix/next-shell`) refreshes at
-  80% of the token's life and **stops after 15 minutes without interaction** —
+  in one `scope:shared` module (`business-ts-authn/values/session-policy.ts`);
+  the access token's lifetime is the `session.accessTokenTtlSeconds` row
+  (seeded 15 min), read into `AccessTokenLifetimeTag`. What slides the session
+  is _user_ activity, not traffic: `requirePrincipal` stays stateless and never
+  reads Redis, so the browser's `useSessionRefresh` hook (`@entifix/next-shell`)
+  refreshes at 80% of the current token's life — scheduled from the
+  `expiresIn` each refresh answers, so it follows the row — and **stops after
+  15 minutes without interaction** —
   an abandoned tab lets its session age out. See
   [ADR 0004](adr/0004-session-lifetime-devices-and-recovery.md).
 * **Sign-out is two steps.** `POST /api/auth/logout` revokes the Redis session

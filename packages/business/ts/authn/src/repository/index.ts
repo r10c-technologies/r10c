@@ -1,3 +1,4 @@
+export * from './access-token-lifetime';
 export * from './account.repository';
 export * from './identity-provider.repository';
 export * from './identity-provider-ports';

@@ -11,6 +11,7 @@ import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
   isDuplicateKey,
+  mongoUnitFault,
   MongoUnitOfWorkTag,
 } from '@entifix/mongo/transactions';
 import {
@@ -167,7 +168,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
         catch: error =>
           isDuplicateKey(error)
             ? new DuplicateKey({ key: 'orderId' })
-            : storeUnavailable(),
+            : mongoUnitFault(error),
       });
 
     const documentOf = <T extends Entity>(
@@ -267,7 +268,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
                       { $inc: { refunded: refund.amount } },
                       { session: unit.handle.session },
                     ),
-                  catch: storeUnavailable,
+                  catch: mongoUnitFault,
                 });
                 if (taken.modifiedCount === 0) {
                   return yield* Effect.fail(new Exceeds());
@@ -334,7 +335,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
                       },
                       { session: unit.handle.session },
                     ),
-                  catch: storeUnavailable,
+                  catch: mongoUnitFault,
                 });
                 // Decided already: a second answer for one refund changes nothing.
                 if (decided.modifiedCount === 0) return;
@@ -352,7 +353,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
                         { $inc: { refunded: -refund.amount } },
                         { session: unit.handle.session },
                       ),
-                  catch: storeUnavailable,
+                  catch: mongoUnitFault,
                 });
               }),
             { afterCommit },
