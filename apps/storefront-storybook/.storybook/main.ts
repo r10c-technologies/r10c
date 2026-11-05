@@ -20,7 +20,8 @@ import type { StorybookConfig } from '@storybook/react-vite';
  * `watch-libs` for edits to show.
  *
  * Stories are in no tsconfig project, so `build-storybook` is the only check
- * that compiles them, which is why CI runs it.
+ * that compiles them — and it proves nothing about rendering. `test-a11y`
+ * renders every story in Chromium and audits it with axe (ADR 0075).
  */
 const config: StorybookConfig = {
   stories: [
@@ -28,7 +29,12 @@ const config: StorybookConfig = {
     '../src/**/*.stories.@(ts|tsx)',
     '../../../packages/utils/react/ui/src/**/*.stories.@(ts|tsx)',
   ],
-  addons: ['@storybook/addon-docs', '@storybook/addon-themes'],
+  addons: [
+    '@storybook/addon-docs',
+    '@storybook/addon-themes',
+    '@storybook/addon-a11y',
+    '@storybook/addon-vitest',
+  ],
   framework: { name: '@storybook/react-vite', options: {} },
   core: { disableTelemetry: true },
 };

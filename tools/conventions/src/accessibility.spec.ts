@@ -10,6 +10,8 @@
  * `<button>` beside it must raise neither, so a configuration that errors on
  * everything cannot pass.
  */
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ESLint } from 'eslint';
@@ -57,5 +59,61 @@ describe('a click target is reachable by keyboard', () => {
       ).toEqual([]);
     },
     60_000,
+  );
+});
+
+/**
+ * The ratchet lists (ADR 0075): a Storybook `a11y-todo.json` maps a story
+ * title, and a screen `a11y-baseline.json` a fingerprint, to the issue that
+ * removes it. An entry is accepted debt only while it names one, and a todo
+ * title only while its story exists.
+ */
+const ISSUE = /^[\w.-]+\/[\w.-]+#\d+$/;
+
+const tracked = (...patterns: string[]) =>
+  execFileSync('git', ['ls-files', ...patterns], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  })
+    .split('\n')
+    .filter(path => path !== '');
+
+const entries = (path: string): [string, string][] =>
+  Object.entries(
+    JSON.parse(readFileSync(join(REPO_ROOT, path), 'utf8')) as Record<
+      string,
+      string
+    >,
+  );
+
+describe('every accessibility ratchet entry', () => {
+  it.each(tracked('*a11y-todo.json', '*a11y-baseline.json'))(
+    'in %s names the issue that removes it',
+    path => {
+      expect(
+        entries(path)
+          .filter(([, owner]) => !ISSUE.test(owner))
+          .map(([key]) => key),
+      ).toEqual([]);
+    },
+  );
+
+  it.each(tracked('*a11y-todo.json'))(
+    'in %s names a story that exists',
+    path => {
+      const titles = new Set(
+        tracked('*.stories.tsx').flatMap(story => {
+          const title = /title: '([^']+)'/.exec(
+            readFileSync(join(REPO_ROOT, story), 'utf8'),
+          )?.[1];
+          return title === undefined ? [] : [title];
+        }),
+      );
+      expect(
+        entries(path)
+          .map(([title]) => title)
+          .filter(title => !titles.has(title)),
+      ).toEqual([]);
+    },
   );
 });

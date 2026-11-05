@@ -451,6 +451,7 @@ resolution condition (`.storybook/main.ts`) — and a theme toolbar
 # from an entifix checkout (e.g. .entifix/)
 pnpm nx run @entifix/react-controls:storybook        # dev server on :6006
 pnpm nx run @entifix/react-controls:build-storybook  # static build
+pnpm nx run @entifix/react-controls:test-a11y        # every story in Chromium, axe in five cells
 ```
 
 Stories are co-located (`*.stories.tsx`) with `tags: ['autodocs']`; MDX pages
@@ -458,16 +459,16 @@ Stories are co-located (`*.stories.tsx`) with `tags: ['autodocs']`; MDX pages
 (`*.stories.tsx`, `_demo.tsx`) is excluded from the coverage gate in
 `vitest.config.mts`. Stories **may** instantiate decorated entities, and the
 entity-aware organisms have to — `EntityTable` and `EntityForm` build themselves
-from metadata, so there is no way to show one without an entity. The default
-React-Vite transform compiles the stage-3 decorators, and `@entifix/core`
-polyfills `Symbol.metadata` on first import, so no SWC pass is configured here
-(unlike Vitest, which runs one for the spec files).
+from metadata, so there is no way to show one without an entity. Vite 8's
+transform leaves stage-3 decorators raw, so the Storybook build runs the same
+SWC pass as Vitest; before it did, all 22 entity stories rendered blank while
+the build stayed green.
 
 Stories are in **no tsconfig project** (`tsconfig.lib.json` excludes them,
 `tsconfig.spec.json` does not include them), so `nx typecheck` cannot see a type
-error in a story and Vitest never loads one. `nx build-storybook` is therefore
-the only thing that compiles them. It ran in this repository's CI while the
-package lived here; entifix's CI does not run it yet.
+error in a story and the unit Vitest projects never load one. entifix's CI
+builds the Storybook and runs `test-a11y`, which renders every story in
+Chromium and audits it with axe against WCAG 2.2 AA (entifix ADR 0024).
 
 ### The storefront's Storybook
 
@@ -477,7 +478,16 @@ on the same Storybook 10 and React-Vite setup, with marketplace-app's palettes.
 ```sh
 pnpm nx run @r10c/storefront-storybook:storybook        # dev server on :6006
 pnpm nx run @r10c/storefront-storybook:build-storybook  # static build, a CI job
+pnpm nx run @r10c/storefront-storybook:test-a11y        # every story in Chromium under axe, a CI job
 ```
+
+`test-a11y` renders every story in both palettes and fails on a story that
+throws, renders nothing or raises a WCAG 2.2 AA violation
+([ADR 0075](adr/0075-accessible-by-default-the-screen-gate-and-heuristics-per-surface.md)).
+A story with a known violation is listed in `a11y-todo.json` against the issue
+that removes it; it is still audited and reported. The list only shrinks: a
+listed title that no longer violates anything fails the run, and a daily
+workflow fails once a listed issue has closed.
 
 It shows two kinds of story:
 
@@ -918,8 +928,8 @@ boundary does not have.
 **Enforcement.** A lint rule for "supports a skeleton" is not writable. What is:
 `src/ui/loading-contract.spec.ts` scans the source for components whose props
 type declares `isLoading` and fails the build unless each ships a `Loading`
-Storybook story — and `nx build-storybook` proves that story renders (in the
-entifix repository, whose CI does not run it yet).
+Storybook story — and `test-a11y` proves that story renders, in the entifix
+repository's CI.
 
 ## 7. Reactive updates and the optimistic contract
 
