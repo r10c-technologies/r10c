@@ -1,4 +1,9 @@
-import { isNavItemVisible, visibleNav } from '../src/lib/nav';
+import {
+  isNavItemVisible,
+  NAV,
+  navBreadcrumbLabels,
+  visibleNav,
+} from '../src/lib/nav';
 import type { NavPrincipal } from '../src/lib/nav-principal';
 
 /**
@@ -91,5 +96,24 @@ describe('visibleNav', () => {
         principal(),
       ),
     ).toThrow(/names no permission/);
+  });
+});
+
+describe('navBreadcrumbLabels', () => {
+  // Identity, so the spec compares keys: a crumb must resolve through the very
+  // key its sidebar item renders with, or the two read differently (#531).
+  const labels = navBreadcrumbLabels(key => key);
+
+  it("labels every item's last segment with that item's own key", () => {
+    for (const item of NAV.flatMap(section => section.items)) {
+      const last = item.href.split('/').filter(Boolean).at(-1) as string;
+      expect(labels[last], item.href).toBe(item.label);
+    }
+  });
+
+  it("labels a section's shared first segment with its title", () => {
+    expect(labels['stock']).toBe('r10c:stock.nav.stock');
+    expect(labels['fulfilment']).toBe('r10c:fulfilment.nav.title');
+    expect(labels['order']).toBe('r10c:order.nav.orders');
   });
 });

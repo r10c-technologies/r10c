@@ -5,7 +5,7 @@ import {
 } from '@entifix/authz';
 import { Configuration } from '@r10c/business-ts-configuration';
 
-import { CONFIGURATION_LIST_HREF } from './client/configuration-list/configuration-list-client-page';
+import { CONFIGURATION_LIST_HREF } from './configuration-paths';
 
 /**
  * This shell's contribution to a host's navigation.

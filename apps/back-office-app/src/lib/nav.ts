@@ -153,3 +153,45 @@ export const sidebarNav = (
       workspace,
     })),
   }));
+
+const segmentsOf = (href: string): string[] =>
+  href
+    .split(/[?#]/)[0]
+    .split('/')
+    .filter(segment => segment !== '');
+
+/**
+ * The breadcrumb's label for every URL segment the sidebar names, resolved from
+ * the sidebar's own keys — so a crumb and the nav item it leads to can never
+ * read differently, and a shell that contributes a section gets translated
+ * crumbs without touching this host.
+ *
+ * An item names its own last segment; a section's title names the first
+ * segment its items share, but only where no item already claims it (so
+ * `/account` keeps its item's label though `/account/security` sits under the
+ * section). Over the unfiltered `NAV`, because a crumb is not a grant.
+ */
+export const navBreadcrumbLabels = (
+  translate: (key: string) => string,
+): Record<string, string> => {
+  const labels: Record<string, string> = {};
+  for (const section of NAV) {
+    for (const item of section.items) {
+      const last = segmentsOf(item.href).at(-1);
+      if (last !== undefined && labels[last] === undefined) {
+        labels[last] = translate(item.label);
+      }
+    }
+  }
+  for (const section of NAV) {
+    if (section.title === undefined) continue;
+    for (const item of section.items) {
+      const segments = segmentsOf(item.href);
+      const first = segments[0];
+      if (segments.length > 1 && labels[first] === undefined) {
+        labels[first] = translate(section.title);
+      }
+    }
+  }
+  return labels;
+};
