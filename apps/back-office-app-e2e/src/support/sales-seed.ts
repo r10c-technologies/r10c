@@ -36,7 +36,7 @@ export const publishedOfferingSeed = [
     offeringId: 'product-offering-1',
     vendorId: 'e2e-organization',
     name: 'Taza de cerámica',
-    amount: 25,
+    amount: 6499,
     currency: 'GTQ',
     availableHint: true,
   },

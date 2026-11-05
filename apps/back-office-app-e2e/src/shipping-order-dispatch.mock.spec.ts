@@ -67,3 +67,16 @@ test('dispatches a shipment, waits on its delivery flow, then records the delive
   await page.getByRole('button', { name: 'Registrar entrega' }).click();
   await expect(page.getByText('Entregado').first()).toBeVisible();
 });
+
+test('refuses recording delivery on a shipment not yet dispatched, and names the legal move', async ({
+  page,
+}) => {
+  await page.goto(`/fulfilment/shipping-order/${AWAITING_SHIPMENT_ID}`);
+
+  await page.getByRole('button', { name: 'Registrar entrega' }).click();
+
+  // The refusal says what can happen from here, not only what cannot (#532).
+  await expect(
+    page.getByText(/no admite ese movimiento.*«Despachar»/),
+  ).toBeVisible();
+});

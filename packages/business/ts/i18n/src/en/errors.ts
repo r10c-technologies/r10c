@@ -116,7 +116,7 @@ export const errors: EsErrors = {
   invalidToken: 'Your session is not valid. Sign in again.',
   expiredToken: 'Your session has expired. Sign in again.',
   shippingOrderNotTransitionable:
-    'This shipment cannot make that move from where it stands.',
+    'This shipment does not allow that move in its current status. One awaiting dispatch allows “Dispatch”; one dispatched, “Record delivery” or “Record refusal”; one refused, “Record return”.',
   refundExceedsCapture: 'That is more than is left to refund on this order.',
   codOverLimit:
     'This order is over the cash-on-delivery limit. Pay this seller by card instead.',

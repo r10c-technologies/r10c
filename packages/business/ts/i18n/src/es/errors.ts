@@ -144,7 +144,7 @@ export const errors = {
   invalidToken: 'Tu sesión no es válida. Inicia sesión de nuevo.',
   expiredToken: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
   shippingOrderNotTransitionable:
-    'Este envío no puede hacer ese movimiento desde su estado actual.',
+    'Este envío no admite ese movimiento en su estado actual. Uno por despachar admite «Despachar»; uno despachado, «Registrar entrega» o «Registrar rechazo»; uno rechazado, «Registrar devolución».',
   refundExceedsCapture: 'Es más de lo que queda por reembolsar en este pedido.',
   codOverLimit:
     'Este pedido supera el límite de pago contra entrega. Paga a este vendedor con tarjeta.',

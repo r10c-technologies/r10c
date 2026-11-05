@@ -24,6 +24,7 @@ import {
   Stack,
   Text,
   TextInput,
+  useLocale,
   useTranslateKey,
   Wizard,
 } from '@entifix/react-controls';
@@ -33,6 +34,7 @@ import {
 } from '@entifix/react-integration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
+import { formatPrice } from '@r10c/utils-react-ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COUNTER_SALE_SURFACE } from '../sales-surfaces';
@@ -134,6 +136,17 @@ const totalOf = (lines: readonly Line[]): number =>
   lines.reduce((sum, line) => sum + line.amount * line.quantity, 0);
 
 /**
+ * The offerings the till can pick from, one per id. The projection can answer
+ * the same offering twice, and a select listing it twice reads as two products.
+ */
+export const uniqueOfferings = <T extends { readonly offeringId: string }>(
+  items: readonly T[],
+): T[] =>
+  Array.from(
+    new Map(items.map(item => [item.offeringId, item] as const)).values(),
+  );
+
+/**
  * What the total is denominated in.
  *
  * One currency per sale, taken from the first line: the projection prices each
@@ -172,6 +185,7 @@ export function CounterSaleWizard({
   onFinished,
 }: CounterSaleWizardProps = {}) {
   const translateKey = useTranslateKey();
+  const locale = useLocale();
   const adapters = useSalesAdapters();
   const draft = useWizardDraft(`wizard:${COUNTER_SALE_SURFACE.key}`);
   // An unopened till has no stored state, and every read below wants one. The
@@ -416,8 +430,11 @@ export function CounterSaleWizard({
       {activeStep === 'channel' && (
         <Stack>
           <Text>{translateKey('r10c:sales.counterSale.channelHint')}</Text>
+          <label htmlFor="counter-sale-channel">
+            {translateKey('r10c:sales.counterSale.steps.channel')}
+          </label>
           <Select
-            aria-label={translateKey('r10c:sales.counterSale.steps.channel')}
+            id="counter-sale-channel"
             value={channelId ?? ''}
             onChange={event => setChannel(event.target.value)}
             disabled={channels.isLoading}
@@ -440,21 +457,27 @@ export function CounterSaleWizard({
         <Stack>
           <Text>{translateKey('r10c:sales.counterSale.linesHint')}</Text>
           <Cluster>
+            <label htmlFor="counter-sale-offering">
+              {translateKey('r10c:sales.counterSale.offering')}
+            </label>
             <Select
-              aria-label={translateKey('r10c:sales.counterSale.offering')}
+              id="counter-sale-offering"
               value={pendingOffering}
               onChange={event => setPendingOffering(event.target.value)}
               disabled={offerings.isLoading}
             >
               <option value="">—</option>
-              {offerings.items.map(offering => (
+              {uniqueOfferings(offerings.items).map(offering => (
                 <option key={offering.offeringId} value={offering.offeringId}>
                   {offering.name}
                 </option>
               ))}
             </Select>
+            <label htmlFor="counter-sale-quantity">
+              {translateKey('r10c:sales.counterSale.quantity')}
+            </label>
             <TextInput
-              aria-label={translateKey('r10c:sales.counterSale.quantity')}
+              id="counter-sale-quantity"
               type="number"
               min={1}
               value={pendingQuantity}
@@ -471,11 +494,14 @@ export function CounterSaleWizard({
                   {line.quantity} × {line.name}
                 </Text>
                 <Button
+                  variant="ghost"
                   onClick={() =>
                     setLines(lines.filter(other => other.key !== line.key))
                   }
                 >
-                  {translateKey('r10c:sales.counterSale.removeLine')}
+                  {translateKey('r10c:sales.counterSale.removeLineNamed', {
+                    name: line.name,
+                  })}
                 </Button>
               </Cluster>
             ))}
@@ -488,14 +514,17 @@ export function CounterSaleWizard({
 
       {activeStep === 'payment' && (
         <Stack>
+          <label htmlFor="counter-sale-payment-method">
+            {translateKey('r10c:sales.counterSale.paymentMethod')}
+          </label>
           <Select
-            aria-label={translateKey('r10c:sales.counterSale.paymentMethod')}
+            id="counter-sale-payment-method"
             value={paymentMethod}
             onChange={event => setPaymentMethod(event.target.value)}
           >
             {PAYMENT_METHODS.map(method => (
               <option key={method} value={method}>
-                {method}
+                {translateKey(`r10c:sales.counterSale.tender.${method}`)}
               </option>
             ))}
           </Select>
@@ -506,13 +535,13 @@ export function CounterSaleWizard({
         <Stack>
           {lines.map(line => (
             <Text key={line.key}>
-              {line.quantity} × {line.name} — {line.amount * line.quantity}{' '}
-              {line.currency}
+              {line.quantity} × {line.name} —{' '}
+              {formatPrice(locale, line.amount * line.quantity, line.currency)}
             </Text>
           ))}
           <Text>
-            {translateKey('r10c:sales.counterSale.total')}: {totalOf(lines)}{' '}
-            {currencyOf(lines)}
+            {translateKey('r10c:sales.counterSale.total')}:{' '}
+            {formatPrice(locale, totalOf(lines), currencyOf(lines))}
           </Text>
           {failure !== undefined && (
             <Text>{translateKey(`errors:${failure}`)}</Text>

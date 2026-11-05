@@ -287,6 +287,13 @@ export const r10c = {
       linesHint: 'Agrega los productos publicados que estás vendiendo.',
       addLine: 'Agregar producto',
       removeLine: 'Quitar',
+      removeLineNamed: 'Quitar {{name}}',
+      tender: {
+        cash: 'Efectivo',
+        card: 'Tarjeta',
+        voucher: 'Vale',
+        transfer: 'Transferencia',
+      },
       quantity: 'Cantidad',
       offering: 'Producto',
       total: 'Total',
