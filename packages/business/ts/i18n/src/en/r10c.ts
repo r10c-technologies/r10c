@@ -69,7 +69,13 @@ export const r10c: EsR10c = {
     },
   },
   storefront: {
+    missing: {
+      heading: 'We could not find that page',
+      body: 'The product or category you are looking for does not exist, or is no longer available.',
+      home: 'Back to the home page',
+    },
     nav: {
+      skipToContent: 'Skip to content',
       catalog: 'Catalog',
     },
     breadcrumbs: {

@@ -75,7 +75,13 @@ export const r10c = {
     },
   },
   storefront: {
+    missing: {
+      heading: 'No encontramos esa página',
+      body: 'El producto o la categoría que buscas no existe, o ya no está disponible.',
+      home: 'Volver al inicio',
+    },
     nav: {
+      skipToContent: 'Saltar al contenido',
       catalog: 'Catálogo',
     },
     breadcrumbs: {

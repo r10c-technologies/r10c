@@ -34,8 +34,11 @@ export function StoreShell({
           </Suspense>
         }
       />
+      {/* Focusable by script only, so the header's skip link moves focus here
+          rather than just scrolling, and the next Tab starts inside. */}
       <main
         id="content"
+        tabIndex={-1}
         className="mx-auto w-full max-w-5xl px-s py-l sm:px-l sm:py-xl"
       >
         {children}
