@@ -13,6 +13,7 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
+import { Configuration } from '@r10c/business-ts-configuration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
@@ -83,6 +84,8 @@ export const SETTLEMENT_SERVICE_URL = 'http://localhost:3107/api';
 export const ORDER_SERVICE_URL = 'http://localhost:3105/api';
 
 export const FULFILMENT_SERVICE_URL = 'http://localhost:3110/api';
+/** config-service, which the system-management screens list and edit. */
+export const CONFIG_SERVICE_URL = 'http://localhost:3190/api';
 
 export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
@@ -101,6 +104,7 @@ const CONFIGURATION = {
     { key: 'settlement-service-domain', value: SETTLEMENT_SERVICE_URL },
     { key: 'order-service-domain', value: ORDER_SERVICE_URL },
     { key: 'fulfilment-service-domain', value: FULFILMENT_SERVICE_URL },
+    { key: 'config-service-domain', value: CONFIG_SERVICE_URL },
   ],
 };
 
@@ -563,6 +567,72 @@ export const idleStream = () =>
 /** Where a pending flow catches up from (ADR 0073); `404` means still pending. */
 export const FLOW_STATUS_URL = `${APP_URL}/api/realtime/flow/:id`;
 
+/** A few configuration rows, one of them secret, for the system screens. */
+const configurations = entityBackendHandlers(Configuration, {
+  baseUrl: `${CONFIG_SERVICE_URL}/configuration`,
+  seed: [
+    {
+      id: 'configuration-1',
+      service: 'stock-service',
+      groupName: 'uri',
+      key: 'stock-service-domain',
+      value: 'http://localhost:3108/api',
+      isSecret: false,
+    },
+    {
+      id: 'configuration-2',
+      service: 'transaction-service',
+      groupName: 'participant',
+      key: 'participant.stockToken',
+      value: '',
+      isSecret: true,
+    },
+    {
+      id: 'configuration-3',
+      service: 'payment-service',
+      groupName: 'cod',
+      key: 'cod.maxAmount',
+      value: '150000',
+      isSecret: false,
+    },
+  ],
+});
+
+/**
+ * The signed-in user's sessions, as auth-service reports them through the
+ * app's own `/api/auth/sessions` route — stubbed here, in the browser, so the
+ * sessions screen renders without a server behind the route.
+ */
+const sessionHandlers = [
+  http.get(`${APP_URL}/api/auth/sessions`, () =>
+    HttpResponse.json({
+      items: [
+        {
+          sessionId: 'e2e-session',
+          createdAt: '2026-11-05T08:00:00.000Z',
+          expiresAt: '2026-11-05T20:00:00.000Z',
+          absoluteExpiresAt: '2026-11-12T08:00:00.000Z',
+          current: true,
+          device: {
+            deviceId: 'device-1',
+            browser: 'Chrome',
+            os: 'macOS',
+            type: 'desktop',
+          },
+        },
+        {
+          sessionId: 'session-2',
+          createdAt: '2026-11-04T09:00:00.000Z',
+          expiresAt: '2026-11-04T21:00:00.000Z',
+          absoluteExpiresAt: '2026-11-11T09:00:00.000Z',
+          current: false,
+          device: null,
+        },
+      ],
+    }),
+  ),
+];
+
 const realtimeHandlers = [
   http.get(STREAM_URL, idleStream),
   http.get(FLOW_STATUS_URL, () =>
@@ -602,6 +672,8 @@ const base = defineEntifixE2eTest({
     ...fulfilmentMetadataHandlers,
     ...shippingVerbHandlers,
     ...createHandlers,
+    ...configurations.handlers,
+    ...sessionHandlers,
     ...realtimeHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;

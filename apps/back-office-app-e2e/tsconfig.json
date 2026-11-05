@@ -30,19 +30,22 @@
       "path": "../../packages/business/ts/stock-management"
     },
     {
-      "path": "../../packages/business/ts/settlement-management"
-    },
-    {
       "path": "../../packages/business/ts/shipping-order-management"
     },
     {
-      "path": "../../packages/business/ts/order-management"
+      "path": "../../packages/business/ts/settlement-management"
     },
     {
       "path": "../../packages/business/ts/sales-management"
     },
     {
+      "path": "../../packages/business/ts/order-management"
+    },
+    {
       "path": "../../packages/business/ts/marketplace-catalog"
+    },
+    {
+      "path": "../../packages/business/ts/configuration"
     },
     {
       "path": "../../packages/business/ts/catalog-reference"

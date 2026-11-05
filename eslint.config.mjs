@@ -1,4 +1,5 @@
 import nx from '@nx/eslint-plugin';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import react from 'eslint-plugin-react';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 
@@ -524,6 +525,34 @@ const FAILURE_SHAPE_RESTRICTIONS = {
 export const failureShapeConfig = {
   files: ['**/*.ts', '**/*.tsx'],
   rules: FAILURE_SHAPE_RESTRICTIONS,
+};
+
+/**
+ * WCAG 2.2 AA is the target ([ADR 0075](docs/adr/0075-accessible-by-default-the-screen-gate-and-heuristics-per-surface.md),
+ * narrowing entifix's 0024), and the part a linter can see fails the build:
+ * `jsx-a11y`'s strict set, every rule at `error`, with the component mapping
+ * entifix's README documents — a `<Button onClick>` is checked as the
+ * `<button>` it renders. entifix publishes no lint config, so r10c states it.
+ *
+ * Spread by every project that renders, after its React or Next preset, for
+ * the reason `failureShapeConfig` is: the presets ship a warn-level subset of
+ * these rules that would otherwise win. `@r10c/conventions` plants a clickable
+ * `<div>` in a shell and an app and fails if either stops being an error.
+ */
+export const accessibleJsx = {
+  files: ['**/*.tsx', '**/*.jsx'],
+  settings: {
+    'jsx-a11y': {
+      components: {
+        Button: 'button',
+        ButtonLink: 'a',
+        TextInput: 'input',
+        Select: 'select',
+        Checkbox: 'input',
+      },
+    },
+  },
+  rules: jsxA11y.flatConfigs.strict.rules,
 };
 
 /**

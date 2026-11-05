@@ -37,6 +37,15 @@ export function StoreHeader({
 
   return (
     <header className="border-b border-border bg-surface-elevated">
+      {/* The first stop on every page (WCAG 2.4.1): past the masthead, the
+          search and the category links, straight to what the page is for.
+          Visible only while focused. */}
+      <a
+        href="#content"
+        className="sr-only focus-ring focus:not-sr-only focus:absolute focus:top-s focus:left-s focus:z-50 focus:rounded-md focus:bg-surface-elevated focus:px-s focus:py-2xs focus:text-content"
+      >
+        {t('storefront.nav.skipToContent')}
+      </a>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-xs px-s py-s sm:px-l">
         <Cluster justify="between" gap="s">
           <StoreLink

@@ -1,0 +1,30 @@
+name: Accessibility ratchet owners
+
+# Every entry in a Storybook `a11y-todo.json` or a screen `a11y-baseline.json`
+# is a promise that the named issue removes it (ADR 0075). This fails when that
+# issue has closed and the entry is still there. Deliberately not a required
+# check: closing an issue is not something a pull request does, so it must not
+# fail one.
+on:
+  schedule:
+    - cron: '43 5 * * *'
+  issues:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  open-issues:
+    name: Every ratchet entry names an open issue
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+      - run: node tools/ci/a11y-todo.mjs $(git ls-files '*a11y-todo.json' '*a11y-baseline.json')
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,11 +1,15 @@
 import nx from '@nx/eslint-plugin';
 
-import baseConfig, { failureShapeConfig } from '../../../../eslint.config.mjs';
+import baseConfig, {
+  accessibleJsx,
+  failureShapeConfig,
+} from '../../../../eslint.config.mjs';
 
 export default [
   ...baseConfig,
   ...nx.configs['flat/react'],
   failureShapeConfig,
+  accessibleJsx,
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     // Override or add rules here

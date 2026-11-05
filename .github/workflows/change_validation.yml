@@ -271,6 +271,12 @@ jobs:
         if: always()
         run: node --test 'tools/ci/*.test.mjs'
 
+      # An accessibility baseline only shrinks (ADR 0075); `A11Y_BASELINE=update`
+      # would otherwise let a pull request accept its own regression.
+      - name: No accessibility baseline grew
+        if: always() && github.event_name == 'pull_request'
+        run: node tools/ci/a11y-baseline-growth.mjs ${{ needs.initialize.outputs.base }}
+
       # The half no git hook can see. A commit message is judged by
       # `.husky/commit-msg` on the machine that writes it; a pull-request body
       # is composed here, after every hook has run, and that is where the
@@ -423,61 +429,7 @@ jobs:
         with:
           nx-cache: e2e-browser-${{ strategy.job-index }}
           nx-cache-from: nx-cache-build-*
-      - name: Resolve the Playwright version
-        id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      - name: Restore the browser
-        id: browser
-        uses: actions/cache/restore@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      # Chromium only: the mock profile intercepts through `page.route()`, which
-      # behaves identically across engines, so the other two would triple the
-      # runtime to re-assert the same traffic. Cross-browser rendering is a
-      # `live` concern.
-      # ⚠️ **Drop Google's Chrome apt repository before installing anything.**
-      # Both install paths below shell out to `apt-get update`, which fails the
-      # whole job if *any* configured repository is inconsistent — and the
-      # runner image ships `dl.google.com/linux/chrome-stable` preconfigured. On
-      # 2026-09-09 that index served a `Packages.gz` whose hash did not match its
-      # Release file for over an hour, and every E2E run failed at "Install
-      # Chromium" with `Hash Sum mismatch` before a single spec ran.
-      #
-      # We do not need it: Playwright downloads its own pinned Chromium build,
-      # and the apt work here is only the shared system libraries that build
-      # links against. So the repository is a third-party dependency this job
-      # never asked for and cannot fix, and removing it is narrower than
-      # tolerating apt failures with `|| true` — which would also swallow a
-      # genuinely missing library and fail later, somewhere less obvious.
-      #
-      # Matched by **content, not by filename**: the first attempt removed
-      # `google-chrome*.list` and the repository was still configured, because
-      # the image also ships it in deb822 form (`*.sources`) and the exact names
-      # are the image's to change.
-      - name: Drop apt sources this job does not need
-        run: |
-          sudo bash -euo pipefail -c '
-            for file in $(grep -rl "dl\.google\.com" /etc/apt/sources.list.d 2>/dev/null || true); do
-              echo "removing $file"
-              rm -f "$file"
-            done
-            sed -i "/dl\.google\.com/d" /etc/apt/sources.list 2>/dev/null || true
-          '
-          echo "--- remaining apt sources ---"
-          grep -rh "^deb\|^URIs:" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true
-      - name: Install Chromium
-        if: steps.browser.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Install Chromium system dependencies
-        if: steps.browser.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium
-      # Saved from `main` only, so one entry serves every pull request.
-      - if: github.ref == 'refs/heads/main' && steps.browser.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - uses: ./.github/actions/playwright-browser
       - run: pnpm nx run ${{ matrix.project }}:e2e
       - name: Upload Playwright report
         if: failure()
@@ -490,7 +442,7 @@ jobs:
         uses: ./.github/actions/nx-cache-upload
 
   storybook:
-    name: Storybook build
+    name: Storybook build and accessibility
     needs: initialize
     if: needs.initialize.outputs.storybook-projects != ''
     runs-on: ubuntu-latest
@@ -502,6 +454,10 @@ jobs:
         with:
           nx-cache: storybook
       - run: pnpm nx run-many -t build-storybook --projects="${{ needs.initialize.outputs.storybook-projects }}"
+      # A green build proves nothing about rendering or accessibility: every
+      # story is rendered in Chromium and audited by axe (ADR 0075).
+      - uses: ./.github/actions/playwright-browser
+      - run: pnpm nx run-many -t test-a11y --projects="${{ needs.initialize.outputs.storybook-projects }}"
       - if: always() && env.NX_REMOTE_CACHE_NAME != ''
         uses: ./.github/actions/nx-cache-upload
 

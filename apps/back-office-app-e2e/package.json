@@ -24,11 +24,12 @@
   },
   "dependencies": {
     "@r10c/business-ts-catalog-reference": "workspace:*",
+    "@r10c/business-ts-configuration": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
-    "@r10c/business-ts-sales-management": "workspace:*",
     "@r10c/business-ts-order-management": "workspace:*",
-    "@r10c/business-ts-shipping-order-management": "workspace:*",
+    "@r10c/business-ts-sales-management": "workspace:*",
     "@r10c/business-ts-settlement-management": "workspace:*",
+    "@r10c/business-ts-shipping-order-management": "workspace:*",
     "@r10c/business-ts-stock-management": "workspace:*"
   }
 }
