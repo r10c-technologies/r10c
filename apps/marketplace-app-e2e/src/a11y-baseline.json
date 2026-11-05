@@ -1,0 +1,22 @@
+{
+  "$fingerprints": "ancestry-1",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > span:nth-child(n)|cart:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > span:nth-child(n)|category:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > span:nth-child(n)|home:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > span:nth-child(n)|product:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > span:nth-child(n)|receipt:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > span:nth-child(n)|search:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|cart:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|category:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|home:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|product:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|receipt:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > header:nth-child(n) > div:nth-child(n) > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|search:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > main:nth-child(n) > div > a:nth-child(n)|not-found:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > main:nth-child(n) > div > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|category:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > main:nth-child(n) > div > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|search:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > main:nth-child(n) > div > div:nth-child(n) > div:nth-child(n) > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|cart:marketplace": "r10c-technologies/r10c#520",
+  "color-contrast|html > body > main:nth-child(n) > div > section:nth-child(n) > div > div:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > form:nth-child(n) > button:nth-child(n)|home:marketplace": "r10c-technologies/r10c#520",
+  "scrollable-region-focusable|html > body > main:nth-child(n) > div:nth-child(n) > div:nth-child(n) > section:nth-child(n) > div:nth-child(n)|product:marketplace": "r10c-technologies/r10c#528",
+  "scrollable-region-focusable|html > body > main:nth-child(n) > div:nth-child(n) > div:nth-child(n) > section:nth-child(n) > div:nth-child(n)|product:marketplace-dark": "r10c-technologies/r10c#528"
+}

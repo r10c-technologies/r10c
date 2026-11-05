@@ -21,6 +21,13 @@ describe('closedEntries', () => {
     );
   });
 
+  it('never reads the scheme marker as an issue', () => {
+    assert.deepEqual(
+      closedEntries({ $fingerprints: 'ancestry-1' }, () => 'CLOSED'),
+      [],
+    );
+  });
+
   it('names none while every issue is open', () => {
     assert.deepEqual(
       closedEntries(todo, () => 'OPEN'),

@@ -13,6 +13,29 @@ describe('addedEntries', () => {
     );
   });
 
+  it('holds a re-keyed baseline to its old entry count', () => {
+    const rekeyed = {
+      $fingerprints: 'ancestry-1',
+      'a|html > b|home': 'acme/shop#1',
+    };
+    assert.deepEqual(addedEntries(before, rekeyed), []);
+    assert.deepEqual(
+      addedEntries(before, {
+        ...rekeyed,
+        'a|html > c|home': 'acme/shop#1',
+        'a|html > d|home': 'acme/shop#1',
+      }),
+      [
+        '1 more entries than before, re-keyed from fingerprint scheme (none) to ancestry-1',
+      ],
+    );
+  });
+
+  it('ignores the scheme marker under one scheme', () => {
+    const marked = { $fingerprints: 'ancestry-1', ...before };
+    assert.deepEqual(addedEntries(marked, marked), []);
+  });
+
   it('passes a baseline that only shrank or changed an owner', () => {
     assert.deepEqual(addedEntries(before, { 'a|b|home': 'acme/shop#9' }), []);
   });

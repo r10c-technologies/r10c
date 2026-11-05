@@ -15,9 +15,31 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-/** Keys of `after` that `before` does not have. */
-export const addedEntries = (before, after) =>
-  Object.keys(after).filter(key => !(key in before));
+/** Where a baseline records its fingerprint scheme; not an entry. */
+const SCHEME = '$fingerprints';
+
+const entries = baseline => Object.keys(baseline).filter(key => key !== SCHEME);
+
+/**
+ * What `after` gained over `before`.
+ *
+ * Under one fingerprint scheme, that is every key `before` does not have.
+ * Across a change of scheme every key is renamed, so keys say nothing: the
+ * re-keyed baseline may then hold no more entries than the old one did, and
+ * the excess is reported as a count.
+ */
+export const addedEntries = (before, after) => {
+  if (before[SCHEME] === after[SCHEME]) {
+    return entries(after).filter(key => !(key in before));
+  }
+  const excess = entries(after).length - entries(before).length;
+  return excess > 0
+    ? [
+        `${excess} more entries than before, re-keyed from fingerprint scheme ` +
+          `${before[SCHEME] ?? '(none)'} to ${after[SCHEME] ?? '(none)'}`,
+      ]
+    : [];
+};
 
 const git = (...args) =>
   execFileSync('git', args, {

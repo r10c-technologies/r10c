@@ -1,9 +1,19 @@
 import { join } from 'node:path';
 
+import { isMockProfile } from '@entifix/testing-e2e';
 import { defineEntifixE2eConfig } from '@entifix/testing-e2e/playwright';
 import { workspaceRoot } from '@nx/devkit';
 
 const READY_PATH = '/api/health';
+
+/**
+ * The `mock` profile's stand-in for auth-service's `/api/me`, the one call the
+ * back office makes from its **server** (`src/support/fake-auth-service.mjs`).
+ * Its own port, so `reuseExistingServer` never picks up a dev fleet's real
+ * auth-service on `3102` instead.
+ */
+const FAKE_AUTH_PORT = 39102;
+const mock = isMockProfile();
 
 /**
  * back-office-app e2e — catalog, system management, users and the account
@@ -32,6 +42,9 @@ export default defineEntifixE2eConfig({
         cwd: join(workspaceRoot, 'apps/back-office-app'),
         url: `http://localhost:3201${READY_PATH}`,
         reuseExistingServer: true,
+        ...(mock
+          ? { env: { AUTH_SERVICE_URL: `http://localhost:${FAKE_AUTH_PORT}` } }
+          : {}),
       },
       {
         command: 'bash tools/edge/serve.sh',
@@ -39,6 +52,17 @@ export default defineEntifixE2eConfig({
         url: `http://localhost:3001${READY_PATH}`,
         reuseExistingServer: true,
       },
+      ...(mock
+        ? [
+            {
+              command: 'node src/support/fake-auth-service.mjs',
+              cwd: __dirname,
+              url: `http://localhost:${FAKE_AUTH_PORT}/api/health/live`,
+              reuseExistingServer: true,
+              env: { FAKE_AUTH_PORT: String(FAKE_AUTH_PORT) },
+            },
+          ]
+        : []),
     ],
   },
 });

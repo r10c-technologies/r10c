@@ -92,6 +92,8 @@ describe('every accessibility ratchet entry', () => {
     path => {
       expect(
         entries(path)
+          // A baseline's `$fingerprints` names its scheme, not an owner.
+          .filter(([key]) => !key.startsWith('$'))
           .filter(([, owner]) => !ISSUE.test(owner))
           .map(([key]) => key),
       ).toEqual([]);
