@@ -446,7 +446,7 @@ describe('the lines step', () => {
     await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
 
     expect(
-      screen.getByText('Agrega al menos un producto para cobrar.'),
+      screen.getByText('Agregue al menos un producto para cobrar.'),
     ).toBeVisible();
   });
 
@@ -465,7 +465,7 @@ describe('the lines step', () => {
     await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
 
     expect(
-      screen.getByText('Agrega al menos un producto para cobrar.'),
+      screen.getByText('Agregue al menos un producto para cobrar.'),
     ).toBeVisible();
   });
 
@@ -492,7 +492,7 @@ describe('the lines step', () => {
     );
 
     expect(
-      await screen.findByText('Agrega al menos un producto para cobrar.'),
+      await screen.findByText('Agregue al menos un producto para cobrar.'),
     ).toBeVisible();
   });
 });

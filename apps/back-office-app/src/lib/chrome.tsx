@@ -16,7 +16,7 @@ import type { ReactNode } from 'react';
 
 import { BackOfficeCommandPalette } from './command-palette';
 import { visibleCommands } from './commands';
-import { sidebarNav } from './nav';
+import { navBreadcrumbLabels, sidebarNav } from './nav';
 import { accessTokenExpiresIn, navPrincipal } from './nav-principal';
 
 /**
@@ -55,33 +55,19 @@ export async function BackOfficeChrome({
   // cannot know which namespace an app keeps its route names in, so the host
   // resolves them.
   const breadcrumbLabels: Record<string, string> = {
+    // Every segment a sidebar item names resolves from that item's own key, so
+    // a crumb reads exactly as the sidebar does — and a shell contributing a
+    // section gets translated crumbs without an entry here (#531).
+    ...navBreadcrumbLabels(translateKey),
+    // What follows names segments no sidebar item does, so it wins.
     home: t('admin.nav.dashboard'),
-    // Owned by the shells that render these screens, so the keys carry their
-    // namespace rather than living in this app's catalog.
-    catalog: translateKey('r10c:marketplaceAdmin.nav.catalog'),
-    product: translateKey('r10c:marketplaceAdmin.nav.products'),
-    'product-brand': translateKey('r10c:marketplaceAdmin.nav.brands'),
-    'product-category': translateKey('r10c:marketplaceAdmin.nav.categories'),
-    'product-offering': translateKey('r10c:marketplaceAdmin.nav.offerings'),
-    'product-offering-price': translateKey(
-      'r10c:marketplaceAdmin.nav.offeringPrices',
-    ),
     // The Asistentes tier's own word, so a wizard's trail reads the way the
     // sidebar does. `SCREEN_TYPE_LABEL_KEYS` is the one place the four screen
     // types are named, and this resolves through it rather than restating it.
     wizards: translateKey(SCREEN_TYPE_LABEL_KEYS.wizard),
-    'product-setup': translateKey(
-      'r10c:marketplaceAdmin.wizard.productSetup.title',
-    ),
-    system: translateKey('r10c:systemManagement.nav.section'),
-    configuration: translateKey('r10c:systemManagement.nav.configuration'),
-    users: translateKey('r10c:auth.nav.users'),
     // Generic on purpose: `/new` is every domain's create route, so a
     // domain-specific label here reads wrong on the other one's pages.
     new: translateKey('shell:breadcrumbs.new'),
-    account: translateKey('r10c:auth.account.title'),
-    security: translateKey('r10c:auth.security.title'),
-    sessions: translateKey('r10c:auth.sessions.title'),
   };
 
   const nav = sidebarNav(principal, translateKey);

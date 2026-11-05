@@ -11,8 +11,8 @@ import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
 import { useParams, useRouter } from 'next/navigation';
 
+import { CONFIGURATION_LIST_HREF } from '../../configuration-paths';
 import { ConfigurationForm } from '../configuration-form';
-import { CONFIGURATION_LIST_HREF } from '../configuration-list/configuration-list-client-page';
 import { NEW_SLUG, slugToEntityId } from '../slug';
 import { useSystemManagementAdapters } from '../system-management-context';
 

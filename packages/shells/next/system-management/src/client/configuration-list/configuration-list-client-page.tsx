@@ -7,9 +7,8 @@ import { EntityTable } from '@entifix/react-controls';
 import { useDataLoading } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
 
+import { CONFIGURATION_LIST_HREF } from '../../configuration-paths';
 import { useSystemManagementAdapters } from '../system-management-context';
-
-export const CONFIGURATION_LIST_HREF = '/system/configuration';
 
 export interface ConfigurationListClientPageProps {
   /**

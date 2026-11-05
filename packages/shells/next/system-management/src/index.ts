@@ -16,4 +16,5 @@ export * from './client/configuration-list/configuration-list-client-page';
 export * from './client/configuration-single-view/configuration-single-view-client-page';
 export * from './client/slug';
 export * from './client/system-management-context';
+export * from './configuration-paths';
 export * from './nav';
