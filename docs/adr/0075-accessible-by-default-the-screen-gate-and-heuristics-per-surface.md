@@ -67,7 +67,7 @@ are used:
 
 ### The target is entifix's, narrowed where the product needs it
 
-- **r10c conforms to WCAG 2.2 AA through entifix [0024](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0024-wcag-2-2-aa-and-the-gates-that-ratchet-to-it.md).** It may narrow
+- **r10c conforms to WCAG 2.2 AA through entifix [0024](https://github.com/r10c-technologies/entifix/blob/v0.18.1/docs/adr/0024-wcag-2-2-aa-and-the-gates-that-ratchet-to-it.md).** It may narrow
   that target, never loosen it.
 - **One narrowing: the storefront's primary touch targets are 44px.** That is
   the add-to-cart, quantity, checkout and the cart link, set by overriding
