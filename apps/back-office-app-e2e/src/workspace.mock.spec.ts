@@ -28,6 +28,9 @@ import { expect, test } from './support/fixtures';
  */
 
 const PRODUCT_TAB = 'master:product-specification:product-1';
+// The tab's × is hidden from assistive technology since entifix 0.19.0 (the
+// APG tabs pattern: Delete on the focused tab is its keyboard equivalent), so
+// a pointer reaches it by its title rather than by a role.
 const CLOSE_PRODUCT = 'Cerrar Producto #product-1';
 const BRAND_TAB = 'master:product-brand:product-brand-1';
 const CLOSE_BRAND = 'Cerrar Marca #product-brand-1';
@@ -91,7 +94,7 @@ test('keeps a dirty tab and its draft when the discard is cancelled', async ({
   forbidNativeDialogs(page);
   await openDirtyTab(page);
 
-  await page.getByRole('button', { name: CLOSE_PRODUCT }).click();
+  await page.getByTitle(CLOSE_PRODUCT).click();
 
   const dialog = page.getByTestId('confirm-dialog');
   await expect(dialog).toBeVisible();
@@ -112,7 +115,7 @@ test('closes a dirty tab and drops its draft when the discard is confirmed', asy
   forbidNativeDialogs(page);
   await openDirtyTab(page);
 
-  await page.getByRole('button', { name: CLOSE_PRODUCT }).click();
+  await page.getByTitle(CLOSE_PRODUCT).click();
   await page
     .getByTestId('confirm-dialog')
     .getByRole('button', { name: 'Descartar' })
@@ -152,7 +155,7 @@ test('autosaves and guards a brand tab, not only the product one', async ({
   await page.reload();
   await expect(page.getByLabel('Nombre')).toHaveValue('Acme renamed');
 
-  await page.getByRole('button', { name: CLOSE_BRAND }).click();
+  await page.getByTitle(CLOSE_BRAND).click();
   await page
     .getByTestId('confirm-dialog')
     .getByRole('button', { name: 'Descartar' })
@@ -174,7 +177,7 @@ test('closes a clean tab with no confirmation at all', async ({ page }) => {
   const tab = page.getByRole('tab', { name: 'Productos' });
   await expect(tab).toBeVisible();
 
-  await page.getByRole('button', { name: 'Cerrar Productos' }).click();
+  await page.getByTitle('Cerrar Productos').click();
 
   await expect(tab).toBeHidden();
   await expect(page.getByTestId('confirm-dialog')).toHaveCount(0);
