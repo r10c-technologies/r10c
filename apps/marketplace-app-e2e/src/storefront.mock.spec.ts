@@ -427,7 +427,9 @@ test.describe('a listing on a phone', () => {
   test('the disclosure counts the filters in force', async ({ page }) => {
     await page.goto('/es/search?brand=brand-terra&available=1');
 
-    await expect(page.locator('summary')).toHaveText('Filtrar (2)');
+    await expect(page.locator('summary', { hasText: 'Filtrar' })).toHaveText(
+      'Filtrar (2)',
+    );
   });
 });
 
@@ -438,7 +440,13 @@ test.describe('a listing on a wide screen', () => {
     await expect(
       page.getByRole('complementary', { name: 'Filtrar' }),
     ).toBeVisible();
-    await expect(page.locator('summary')).toBeHidden();
+    // Every narrow-screen disclosure — the masthead's categories, the
+    // filters, the sort — is open from `sm` up, with its summary hidden.
+    const summaries = page.locator('summary');
+    await expect(summaries).toHaveCount(3);
+    for (const summary of await summaries.all()) {
+      await expect(summary).toBeHidden();
+    }
   });
 });
 

@@ -110,15 +110,6 @@ export function HomePage({ locale }: { readonly locale: Locale }) {
           <Lead>{t('storefront.home.lead')}</Lead>
         </Stack>
 
-        <section aria-label={t('storefront.home.categories')}>
-          <Stack gap="s">
-            <HeadingTwo>{t('storefront.home.categories')}</HeadingTwo>
-            <Suspense fallback={null}>
-              <CategoryTiles locale={locale} />
-            </Suspense>
-          </Stack>
-        </section>
-
         <section aria-label={t('storefront.home.newest')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.newest')}</HeadingTwo>
@@ -139,6 +130,18 @@ export function HomePage({ locale }: { readonly locale: Locale }) {
                 locale={locale}
                 query={{ sort: 'name', availableOnly: true }}
               />
+            </Suspense>
+          </Stack>
+        </section>
+
+        {/* Last, after the products: at 320px eight tiles stacked above them
+            pushed every product below the first screen (#529). The markup is
+            in the order it is painted, so Tab follows the eye (WCAG 2.4.3). */}
+        <section aria-label={t('storefront.home.categories')}>
+          <Stack gap="s">
+            <HeadingTwo>{t('storefront.home.categories')}</HeadingTwo>
+            <Suspense fallback={null}>
+              <CategoryTiles locale={locale} />
             </Suspense>
           </Stack>
         </section>

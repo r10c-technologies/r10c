@@ -33,3 +33,14 @@ body {
   font-size: var(--text-step-0);
   line-height: var(--text-step-0--line-height);
 }
+
+/* The storefront's one narrowing of entifix ADR 0025 (r10c ADR 0075): its
+   primary touch targets — add to cart, quantity, checkout, the cart link — hit
+   at 44px rather than 24. It raises the token, so a control that already sizes
+   itself by `--target-min` grows with no class of its own, and states the
+   floor for a native field or a link that does not. */
+@utility touch-target {
+  --target-min: 2.75rem;
+  min-block-size: var(--target-min);
+  min-inline-size: var(--target-min);
+}

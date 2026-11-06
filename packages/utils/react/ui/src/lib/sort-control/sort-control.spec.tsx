@@ -42,4 +42,23 @@ describe('SortControl', () => {
       expect(link).not.toHaveAttribute('aria-current');
     }
   });
+
+  it('folds behind a disclosure reading its summary when collapsible', () => {
+    const { container } = render(
+      <SortControl
+        label="Ordenar por"
+        options={OPTIONS}
+        current="name"
+        hrefFor={v => v}
+        collapsible={{ summary: 'Ordenar: Nombre' }}
+      />,
+    );
+
+    expect(container.querySelector('details > summary')).toHaveTextContent(
+      'Ordenar: Nombre',
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'Ordenar por' }),
+    ).toBeInTheDocument();
+  });
 });

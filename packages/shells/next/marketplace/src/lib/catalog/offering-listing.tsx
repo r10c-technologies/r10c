@@ -203,7 +203,7 @@ export async function OfferingListing({
     state.available.length;
 
   return (
-    <div className="grid grid-cols-1 gap-l sm:grid-cols-[14rem_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-s sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-l">
       <FacetPanel
         label={t('storefront.listing.filters')}
         facets={facets}
@@ -227,6 +227,10 @@ export async function OfferingListing({
             }))}
             current={sort}
             hrefFor={value => searchHref(href, state, { sort: [value] })}
+            // The bare label, not the order in force: at 320px a summary
+            // naming it no longer shared a row with the count (#529). The
+            // order in force is marked inside, `aria-current`.
+            collapsible={{ summary: t('storefront.listing.sort') }}
           />
         </Cluster>
 

@@ -1,13 +1,13 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
-  Button,
   Card,
   Cluster,
   HeadingOne,
   HeadingTwo,
   Overline,
   Stack,
+  SubmitButton,
   Text,
 } from '@entifix/react-controls/primitives';
 import { ProductCategory } from '@r10c/business-ts-catalog-reference';
@@ -37,8 +37,8 @@ import { StoreShell } from './store-shell';
  *
  * The buy box is a plain `<form>` posting to a Server Action. That is why
  * add-to-cart works on a **cached** page: the page itself carries no client
- * state, the action writes the cookie server-side, and the only JavaScript in
- * the buy box is `Button`'s own — which the form does not even need to submit.
+ * state, and the action writes the cookie server-side. The buy box ships no
+ * JavaScript at all: its button is `SubmitButton`, a server component.
  */
 async function RelatedOfferings({
   locale,
@@ -153,25 +153,13 @@ async function ProductContent({
           })}
         />
 
+        {/*
+          The buy column first and the pictures second, in the markup and on
+          the screen: at 320px a full-width gallery above it put add-to-cart
+          on the second screen (#529). From `sm` up the gallery is the right
+          column, so the order a keyboard walks is still the order painted.
+        */}
         <div className="grid grid-cols-1 gap-l sm:grid-cols-2">
-          {media.length > 0 ? (
-            <MediaGallery
-              label={t('storefront.product.gallery')}
-              items={media}
-            />
-          ) : (
-            // No pictures: the same square, so the buy box sits where it
-            // would with them.
-            <div
-              className="flex aspect-square items-center justify-center rounded-xl bg-primary/10 text-primary"
-              aria-hidden="true"
-            >
-              <span className="text-step-4 font-semibold">
-                {offering.name.charAt(0)}
-              </span>
-            </div>
-          )}
-
           <Stack gap="s">
             <Stack gap="2xs">
               {brandName ? <Overline>{brandName}</Overline> : null}
@@ -183,9 +171,6 @@ async function ProductContent({
                 <Text muted data-testid="seller">
                   {t('storefront.product.soldBy', { seller: sellerName })}
                 </Text>
-              ) : null}
-              {offering.description ? (
-                <Text muted>{offering.description}</Text>
               ) : null}
             </Stack>
 
@@ -220,7 +205,7 @@ async function ProductContent({
               <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
                 {t('storefront.cart.quantity')}
                 <input
-                  className="w-20 rounded-md border border-border bg-surface px-2xs py-xs text-content"
+                  className="touch-target w-20 rounded-md border border-border-control bg-surface px-2xs py-xs text-content"
                   type="number"
                   name="quantity"
                   min="1"
@@ -230,10 +215,18 @@ async function ProductContent({
                   defaultValue={1}
                 />
               </label>
-              <Button type="submit" variant="primary" size="lg">
+              <SubmitButton
+                variant="primary"
+                size="lg"
+                className="touch-target"
+              >
                 {t('storefront.product.addToCart')}
-              </Button>
+              </SubmitButton>
             </form>
+
+            {offering.description ? (
+              <Text muted>{offering.description}</Text>
+            ) : null}
 
             <Card>
               <Stack gap="2xs">
@@ -283,6 +276,22 @@ async function ProductContent({
               </Stack>
             </Card>
           </Stack>
+          {media.length > 0 ? (
+            <MediaGallery
+              label={t('storefront.product.gallery')}
+              items={media}
+            />
+          ) : (
+            // No pictures: the same square, so the page keeps its shape.
+            <div
+              className="flex aspect-square items-center justify-center rounded-xl bg-primary/10 text-primary"
+              aria-hidden="true"
+            >
+              <span className="text-step-4 font-semibold">
+                {offering.name.charAt(0)}
+              </span>
+            </div>
+          )}
         </div>
 
         <Suspense fallback={<OfferingGridSkeleton count={3} />}>

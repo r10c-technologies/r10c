@@ -147,7 +147,7 @@ export async function CategoryPage({
 
   return (
     <StoreShell locale={locale}>
-      <Stack gap="l">
+      <Stack gap="m">
         <CategoryHeading locale={locale} category={category} />
 
         <Suspense fallback={<OfferingGridSkeleton count={6} />}>
