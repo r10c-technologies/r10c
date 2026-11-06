@@ -1,6 +1,8 @@
 import { Stack, Text } from '@entifix/react-controls/primitives';
 import { useId } from 'react';
 
+import { NarrowDisclosure } from '../narrow-disclosure/narrow-disclosure.js';
+
 /** One value of a checkbox facet, its link already computed by the binding. */
 export interface FacetOption {
   readonly label: string;
@@ -219,18 +221,7 @@ export function FacetPanel({ label, facets, collapsible }: FacetPanelProps) {
   if (collapsible === undefined) return panel;
 
   // A native disclosure, so folding the panel away needs no script either.
-  // From `sm` up the panel is forced open through `::details-content` and the
-  // summary is hidden — both only where the browser supports that selector.
-  // One that does not shows the summary on every screen, so the desktop panel
-  // starts closed but can still be opened, rather than being hidden for good.
   return (
-    <details className="sm:supports-[selector(::details-content)]:[&::details-content]:block sm:supports-[selector(::details-content)]:[&::details-content]:[content-visibility:visible]">
-      <summary className="cursor-pointer rounded-md border border-border px-xs py-2xs font-semibold sm:supports-[selector(::details-content)]:hidden">
-        {collapsible.summary}
-      </summary>
-      <div className="pt-s sm:supports-[selector(::details-content)]:pt-0">
-        {panel}
-      </div>
-    </details>
+    <NarrowDisclosure summary={collapsible.summary}>{panel}</NarrowDisclosure>
   );
 }

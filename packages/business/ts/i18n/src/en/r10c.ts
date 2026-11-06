@@ -73,6 +73,7 @@ export const r10c: EsR10c = {
       heading: 'We could not find that page',
       body: 'The product or category you are looking for does not exist, or is no longer available.',
       home: 'Back to the home page',
+      search: 'Search the store',
     },
     nav: {
       skipToContent: 'Skip to content',

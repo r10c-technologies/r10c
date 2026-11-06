@@ -10,6 +10,9 @@
       "default": "./src/index.ts"
     }
   },
+  "devDependencies": {
+    "@entifix/style": "catalog:"
+  },
   "nx": {
     "tags": [
       "layer:app",

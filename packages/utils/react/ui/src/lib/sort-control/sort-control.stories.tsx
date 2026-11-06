@@ -25,3 +25,8 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const PriceAscending: Story = { args: { current: 'price-asc' } };
+
+/** Folded on a small screen behind a summary naming the order in force. */
+export const Collapsible: Story = {
+  args: { current: 'name', collapsible: { summary: 'Ordenar' } },
+};

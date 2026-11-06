@@ -39,7 +39,7 @@ export function StoreShell({
       <main
         id="content"
         tabIndex={-1}
-        className="mx-auto w-full max-w-5xl px-s py-l sm:px-l sm:py-xl"
+        className="mx-auto w-full max-w-5xl px-s pt-s pb-l sm:px-l sm:py-xl"
       >
         {children}
       </main>

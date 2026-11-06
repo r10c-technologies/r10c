@@ -1,6 +1,8 @@
 import { Cluster, Text } from '@entifix/react-controls/primitives';
 import { useId } from 'react';
 
+import { NarrowDisclosure } from '../narrow-disclosure/narrow-disclosure.js';
+
 export interface SortOption {
   readonly value: string;
   readonly label: string;
@@ -14,6 +16,12 @@ export interface SortControlProps {
   readonly current?: string;
   /** Where choosing `value` leads: the same listing, re-sorted, from page 1. */
   readonly hrefFor: (value: string) => string;
+  /**
+   * Folds the orders away on a small screen behind a disclosure reading
+   * `summary` ("Ordenar: Nombre", already translated), as `FacetPanel` does.
+   * Absent, the links are always shown.
+   */
+  readonly collapsible?: { readonly summary: string };
 }
 
 /**
@@ -29,10 +37,11 @@ export function SortControl({
   options,
   current,
   hrefFor,
+  collapsible,
 }: SortControlProps) {
   const labelId = useId();
 
-  return (
+  const nav = (
     <nav aria-labelledby={labelId}>
       <Cluster gap="s">
         <Text id={labelId} muted as="span">
@@ -57,5 +66,11 @@ export function SortControl({
         })}
       </Cluster>
     </nav>
+  );
+
+  if (collapsible === undefined) return nav;
+
+  return (
+    <NarrowDisclosure summary={collapsible.summary}>{nav}</NarrowDisclosure>
   );
 }

@@ -1,11 +1,13 @@
 'use client';
 
 import {
+  Cluster,
   HeadingOne,
   Lead,
   Stack,
   useT,
 } from '@entifix/react-controls/primitives';
+import { storePaths } from '@r10c/shells-next-marketplace';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -40,12 +42,20 @@ export default function NotFound() {
         <Stack gap="s">
           <HeadingOne>{t('storefront.missing.heading')}</HeadingOne>
           <Lead>{t('storefront.missing.body')}</Lead>
-          <Link
-            href={`/${locale}`}
-            className="text-primary underline underline-offset-2"
-          >
-            {t('storefront.missing.home')}
-          </Link>
+          <Cluster gap="m">
+            <Link
+              href={`/${locale}${storePaths.search()}`}
+              className="text-primary underline underline-offset-2"
+            >
+              {t('storefront.missing.search')}
+            </Link>
+            <Link
+              href={`/${locale}`}
+              className="text-primary underline underline-offset-2"
+            >
+              {t('storefront.missing.home')}
+            </Link>
+          </Cluster>
         </Stack>
       </main>
     </>

@@ -1,11 +1,7 @@
 import type { Locale } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
-import {
-  Button,
-  Cluster,
-  TextInput,
-  ThemeSwitcher,
-} from '@entifix/react-controls/primitives';
+import { Button, Cluster, TextInput } from '@entifix/react-controls/primitives';
+import { NarrowDisclosure } from '@r10c/utils-react-ui';
 import type { ReactNode } from 'react';
 
 import { CartBadge } from '../cart/cart-badge';
@@ -13,9 +9,11 @@ import { storePaths } from '../routing/paths';
 import { StoreLink } from '../routing/store-link';
 
 /**
- * The storefront's masthead: a server component whose only client parts are the
- * two controls that genuinely need to be — the theme switcher, and the cart
- * badge, which reads a cookie the prerendered HTML cannot know.
+ * The storefront's masthead: a server component whose only client part is the
+ * cart badge, which reads a cookie the prerendered HTML cannot know. The theme
+ * switcher lives in the footer: at 320px the masthead has room for the store,
+ * the cart, the categories and the search, and nothing a buyer needs less
+ * (WCAG 1.4.10, #529).
  *
  * The search box is a plain `GET` form to the search route, so it works with
  * no script at all. It carries only the term: a new search starts with no
@@ -56,17 +54,18 @@ export function StoreHeader({
             {t('storefront.home.heading')}
           </StoreLink>
 
-          <Cluster gap="s">
-            <CartBadge
-              href={`/${locale}${storePaths.cart()}`}
-              label={t('storefront.cart.heading')}
-            />
-            <ThemeSwitcher className="shrink-0" />
-          </Cluster>
+          <CartBadge
+            href={`/${locale}${storePaths.cart()}`}
+            label={t('storefront.cart.heading')}
+          />
         </Cluster>
 
         <Cluster justify="between" gap="s">
-          <nav aria-label={t('storefront.nav.catalog')}>{categories}</nav>
+          {/* Folded on a small screen: four or more wrapped links pushed the
+              page's own content off the first screen at 320px (#529). */}
+          <NarrowDisclosure summary={t('storefront.nav.catalog')}>
+            <nav aria-label={t('storefront.nav.catalog')}>{categories}</nav>
+          </NarrowDisclosure>
 
           <form
             action={`/${locale}${storePaths.search()}`}

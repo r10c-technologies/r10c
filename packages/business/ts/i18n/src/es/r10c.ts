@@ -79,6 +79,7 @@ export const r10c = {
       heading: 'No encontramos esa página',
       body: 'El producto o la categoría que buscas no existe, o ya no está disponible.',
       home: 'Volver al inicio',
+      search: 'Buscar en la tienda',
     },
     nav: {
       skipToContent: 'Saltar al contenido',

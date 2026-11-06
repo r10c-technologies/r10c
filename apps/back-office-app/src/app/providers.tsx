@@ -43,18 +43,14 @@ import { StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
 
-const RUNTIME_PALETTES: Record<string, ThemePalette> = {
-  ocean: {
-    surface: '#eef6f7',
-    'surface-elevated': '#ffffff',
-    content: '#0d2b30',
-    'content-muted': '#4a6b70',
-    primary: '#0e8a8f',
-    'primary-content': '#ffffff',
-    border: '#cbe4e6',
-    accent: '#0f6f8c',
-  },
-};
+import ocean from './ocean.palette.json';
+
+/**
+ * The brand registered at runtime rather than shipped as CSS. Its values live
+ * in a JSON file so `tools/conventions/src/palettes.spec.ts` can hold them to
+ * entifix ADR 0025's contrast pairs without importing this client module.
+ */
+const RUNTIME_PALETTES: Record<string, ThemePalette> = { ocean };
 
 // One IndexedDB-backed preferences store for the app lifetime — module-level so
 // its identity is stable across renders (a fresh store each render would reopen

@@ -7,6 +7,7 @@ import {
   Cluster,
   HeadingOne,
   Stack,
+  SubmitButton,
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
@@ -154,7 +155,7 @@ export async function CartPage({
                             <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
                               {t('storefront.cart.quantity')}
                               <input
-                                className="w-20 rounded-md border border-border bg-surface px-2xs py-3xs text-content"
+                                className="touch-target w-20 rounded-md border border-border-control bg-surface px-2xs py-3xs text-content"
                                 type="number"
                                 name="quantity"
                                 min="0"
@@ -230,7 +231,7 @@ export async function CartPage({
                         name={tenderField(part.vendorId)}
                         defaultValue="card"
                         data-testid={`tender-${part.vendorId}`}
-                        className="rounded-md border border-border bg-surface px-2xs py-3xs text-content"
+                        className="rounded-md border border-border-control bg-surface px-2xs py-3xs text-content"
                       >
                         <option value="card">
                           {t('storefront.checkout.method.card')}
@@ -243,9 +244,9 @@ export async function CartPage({
                       </select>
                     </label>
                   ))}
-                  <Button type="submit" data-testid="checkout">
+                  <SubmitButton data-testid="checkout" className="touch-target">
                     {t('storefront.cart.checkout')}
-                  </Button>
+                  </SubmitButton>
                 </form>
               </Cluster>
             </Cluster>

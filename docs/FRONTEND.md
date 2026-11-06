@@ -371,6 +371,17 @@ HeadlessUI drives some controls with the attribute rather than native focus.
 `--color-focus-ring` is its own token per palette, each measured against the 3:1
 non-text contrast minimum.
 
+**Every palette is held to a pair table.** entifix ADR 0025 lists every
+foreground/background pair a control paints — text at 4.5:1, a control's
+boundary (`--color-border-control`, not the decorative `--color-border`), the
+focus ring and a selection marker (`--color-selected`) at 3:1 — and
+`tools/conventions/src/palettes.spec.ts` asserts it over the storefront's
+`themes.css` blocks and the back office's runtime `ocean`
+(`apps/back-office-app/src/app/ocean.palette.json`), each merged over the
+defaults in `tokens.css`. A runtime `ThemePalette` must state `focus-ring`,
+`border-control` and `selected`; a dark palette states its own tones, because
+the defaults are tuned for a light ground.
+
 Components **never** use raw colours or pixel gaps: they reference token
 utilities (`bg-surface`, `text-content`, `gap-s`, `p-m`, `text-step-1`).
 Tailwind is v4 **CSS-first** — no config file; tokens are declared via `@theme`
@@ -1155,7 +1166,8 @@ no existing import breaks.
 
 **Anything a server component calls ships from `/server`.** `@r10c/shells-next-marketplace`
 splits its surface exactly like `@entifix/next-shell`: `/server` for pages, Server
-Actions and `next/headers` readers, `.` for the one client island. A module that
+Actions and `next/headers` readers, `.` for the client islands — and for
+`storePaths`, plain data the client not-found page builds its links from. A module that
 mixes the two — as `cart-cookie` first did, holding both the pure wire format and
 a `cookies()` reader — drags a server-only API into the browser bundle and Next
 refuses to build it.
@@ -1179,6 +1191,25 @@ instead of being a hydration mismatch. Two consequences worth knowing:
 - The island reads the cookie on mount, and a Server Action leaves it mounted —
   so add-to-cart **redirects** to the cart. The navigation is the feedback;
   without it the click looks like it did nothing.
+
+## At 320 pixels
+
+The storefront reflows to 320 CSS pixels with no sideways scroll, and what a buyer
+came for starts on the first screen of a 320×640 phone (WCAG 1.4.10, #529).
+`reflow.mock.spec.ts` measures both. What it took:
+
+- **What a buyer sets once lives in the footer** — the theme switcher.
+- **Lists of links fold below `sm`.** `NarrowDisclosure` (`@r10c/utils-react-ui`)
+  is a native `<details>` that is forced open, its summary hidden, from `sm` up.
+  It folds the masthead's categories, a listing's filters and its sort, so it
+  needs no script and no media query in a primitive.
+- **The markup is in the order it is painted.** The home page lists products
+  before category tiles, and the product page puts the buy column before the
+  gallery, which is the right column from `sm` up. Reordering with CSS `order`
+  would move the eye and leave Tab behind (2.4.3).
+- **The primary touch targets hit at 44px** — add to cart, quantity, checkout,
+  the cart link — through the `touch-target` utility in `global.css`, which
+  raises `--target-min` rather than writing a size (ADR 0075).
 
 ## Proving it, which the mock profile cannot
 

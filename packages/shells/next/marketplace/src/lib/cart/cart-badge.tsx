@@ -62,7 +62,11 @@ export function CartBadge({ href, label }: CartBadgeProps) {
   const count = useSyncExternalStore(subscribe, readCount, serverCount);
 
   return (
-    <Link href={href} data-testid="cart-badge">
+    <Link
+      href={href}
+      data-testid="cart-badge"
+      className="touch-target inline-flex items-center justify-center rounded-md focus-ring"
+    >
       <Text muted>
         {label}
         {count > 0 ? (
