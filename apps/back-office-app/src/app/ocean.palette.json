@@ -1,0 +1,13 @@
+{
+  "surface": "#eef6f7",
+  "surface-elevated": "#ffffff",
+  "content": "#0d2b30",
+  "content-muted": "#4a6b70",
+  "primary": "#0c7a7e",
+  "primary-content": "#ffffff",
+  "border": "#cbe4e6",
+  "border-control": "#7a8f92",
+  "selected": "#0c7a7e",
+  "accent": "#0f6f8c",
+  "focus-ring": "#0a5a5e"
+}

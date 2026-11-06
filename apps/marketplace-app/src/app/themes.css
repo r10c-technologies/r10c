@@ -10,10 +10,16 @@
   --color-surface-elevated: #ffffff;
   --color-content: #10241b;
   --color-content-muted: #4e6b5e;
-  --color-primary: #0f9d58;
+  /* Every value below is held to entifix ADR 0025's pairs by
+     tools/conventions/src/palettes.spec.ts: the emerald and the amber are the
+     darkest steps of their hues that still read as the brand, at 4.5:1 as
+     text on both surfaces and under a white label. */
+  --color-primary: #0c8148;
   --color-primary-content: #ffffff;
   --color-border: #cfe8db;
-  --color-accent: #d97706;
+  --color-border-control: #789586;
+  --color-selected: #0c8148;
+  --color-accent: #ab5e05;
   --color-focus-ring: #0b7a44;
 
   --color-danger: #b3261e;
@@ -31,6 +37,8 @@
   --color-primary: #2fbd77;
   --color-primary-content: #06120c;
   --color-border: #234034;
+  --color-border-control: #547263;
+  --color-selected: #2fbd77;
   --color-accent: #f59e0b;
   --color-focus-ring: #4fd693;
 
@@ -39,6 +47,18 @@
   --color-danger: #ff9c92;
   --color-danger-subtle: #2a1614;
   --color-danger-content: #06120c;
+
+  /* The tones follow danger: lifted to read on the dark ground, each on a deep
+     tint of its own rather than the light scale's pale wash. */
+  --color-success: #1da64f;
+  --color-success-subtle: #0f2a1d;
+  --color-success-content: #06120c;
+  --color-warning: #d97706;
+  --color-warning-subtle: #2e2213;
+  --color-warning-content: #06120c;
+  --color-info: #2997d0;
+  --color-info-subtle: #0d2433;
+  --color-info-content: #06120c;
 
   /* Dark elevation. Black at the light scale's alphas is invisible on a dark
      ground, so the tint carries a strength multiplier; the two large shadows

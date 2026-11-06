@@ -1,18 +1,3 @@
 {
-  "$fingerprints": "ancestry-1",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > button:nth-child(n)|account-sessions:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div > div:nth-child(n) > div > div:nth-child(n) > a|consultas-commission-entries:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div > div:nth-child(n) > div > div:nth-child(n) > a|definiciones-brand-list:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div > div:nth-child(n) > div > div:nth-child(n) > a|operaciones-stock-items:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div > div:nth-child(n) > div > table > tbody:nth-child(n) > tr > td:nth-child(n) > a|consultas-commission-entries:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div > div:nth-child(n) > div > table > tbody:nth-child(n) > tr:nth-child(n) > td:nth-child(n) > a|definiciones-brand-list:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div > div:nth-child(n) > div > table > tbody:nth-child(n) > tr:nth-child(n) > td:nth-child(n) > a|operaciones-stock-items:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > div > div:nth-child(n) > a|configuration:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > div > div:nth-child(n) > button:nth-child(n)|asistentes-product-wizard:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > div > div:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > button:nth-child(n) > div > span:nth-child(n)|asistentes-product-wizard:midnight": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > div > div:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > button:nth-child(n) > div > span:nth-child(n)|asistentes-product-wizard:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > div > table > tbody:nth-child(n) > tr:nth-child(n) > td:nth-child(n) > a|configuration:ocean": "r10c-technologies/r10c#520",
-  "color-contrast|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > form > div > button:nth-child(n)|user-create:ocean": "r10c-technologies/r10c#520",
-  "nested-interactive|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > div|asistentes-product-wizard:midnight": "r10c-technologies/r10c#520",
-  "nested-interactive|html > body > div:nth-child(n) > main:nth-child(n) > div:nth-child(n) > div > div:nth-child(n) > div|asistentes-product-wizard:ocean": "r10c-technologies/r10c#520"
+  "$fingerprints": "ancestry-1"
 }

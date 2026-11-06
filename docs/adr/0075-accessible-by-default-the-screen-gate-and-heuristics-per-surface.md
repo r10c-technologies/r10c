@@ -1,6 +1,6 @@
 # 75. Accessible by default: the screen gate, and heuristics weighed per surface
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-05
 - Area: frontend
 - Read when: a screen fails an accessibility check, adding a screen or a palette, or weighing a usability finding on the storefront versus the back office — r10c only narrows entifix's WCAG 2.2 AA, deterministic checks gate every screen type, heuristics never do
@@ -67,7 +67,7 @@ are used:
 
 ### The target is entifix's, narrowed where the product needs it
 
-- **r10c conforms to WCAG 2.2 AA through entifix [0024](https://github.com/r10c-technologies/entifix/blob/v0.18.2/docs/adr/0024-wcag-2-2-aa-and-the-gates-that-ratchet-to-it.md).** It may narrow
+- **r10c conforms to WCAG 2.2 AA through entifix [0024](https://github.com/r10c-technologies/entifix/blob/v0.19.0/docs/adr/0024-wcag-2-2-aa-and-the-gates-that-ratchet-to-it.md).** It may narrow
   that target, never loosen it.
 - **One narrowing: the storefront's primary touch targets are 44px.** That is
   the add-to-cart, quantity, checkout and the cart link, set by overriding
@@ -81,8 +81,8 @@ are used:
 ### Every palette is held by the contract
 
 - `apps/marketplace-app/src/app/themes.css` and every back-office runtime
-  palette are asserted by entifix's `assertPaletteContract` from a
-  `@r10c/conventions` spec. A palette that fails a pair fails the build.
+  palette are asserted against entifix [0025](https://github.com/r10c-technologies/entifix/blob/v0.19.0/docs/adr/0025-the-token-contract.md)'s
+  pair table by its `assertPaletteContract`, from a `@r10c/conventions` spec. A palette that fails a pair fails the build.
 - `ThemePalette` values declare `focus-ring`, `border-control` and `selected`.
 
 ### Every screen type is gated, deterministically
@@ -165,3 +165,7 @@ gate's matrix is a setting rather than a forced attribute.
 Promoted to **Accepted** by the change in which every mock e2e project calls
 both helpers on every screen named above with a committed baseline, and the
 palette contract spec runs green over both apps' palettes.
+
+Built by #536 (the screen gate on every mock journey, with its baselines) and
+#520 (entifix 0.19.0, the palettes fixed, and `tools/conventions/src/palettes.spec.ts`),
+which emptied every `color-contrast` entry from both baselines.

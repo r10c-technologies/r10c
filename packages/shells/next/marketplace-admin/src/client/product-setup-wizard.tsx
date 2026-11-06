@@ -477,7 +477,9 @@ function StartStep({ wizard }: { wizard: ReturnType<typeof useWizard> }) {
             >
               <Stack gap="3xs" align="start" className="text-left">
                 <span>{translateKey(key(option))}</span>
-                <span className="text-step-xs opacity-80">
+                {/* Full strength: set apart by its size alone. Faded with
+                    opacity, it fell under 4.5:1 on the chosen card's fill. */}
+                <span className="text-step-xs">
                   {translateKey(key(`${option}Hint`))}
                 </span>
               </Stack>

@@ -371,6 +371,17 @@ HeadlessUI drives some controls with the attribute rather than native focus.
 `--color-focus-ring` is its own token per palette, each measured against the 3:1
 non-text contrast minimum.
 
+**Every palette is held to a pair table.** entifix ADR 0025 lists every
+foreground/background pair a control paints — text at 4.5:1, a control's
+boundary (`--color-border-control`, not the decorative `--color-border`), the
+focus ring and a selection marker (`--color-selected`) at 3:1 — and
+`tools/conventions/src/palettes.spec.ts` asserts it over the storefront's
+`themes.css` blocks and the back office's runtime `ocean`
+(`apps/back-office-app/src/app/ocean.palette.json`), each merged over the
+defaults in `tokens.css`. A runtime `ThemePalette` must state `focus-ring`,
+`border-control` and `selected`; a dark palette states its own tones, because
+the defaults are tuned for a light ground.
+
 Components **never** use raw colours or pixel gaps: they reference token
 utilities (`bg-surface`, `text-content`, `gap-s`, `p-m`, `text-step-1`).
 Tailwind is v4 **CSS-first** — no config file; tokens are declared via `@theme`
