@@ -13,11 +13,11 @@
     "@r10c/i18n-catalog": "workspace:*",
     "@r10c/shells-next-marketplace": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
-    "i18next": "26.6.0",
+    "i18next": "26.7.2",
     "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "react-i18next": "17.1.10"
+    "react-i18next": "17.1.13"
   },
   "nx": {
     "tags": [
