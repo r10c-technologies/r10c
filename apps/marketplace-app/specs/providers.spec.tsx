@@ -15,7 +15,7 @@ import { Providers } from '../src/app/providers';
  */
 function Copy() {
   const t = useT('controls');
-  return <span>{t('table.open')}</span>;
+  return <span>{t('table.filters')}</span>;
 }
 
 describe('Providers', () => {
@@ -26,7 +26,7 @@ describe('Providers', () => {
       </Providers>,
     );
 
-    expect(screen.getByText('Open')).toBeInTheDocument();
+    expect(screen.getByText('Filters')).toBeInTheDocument();
   });
 
   it('renders in Spanish when that is the locale', () => {
@@ -36,6 +36,6 @@ describe('Providers', () => {
       </Providers>,
     );
 
-    expect(screen.getByText('Abrir')).toBeInTheDocument();
+    expect(screen.getByText('Filtros')).toBeInTheDocument();
   });
 });

@@ -42,6 +42,10 @@ import {
     tone: 'destructive',
     messageKey: 'entity:product-offering.useCases.unpublishConfirm',
   },
+  // Publishing again puts the offering back where buyers find it, so
+  // unpublishing acts at once and offers Undo (entifix ADR 0026).
+  reversible: 'undo',
+  inverse: 'publish',
   errors: [
     IllegalOfferingTransition,
     OfferingHasNoPrice,

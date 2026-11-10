@@ -43,6 +43,8 @@ import type { RelatedChannel } from '../../values/related-channel';
   key: 'product-order',
   labelKey: 'entity:product-order.label',
   pluralKey: 'entity:product-order.plural',
+  // Only a checkout writes an order per ADR 0069, so no list offers "New".
+  creatable: false,
 })
 export class ProductOrder implements Entity {
   // #region properties

@@ -3,7 +3,7 @@ import { type Entity, Unavailable } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { Configuration } from '@r10c/business-ts-configuration';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';
 import type { ReactElement } from 'react';
@@ -18,6 +18,19 @@ import { SystemManagementProvider } from './system-management-context.js';
 // running Next app; the slug is the one input a test needs to vary.
 const push = vi.fn();
 let slug = 'new';
+
+// Delete asks first since entifix 0.20.0: the button opens an alert dialog, and
+// only the verb repeated inside it deletes.
+async function deleteAndConfirm(): Promise<void> {
+  await userEvent.click(
+    screen.getByRole('button', { name: /Eliminar|Delete/i }),
+  );
+  await userEvent.click(
+    within(screen.getByRole('alertdialog')).getByRole('button', {
+      name: /Eliminar|Delete/i,
+    }),
+  );
+}
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
@@ -165,9 +178,7 @@ describe('ConfigurationSingleViewClientPage', () => {
     await waitFor(() =>
       expect(screen.getByDisplayValue('auth')).toBeInTheDocument(),
     );
-    await userEvent.click(
-      screen.getByRole('button', { name: /Eliminar|Delete/i }),
-    );
+    await deleteAndConfirm();
 
     await waitFor(() => expect(onDeleted).toHaveBeenCalled());
   });
@@ -180,9 +191,7 @@ describe('ConfigurationSingleViewClientPage', () => {
     await waitFor(() =>
       expect(screen.getByDisplayValue('auth')).toBeInTheDocument(),
     );
-    await userEvent.click(
-      screen.getByRole('button', { name: /Eliminar|Delete/i }),
-    );
+    await deleteAndConfirm();
 
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith('/es/system/configuration'),
@@ -303,9 +312,7 @@ describe('a delete that fails', () => {
     );
 
     repository.failNext(new Unavailable({ dependency: 'service unreachable' }));
-    await userEvent.click(
-      screen.getByRole('button', { name: /Eliminar|Delete/i }),
-    );
+    await deleteAndConfirm();
 
     await waitFor(() =>
       expect(

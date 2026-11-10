@@ -38,31 +38,31 @@ packages:
 catalog:
   # Read by the @effect/platform-node-shared override below.
   '@effect/platform-node-shared': 4.0.7
-  '@entifix/amqp': 0.19.0
-  '@entifix/authz': 0.19.0
-  '@entifix/business': 0.19.0
-  '@entifix/core': 0.19.0
-  '@entifix/i18n': 0.19.0
-  '@entifix/jwt': 0.19.0
-  '@entifix/mongo': 0.19.0
-  '@entifix/next-i18n': 0.19.0
-  '@entifix/next-shell': 0.19.0
-  '@entifix/posthog': 0.19.0
-  '@entifix/react-controls': 0.19.0
-  '@entifix/react-integration': 0.19.0
-  '@entifix/redis': 0.19.0
-  '@entifix/rest': 0.19.0
-  '@entifix/service-shell': 0.19.0
-  '@entifix/sql': 0.19.0
-  '@entifix/static': 0.19.0
-  '@entifix/style': 0.19.0
-  '@entifix/testing-auth': 0.19.0
-  '@entifix/testing-e2e': 0.19.0
-  '@entifix/testing-unit': 0.19.0
-  '@entifix/tooling': 0.19.0
-  '@entifix/transactions': 0.19.0
-  '@entifix/workflow': 0.19.0
-  '@entifix/zitadel': 0.19.0
+  '@entifix/amqp': 0.20.0
+  '@entifix/authz': 0.20.0
+  '@entifix/business': 0.20.0
+  '@entifix/core': 0.20.0
+  '@entifix/i18n': 0.20.0
+  '@entifix/jwt': 0.20.0
+  '@entifix/mongo': 0.20.0
+  '@entifix/next-i18n': 0.20.0
+  '@entifix/next-shell': 0.20.0
+  '@entifix/posthog': 0.20.0
+  '@entifix/react-controls': 0.20.0
+  '@entifix/react-integration': 0.20.0
+  '@entifix/redis': 0.20.0
+  '@entifix/rest': 0.20.0
+  '@entifix/service-shell': 0.20.0
+  '@entifix/sql': 0.20.0
+  '@entifix/static': 0.20.0
+  '@entifix/style': 0.20.0
+  '@entifix/testing-auth': 0.20.0
+  '@entifix/testing-e2e': 0.20.0
+  '@entifix/testing-unit': 0.20.0
+  '@entifix/tooling': 0.20.0
+  '@entifix/transactions': 0.20.0
+  '@entifix/workflow': 0.20.0
+  '@entifix/zitadel': 0.20.0
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

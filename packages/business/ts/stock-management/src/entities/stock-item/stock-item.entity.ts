@@ -31,6 +31,8 @@ import { accessor, entity } from '@entifix/core';
   key: 'stock-item',
   labelKey: 'entity:stock-item.label',
   pluralKey: 'entity:stock-item.plural',
+  // An item's counters move only through movements and holds per ADR 0010.
+  creatable: false,
 })
 export class StockItem implements Entity {
   // #region properties

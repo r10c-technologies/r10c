@@ -23,8 +23,8 @@ test('cancels a paid order and waits on its cancellation to complete', async ({
 
   await page.getByRole('button', { name: 'Cancelar pedido' }).click();
   await page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Confirmar' })
+    .getByRole('alertdialog')
+    .getByRole('button', { name: 'Cancelar pedido' })
     .click();
 
   await expect.poll(() => cancels.includes(PAID_ORDER_ID)).toBe(true);

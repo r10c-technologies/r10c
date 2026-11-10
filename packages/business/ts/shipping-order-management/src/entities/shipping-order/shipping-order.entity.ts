@@ -31,6 +31,8 @@ import {
   key: 'shipping-order',
   labelKey: 'entity:shipping-order.label',
   pluralKey: 'entity:shipping-order.plural',
+  // A checkout opens the shipment per ADR 0070; a vendor only moves it.
+  creatable: false,
 })
 export class ShippingOrder implements Entity {
   // #region properties

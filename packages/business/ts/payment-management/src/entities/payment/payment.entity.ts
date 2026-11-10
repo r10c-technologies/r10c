@@ -52,6 +52,8 @@ import {
   key: 'payment',
   labelKey: 'entity:payment.label',
   pluralKey: 'entity:payment.plural',
+  // A capture is the checkout flow's pivot per ADR 0054, never a form.
+  creatable: false,
 })
 export class Payment implements Entity {
   // #region properties

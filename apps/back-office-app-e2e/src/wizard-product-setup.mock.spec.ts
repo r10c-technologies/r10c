@@ -2,7 +2,7 @@ import type { NetworkFixture } from '@entifix/testing-e2e/playwright';
 import type { Page } from '@playwright/test';
 import { http, HttpResponse } from 'msw';
 
-import { expect, PRODUCT_URL, test } from './support/fixtures';
+import { expect, PRODUCT_URL, record, test } from './support/fixtures';
 
 /**
  * The guided alta of a product — the first `wizard:` screen in the fleet
@@ -126,8 +126,7 @@ test('re-shapes the stepper and seeds the forms from the product it duplicates',
   await expect(steps(page)).toContainText('Producto base');
 
   await next(page);
-  await page
-    .getByRole('row', { name: /Gadget/ })
+  await record(page, 'Gadget')
     .getByRole('button', { name: 'Seleccionar' })
     .click();
   await next(page);

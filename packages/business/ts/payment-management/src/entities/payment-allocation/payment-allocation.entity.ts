@@ -28,6 +28,8 @@ import {
   key: 'payment-allocation',
   labelKey: 'entity:payment-allocation.label',
   pluralKey: 'entity:payment-allocation.plural',
+  // Written by the capture it allocates, one per order per ADR 0069.
+  creatable: false,
 })
 export class PaymentAllocation implements Entity {
   // #region properties

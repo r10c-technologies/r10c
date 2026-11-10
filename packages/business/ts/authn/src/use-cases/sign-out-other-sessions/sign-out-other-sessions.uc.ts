@@ -54,6 +54,8 @@ export class SignOutOtherSessionsInputTag extends Context.Service<
     tone: 'destructive',
     messageKey: 'entity:user-identity.useCases.signOutOthersConfirm',
   },
+  // A revoked session is gone: its holder has to sign in again.
+  reversible: 'confirm',
 })
 export class SignOutOtherSessionsUC {
   static run() {

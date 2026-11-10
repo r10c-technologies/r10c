@@ -26,6 +26,8 @@ import { GroupTotal } from '../../values/group-total';
   key: 'checkout-group',
   labelKey: 'entity:checkout-group.label',
   pluralKey: 'entity:checkout-group.plural',
+  // A checkout writes the group under its own flow id; nobody opens one.
+  creatable: false,
 })
 export class CheckoutGroup implements Entity {
   // #region properties

@@ -87,7 +87,10 @@ test('offers no way to edit a quantity, because the service says so', async ({
 
   // The values are shown — a stock screen that hid the quantities would have
   // nothing left to show. They are *values*, though, not inputs.
-  await expect(page.getByText('product-offering-1')).toBeVisible();
+  // Inside the record's own values: the breadcrumb names it too since 0.20.0.
+  await expect(
+    page.locator('dl').getByText('product-offering-1'),
+  ).toBeVisible();
   await expect(page.getByText('10', { exact: true }).first()).toBeVisible();
 
   // ⚠️ **The assertion this surface exists to hold.** `onHand` and `reserved`
@@ -149,10 +152,12 @@ test('opens the stock list from the sidebar in the workspace', async ({
 }) => {
   await page.goto('/stock/stock-item');
 
+  // Each sidebar item folds its actions into one menu (entifix 0.20.0).
   await page
-    .getByRole('link', {
-      name: 'Abrir Existencias en almacén en el espacio de trabajo',
-    })
+    .getByRole('button', { name: 'Opciones de Existencias en almacén' })
+    .click();
+  await page
+    .getByRole('menuitem', { name: 'Abrir en el espacio de trabajo' })
     .click();
 
   // The nav's workspace address and the registry's parser are derived from the

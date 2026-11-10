@@ -20,9 +20,11 @@ test('publishes a selection and names the offering that has no price', async ({
     .getByRole('checkbox')
     .check();
   await page.getByRole('button', { name: 'Publicar' }).click();
+  // The dialog repeats the verb with the count, so the reader never has to
+  // look back at the title to learn what they are agreeing to.
   await page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Confirmar' })
+    .getByRole('alertdialog')
+    .getByRole('button', { name: 'Publicar 2' })
     .click();
 
   await expect(

@@ -6,7 +6,12 @@ import {
   readDraftString,
 } from '@entifix/core';
 import { useEntityAffordances } from '@entifix/next-shell';
-import { EntityField, EntityForm, useT } from '@entifix/react-controls';
+import {
+  EntityField,
+  EntityForm,
+  useT,
+  useTranslateKey,
+} from '@entifix/react-controls';
 import { useEntityForm } from '@entifix/react-integration';
 import {
   Agreement,
@@ -84,9 +89,11 @@ export function AgreementForm({
     () => entity?.channelCommissionBasisPoints ?? {},
   );
 
+  const translateKey = useTranslateKey();
   const form = useEntityForm<Agreement>({
     entityConstructor: Agreement,
     entity,
+    translateKey,
     // ⚠️ **`channelCommissionBasisPoints` is scoped *out* of the draft, not
     // merely hidden from it.** A hidden member keeps its validation rule — the
     // rule and the input are separate facts — and this member's rule is

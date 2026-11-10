@@ -6,6 +6,7 @@ import {
   EntityForm,
   TextInput,
   useT,
+  useTranslateKey,
 } from '@entifix/react-controls';
 import { useEntityForm } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
@@ -52,9 +53,11 @@ export function ConfigurationForm({
   const st = useT('r10c');
   const isSecret = entity?.isSecret === true;
 
+  const translateKey = useTranslateKey();
   const form = useEntityForm<Configuration>({
     entityConstructor: Configuration,
     entity,
+    translateKey,
     onSubmit: values => {
       const target = new Configuration();
       target.id = entity?.id;
