@@ -5,7 +5,7 @@ import {
   PALETTES,
   usePalette,
 } from './a11y';
-import { expect, test } from './support/fixtures';
+import { expect, record, test } from './support/fixtures';
 
 /**
  * The accessibility gate on every back-office screen type (ADR 0075): one
@@ -21,12 +21,12 @@ const SCREENS = [
   {
     screen: 'definiciones-brand-list',
     path: '/es/catalog/product-brand',
-    ready: { role: 'cell', name: 'Acme 1' },
+    ready: { record: 'Acme 1' },
   },
   {
     screen: 'operaciones-stock-items',
     path: '/es/stock/stock-item',
-    ready: { role: 'table' },
+    ready: { record: 'product-offering-1' },
   },
   {
     screen: 'asistentes-product-wizard',
@@ -36,7 +36,7 @@ const SCREENS = [
   {
     screen: 'consultas-commission-entries',
     path: '/es/settlement/commission-entry',
-    ready: { role: 'table' },
+    ready: { record: 'order-1' },
   },
   {
     screen: 'till',
@@ -61,7 +61,7 @@ const SCREENS = [
   {
     screen: 'configuration',
     path: '/es/system/configuration',
-    ready: { role: 'cell', name: 'stock-service-domain' },
+    ready: { record: 'stock-service-domain' },
   },
 ] as const;
 
@@ -74,8 +74,15 @@ for (const palette of PALETTES) {
     for (const { screen, path, ready } of SCREENS) {
       await test.step(screen, async () => {
         await page.goto(path);
-        const { role, ...options } = ready;
-        await expect(page.getByRole(role, options).first()).toBeVisible();
+        // A list waits on one of its records, in whichever layout it is in:
+        // a wide list pivots to cards at the default viewport (entifix ADR
+        // 0027), and the gate judges whichever one a user is shown.
+        if ('record' in ready) {
+          await expect(record(page, ready.record).first()).toBeVisible();
+        } else {
+          const { role, ...options } = ready;
+          await expect(page.getByRole(role, options).first()).toBeVisible();
+        }
         await expect(page.locator('html')).toHaveAttribute(
           'data-theme',
           palette,

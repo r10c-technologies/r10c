@@ -37,8 +37,16 @@ const toasts = (page: Page) =>
 const LIST = /\/catalog\/product$/;
 const NEW_FORM = /\/catalog\/product\/new$/;
 
+/**
+ * The pending Save. It reads "waiting for the server" while the push stream is
+ * open and "waiting for the connection" between reconnects — and this mock
+ * stream answers and closes, so the browser is often between the two. Either
+ * is the form waiting, which is what these specs hold.
+ */
 const waiting = (page: Page) =>
-  page.getByRole('button', { name: 'Esperando al servidor…' });
+  page.getByRole('button', {
+    name: /^Esperando (al servidor|la conexión)…$/,
+  });
 
 test('a save that commits settles and returns to the list', async ({
   page,

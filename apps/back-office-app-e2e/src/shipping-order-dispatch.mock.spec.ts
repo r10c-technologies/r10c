@@ -4,6 +4,7 @@ import {
   dispatches,
   expect,
   moveShipment,
+  record,
   shipmentSeed,
   shippingOrderBackend,
   test,
@@ -25,7 +26,7 @@ test.beforeEach(() => {
 test('opens on the shipments awaiting dispatch', async ({ page }) => {
   await page.goto('/fulfilment/shipping-order');
 
-  await expect(page.getByText('order-awaiting-1').first()).toBeVisible();
+  await expect(record(page, /order-awaiting-1/).first()).toBeVisible();
   // A dispatched parcel is one filter change away, not on the worklist.
   await expect(page.getByText('order-dispatched-1')).toHaveCount(0);
 });

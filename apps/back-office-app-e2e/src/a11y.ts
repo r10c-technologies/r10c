@@ -35,10 +35,14 @@ export const WALK: WalkOptions = {
 /** The palettes a back-office screen is gated in: the brand and the dark one. */
 export const PALETTES = ['ocean', 'midnight'] as const;
 
-/** Opens every page of the context in `palette`, as a stored preference. */
+/**
+ * Opens every page of the context in `palette`, as a stored preference: the
+ * first-party cookie `ThemeProvider` keeps the choice in since entifix 0.20.0,
+ * set before any page script runs.
+ */
 export const usePalette = (page: Page, palette: string) =>
   page.addInitScript(id => {
-    window.localStorage.setItem('r10c-admin-theme', id);
+    document.cookie = `r10c-admin-theme=${encodeURIComponent(id)}; path=/; samesite=lax`;
   }, palette);
 
 /** The screen gate: axe against the baseline, then the keyboard walk. */

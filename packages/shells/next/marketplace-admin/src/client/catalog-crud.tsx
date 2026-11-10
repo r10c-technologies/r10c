@@ -7,7 +7,6 @@ import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud, useLocaleHref } from '@entifix/next-shell';
 import {
   ButtonLink,
-  EntityColumn,
   EntityTableToolbar,
   useTranslateKey,
 } from '@entifix/react-controls';
@@ -167,17 +166,6 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   // an update carries it back — and the operator is not asked to type a value
   // the service overwrites.
   hiddenFields: ['id', 'code'],
-  // `brandId` keeps an override, which is still the escape hatch for a column
-  // whose presentation the metadata cannot express — it renders an em dash
-  // rather than an empty cell when the classification is unset.
-  columns: (
-    <EntityColumn<ProductSpecification>
-      field="brandId"
-      render={product => (
-        <span className="font-medium">{product.brandId ?? '—'}</span>
-      )}
-    />
-  ),
   /**
    * The way into the guided alta, from the list it starts from.
    *

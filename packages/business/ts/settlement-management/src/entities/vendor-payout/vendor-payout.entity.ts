@@ -30,6 +30,8 @@ import { accessor, entity } from '@entifix/core';
   key: 'vendor-payout',
   labelKey: 'entity:vendor-payout.label',
   pluralKey: 'entity:vendor-payout.plural',
+  // A payout is what a run computes, never typed in.
+  creatable: false,
 })
 export class VendorPayout implements Entity {
   // #region properties

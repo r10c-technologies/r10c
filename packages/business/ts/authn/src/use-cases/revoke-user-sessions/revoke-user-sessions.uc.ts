@@ -68,6 +68,8 @@ const notifyOwner = (userId: EntityId) =>
     tone: 'destructive',
     messageKey: 'entity:user-identity.useCases.revokeSessionsConfirm',
   },
+  // A revoked session is gone: its holder has to sign in again.
+  reversible: 'confirm',
 })
 export class RevokeUserSessionsUC {
   static run() {

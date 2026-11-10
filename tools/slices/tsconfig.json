@@ -70,6 +70,9 @@
     },
     {
       "path": "../../packages/business/ts/catalog-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/authz-grants"
     }
   ]
 }

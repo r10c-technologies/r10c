@@ -36,6 +36,8 @@ import { type RefundStatus, RefundStatuses } from '../../values/refund-status';
   key: 'refund',
   labelKey: 'entity:refund.label',
   pluralKey: 'entity:refund.plural',
+  // A refund is the cancellation flow's pivot per ADR 0058, never a form.
+  creatable: false,
 })
 export class Refund implements Entity {
   // #region properties

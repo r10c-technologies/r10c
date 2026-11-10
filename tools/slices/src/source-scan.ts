@@ -72,6 +72,24 @@ export const declaredEntityClasses = (): Map<string, string> => {
   return found;
 };
 
+/**
+ * The `<domain>:<key>` permission prefix of every `@entity()` class, by class
+ * name — what a use case's `entity: ProductBrand` resolves to when a check has
+ * to build the permission that guards its verb.
+ */
+export const declaredEntityResources = (): Map<string, string> => {
+  const found = new Map<string, string>();
+  for (const file of sourceFiles(BUSINESS_ROOT)) {
+    const text = readFileSync(file, 'utf8');
+    for (const match of text.matchAll(
+      /@entity\(\{[^)]*?domain:\s*'([^']+)'[^)]*?key:\s*'([^']+)'[^)]*?\}\)\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/gs,
+    )) {
+      found.set(match[3], `${match[1]}:${match[2]}`);
+    }
+  }
+  return found;
+};
+
 /** A `@useCase()` declaration, as it appears in source. */
 export interface UseCaseDeclaration {
   /** The decorated class's name. */
@@ -82,6 +100,14 @@ export interface UseCaseDeclaration {
   key: string;
   /** Every catalog key the descriptor names. */
   catalogKeys: string[];
+  /**
+   * How a destructive verb is taken back (entifix ADR 0026): `undo` acts at
+   * once and offers the `inverse` verb, `confirm` asks first. Absent on a verb
+   * that destroys nothing.
+   */
+  reversible?: 'undo' | 'confirm';
+  /** The verb an `undo` runs over the same selection. */
+  inverse?: string;
   /** Absolute path of the file declaring it. */
   file: string;
   /** The `packages/business/ts/<name>` package it lives in. */
@@ -120,11 +146,16 @@ export const declaredUseCases = (): UseCaseDeclaration[] => {
           hit => hit[1],
         ),
       );
+      const reversible = /\breversible:\s*'(undo|confirm)'/.exec(body)?.[1] as
+        'undo' | 'confirm' | undefined;
+      const inverse = /\binverse:\s*'([^']+)'/.exec(body)?.[1];
       found.push({
         className,
         entity,
         key,
         catalogKeys,
+        ...(reversible === undefined ? {} : { reversible }),
+        ...(inverse === undefined ? {} : { inverse }),
         file,
         packageName: relative(BUSINESS_ROOT, file).split(sep)[0],
       });

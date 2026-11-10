@@ -28,6 +28,8 @@ import {
   key: 'settlement-run',
   labelKey: 'entity:settlement-run.label',
   pluralKey: 'entity:settlement-run.plural',
+  // A run is opened by the settlement sweep, never by a person.
+  creatable: false,
 })
 export class SettlementRun implements Entity {
   // #region properties

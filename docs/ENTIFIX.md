@@ -59,6 +59,14 @@ This metadata is what makes an adapter **generic**: given only the constructor,
 it derives the collection/endpoint name (`key ?? name`) and the field list
 (`alias ?? name`, skipping `hidden`). No entity-specific adapter code is needed.
 
+**An entity only a flow writes says so: `@entity({ creatable: false })`.** A list
+offers "New" when the entity is creatable _and_ the caller's served actions
+include `write` — and `super-admin`'s `*:*:*` includes every `write`, so an
+order, a payment, a shipment, a hold or a settlement line would otherwise open a
+form for a record nobody types in. It is presentation only; the route's own
+guard is still what refuses the write
+([entifix 0026](https://github.com/r10c-technologies/entifix/blob/v0.20.0/docs/adr/0026-actions-hierarchy-overflow-and-destructive-verbs.md)).
+
 **Authorization reads the same metadata.** A permission is
 `` `<domain>:<entityKey>:<action>` ``, so `permissionForEntity(Product, 'read')`
 (`@entifix/authz`) resolves to
@@ -333,6 +341,7 @@ accessors and never to a standalone function
   placement: 'context-independent',      // where a surface puts it
   labelKey: 'entity:user-identity.useCases.revokeSessions',
   confirm: { tone: 'destructive', messageKey: '…revokeSessionsConfirm' },
+  reversible: 'confirm',                 // or 'undo' with `inverse: '<verb>'`
 })
 export class RevokeUserSessionsUC {
   static run() {
@@ -343,7 +352,16 @@ export class RevokeUserSessionsUC {
 export const REVOKE_SESSIONS = permissionForUseCase(RevokeUserSessionsUC);
 ```
 
-Four things follow, and each has bitten:
+Five things follow, and each has bitten:
+
+- **A destructive verb states how it is taken back.** A destructive `confirm`
+  without `reversible` throws when the module loads, so a missing one stops a
+  service at boot. `undo` acts at once and puts Undo on the toast,
+  which runs `inverse` over the same selection (retire → restore, unpublish →
+  publish); `confirm` asks first, for what nothing reverses (a refund, a revoked
+  session). `@r10c/slices` fails an `inverse` the entity does not declare, or one
+  a role holding the verb is not granted — an Undo that answers 403 is a one-click
+  destructive act.
 
 - **`placement` is not derivable from `binding`.** An entity-bound action can be
   determining (a footer "Publish" that finalizes the page) or
@@ -531,9 +549,11 @@ Three things layer on top of that default:
   `UiPreferencesProvider`. Keys are `<namespace>:<component>:<scope>`, e.g.
   `entifix-ui:entity-table:product`. A stored layout degrades rather than breaks:
   stale names are dropped and columns added to the entity later append at the end.
-- **Responsiveness** — below `pivotBreakpoint` (default `md`) rows pivot into
-  label/value cards. Both layouts are rendered and CSS picks one, driven by the
-  same resolved columns; a JS breakpoint hook would have to guess during SSR and
+- **Responsiveness** — rows pivot into label/value cards when the table's own
+  container is narrower than the sum of its columns' `minWidth`s (a container
+  query, so a narrow workspace pane pivots on a wide screen); `pivotBreakpoint`
+  overrides it. Both layouts are rendered and CSS picks one, driven by the same
+  resolved columns; a JS breakpoint hook would have to guess during SSR and
   correct after mount, which is a hydration mismatch on every load.
 - **Slots** — children are configuration expressed as JSX, matched by component
   identity (not `displayName`, which minifiers rewrite):

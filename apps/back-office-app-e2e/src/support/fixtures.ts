@@ -9,6 +9,7 @@ import {
   defineEntifixE2eTest,
   seedSession,
 } from '@entifix/testing-e2e/playwright';
+import type { Locator, Page } from '@playwright/test';
 import {
   ProductBrand,
   ProductCategory,
@@ -549,6 +550,52 @@ export const categoryBackend = categories.backend;
 export const productBackend = products.backend;
 
 /**
+ * The brand screen's affordance document, on the app's own
+ * `/api/marketplace/...` proxy path, with the verbs the entity declares —
+ * `retire` and its inverse `restore`, over a selection.
+ */
+const brandMetadataHandlers = [
+  http.get(`${APP_URL}/api/marketplace/product-brand/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'product-brand' },
+      data: {
+        actions: ['read', 'write'],
+        useCases: describeEntityUseCases(ProductBrand),
+      },
+    }),
+  ),
+];
+
+/** Every brand verb the list ran in this run, with the ids it ran over. */
+export const brandVerbs: Array<{ verb: string; ids: string[] }> = [];
+
+/**
+ * `retire` and `restore` over a selection, answered as marketplace-service
+ * does: each selected row moves, and the outcome is per row.
+ */
+const brandVerbHandlers = [
+  http.post(`${BRAND_URL}/:verb`, async ({ params, request }) => {
+    const verb = String(params['verb']);
+    const { selection } = (await request.json()) as {
+      selection: { mode: 'ids'; ids: string[] };
+    };
+    brandVerbs.push({ verb, ids: selection.ids });
+    const status = verb === 'retire' ? 'retired' : 'active';
+    backend.seed(
+      backend
+        .rows()
+        .map(row =>
+          selection.ids.includes(String(row['id'])) ? { ...row, status } : row,
+        ),
+    );
+    return HttpResponse.json({
+      meta: { type: 'bulkOutcome', entity: 'product-brand' },
+      data: selection.ids.map(id => ({ id, ok: true })),
+    });
+  }),
+];
+
+/**
  * A specification's create, answered as the service does: the record as
  * stored, under the code it drew.
  *
@@ -669,6 +716,8 @@ const base = defineEntifixE2eTest({
   handlers: [
     configurationHandler(`${APP_URL}/api/config`, CONFIGURATION),
     ...handlers,
+    ...brandMetadataHandlers,
+    ...brandVerbHandlers,
     ...categories.handlers,
     ...products.handlers,
     ...stockItems.handlers,
@@ -741,3 +790,22 @@ export const test = base.extend<{ session: void }>({
 });
 
 export { expect } from '@playwright/test';
+
+/**
+ * The record a list or picker shows for `text`, in whichever layout it is in.
+ *
+ * Since entifix 0.20.0 a table pivots to cards when its own container is
+ * narrower than its columns need (entifix ADR 0027), so a wide list in the main
+ * pane, and every picker in a dialog or a wizard step, may be cards at the
+ * default viewport. Both layouts are rendered and CSS hides one, so a spec that
+ * is not about the layout asks for the visible row or card holding the text.
+ */
+export const record = (scope: Page | Locator, text: string | RegExp) =>
+  scope.locator(':is(tr, article):visible').filter({
+    // The inner locator is matched inside each row or card, so it is built
+    // from the page rather than chained under `scope`.
+    has: ('goto' in scope ? scope : scope.page()).getByText(
+      text,
+      typeof text === 'string' ? { exact: true } : {},
+    ),
+  });

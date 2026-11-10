@@ -34,6 +34,8 @@ import {
   key: 'reservation',
   labelKey: 'entity:reservation.label',
   pluralKey: 'entity:reservation.plural',
+  // A hold is taken by checkout's crossing per ADR 0023, never by a person.
+  creatable: false,
 })
 export class Reservation implements Entity {
   // #region properties

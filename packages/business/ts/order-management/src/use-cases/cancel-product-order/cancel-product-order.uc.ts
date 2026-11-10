@@ -32,6 +32,8 @@ import { orderStatusAfter } from '../../values/order-transition';
     tone: 'destructive',
     messageKey: 'entity:product-order.useCases.cancelConfirm',
   },
+  // A refund cannot be taken back, so the reader is asked first.
+  reversible: 'confirm',
   // A refund refused, or an order that moved on, arrives as the flow's
   // failure: the verb answers `202` once it has started the flow (ADR 0073).
   errors: [NotFound, OrderNotCancellable, FlowNotStarted],

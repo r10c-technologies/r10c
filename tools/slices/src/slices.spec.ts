@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { type Permission, permissionMatches } from '@entifix/authz';
+import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
 import { describe, expect, it } from 'vitest';
 
 import { FLEET, matchesPattern } from './fleet.js';
@@ -11,8 +13,10 @@ import {
   BUSINESS_ROOT,
   declaredEntityClasses,
   declaredEntityDomains,
+  declaredEntityResources,
   declaredUseCases,
   sourceFiles,
+  type UseCaseDeclaration,
 } from './source-scan.js';
 import {
   DEDUPE_STRATEGIES,
@@ -523,6 +527,96 @@ describe('ADR 0026 — declared use cases, their grants and their implementation
           'an empty action list — a 200 that reads as "no actions here".',
       ).toBe(true);
     }
+  });
+});
+
+/**
+ * An `undo` verb acts at once and puts an Undo on the toast, which runs its
+ * `inverse` over the same selection (entifix ADR 0026). entifix checks at load
+ * that an `undo` names an inverse; it cannot check that the inverse exists on
+ * the entity or that whoever may run the verb may also run the way back, and an
+ * Undo that answers 403 is a destructive act with no confirmation and no return.
+ */
+const undoGaps = (
+  useCases: readonly UseCaseDeclaration[],
+  resources: ReadonlyMap<string, string>,
+  grants: Readonly<Record<string, readonly Permission[]>>,
+): string[] => {
+  const gaps: string[] = [];
+  for (const useCase of useCases) {
+    if (useCase.reversible !== 'undo') continue;
+    const inverse = useCase.inverse ?? '';
+    const declared = useCases.some(
+      other => other.entity === useCase.entity && other.key === inverse,
+    );
+    if (!declared) {
+      gaps.push(
+        `${useCase.className} undoes '${useCase.key}' with '${inverse}', ` +
+          `which ${useCase.entity} does not declare`,
+      );
+      continue;
+    }
+    const resource = resources.get(useCase.entity);
+    const verb = `${resource}:${useCase.key}` as Permission;
+    const back = `${resource}:${inverse}` as Permission;
+    for (const [role, held] of Object.entries(grants)) {
+      const may = (required: Permission) =>
+        held.some(granted => permissionMatches(granted, required));
+      if (may(verb) && !may(back)) {
+        gaps.push(`'${role}' may ${verb} but not undo it with ${back}`);
+      }
+    }
+  }
+  return gaps;
+};
+
+describe('entifix ADR 0026 — an Undo is a verb its runner may also run', () => {
+  it('finds the undo verbs it is meant to check', () => {
+    // Retire/restore brand and category, unpublish/publish an offering.
+    expect(
+      declaredUseCases().filter(useCase => useCase.reversible === 'undo')
+        .length,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it('resolves every undo to a declared inverse its runners are granted', () => {
+    expect(
+      undoGaps(declaredUseCases(), declaredEntityResources(), ROLE_PERMISSIONS),
+    ).toEqual([]);
+  });
+
+  it('catches an inverse the entity does not declare (planted)', () => {
+    const planted: UseCaseDeclaration = {
+      className: 'PlantedUC',
+      entity: 'ProductBrand',
+      key: 'retire',
+      catalogKeys: [],
+      reversible: 'undo',
+      inverse: 'unretire',
+      file: 'planted.ts',
+      packageName: 'planted',
+    };
+
+    expect(
+      undoGaps([planted], declaredEntityResources(), ROLE_PERMISSIONS),
+    ).toEqual([
+      "PlantedUC undoes 'retire' with 'unretire', which ProductBrand does not declare",
+    ]);
+  });
+
+  it('catches a role granted the verb but not its inverse (planted)', () => {
+    const useCases = declaredUseCases().filter(
+      useCase => useCase.entity === 'ProductBrand',
+    );
+
+    expect(
+      undoGaps(useCases, declaredEntityResources(), {
+        planted: ['catalog-reference:product-brand:retire'],
+      }),
+    ).toEqual([
+      "'planted' may catalog-reference:product-brand:retire but not undo it " +
+        'with catalog-reference:product-brand:restore',
+    ]);
   });
 });
 

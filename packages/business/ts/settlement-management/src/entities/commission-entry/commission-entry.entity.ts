@@ -45,6 +45,8 @@ import {
   key: 'commission-entry',
   labelKey: 'entity:commission-entry.label',
   pluralKey: 'entity:commission-entry.plural',
+  // Folded from the sale and its payment per ADR 0057, never typed in.
+  creatable: false,
 })
 export class CommissionEntry implements Entity {
   // #region properties

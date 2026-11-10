@@ -8,7 +8,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context, Effect } from 'effect';
 import type { ReactElement } from 'react';
@@ -155,13 +155,11 @@ describe('the listing pages', () => {
     },
   );
 
-  // The product list used to wire a link resolver here, which is what
-  // materialized the foreign-key category. It does not any more: brand and
-  // category live in another slice's store, so the list shows the ids it holds
-  // and a screen wanting names asks the owning domain (ADR 0022).
-  // The `brandId` column override is the escape hatch for presentation the
-  // metadata cannot express: an unclassified product must read as an em dash
-  // rather than an empty cell.
+  // Brand and category live in another slice's store, so the product holds
+  // their ids and the list asks the owning domain's repository for the names
+  // (ADR 0022) — through the `links` the crud declares, never a join. Since
+  // entifix 0.20.0 a cell shows that name, or an em dash when unset, and never
+  // the id: a key is not what it means.
   it('renders an em dash for a product with no brand', async () => {
     const unclassified = new ProductSpecification('P-9', 'Doohickey');
     unclassified.id = 'p-9';
@@ -177,13 +175,15 @@ describe('the listing pages', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
-  it('shows the classification ids it holds, without resolving them', async () => {
+  it('shows the classification names, never the ids it holds', async () => {
     renderPage(<ProductListClientPage />);
 
     await waitFor(() =>
-      expect(screen.getAllByText('b-1').length).toBeGreaterThan(0),
+      expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
     );
-    expect(screen.queryByText('Tools')).toBeNull();
+    expect(screen.getAllByText('Tools').length).toBeGreaterThan(0);
+    expect(screen.queryByText('b-1')).toBeNull();
+    expect(screen.queryByText('c-1')).toBeNull();
   });
 });
 
@@ -255,6 +255,12 @@ describe('the single-record pages', () => {
       );
 
       await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+      // Delete asks first since entifix 0.20.0; the verb inside the dialog acts.
+      await user.click(
+        within(screen.getByRole('alertdialog')).getByRole('button', {
+          name: 'Eliminar',
+        }),
+      );
 
       await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     },
@@ -284,7 +290,7 @@ describe('the single-record pages', () => {
       await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
       await waitFor(() =>
-        expect(screen.getByTestId(/form-error$/)).toBeInTheDocument(),
+        expect(screen.getByTestId('region-state-error')).toBeInTheDocument(),
       );
       expect(push).not.toHaveBeenCalled();
     },
@@ -310,9 +316,15 @@ describe('the single-record pages', () => {
       );
 
       await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+      // Delete asks first since entifix 0.20.0; the verb inside the dialog acts.
+      await user.click(
+        within(screen.getByRole('alertdialog')).getByRole('button', {
+          name: 'Eliminar',
+        }),
+      );
 
       await waitFor(() =>
-        expect(screen.getByTestId(/form-error$/)).toBeInTheDocument(),
+        expect(screen.getByTestId('region-state-error')).toBeInTheDocument(),
       );
       expect(push).not.toHaveBeenCalled();
     },
@@ -334,7 +346,7 @@ describe('the single-record pages', () => {
     renderPage(page);
 
     await waitFor(() =>
-      expect(screen.getByTestId(/form-error$/)).toBeInTheDocument(),
+      expect(screen.getByTestId('region-state-error')).toBeInTheDocument(),
     );
   });
 });

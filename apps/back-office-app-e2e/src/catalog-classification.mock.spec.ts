@@ -2,7 +2,7 @@ import type { NetworkFixture } from '@entifix/testing-e2e/playwright';
 import type { Page } from '@playwright/test';
 import { http, HttpResponse } from 'msw';
 
-import { expect, PRODUCT_URL, test } from './support/fixtures';
+import { expect, PRODUCT_URL, record, test } from './support/fixtures';
 
 /**
  * Setting a specification's brand and category, and what that puts on the wire.
@@ -107,10 +107,7 @@ test('picks a brand through the browse dialog', async ({ page, network }) => {
   await expect(dialog).toBeVisible();
   // Selection is a per-row button, not a row click: in a picker the row must set
   // the value rather than navigate away from the form it was opened from.
-  await dialog
-    .getByRole('row')
-    .filter({ hasText: 'Globex 1' })
-    .first()
+  await record(dialog, 'Globex 1')
     .getByRole('button', { name: 'Seleccionar' })
     .click();
 

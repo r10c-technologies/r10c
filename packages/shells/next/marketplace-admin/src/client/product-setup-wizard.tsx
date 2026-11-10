@@ -596,10 +596,12 @@ function FormStep({
   links,
   registerGate,
 }: FormStepProps) {
+  const translateKey = useTranslateKey();
   const form = useEntityForm({
     entityConstructor: ProductSpecification,
     fields,
     draft: wizard.draftStoreFor(stepId),
+    translateKey,
     // The step does not submit anything. Reaching here means it validated, and
     // the wizard's own Siguiente is what acts on that.
     onSubmit: () => undefined,

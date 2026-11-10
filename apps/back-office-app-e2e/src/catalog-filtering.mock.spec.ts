@@ -235,9 +235,14 @@ test.describe('when the service fails', () => {
 
     await page.goto('/catalog/product-brand');
 
-    await expect(page.locator('table tbody tr td').first()).toHaveText(
-      'No se pudieron cargar los registros',
-    );
+    // The failure is the region's state, with a way forward, and nothing on
+    // the page reads as an empty catalog (entifix ADR 0028).
+    const failure = page.getByTestId('region-state-error');
+    await expect(failure).toBeVisible();
+    await expect(
+      failure.getByRole('button', { name: 'Reintentar' }),
+    ).toBeVisible();
     await expect(page.getByText('Sin registros')).toHaveCount(0);
+    await expect(page.getByText('Aquí aparecerán sus marcas.')).toHaveCount(0);
   });
 });

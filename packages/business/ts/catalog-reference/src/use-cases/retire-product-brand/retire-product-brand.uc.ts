@@ -35,6 +35,10 @@ import { retireReferences } from '../retire-reference';
     tone: 'destructive',
     messageKey: 'entity:product-brand.useCases.retireConfirm',
   },
+  // Retiring is undone by restoring the same selection, so it acts at once
+  // and offers Undo rather than asking first (entifix ADR 0026).
+  reversible: 'undo',
+  inverse: 'restore',
   errors: [InvalidBody],
 })
 export class RetireProductBrandUC {

@@ -1,4 +1,4 @@
-import { expect, test } from './support/fixtures';
+import { expect, record, test } from './support/fixtures';
 
 /**
  * The settlement surface: a vendor's commercial terms, and what they are owed.
@@ -85,11 +85,12 @@ test('shows an absent channel rate and a zero one as different values', async ({
 test('shows the ledger line behind a payout', async ({ page }) => {
   await page.goto('/settlement/commission-entry');
 
-  await expect(page.getByRole('cell', { name: 'order-1' })).toBeVisible();
+  const line = record(page, 'order-1');
+  await expect(line).toBeVisible();
   // The base and the cut, both on the line. A payout is the first minus the
   // second, which is why the entry captures the base at all.
-  await expect(page.getByRole('cell', { name: '2500' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '200' })).toBeVisible();
+  await expect(line.getByText('2500', { exact: true })).toBeVisible();
+  await expect(line.getByText('200', { exact: true })).toBeVisible();
 });
 
 test('shows what the vendor is owed, not what the platform kept', async ({

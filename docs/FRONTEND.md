@@ -825,7 +825,9 @@ framework-free port in `@entifix/core` (plain data + callbacks: `quick`,
   because a dropped source is indistinguishable from a read-only field.
   The label/search members come from the descriptor, and a scalar id's `@accessor()`
   cannot name them (it may not import the target), so the entity-tight wrapper states
-  them at the `useEntityLinkSource` call.
+  them at the `useEntityLinkSource` call. The same `links` entry is what a list
+  cell resolves the id through, so the cell shows the target's name — or an em
+  dash when unset — and never the id (entifix 0.20.0).
 - **The target must declare its search member `filterable`.** That metadata is also
   the server-side RSQL allowlist, so losing it fails silently at both ends: the
   service answers `400` and the picker renders it as an empty suggestion list.
