@@ -1,22 +1,34 @@
 'use client';
 
+import type { EntifixFailure, UseCaseDescriptor } from '@entifix/core';
 import {
-  Button,
+  ActionBar,
+  Alert,
   Card,
   HeadingOne,
+  itemsForUseCases,
   Lead,
   LoadingBoundary,
   Overline,
   SkeletonText,
   Stack,
   Text,
+  useErrorMessage,
   useFormatters,
   useT,
+  useTranslateKey,
+  useVerbInvoker,
 } from '@entifix/react-controls';
+import { useEntityUseCases } from '@entifix/react-integration';
+import { UserDevice, UserIdentity } from '@r10c/business-ts-authn';
 import { useState } from 'react';
 
+import { createClientAdapters } from './adapters/create-client-adapters';
 import { failedResponse } from './failed-response';
+import { runSessionVerb, type SessionTarget } from './session-verbs';
 import { useAsyncResource } from './use-async-resource';
+
+const { metadata: metadataSource } = createClientAdapters();
 
 /** A session row as the service reports it. */
 export interface SessionRow {
@@ -44,14 +56,22 @@ const readSessions = async (): Promise<SessionRow[]> => {
 /**
  * The caller's live sessions, with a way to end them.
  *
+ * Every verb here is a declared one, read from the served `$metadata` — so a
+ * caller without the grant sees no button — and run through `useVerbInvoker`,
+ * which asks before a destructive verb runs (ADR 0026). Nothing here posts
+ * around it.
+ *
  * Ending the **current** session is allowed and simply signs you out — the
  * route handler clears this origin's cookies and the browser is sent back to
  * sign-in. Disabling that row would only have made people wonder why.
  */
 export function SessionsView() {
   const t = useT('r10c');
+  const translateKey = useTranslateKey();
+  const errorMessage = useErrorMessage();
   const { dateTime } = useFormatters();
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<EntifixFailure | undefined>(undefined);
 
   // Loading lives in the shared hook: a synchronous `setState` inside an effect
   // body trips `react-hooks/set-state-in-effect`, and the hook derives its flags
@@ -63,14 +83,34 @@ export function SessionsView() {
     reload,
   } = useAsyncResource('account-sessions', readSessions);
 
-  const revoke = async (row: SessionRow) => {
-    setBusy(row.sessionId);
+  const { metadata: deviceMetadata } = useEntityUseCases(
+    UserDevice,
+    metadataSource,
+  );
+  const { metadata: identityMetadata } = useEntityUseCases(
+    UserIdentity,
+    metadataSource,
+  );
+  const verb = (
+    descriptors: readonly UseCaseDescriptor[] | undefined,
+    key: string,
+  ) => descriptors?.filter(descriptor => descriptor.key === key) ?? [];
+  const signOutSession = verb(deviceMetadata?.useCases, 'sign-out-session');
+  const signOutOthers = verb(identityMetadata?.useCases, 'sign-out-others');
+
+  const run = async (key: string, target: SessionTarget) => {
+    setBusy(true);
+    setFailure(undefined);
     try {
-      const res = await fetch(`/api/auth/sessions/${row.sessionId}`, {
-        method: 'DELETE',
-      });
-      const body = (await res.json()) as { signedOut?: boolean };
-      if (body.signedOut === true) {
+      const outcome = await runSessionVerb(key, target);
+      if (outcome === undefined) return;
+      if (!outcome.ok) {
+        // A refusal is shown, never swallowed: a revocation that silently did
+        // nothing leaves a stolen session open while the screen says otherwise.
+        setFailure(outcome.failure);
+        return;
+      }
+      if (outcome.signedOut) {
         // Our own cookies are gone; anything short of a full navigation would
         // render a shell the proxy is about to reject anyway.
         window.location.assign('/');
@@ -78,19 +118,18 @@ export function SessionsView() {
       }
       reload();
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
-  const revokeOthers = async () => {
-    setBusy('others');
-    try {
-      await fetch('/api/auth/sessions', { method: 'POST' });
-      reload();
-    } finally {
-      setBusy(null);
-    }
-  };
+  const verbs = useVerbInvoker<SessionTarget>({
+    run: (key, target) => void run(key, target),
+    busy,
+    served: [
+      ...(deviceMetadata?.useCases ?? []),
+      ...(identityMetadata?.useCases ?? []),
+    ],
+  });
 
   const describe = (row: SessionRow): string => {
     if (row.device === null) return t('auth.sessions.unknownDevice');
@@ -99,6 +138,8 @@ export function SessionsView() {
       ? parts.join(' · ')
       : t('auth.sessions.unknownDevice');
   };
+
+  const others = rows?.filter(row => !row.current).length ?? 0;
 
   return (
     <Stack gap="l">
@@ -110,13 +151,13 @@ export function SessionsView() {
         </Stack>
       </header>
 
-      {error !== undefined ? (
-        <Card>
-          <Text className="text-danger" role="alert">
-            {t('auth.sessions.failed')}
-          </Text>
-        </Card>
-      ) : null}
+      {error === undefined ? null : (
+        <Alert tone="danger">{t('auth.sessions.failed')}</Alert>
+      )}
+
+      {failure === undefined ? null : (
+        <Alert tone="danger">{errorMessage(failure)}</Alert>
+      )}
 
       {/* Card-shaped placeholders rather than the word "Loading": the rows that
           land are cards, so the swap shifts nothing. The copy survives as the
@@ -158,35 +199,54 @@ export function SessionsView() {
                 {t('auth.sessions.lastIp')} {row.device.ip}
               </Text>
             )}
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={busy !== null}
-              onClick={() => revoke(row)}
-            >
-              {busy === row.sessionId
-                ? t('auth.sessions.revoking')
-                : t('auth.sessions.revoke')}
-            </Button>
+            {signOutSession.length === 0 ? null : (
+              <ActionBar
+                surface="row-menu"
+                size="sm"
+                menuLabel={t('auth.sessions.actionsFor', {
+                  device: describe(row),
+                })}
+                items={itemsForUseCases(
+                  signOutSession,
+                  translateKey,
+                  descriptor =>
+                    verbs.invoke({
+                      descriptor,
+                      target: { kind: 'one', sessionId: row.sessionId },
+                      object: describe(row),
+                      count: 1,
+                    }),
+                  busy,
+                )}
+              />
+            )}
           </Stack>
         </Card>
       ))}
 
-      {rows !== undefined && rows.length <= 1 ? (
+      {rows !== undefined && others === 0 ? (
         <Text muted>{t('auth.sessions.empty')}</Text>
       ) : null}
 
-      {rows !== undefined && rows.length > 1 ? (
-        <Button
-          variant="primary"
-          disabled={busy !== null}
-          onClick={revokeOthers}
-        >
-          {busy === 'others'
-            ? t('auth.sessions.revoking')
-            : t('auth.sessions.revokeOthers')}
-        </Button>
+      {others > 0 && signOutOthers.length > 0 ? (
+        <ActionBar
+          surface="table-toolbar"
+          items={itemsForUseCases(
+            signOutOthers,
+            translateKey,
+            descriptor =>
+              verbs.invoke({
+                descriptor,
+                target: { kind: 'others' },
+                object: t('auth.sessions.othersCount', { count: others }),
+                count: others,
+              }),
+            busy,
+          )}
+        />
       ) : null}
+
+      {verbs.dialog}
     </Stack>
   );
 }

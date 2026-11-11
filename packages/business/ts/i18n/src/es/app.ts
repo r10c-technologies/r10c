@@ -10,6 +10,11 @@ export const app = {
     brand: 'r10c Admin',
     title: 'r10c · Administración del marketplace',
     description: 'Back-office del marketplace r10c.',
+    /** The two palettes the account menu offers (#530). */
+    themes: {
+      ocean: 'Océano',
+      midnight: 'Medianoche',
+    },
     nav: {
       // `//home`, where the proxy lands an authenticated visitor. Not the
       // breadcrumb root — that is the shell's `shell:breadcrumbs.home`.

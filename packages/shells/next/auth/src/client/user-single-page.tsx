@@ -82,6 +82,8 @@ export function UserDetailPage({
   // the draft needs no effect to seed it.
   const [edits, setEdits] = useState<EntityDraft>({});
   const [isSaving, setIsSaving] = useState(false);
+  // Bumped after `revoke-sessions` runs, to remount the sessions panel.
+  const [sessionsVersion, setSessionsVersion] = useState(0);
   const [saveError, setSaveError] = useState<EntifixFailure | undefined>(
     undefined,
   );
@@ -168,6 +170,7 @@ export function UserDetailPage({
         return;
       }
       reload();
+      setSessionsVersion(current => current + 1);
     }
   };
 
@@ -196,7 +199,7 @@ export function UserDetailPage({
         backHref={withLocale('/users')}
         title={user?.displayName ?? t('auth.users.fallbackName')}
       />
-      <UserSessionsPanel userId={id} />
+      <UserSessionsPanel key={sessionsVersion} userId={id} />
     </>
   );
 }

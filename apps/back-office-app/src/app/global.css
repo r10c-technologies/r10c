@@ -3,9 +3,8 @@
 /* Dense operator scale: fixed 4px spacing + 14px base type, and the
    [data-density] blocks. The storefront omits this and keeps fluid Utopia. */
 @import '@entifix/style/presets/fixed-scale.css';
-/* Static palettes this app ships. Pick only the presets you want. */
-@import '@entifix/style/presets/aurora.css';
-@import '@entifix/style/presets/sunset.css';
+/* The one static preset this app offers beside its runtime brand, `ocean`
+   (theme-choices.ts) — the two palettes the screen gate measures (#530). */
 @import '@entifix/style/presets/midnight.css';
 
 /* Class detection for workspace UI packages consumed as source (@r10c/source),

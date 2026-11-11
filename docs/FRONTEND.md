@@ -328,8 +328,16 @@ The preset changes nothing when imported — every rule is keyed to an attribute
 exactly like a palette is keyed to `[data-theme]`. An app opts in once:
 
 ```html
-<html data-theme="aurora" data-scale="fixed" data-density="compact"></html>
+<html data-theme="ocean" data-scale="fixed" data-density="compact"></html>
 ```
+
+In the back office `data-theme` and `data-density` are the reader's, not the
+app's: the account menu offers `ocean` and `midnight` — the two palettes the
+screen gate measures — and comfortable or compact, and the root layout reads the
+stored choice with `readThemeCookies` (`apps/back-office-app/src/app/theme-choices.ts`)
+so the page is rendered in it and nothing changes after load. Because `ocean` is
+a runtime palette, the layout also renders its rules in a `<style>` with the
+page; `ThemeProvider` alone would inject them only after hydration (#530).
 
 **Density compacts spacing, never type.** `[data-density]` is a property of the
 work, not of the viewport, which is why it is an attribute and not a media query

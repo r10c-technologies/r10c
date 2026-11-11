@@ -65,7 +65,7 @@ include `write` — and `super-admin`'s `*:*:*` includes every `write`, so an
 order, a payment, a shipment, a hold or a settlement line would otherwise open a
 form for a record nobody types in. It is presentation only; the route's own
 guard is still what refuses the write
-([entifix 0026](https://github.com/r10c-technologies/entifix/blob/v0.20.0/docs/adr/0026-actions-hierarchy-overflow-and-destructive-verbs.md)).
+([entifix 0026](https://github.com/r10c-technologies/entifix/blob/v0.20.1/docs/adr/0026-actions-hierarchy-overflow-and-destructive-verbs.md)).
 
 **Authorization reads the same metadata.** A permission is
 `` `<domain>:<entityKey>:<action>` ``, so `permissionForEntity(Product, 'read')`

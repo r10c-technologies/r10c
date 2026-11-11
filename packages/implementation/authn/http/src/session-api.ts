@@ -13,6 +13,7 @@ import {
 } from '@entifix/core';
 import {
   DevMailboxTag,
+  SessionScopeResolverTag,
   UserDevice,
   UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
@@ -65,20 +66,16 @@ const mySessions = defineEndpoint({
 });
 
 /**
- * `DELETE /api/auth/sessions/:sessionId` — end one of the caller's sessions.
- * The ownership check is the point: the store revokes any id it is handed, so
- * an id that leaked into a log would otherwise be a remote-logout weapon. A
- * session of somebody else's answers exactly as an absent one does — `404`,
- * never `403`, which would confirm a guessed id. Revoking the current session
- * simply signs the caller out.
+ * `GET /api/auth/memberships` — the organizations the caller may switch to,
+ * default first. Read from the caller's own party, never from an id in the
+ * request.
  */
-const revokeMySession = defineEndpoint({
-  name: 'revoke-my-session',
-  method: 'DELETE',
-  path: '/api/auth/sessions/:sessionId',
-  params: { sessionId: Schema.String },
-  success: Schema.Struct({ ok: Schema.Boolean, signedOut: Schema.Boolean }),
-  errors: [DuplicateKey, NotFound],
+const myMemberships = defineEndpoint({
+  name: 'my-memberships',
+  method: 'GET',
+  path: '/api/auth/memberships',
+  success: Items,
+  errors: [],
   guard: { kind: 'session' },
 });
 
@@ -126,18 +123,18 @@ export const sessionEndpoints = [
       };
     }),
   ),
-  implement(revokeMySession, ({ params }) =>
+  implement(myMemberships, () =>
     Effect.gen(function* () {
       const principal = yield* RequestPrincipalTag;
-      const sessions = yield* SessionStoreTag;
-      const record = yield* sessions.read(params.sessionId);
-      if (String(record.userId) !== String(principal.userId)) {
-        return yield* new NotFound({ entity: 'session' });
-      }
-      yield* sessions.revoke(params.sessionId);
+      const scopes = yield* SessionScopeResolverTag;
+      const memberships = yield* scopes.membershipsOf(String(principal.userId));
+      // Which one this session acts for, so the switcher can mark it without
+      // a second read of the token.
       return {
-        ok: true,
-        signedOut: params.sessionId === principal.sessionId,
+        items: memberships.map(membership => ({
+          ...membership,
+          current: membership.organizationId === principal.organizationId,
+        })),
       };
     }),
   ),

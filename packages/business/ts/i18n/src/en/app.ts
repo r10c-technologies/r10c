@@ -5,6 +5,11 @@ export const app: EsApp = {
     brand: 'r10c Admin',
     title: 'r10c · Marketplace admin',
     description: 'Back office for the r10c marketplace.',
+    /** The two palettes the account menu offers (#530). */
+    themes: {
+      ocean: 'Ocean',
+      midnight: 'Midnight',
+    },
     nav: {
       dashboard: 'Dashboard',
       account: 'Account',

@@ -115,8 +115,8 @@ export const entity = {
     label: 'Usuario',
     plural: 'Usuarios',
     // Whole phrases rather than a verb plus `label`, for the reason recorded on
-    // the form titles above. The voice matches `shell.sessions.revoke`, which
-    // says "Cerrar", not "Revocar".
+    // the form titles above. Every session verb says "Cerrar", never
+    // "Revocar" — `user-device`'s `signOutSession` below included.
     useCases: {
       revokeSessions: 'Cerrar todas las sesiones',
       revokeSessionsConfirm:
@@ -138,6 +138,9 @@ export const entity = {
       signOutOthersKeywords: 'logout, sign out, cerrar sesion, dispositivos',
       signOutOthersConfirm:
         'Se cerrarán todas tus sesiones en otros dispositivos y navegadores. Ésta seguirá abierta.',
+      switchOrganization: 'Cambiar de organización',
+      switchOrganizationKeywords:
+        'organization, switch, cambiar, organizacion, empresa',
     },
     fields: {
       id: 'ID',
@@ -183,6 +186,11 @@ export const entity = {
   'user-device': {
     label: 'Dispositivo',
     plural: 'Dispositivos',
+    useCases: {
+      signOutSession: 'Cerrar esta sesión',
+      signOutSessionConfirm:
+        'Se cerrará la sesión en este dispositivo y quien la use tendrá que volver a iniciar sesión. Si es ésta, saldrás ahora.',
+    },
     fields: {
       id: 'ID',
       userId: 'ID de usuario',

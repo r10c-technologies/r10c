@@ -30,33 +30,67 @@ export const makeInMemorySessionScopeResolver = (
     return PRECEDENCE.find(role => roles.includes(role)) ?? 'customer';
   };
 
+  const partyOf = (userId: string) =>
+    world.individuals.find(one => one.userId === userId);
+  const membershipsOf = (partyId: string) =>
+    [...world.memberships.filter(one => one.partyId === partyId)].sort(
+      (left, right) =>
+        Number(right.isDefault === true) - Number(left.isDefault === true),
+    );
+
+  const scopeIn = (
+    partyId: string,
+    organizationId: string | undefined,
+  ): SessionScope => {
+    const partyRole = roleOf(partyId, organizationId);
+    if (organizationId === undefined) {
+      return { partyId, partyRole, entitlements: [] };
+    }
+    return {
+      organizationId,
+      partyId,
+      partyRole,
+      entitlements: [
+        ...(world.entitlements.find(
+          one => one.organizationId === organizationId,
+        )?.domains ?? []),
+      ],
+    };
+  };
+
   return {
     forUser: userId =>
       Effect.sync((): SessionScope => {
-        const party = world.individuals.find(one => one.userId === userId);
+        const party = partyOf(userId);
         if (party === undefined) {
           return { partyRole: 'customer', entitlements: [] };
         }
-        const memberships = world.memberships.filter(
-          one => one.partyId === party.id,
-        );
-        const organizationId = (
-          memberships.find(one => one.isDefault === true) ?? memberships[0]
-        )?.organizationId;
-        const partyRole = roleOf(party.id, organizationId);
-        if (organizationId === undefined) {
-          return { partyId: party.id, partyRole, entitlements: [] };
-        }
-        return {
-          organizationId,
-          partyId: party.id,
-          partyRole,
-          entitlements: [
-            ...(world.entitlements.find(
-              one => one.organizationId === organizationId,
-            )?.domains ?? []),
-          ],
-        };
+        return scopeIn(party.id, membershipsOf(party.id)[0]?.organizationId);
+      }),
+    forMembership: (userId, organizationId) =>
+      Effect.sync(() => {
+        const party = partyOf(userId);
+        if (party === undefined) return undefined;
+        return membershipsOf(party.id).some(
+          one => one.organizationId === organizationId,
+        )
+          ? scopeIn(party.id, organizationId)
+          : undefined;
+      }),
+    membershipsOf: userId =>
+      Effect.sync(() => {
+        const party = partyOf(userId);
+        if (party === undefined) return [];
+        return membershipsOf(party.id).map(one => {
+          const name = world.organizations.find(
+            organization => organization.id === one.organizationId,
+          )?.name;
+          return {
+            organizationId: one.organizationId,
+            ...(name === undefined ? {} : { name }),
+            isDefault: one.isDefault === true,
+          };
+        });
       }),
   };
 };

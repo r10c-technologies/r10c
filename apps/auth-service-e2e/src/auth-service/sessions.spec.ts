@@ -105,8 +105,11 @@ describe('session self-service', () => {
     const mine = await signIn(await openAccount('victim'), 'device-mine');
     const theirs = await signIn(await openAccount('attacker'), 'device-theirs');
 
-    const res = await service.client.delete(
-      `/api/auth/sessions/${mine.sessionId}`,
+    // The `sign-out-session` verb, declared on `UserDevice`; the id is the
+    // session's.
+    const res = await service.client.post(
+      `/api/user-device/${mine.sessionId}/sign-out-session`,
+      {},
       asUser(theirs.accessToken),
     );
 
@@ -125,8 +128,11 @@ describe('session self-service', () => {
     const keep = await signIn(email, 'device-keep');
     const drop = await signIn(email, 'device-drop');
 
-    const res = await service.client.delete(
-      `/api/auth/sessions/${drop.sessionId}`,
+    // The `sign-out-session` verb, declared on `UserDevice`; the id is the
+    // session's.
+    const res = await service.client.post(
+      `/api/user-device/${drop.sessionId}/sign-out-session`,
+      {},
       asUser(keep.accessToken),
     );
 
@@ -142,8 +148,11 @@ describe('session self-service', () => {
     const email = await openAccount('sign-me-out');
     const session = await signIn(email, 'device-current');
 
-    const res = await service.client.delete(
-      `/api/auth/sessions/${session.sessionId}`,
+    // The `sign-out-session` verb, declared on `UserDevice`; the id is the
+    // session's.
+    const res = await service.client.post(
+      `/api/user-device/${session.sessionId}/sign-out-session`,
+      {},
       asUser(session.accessToken),
     );
 

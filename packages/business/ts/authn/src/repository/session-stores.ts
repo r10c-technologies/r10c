@@ -62,8 +62,30 @@ export interface SessionScope {
   readonly entitlements: readonly string[];
 }
 
+/** One organization a party is a member of, as the switcher lists it. */
+export interface MembershipChoice {
+  readonly organizationId: string;
+  /** The organization's display name; absent when its record is missing. */
+  readonly name?: string;
+  readonly isDefault: boolean;
+}
+
 export interface SessionScopeResolver {
+  /** What a session opens as at sign-in: the default membership's scope. */
   readonly forUser: (userId: string) => Effect.Effect<SessionScope>;
+  /**
+   * What a session opens as in one named organization, or `undefined` when the
+   * user holds no membership there. The membership is the authority: an
+   * organization id in a request is never a scope by itself.
+   */
+  readonly forMembership: (
+    userId: string,
+    organizationId: string,
+  ) => Effect.Effect<SessionScope | undefined>;
+  /** Every organization the user is a member of, default first. */
+  readonly membershipsOf: (
+    userId: string,
+  ) => Effect.Effect<readonly MembershipChoice[]>;
 }
 
 export class SessionScopeResolverTag extends Context.Service<

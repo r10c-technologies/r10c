@@ -66,6 +66,7 @@ describeSessionScopeResolverContract('the Mongo resolver', world =>
       membership: world.memberships,
       'party-role': world.roles,
       entitlement: world.entitlements,
+      organization: world.organizations,
     }),
   ),
 );
@@ -249,6 +250,25 @@ describe('makeMongoSessionScopeResolver', () => {
     );
 
     expect(scope.entitlements).toEqual(['catalog']);
+  });
+});
+
+describe('the memberships to choose from', () => {
+  it('skips a membership row that names no organization', async () => {
+    const resolver = makeMongoSessionScopeResolver(
+      fakeDb({
+        individual: [{ id: 'p-1', userId: 'u-1' }],
+        membership: [
+          { partyId: 'p-1', organizationId: 42 },
+          { partyId: 'p-1', organizationId: ORG, isDefault: true },
+        ],
+        organization: [{ id: ORG, name: 42 }],
+      }),
+    );
+
+    expect(await Effect.runPromise(resolver.membershipsOf('u-1'))).toEqual([
+      { organizationId: ORG, isDefault: true },
+    ]);
   });
 });
 

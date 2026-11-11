@@ -17,6 +17,7 @@
   **server** half and left the client half unmounted: `useSessionRefresh` was
   written, specced and referenced by nothing. Corrected in place below.
 - Revised: 2026-11-04 — the access-token lifetime is a configuration row, `auth-service` / `session` / `accessTokenTtlSeconds` (seeded 900), read into `AccessTokenLifetimeTag`; the browser schedules each refresh from the `expiresIn` the last one answered (#492)
+- Revised: 2026-11-11 — a session's scope is still resolved once and carried, so a member switching organization (`switch-organization`, #527) is a **new session** opened in that membership and the old one revoked: it keeps the old session's absolute ceiling, so switching never extends a session, and its `id_token` and the provider's `sid` move with it, so back-channel logout still ends it.
 
 ## Context
 

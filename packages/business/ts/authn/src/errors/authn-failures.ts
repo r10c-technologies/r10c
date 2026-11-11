@@ -120,6 +120,18 @@ export class RoleNotAllowed extends Failure.forbidden<RoleNotAllowed>()(
 ) {}
 
 /** Editing a user who outranks the actor. */
+/**
+ * A switch to an organization the caller is no member of. Named, rather than
+ * answered as `forbidden`, because the screen can say what happened: the
+ * organization is not one of yours, which no grant would change.
+ */
+export class NotAMember extends Failure.forbidden<NotAMember>()(
+  'NotAMember',
+  'notAMember',
+  {},
+  { message: () => 'not a member of that organization' },
+) {}
+
 export class UserNotAllowed extends Failure.forbidden<UserNotAllowed>()(
   'UserNotAllowed',
   'userNotAllowed',

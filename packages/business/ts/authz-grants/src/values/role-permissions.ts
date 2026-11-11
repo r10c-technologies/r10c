@@ -69,6 +69,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // only checks that a declared verb is granted *somewhere*, so a role added
     // later that omits this line loses self-service silently.
     `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
+    // Ending one of your own sessions, the row on the sessions screen. Held by
+    // every role beside `sign-out-others`, for the same reason.
+    `${AUTHN_DOMAIN}:user-device:sign-out-session`,
+    // Moving your session to another organization you are a member of. Held
+    // by every role: the membership is what decides, and a role with none has
+    // nothing to switch to.
+    `${AUTHN_DOMAIN}:user-identity:switch-organization`,
   ],
   // Catalog authoring plus user management, bounded by the role-assignment rule.
   admin: [
@@ -254,6 +261,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${AUTHN_DOMAIN}:user-identity:revoke-sessions`,
     // The self-service half, held by every role — see the note on `user`.
     `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
+    // Ending one of your own sessions, the row on the sessions screen. Held by
+    // every role beside `sign-out-others`, for the same reason.
+    `${AUTHN_DOMAIN}:user-device:sign-out-session`,
+    // Moving your session to another organization you are a member of. Held
+    // by every role: the membership is what decides, and a role with none has
+    // nothing to switch to.
+    `${AUTHN_DOMAIN}:user-identity:switch-organization`,
     // Reading identifiers is how the user list shows who an account is; it is
     // granted explicitly rather than as `authn:*:read` so a future sensitive
     // entity in this domain is not swept in by accident.
@@ -297,6 +311,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // narrows that wildcard nobody should discover it by being unable to sign
     // themselves out.
     `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
+    // Ending one of your own sessions, the row on the sessions screen. Held by
+    // every role beside `sign-out-others`, for the same reason.
+    `${AUTHN_DOMAIN}:user-device:sign-out-session`,
+    // Moving your session to another organization you are a member of. Held
+    // by every role: the membership is what decides, and a role with none has
+    // nothing to switch to.
+    `${AUTHN_DOMAIN}:user-identity:switch-organization`,
     // Cancelling any vendor's order. Named here as well as under `admin`
     // because an operator's reach is genuinely wider rather than the same act
     // with a different badge: a vendor cancels their own orders, an operator

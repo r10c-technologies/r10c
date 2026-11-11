@@ -51,6 +51,9 @@
       "path": "../../packages/business/ts/catalog-reference"
     },
     {
+      "path": "../../packages/business/ts/authn"
+    },
+    {
       "path": "../../packages/business/ts/product-configuration-management"
     }
   ]

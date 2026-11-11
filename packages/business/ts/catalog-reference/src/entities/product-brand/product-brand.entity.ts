@@ -51,6 +51,9 @@ export class ProductBrand implements Entity {
     type: 'string',
     label: 'Code',
     labelKey: 'entity:product-brand.fields.code',
+    // A code is a short slug. The narrower floor is what keeps the brand
+    // list a table rather than cards at 1280px, per #527.
+    minWidth: 6,
   })
   get code(): string | undefined {
     return this.#code;
@@ -98,6 +101,9 @@ export class ProductBrand implements Entity {
     type: 'string',
     label: 'Website',
     labelKey: 'entity:product-brand.fields.website',
+    // Long addresses wrap; the floor only decides when the list turns into
+    // cards, per #527.
+    minWidth: 8,
   })
   get website(): string | undefined {
     return this.#website;
@@ -115,6 +121,8 @@ export class ProductBrand implements Entity {
     type: 'enum',
     label: 'Status',
     labelKey: 'entity:product-brand.fields.status',
+    // One short word, `Activa` or `Retirada`, per #527.
+    minWidth: 6,
     enumValues: ReferenceStatuses,
     enumLabelKey: 'entity:reference-status',
     filterable: true,

@@ -10,6 +10,7 @@ import {
   seedSession,
 } from '@entifix/testing-e2e/playwright';
 import type { Locator, Page } from '@playwright/test';
+import { UserDevice, UserIdentity } from '@r10c/business-ts-authn';
 import {
   ProductBrand,
   ProductCategory,
@@ -702,6 +703,72 @@ const sessionHandlers = [
   ),
 ];
 
+/**
+ * The auth affordance documents, served as auth-service serves them: the
+ * verbs `UserIdentity` and `UserDevice` declare. The sessions screen reads
+ * `sign-out-session` and `sign-out-others` from them, and the palette its
+ * unbound verbs.
+ */
+const authMetadataHandlers = [
+  http.get(`${APP_URL}/api/user-identity/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'user-identity' },
+      data: {
+        actions: ['read'],
+        useCases: describeEntityUseCases(UserIdentity),
+      },
+    }),
+  ),
+  http.get(`${APP_URL}/api/user-device/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'user-device' },
+      data: { actions: [], useCases: describeEntityUseCases(UserDevice) },
+    }),
+  ),
+];
+
+/** Every session verb this run sent, in order: `others` or the session's id. */
+export const sessionVerbs: string[] = [];
+
+const sessionVerbHandlers = [
+  http.post(`${APP_URL}/api/user-device/:id/sign-out-session`, ({ params }) => {
+    sessionVerbs.push(String(params['id']));
+    return HttpResponse.json({ ok: true, signedOut: false });
+  }),
+  http.post(`${APP_URL}/api/auth/sessions`, () => {
+    sessionVerbs.push('others');
+    return HttpResponse.json({ ok: true });
+  }),
+];
+
+/** The demo organization, the one membership the signed-in admin holds. */
+export const DEMO_MEMBERSHIP = {
+  organizationId: 'demo-organization',
+  name: 'Demo Vendor',
+  isDefault: true,
+  current: true,
+};
+
+/** Every organization a switch asked for in this run. */
+export const switches: string[] = [];
+
+/**
+ * One membership by default, so the top bar shows no switcher and every other
+ * spec's screens stay as they were; a spec about switching answers two.
+ */
+const organizationHandlers = [
+  http.get(`${APP_URL}/api/auth/memberships`, () =>
+    HttpResponse.json({ items: [DEMO_MEMBERSHIP] }),
+  ),
+  http.post(`${APP_URL}/api/auth/active-organization`, async ({ request }) => {
+    const { organizationId } = (await request.json()) as {
+      organizationId: string;
+    };
+    switches.push(organizationId);
+    return HttpResponse.json({ ok: true });
+  }),
+];
+
 const realtimeHandlers = [
   http.get(STREAM_URL, idleStream),
   http.get(FLOW_STATUS_URL, () =>
@@ -745,6 +812,9 @@ const base = defineEntifixE2eTest({
     ...createHandlers,
     ...configurations.handlers,
     ...sessionHandlers,
+    ...authMetadataHandlers,
+    ...sessionVerbHandlers,
+    ...organizationHandlers,
     ...realtimeHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
