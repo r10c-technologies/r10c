@@ -152,7 +152,7 @@
     "@opentelemetry/sdk-trace-base": "2.12.0",
     "@opentelemetry/sdk-trace-node": "2.12.0",
     "@opentelemetry/sdk-trace-web": "2.12.0",
-    "@opentelemetry/semantic-conventions": "1.44.0",
+    "@opentelemetry/semantic-conventions": "1.45.0",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-catalog-contracts": "workspace:*",
