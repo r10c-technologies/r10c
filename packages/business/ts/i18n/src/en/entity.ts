@@ -104,6 +104,9 @@ export const entity: EsEntity = {
       signOutOthersKeywords: 'logout, revoke, devices, cerrar sesion',
       signOutOthersConfirm:
         'Every session you have on other devices and browsers will end. This one stays open.',
+      switchOrganization: 'Switch organization',
+      switchOrganizationKeywords:
+        'organization, switch, cambiar, organizacion, company',
     },
     fields: {
       id: 'ID',
@@ -149,6 +152,11 @@ export const entity: EsEntity = {
   'user-device': {
     label: 'Device',
     plural: 'Devices',
+    useCases: {
+      signOutSession: 'Sign out this session',
+      signOutSessionConfirm:
+        'The session on this device ends, and whoever uses it has to sign in again. If it is this one, you are signed out now.',
+    },
     fields: {
       id: 'ID',
       userId: 'User ID',

@@ -23,6 +23,7 @@ export interface PartyWorld {
     organizationId: string;
     domains: readonly string[];
   }>;
+  readonly organizations: ReadonlyArray<{ id: string; name: string }>;
 }
 
 const EMPTY: PartyWorld = {
@@ -30,6 +31,7 @@ const EMPTY: PartyWorld = {
   memberships: [],
   roles: [],
   entitlements: [],
+  organizations: [],
 };
 
 /**
@@ -40,7 +42,10 @@ const EMPTY: PartyWorld = {
  * - the role played there, falling back to roles held platform-wide;
  * - `operator` over `vendor` over `customer`, and `customer` for anyone with
  *   no role or no party at all;
- * - that organization's entitlements, and none without an organization.
+ * - that organization's entitlements, and none without an organization;
+ * - in a named organization, the same scope as if it were the default — and
+ *   nothing at all where the user is no member;
+ * - the memberships to choose from, default first, each with its name.
  *
  * `make(world)` returns a resolver reading `world`.
  */
@@ -120,6 +125,71 @@ export const describeSessionScopeResolverContract = (
           roles: [{ partyId: 'p-1', role: 'vendor', organizationId: 'org-a' }],
         }),
       ).toEqual({ partyId: 'p-1', partyRole: 'customer', entitlements: [] });
+    });
+
+    const twoOrganizations: Partial<PartyWorld> = {
+      ...party,
+      memberships: [
+        { partyId: 'p-1', organizationId: 'org-a', isDefault: true },
+        { partyId: 'p-1', organizationId: 'org-b' },
+      ],
+      roles: [
+        { partyId: 'p-1', role: 'customer', organizationId: 'org-a' },
+        { partyId: 'p-1', role: 'vendor', organizationId: 'org-b' },
+      ],
+      entitlements: [{ organizationId: 'org-b', domains: ['catalog'] }],
+      organizations: [
+        { id: 'org-a', name: 'Org A' },
+        { id: 'org-b', name: 'Org B' },
+      ],
+    };
+    const inOrganization = async (
+      world: Partial<PartyWorld>,
+      organizationId: string,
+      userId = 'u-1',
+    ) =>
+      Effect.runPromise(
+        (await make({ ...EMPTY, ...world })).forMembership(
+          userId,
+          organizationId,
+        ),
+      );
+
+    it('opens in a named membership, as the role played there', async () => {
+      expect(await inOrganization(twoOrganizations, 'org-b')).toEqual({
+        organizationId: 'org-b',
+        partyId: 'p-1',
+        partyRole: 'vendor',
+        entitlements: ['catalog'],
+      });
+    });
+
+    it('opens nowhere a user is no member of, nor for a user with no party', async () => {
+      expect(await inOrganization(twoOrganizations, 'org-c')).toBeUndefined();
+      expect(
+        await inOrganization(twoOrganizations, 'org-a', 'u-2'),
+      ).toBeUndefined();
+    });
+
+    it('lists the memberships to choose from, default first', async () => {
+      const resolver = await make({
+        ...EMPTY,
+        ...twoOrganizations,
+        memberships: [
+          { partyId: 'p-1', organizationId: 'org-b' },
+          { partyId: 'p-1', organizationId: 'org-a', isDefault: true },
+          { partyId: 'p-1', organizationId: 'org-gone' },
+        ],
+      });
+
+      expect(await Effect.runPromise(resolver.membershipsOf('u-1'))).toEqual([
+        { organizationId: 'org-a', name: 'Org A', isDefault: true },
+        { organizationId: 'org-b', name: 'Org B', isDefault: false },
+        { organizationId: 'org-gone', isDefault: false },
+      ]);
+      expect(await Effect.runPromise(resolver.membershipsOf('u-2'))).toEqual(
+        [],
+      );
     });
   });
 };

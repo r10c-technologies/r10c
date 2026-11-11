@@ -5,6 +5,7 @@ import {
   ALAN,
   membershipSeedData,
   organizationSeedData,
+  secondMembershipSeedData,
   VENDOR_MEMBERS,
   vendorMemberSeedData,
 } from './tenancy-seed-data';
@@ -46,5 +47,25 @@ describe('the seeded tenancy', () => {
       role: 'vendor',
     });
     expect(membershipSeedData('org-x')).toEqual(membership);
+  });
+
+  it('adds a second membership that is not the default, under that organization’s own role', () => {
+    const { membership, partyRole } = secondMembershipSeedData('org-y', ALAN);
+
+    expect(membership).toEqual([
+      expect.objectContaining({
+        partyId: ALAN.partyId,
+        organizationId: 'org-y',
+        roleIds: ['role-org-y-catalog'],
+        isDefault: false,
+      }),
+    ]);
+    expect(partyRole[0]).toMatchObject({
+      organizationId: 'org-y',
+      role: 'vendor',
+    });
+    expect(membership[0]?.id).not.toBe(
+      vendorMemberSeedData('org-x', ALAN).membership[0]?.id,
+    );
   });
 });

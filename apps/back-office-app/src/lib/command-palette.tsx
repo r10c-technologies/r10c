@@ -8,6 +8,7 @@ import {
 } from '@entifix/next-shell';
 import { makeEntityMetadataSource } from '@entifix/rest';
 import { UserIdentity } from '@r10c/business-ts-authn';
+import { requestOrganizationChoice } from '@r10c/shells-next-auth';
 
 /**
  * Built once at module scope, not per render: it holds no state, and a new
@@ -44,8 +45,8 @@ const signOutOthers = async (): Promise<void> => {
  * entry, so an array rebuilt each render would change the hook count. The same
  * constraint `makeEntityCrud`'s `links` carries, and for the same reason.
  *
- * One entity today. `UserIdentity` is the only class in the fleet declaring an
- * `unbound` verb, and the group renders exactly what `$metadata` says this
+ * One entity today. `UserIdentity` is the only class in the fleet declaring
+ * `unbound` verbs, and the group renders exactly what `$metadata` says this
  * caller may invoke — so a second one is a line here, not a change to the
  * palette.
  */
@@ -53,7 +54,12 @@ const USE_CASE_ENTITIES: readonly UseCaseCommandEntity[] = [
   {
     entityConstructor: UserIdentity,
     metadataSource,
-    handlers: { 'sign-out-others': signOutOthers },
+    handlers: {
+      'sign-out-others': signOutOthers,
+      // Opens the switcher rather than switching: the verb needs an
+      // organization, and the dialog is where one is chosen.
+      'switch-organization': requestOrganizationChoice,
+    },
   },
 ];
 

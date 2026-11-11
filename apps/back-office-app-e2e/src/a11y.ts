@@ -20,15 +20,14 @@ import { expect, type Page, test } from '@playwright/test';
 export const BASELINE = join(__dirname, 'a11y-baseline.json');
 
 /**
- * The keyboard walk's limits, ratcheted like the baseline. The back office has
- * no skip link, and its sidebar puts 67 stops before `main` (measured on every
- * gated screen, 2026-11-05);
- * r10c-technologies/r10c#527 adds the skip link and one stop per navigation
- * group, and tightens both to the targets (a skip link first, main within 3).
+ * The keyboard walk's limits, at ADR 0075's targets: a skip link is the first
+ * stop, and `main` is reached within three, because the sidebar is one stop
+ * per navigation group (entifix's `BackOfficeShell`, #527). `maxStops` bounds
+ * a whole screen's walk.
  */
 export const WALK: WalkOptions = {
-  skipLink: false,
-  mainIndexMax: 68,
+  skipLink: true,
+  mainIndexMax: 3,
   maxStops: 90,
 };
 

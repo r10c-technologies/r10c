@@ -98,6 +98,51 @@ const resolvePartyRole = async (
   );
 };
 
+/** The scope a session opens with, for one party in one organization. */
+const scopeIn = async (
+  db: Db,
+  party: Record<string, unknown>,
+  organizationId: unknown,
+) => {
+  // Narrowed rather than cast, for the reason every other field here is: a
+  // document whose `id` is missing or of another type must not become an
+  // identity a downstream read is scoped by.
+  const partyId = typeof party['id'] === 'string' ? party['id'] : undefined;
+  const partyRole = await resolvePartyRole(
+    db,
+    party['id'],
+    typeof organizationId === 'string' ? organizationId : undefined,
+  );
+
+  if (typeof organizationId !== 'string') {
+    // No membership, so no organization and nothing to be provisioned for.
+    // The empty list is never consulted: `organizationId` being absent is
+    // what tells every consumer the ceiling does not apply.
+    return { partyId, partyRole, entitlements: [] };
+  }
+
+  // What the organization actually bought (ADR 0007). Read here rather than
+  // per request because it changes on provisioning, which is rare, and a
+  // lookup on the hot path is exactly what carrying it on the session
+  // avoids. The cost is stated: a change is stale until the next sign-in.
+  const entitlement = await db
+    .collection('entitlement')
+    .findOne({ organizationId });
+  const domains = entitlement?.['domains'];
+
+  return {
+    organizationId,
+    partyId,
+    partyRole,
+    // A row whose `domains` is missing or malformed reads as provisioned for
+    // nothing rather than for everything: this is a ceiling, so the
+    // direction to be wrong in is the narrow one.
+    entitlements: Array.isArray(domains)
+      ? domains.filter((domain): domain is string => typeof domain === 'string')
+      : [],
+  };
+};
+
 export const makeMongoSessionScopeResolver = (
   db: Db,
 ): SessionScopeResolver => ({
@@ -107,11 +152,6 @@ export const makeMongoSessionScopeResolver = (
       if (party === null) {
         return { partyRole: DEFAULT_PARTY_ROLE, entitlements: [] };
       }
-
-      // Narrowed rather than cast, for the reason every other field here is: a
-      // document whose `id` is missing or of another type must not become an
-      // identity a downstream read is scoped by.
-      const partyId = typeof party['id'] === 'string' ? party['id'] : undefined;
 
       // ⚠️ **The membership is resolved first, and the role is read from it.**
       // A role is played in a context, so which organization the session opened
@@ -128,42 +168,58 @@ export const makeMongoSessionScopeResolver = (
         // than stranding the member with no tenant scope at all.
         (await memberships.findOne({ partyId: party['id'] }));
 
-      const organizationId = preferred?.['organizationId'];
-      const partyRole = await resolvePartyRole(
-        db,
-        party['id'],
-        typeof organizationId === 'string' ? organizationId : undefined,
+      return scopeIn(db, party, preferred?.['organizationId']);
+    }),
+
+  forMembership: (userId: string, organizationId: string) =>
+    Effect.promise(async () => {
+      const party = await db.collection('individual').findOne({ userId });
+      if (party === null) return undefined;
+      // The membership is the authority, never the id the caller sent: no row,
+      // no scope, whatever organization was named.
+      const membership = await db
+        .collection('membership')
+        .findOne({ partyId: party['id'], organizationId });
+      return membership === null
+        ? undefined
+        : scopeIn(db, party, organizationId);
+    }),
+
+  membershipsOf: (userId: string) =>
+    Effect.promise(async () => {
+      const party = await db.collection('individual').findOne({ userId });
+      if (party === null) return [];
+      const rows = await db
+        .collection('membership')
+        .find({ partyId: party['id'] })
+        .toArray();
+      const choices = await Promise.all(
+        rows
+          .map(row => ({
+            organizationId: row['organizationId'],
+            isDefault: row['isDefault'] === true,
+          }))
+          .filter(
+            (row): row is { organizationId: string; isDefault: boolean } =>
+              typeof row.organizationId === 'string',
+          )
+          .map(async row => {
+            const organization = await db
+              .collection('organization')
+              .findOne({ id: row.organizationId });
+            const name = organization?.['name'];
+            return {
+              organizationId: row.organizationId,
+              ...(typeof name === 'string' ? { name } : {}),
+              isDefault: row.isDefault,
+            };
+          }),
       );
-
-      if (typeof organizationId !== 'string') {
-        // No membership, so no organization and nothing to be provisioned for.
-        // The empty list is never consulted: `organizationId` being absent is
-        // what tells every consumer the ceiling does not apply.
-        return { partyId, partyRole, entitlements: [] };
-      }
-
-      // What the organization actually bought (ADR 0007). Read here rather than
-      // per request because it changes on provisioning, which is rare, and a
-      // lookup on the hot path is exactly what carrying it on the session
-      // avoids. The cost is stated: a change is stale until the next sign-in.
-      const entitlement = await db
-        .collection('entitlement')
-        .findOne({ organizationId });
-      const domains = entitlement?.['domains'];
-
-      return {
-        organizationId,
-        partyId,
-        partyRole,
-        // A row whose `domains` is missing or malformed reads as provisioned for
-        // nothing rather than for everything: this is a ceiling, so the
-        // direction to be wrong in is the narrow one.
-        entitlements: Array.isArray(domains)
-          ? domains.filter(
-              (domain): domain is string => typeof domain === 'string',
-            )
-          : [],
-      };
+      // Default first, the rest in the order they were stored.
+      return [
+        ...choices.filter(choice => choice.isDefault),
+        ...choices.filter(choice => !choice.isDefault),
+      ];
     }),
 });
 

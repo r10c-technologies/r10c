@@ -3,6 +3,7 @@ import {
   authFlowEndpoints,
   entityIdentifierApi,
   sessionEndpoints,
+  userDeviceApi,
   userIdentityApi,
   userSessionEndpoints,
 } from '@r10c/implementation-authn-http';
@@ -28,6 +29,7 @@ export const endpoints = [
   endpointGroup('auth-sessions', ...sessionEndpoints),
   entityApi(userIdentityApi),
   entityApi(entityIdentifierApi),
+  entityApi(userDeviceApi),
   endpointGroup('user-sessions', ...userSessionEndpoints),
 ] as const;
 

@@ -23,6 +23,7 @@
     "@entifix/testing-e2e": "catalog:"
   },
   "dependencies": {
+    "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-configuration": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",

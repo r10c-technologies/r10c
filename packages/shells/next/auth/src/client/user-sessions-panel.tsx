@@ -1,14 +1,13 @@
 'use client';
 
 import {
-  Button,
+  Alert,
   Card,
   Stack,
   Text,
   useFormatters,
   useT,
 } from '@entifix/react-controls';
-import { useState } from 'react';
 
 import type { SessionRow } from './account-sessions-view';
 import { failedResponse } from './failed-response';
@@ -28,8 +27,14 @@ const readUserSessions = async (
 };
 
 /**
- * An administrator's view of where a user is signed in, with a way to end it —
- * incident response for a compromised account.
+ * An administrator's view of where a user is signed in — incident response for
+ * a compromised account.
+ *
+ * It lists and does not act. Ending those sessions is the `revoke-sessions`
+ * verb, which the record's form renders in its header from the served
+ * descriptor, behind its confirmation; a second button here used to post the
+ * same verb around that dialog. The page remounts this panel after the verb
+ * runs, so the list it shows is the one left behind.
  *
  * The panel simply disappears when the caller lacks `authn:user-device:read`,
  * because auth-service answers 403 and there is nothing to show. That is
@@ -38,36 +43,16 @@ const readUserSessions = async (
 export function UserSessionsPanel({ userId }: { userId: string }) {
   const t = useT('r10c');
   const { dateTime } = useFormatters();
-  const [busy, setBusy] = useState(false);
 
-  const {
-    data: rows,
-    error,
-    reload,
-  } = useAsyncResource(`user-sessions:${userId}`, () =>
-    readUserSessions(userId),
+  const { data: rows, error } = useAsyncResource(
+    `user-sessions:${userId}`,
+    () => readUserSessions(userId),
   );
-
-  const kick = async () => {
-    setBusy(true);
-    try {
-      await fetch(`/api/user-identity/${userId}/sessions`, {
-        method: 'DELETE',
-      });
-      reload();
-    } finally {
-      setBusy(false);
-    }
-  };
 
   // Not permitted, or not loaded yet — either way there is nothing to render.
   if (rows === null || rows === undefined) {
     return error === undefined ? null : (
-      <Card>
-        <Text className="text-danger" role="alert">
-          {t('auth.users.sessionsFailed')}
-        </Text>
-      </Card>
+      <Alert tone="danger">{t('auth.users.sessionsFailed')}</Alert>
     );
   }
 
@@ -95,11 +80,7 @@ export function UserSessionsPanel({ userId }: { userId: string }) {
 
         {rows.length === 0 ? (
           <Text muted>{t('auth.users.sessionsEmpty')}</Text>
-        ) : (
-          <Button variant="secondary" size="sm" disabled={busy} onClick={kick}>
-            {busy ? t('auth.users.kicking') : t('auth.users.kick')}
-          </Button>
-        )}
+        ) : null}
       </Stack>
     </Card>
   );

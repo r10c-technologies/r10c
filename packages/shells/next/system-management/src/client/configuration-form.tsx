@@ -87,6 +87,11 @@ export function ConfigurationForm({
       formError={form.formError}
       onSubmit={form.submit}
       onDelete={onDelete}
+      // Configuration rows are what the fleet boots from: deleting one is
+      // typed, and the name typed is the row's own key rather than its
+      // service — its first field — which many rows share (#527).
+      deletePolicy="typed"
+      {...(entity?.key === undefined ? {} : { recordLabel: entity.key })}
       isLoading={isLoading}
       isSaving={isSaving}
       isDeleting={isDeleting}

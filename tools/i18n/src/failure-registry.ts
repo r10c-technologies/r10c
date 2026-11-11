@@ -44,7 +44,20 @@ export const uncatalogedCodes = (
 export const orphanKeys = (
   catalog: Readonly<Record<string, unknown>>,
   known: ReadonlySet<string>,
-): string[] => Object.keys(catalog).filter(key => !known.has(key));
+): string[] =>
+  Object.keys(catalog).filter(key => !known.has(actionCode(key) ?? key));
+
+/**
+ * The code an `errors:<code>Action` key names the next step for, or
+ * `undefined` for a key that is not one (entifix ADR 0028). An action key is
+ * known exactly when its code is: a button labelled for a failure nothing
+ * answers with is one nobody can reach, and a failure renamed without its
+ * action key would leave the button behind.
+ */
+export const actionCode = (key: string): string | undefined =>
+  key.endsWith('Action') && key.length > 'Action'.length
+    ? key.slice(0, -'Action'.length)
+    : undefined;
 
 /**
  * Codes the browser composes on its own — no service answers with them, so no

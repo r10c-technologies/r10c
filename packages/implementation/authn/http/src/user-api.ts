@@ -5,6 +5,7 @@ import {
   type EntityApiRequest,
   RequestPrincipalTag,
   SessionStoreTag,
+  TokenServiceTag,
   verbEndpoint,
 } from '@entifix/business';
 import {
@@ -17,12 +18,14 @@ import {
   serializeEntity,
 } from '@entifix/core';
 import {
+  AccessTokenLifetimeTag,
   AccountRepositoryTag,
   EmailRequired,
   EntityIdentifier,
   IdentifierInUse,
   IdentifierRequired,
   type IdentifierType,
+  type Principal,
   ProviderDirectoryTag,
   ProviderUnavailable,
   provisionProviderHuman,
@@ -33,6 +36,10 @@ import {
   RoleNotAllowed,
   SignOutOtherSessionsInputTag,
   SignOutOtherSessionsUC,
+  SignOutSessionInputTag,
+  SignOutSessionUC,
+  SwitchOrganizationInputTag,
+  SwitchOrganizationUC,
   UnknownRole,
   UnknownStatus,
   UpdateUserAspectsInputTag,
@@ -183,6 +190,101 @@ const signOutOthers = verbEndpoint(SignOutOtherSessionsUC, {
 });
 
 /**
+ * End one of your own sessions — `POST /api/user-device/:id/sign-out-session`,
+ * where the id is the **session's**. A device can hold several sessions, and
+ * the verb sits on `UserDevice` only because that is the cell that renders it
+ * on a row (see the use case). Guarded by the verb, held by every role.
+ */
+const signOutSession = verbEndpoint(SignOutSessionUC, {
+  guard: { kind: 'permission' },
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    SignOutSessionUC.run().pipe(
+      Effect.provideService(SignOutSessionInputTag, {
+        userId: principalOf(context).userId,
+        sessionId: request.params?.id as string,
+        currentSessionId: principalOf(context).sessionId,
+      }),
+      Effect.map(({ signedOut }) => ({ ok: true, signedOut })),
+    ),
+});
+
+/**
+ * A device's endpoints are its verbs alone: nothing lists or edits a
+ * `UserDevice` through this group, and the caller's own devices are read
+ * through `GET /api/auth/devices`. Serving the group is what serves its
+ * `$metadata`, which is where the sessions screen reads the verb from.
+ */
+export const userDeviceApi = defineEntityApi(
+  UserDevice,
+  entityKey(UserDevice, 'user-device'),
+  {
+    verbs: [],
+    guard: { kind: 'permission' },
+    useCases: [signOutSession],
+  },
+);
+
+/**
+ * Move the caller's session to another of their organizations —
+ * `POST /api/user-identity/switch-organization`. The answer is the sign-in's
+ * own shape, a new session and its token, because that is what it is: the
+ * Next app sets the cookies from it exactly as it does after a callback.
+ */
+const switchOrganization = verbEndpoint(SwitchOrganizationUC, {
+  guard: { kind: 'permission' },
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const principal = principalOf(context);
+      const record = yield* SwitchOrganizationUC.run().pipe(
+        Effect.provideService(SwitchOrganizationInputTag, {
+          userId: principal.userId,
+          sessionId: principal.sessionId,
+          organizationId:
+            asString(bodyOf(request.payload)['organizationId']) ?? '',
+        }),
+      );
+      const tokens = yield* TokenServiceTag;
+      const lifetime = yield* AccessTokenLifetimeTag;
+      const accessToken = yield* tokens
+        .sign(
+          {
+            userId: record.userId,
+            subject: record.subject,
+            sessionId: record.sessionId,
+            roles: record.roles,
+            activeOrganizationId: record.activeOrganizationId,
+            partyRole: record.partyRole,
+            partyId: record.partyId,
+            entitlements: record.entitlements,
+          },
+          lifetime.seconds,
+        )
+        .pipe(Effect.orDie);
+      return {
+        accessToken,
+        sessionId: record.sessionId,
+        expiresIn: lifetime.seconds,
+        sessionExpiresIn: Math.max(
+          0,
+          Math.floor(
+            (Date.parse(record.absoluteExpiresAt) - Date.now()) / 1000,
+          ),
+        ),
+        principal: {
+          userId: record.userId,
+          subject: record.subject,
+          sessionId: record.sessionId,
+          roles: record.roles,
+          organizationId: record.activeOrganizationId,
+          partyRole: record.partyRole,
+          partyId: record.partyId,
+          attributes: record.attributes,
+        } satisfies Principal,
+      };
+    }),
+});
+
+/**
  * Administering other people's accounts, every endpoint permission-gated:
  * this is the authorization boundary, and a hidden menu entry protects
  * nothing.
@@ -208,7 +310,12 @@ export const userIdentityApi = defineEntityApi(
         handler: createUser,
       },
     },
-    useCases: [updateAspects, revokeSessions, signOutOthers],
+    useCases: [
+      updateAspects,
+      revokeSessions,
+      signOutOthers,
+      switchOrganization,
+    ],
   },
 );
 

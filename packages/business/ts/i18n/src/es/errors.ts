@@ -17,6 +17,7 @@
 export const errors = {
   unauthenticated: 'Tu sesión no es válida. Inicia sesión de nuevo.',
   forbidden: 'No tienes permiso para realizar esta acción.',
+  forbiddenAction: '¿Quién puede darme acceso?',
   sessionExpired: 'Tu sesión ha expirado.',
   sessionUnresolved: 'No se pudo resolver la sesión.',
   invalidCredentials: 'Credenciales inválidas.',
@@ -27,6 +28,8 @@ export const errors = {
     'Ese servicio no responde en este momento. Inténtalo de nuevo en un momento.',
   signInFailed: 'No se pudo completar el inicio de sesión.',
   noActiveOrganization: 'Selecciona una organización para continuar.',
+  noActiveOrganizationAction: 'Elegir organización',
+  notAMember: 'No perteneces a esa organización.',
   invalidRequest: 'La solicitud no es válida.',
   invalidBody: 'El cuerpo de la solicitud no es válido.',
   paymentDeclined: 'No se pudo procesar el pago. Intenta con otro método.',

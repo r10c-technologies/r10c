@@ -10,6 +10,14 @@ export { SecurityView } from './client/account-security-view';
 export { SessionsPage } from './client/account-sessions-page';
 export { type SessionRow, SessionsView } from './client/account-sessions-view';
 export { AccountView } from './client/account-view';
+export {
+  CHOOSE_ORGANIZATION_EVENT,
+  type MembershipRow,
+  OrganizationDialogsProvider,
+  OrganizationSwitcherButton,
+  requestOrganizationChoice,
+  useOrganizationDialogs,
+} from './client/organization-dialogs';
 export { refreshSession } from './client/refresh-session';
 export { useAsyncResource } from './client/use-async-resource';
 export { useUsers } from './client/use-users';

@@ -115,6 +115,37 @@ export const vendorMemberSeedData = (
 };
 
 /**
+ * A member's **second** organization: the role played there and a membership
+ * that is not the default, so a sign-in still opens in the first one and the
+ * organization switcher has somewhere to go (#527). The tenant role it names
+ * is that organization's own, seeded for the member who runs it, so this adds
+ * no grant a role there does not already hold.
+ */
+export const secondMembershipSeedData = (
+  organizationId: string,
+  member: VendorMember,
+) =>
+  ({
+    partyRole: [
+      {
+        id: `party-role-${member.userId}-vendor-${organizationId}`,
+        partyId: member.partyId,
+        role: 'vendor',
+        organizationId,
+      },
+    ],
+    membership: [
+      {
+        id: `membership-${member.userId}-${organizationId}`,
+        partyId: member.partyId,
+        organizationId,
+        roleIds: [`role-${organizationId}-catalog`],
+        isDefault: false,
+      },
+    ],
+  }) satisfies Record<string, ReadonlyArray<Record<string, unknown>>>;
+
+/**
  * The people behind the seeded accounts, as parties rather than as logins.
  *
  * The role each plays is **not** a field here — it is a `PartyRole` record, in

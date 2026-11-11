@@ -43,6 +43,7 @@ import {
   makeInMemoryUserDeviceRepository,
   makeScriptedOidcProvider,
   makeStaticPublicKeySet,
+  type PartyWorld,
 } from '@r10c/business-ts-authn/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -50,7 +51,11 @@ import { describe, expect, it } from 'vitest';
 import { authFlowEndpoints } from './flow-api.js';
 import { bodyOf, readDevice } from './request-body.js';
 import { DevSurfaceEnabledTag, sessionEndpoints } from './session-api.js';
-import { userIdentityApi, userSessionEndpoints } from './user-api.js';
+import {
+  userDeviceApi,
+  userIdentityApi,
+  userSessionEndpoints,
+} from './user-api.js';
 
 const [
   jwks,
@@ -62,9 +67,10 @@ const [
   refresh,
   resolveSession,
 ] = authFlowEndpoints;
-const [mySessions, revokeMySession, myDevices, devOutbox] = sessionEndpoints;
+const [mySessions, myMemberships, myDevices, devOutbox] = sessionEndpoints;
+const [signOutSession] = userDeviceApi.options.useCases;
 const [userSessions] = userSessionEndpoints;
-const [updateAspects, revokeSessions, signOutOthers] =
+const [updateAspects, revokeSessions, signOutOthers, switchOrganization] =
   userIdentityApi.options.useCases;
 const createUser = userIdentityApi.options.override.create.handler;
 
@@ -166,6 +172,18 @@ const world = (
   const accounts = makeInMemoryAccountRepository();
   const notices = makeInMemoryNotificationPort();
   const events = makeInMemoryProviderEvents();
+  // Read through on every call, so a spec can seat the user it just signed
+  // in into organizations without rebuilding the layer.
+  let parties: PartyWorld = {
+    individuals: [],
+    memberships: [],
+    roles: [],
+    entitlements: [],
+    organizations: [],
+  };
+  const setParties = (next: PartyWorld) => {
+    parties = next;
+  };
   const scripted = makeScriptedOidcProvider({
     identities: {
       'code-ada': identity(),
@@ -207,15 +225,17 @@ const world = (
     ),
     Layer.succeed(NotificationPortTag, notices.port),
     Layer.succeed(DevMailboxTag, notices.mailbox),
-    Layer.succeed(
-      SessionScopeResolverTag,
-      makeInMemorySessionScopeResolver({
-        individuals: [],
-        memberships: [],
-        roles: [],
-        entitlements: [],
-      }),
-    ),
+    Layer.succeed(SessionScopeResolverTag, {
+      forUser: userId =>
+        makeInMemorySessionScopeResolver(parties).forUser(userId),
+      forMembership: (userId, organizationId) =>
+        makeInMemorySessionScopeResolver(parties).forMembership(
+          userId,
+          organizationId,
+        ),
+      membershipsOf: userId =>
+        makeInMemorySessionScopeResolver(parties).membershipsOf(userId),
+    }),
     Layer.succeed(IdTokenStoreTag, makeInMemoryIdTokenStore()),
     Layer.succeed(ProviderSessionIndexTag, makeInMemoryProviderSessionIndex()),
     Layer.succeed(
@@ -253,7 +273,7 @@ const world = (
       oidcCallback.handler({ payload: { code, state, ...extra } }) as never,
     );
   };
-  return { run, signIn, sessions, accounts, notices, events };
+  return { run, signIn, sessions, accounts, notices, events, setParties };
 };
 
 const as =
@@ -546,18 +566,19 @@ describe('a user’s own sessions and devices', () => {
     const devices = success(await run(mine(myDevices.handler({} as never))));
     const stranger = failure(
       await run(
-        as({ userId: 'someone-else' })(
-          revokeMySession.handler({
-            params: { sessionId: signedIn.sessionId },
-          }),
+        signOutSession.handler(
+          { params: { id: signedIn.sessionId } },
+          context({ userId: 'someone-else' }),
         ),
       ),
     );
     const ended = success(
       await run(
-        mine(
-          revokeMySession.handler({
-            params: { sessionId: signedIn.sessionId },
+        signOutSession.handler(
+          { params: { id: signedIn.sessionId } },
+          context({
+            userId: signedIn.principal.userId,
+            sessionId: signedIn.sessionId,
           }),
         ),
       ),
@@ -583,6 +604,134 @@ describe('a user’s own sessions and devices', () => {
 
     expect((read['items'] as unknown[]).length).toBe(1);
     expect(hidden).toMatchObject({ code: 'notFound' });
+  });
+});
+
+describe('switching organization', () => {
+  const seat = (userId: string): PartyWorld => ({
+    individuals: [{ id: 'p-1', userId }],
+    memberships: [
+      { partyId: 'p-1', organizationId: 'org-a', isDefault: true },
+      { partyId: 'p-1', organizationId: 'org-b' },
+    ],
+    roles: [{ partyId: 'p-1', role: 'vendor', organizationId: 'org-b' }],
+    entitlements: [],
+    organizations: [
+      { id: 'org-a', name: 'Org A' },
+      { id: 'org-b', name: 'Org B' },
+    ],
+  });
+
+  it('lists the caller’s organizations, marking the one this session acts for', async () => {
+    const { run, setParties } = world();
+    setParties(seat('u-1'));
+
+    const listed = success(
+      await run(
+        as({ userId: 'u-1', organizationId: 'org-b' })(
+          myMemberships.handler({} as never),
+        ),
+      ),
+    );
+
+    expect(listed['items']).toEqual([
+      {
+        organizationId: 'org-a',
+        name: 'Org A',
+        isDefault: true,
+        current: false,
+      },
+      {
+        organizationId: 'org-b',
+        name: 'Org B',
+        isDefault: false,
+        current: true,
+      },
+    ]);
+  });
+
+  it('answers a new session in the chosen organization, and ends the old one', async () => {
+    const { run, signIn, sessions, setParties } = world();
+    const signedIn = success(await signIn('code-ada')) as {
+      sessionId: string;
+      principal: { userId: string };
+    };
+    const userId = signedIn.principal.userId;
+    setParties(seat(userId));
+
+    const switched = success(
+      await run(
+        switchOrganization.handler(
+          { payload: { organizationId: 'org-b' } },
+          context({ userId, sessionId: signedIn.sessionId }),
+        ),
+      ),
+    ) as {
+      accessToken: string;
+      sessionId: string;
+      expiresIn: number;
+      sessionExpiresIn: number;
+      principal: Record<string, unknown>;
+    };
+
+    expect(switched.sessionId).not.toBe(signedIn.sessionId);
+    expect(switched.accessToken).toBe(`token-${switched.sessionId}`);
+    expect(switched.expiresIn).toBe(LIFETIME_SECONDS);
+    expect(switched.sessionExpiresIn).toBeGreaterThan(0);
+    expect(switched.principal).toMatchObject({
+      userId,
+      sessionId: switched.sessionId,
+      organizationId: 'org-b',
+      partyRole: 'vendor',
+    });
+    expect(Array.from(sessions.records.keys())).toEqual([switched.sessionId]);
+  });
+
+  it('refuses an organization the caller is no member of', async () => {
+    const { run, signIn, sessions, setParties } = world();
+    const signedIn = success(await signIn('code-ada')) as {
+      sessionId: string;
+      principal: { userId: string };
+    };
+    setParties(seat(signedIn.principal.userId));
+
+    const refused = failure(
+      await run(
+        switchOrganization.handler(
+          { payload: { organizationId: 'org-c' } },
+          context({
+            userId: signedIn.principal.userId,
+            sessionId: signedIn.sessionId,
+          }),
+        ),
+      ),
+    );
+
+    expect(refused).toMatchObject({ code: 'notAMember' });
+    expect(Array.from(sessions.records.keys())).toEqual([signedIn.sessionId]);
+  });
+
+  it('reads a payload with no organization as no membership at all', async () => {
+    const { run, signIn, setParties } = world();
+    const signedIn = success(await signIn('code-ada')) as {
+      sessionId: string;
+      principal: { userId: string };
+    };
+    setParties(seat(signedIn.principal.userId));
+
+    const refused = failure(
+      await run(
+        switchOrganization.handler(
+          { payload: {} },
+          context({
+            userId: signedIn.principal.userId,
+            sessionId: signedIn.sessionId,
+          }),
+        ),
+      ),
+    );
+
+    expect(refused).toMatchObject({ code: 'notAMember' });
   });
 });
 

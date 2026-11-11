@@ -3,6 +3,7 @@ type EsErrors = typeof import('../es/errors').errors;
 export const errors: EsErrors = {
   unauthenticated: 'Your session is not valid. Sign in again.',
   forbidden: 'You do not have permission to do this.',
+  forbiddenAction: 'Who can grant me access?',
   sessionExpired: 'Your session has expired.',
   sessionUnresolved: 'The session could not be resolved.',
   invalidCredentials: 'Invalid credentials.',
@@ -13,6 +14,8 @@ export const errors: EsErrors = {
     'That service is not answering right now. Try again in a moment.',
   signInFailed: 'Sign-in could not be completed.',
   noActiveOrganization: 'Select an organization to continue.',
+  noActiveOrganizationAction: 'Choose organization',
+  notAMember: 'You are not a member of that organization.',
   invalidRequest: 'The request is not valid.',
   paymentDeclined: 'The payment could not be processed. Try another method.',
   refundDeclined: 'The refund could not be processed. Contact support.',

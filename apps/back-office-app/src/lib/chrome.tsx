@@ -12,6 +12,7 @@ import {
 // From the server entry: this module calls them directly, and the client entry
 // would hand back a client reference rather than the function.
 import { accountPaths } from '@entifix/next-shell/server';
+import { OrganizationSwitcherButton } from '@r10c/shells-next-auth';
 import type { ReactNode } from 'react';
 
 import { BackOfficeCommandPalette } from './command-palette';
@@ -84,10 +85,15 @@ export async function BackOfficeChrome({
         />
       }
       accountMenu={
-        <AccountMenu
-          label={label ?? translateKey('r10c:auth.account.menu')}
-          items={accountPaths(locale)}
-        />
+        <>
+          {/* Beside the account menu, and only for someone with two or more
+              organizations to act for (#527). */}
+          <OrganizationSwitcherButton />
+          <AccountMenu
+            label={label ?? translateKey('r10c:auth.account.menu')}
+            items={accountPaths(locale)}
+          />
+        </>
       }
     >
       {/*

@@ -9,6 +9,7 @@ import { authorizationHeader } from './principal';
 import { safeRedirect } from './redirect';
 import {
   AUTH_SERVICE_URL,
+  type AuthResult,
   clearSessionCookies,
   readSessionId,
   setSessionCookies,
@@ -226,22 +227,23 @@ export async function revokeOtherSessionsRoute() {
 }
 
 /**
- * `DELETE /api/auth/sessions/:sessionId` — end one of the caller's sessions.
+ * `POST /api/user-device/:id/sign-out-session` — end one of the caller's
+ * sessions, by the `sign-out-session` verb (the id is the session's).
  *
  * auth-service owns the ownership check; this handler only adds the part that
  * has to happen on this origin: if you ended the session you are currently
  * using, the cookies for it are now worthless and must go, or the proxy
  * keeps waving through a browser that has no session left.
  */
-export async function deleteSessionRoute(
+export async function signOutSessionRoute(
   _request: Request,
-  { params }: { params: Promise<{ sessionId: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { sessionId } = await params;
+  const { id } = await params;
   const res = await fetch(
-    `${AUTH_SERVICE_URL}/api/auth/sessions/${encodeURIComponent(sessionId)}`,
+    `${AUTH_SERVICE_URL}/api/user-device/${encodeURIComponent(id)}/sign-out-session`,
     {
-      method: 'DELETE',
+      method: 'POST',
       headers: await authorizationHeader(),
       cache: 'no-store',
     },
@@ -251,6 +253,43 @@ export async function deleteSessionRoute(
     await clearSessionCookies();
   }
   return answer;
+}
+
+/** `GET /api/auth/memberships` — the organizations the caller may switch to. */
+export async function membershipListRoute() {
+  const res = await fetch(`${AUTH_SERVICE_URL}/api/auth/memberships`, {
+    headers: await authorizationHeader(),
+    cache: 'no-store',
+  });
+  return forward(res);
+}
+
+/**
+ * `POST /api/auth/active-organization` — move this session to another of the
+ * caller's organizations, by the `switch-organization` verb.
+ *
+ * The verb answers a new session and its token, the sign-in's own shape, so
+ * this sets the cookies from it exactly as the callback does. The old session
+ * is already revoked by then, so a refused switch keeps the cookies it had and
+ * a successful one replaces them; there is no state in between.
+ */
+export async function switchOrganizationRoute(request: Request) {
+  const res = await fetch(
+    `${AUTH_SERVICE_URL}/api/user-identity/switch-organization`,
+    {
+      method: 'POST',
+      headers: {
+        ...(await authorizationHeader()),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(await request.json()),
+      cache: 'no-store',
+    },
+  );
+  if (!res.ok) return forward(res);
+  const result = (await res.json()) as AuthResult;
+  await setSessionCookies(result);
+  return NextResponse.json({ ok: true });
 }
 
 /**
@@ -298,9 +337,9 @@ export async function createUserRoute(request: Request) {
  * and passing it through is what stops any cache in between treating one
  * caller's affordances as another's.
  */
-export async function userMetadataRoute(request: Request) {
+const metadataRoute = (entityKey: string) => async (request: Request) => {
   const ifNoneMatch = request.headers.get('if-none-match');
-  const res = await fetch(`${AUTH_SERVICE_URL}/api/user-identity/$metadata`, {
+  const res = await fetch(`${AUTH_SERVICE_URL}/api/${entityKey}/$metadata`, {
     headers: {
       ...(await authorizationHeader()),
       ...(ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {}),
@@ -322,7 +361,16 @@ export async function userMetadataRoute(request: Request) {
 
   headers.set('content-type', 'application/json');
   return new NextResponse(await res.text(), { status: res.status, headers });
-}
+};
+
+/** `GET /api/user-identity/$metadata`: what the caller may do with a user. */
+export const userMetadataRoute = metadataRoute('user-identity');
+
+/**
+ * `GET /api/user-device/$metadata`: the sessions screen reads the
+ * `sign-out-session` verb from it.
+ */
+export const userDeviceMetadataRoute = metadataRoute('user-device');
 
 type IdParams = { params: Promise<{ id: string }> };
 

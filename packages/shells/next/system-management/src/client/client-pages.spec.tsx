@@ -19,17 +19,19 @@ import { SystemManagementProvider } from './system-management-context.js';
 const push = vi.fn();
 let slug = 'new';
 
-// Delete asks first since entifix 0.20.0: the button opens an alert dialog, and
-// only the verb repeated inside it deletes.
-async function deleteAndConfirm(): Promise<void> {
+// Deleting a configuration row is typed (#527): the button opens an alert
+// dialog naming the row by its key, and the verb inside it enables only
+// once that name is typed.
+async function deleteAndConfirm(name = 'db'): Promise<void> {
   await userEvent.click(
     screen.getByRole('button', { name: /Eliminar|Delete/i }),
   );
-  await userEvent.click(
-    within(screen.getByRole('alertdialog')).getByRole('button', {
-      name: /Eliminar|Delete/i,
-    }),
-  );
+  const dialog = screen.getByRole('alertdialog');
+  expect(dialog).toHaveAccessibleName(`¿Eliminar ${name}?`);
+  const verb = within(dialog).getByRole('button', { name: /Eliminar|Delete/i });
+  expect(verb).toBeDisabled();
+  await userEvent.type(within(dialog).getByRole('textbox'), name);
+  await userEvent.click(verb);
 }
 
 vi.mock('next/navigation', () => ({

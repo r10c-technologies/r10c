@@ -63,6 +63,20 @@ describe('Every catalog key has something behind it', () => {
     },
   );
 
+  it('takes an action key as known exactly when its code is', () => {
+    expect(
+      orphanKeys(
+        {
+          ...catalogs.es,
+          noActiveOrganizationAction: 'x',
+          fooAction: 'x',
+          Action: 'x',
+        },
+        known,
+      ),
+    ).toEqual(['fooAction', 'Action']);
+  });
+
   it('catches a key nothing answers with (planted)', () => {
     expect(orphanKeys({ ...catalogs.es, notAFailure: 'x' }, known)).toEqual([
       'notAFailure',

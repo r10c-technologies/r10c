@@ -13,10 +13,12 @@ import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
 import {
+  ALAN,
   entitlementSeedData,
   individualSeedData,
   operatorPartyRoleSeedData,
   organizationSeedData,
+  secondMembershipSeedData,
   VENDOR_MEMBERS,
   vendorMemberSeedData,
 } from './identity/tenancy-seed-data';
@@ -94,6 +96,10 @@ const seedTenancy = (vendors: readonly SeededVendor[]) =>
             vendorMemberSeedData(vendor.organizationId, member).partyRole,
         ),
         ...operatorPartyRoleSeedData,
+        ...secondMembershipsOf(vendors).flatMap(
+          ({ vendor, member }) =>
+            secondMembershipSeedData(vendor.organizationId, member).partyRole,
+        ),
       ]),
       seedCollection(
         'role',
@@ -102,16 +108,29 @@ const seedTenancy = (vendors: readonly SeededVendor[]) =>
             vendorMemberSeedData(vendor.organizationId, member).role,
         ),
       ),
-      seedCollection(
-        'membership',
-        membersOf(vendors).flatMap(
+      seedCollection('membership', [
+        ...membersOf(vendors).flatMap(
           ({ vendor, member }) =>
             vendorMemberSeedData(vendor.organizationId, member).membership,
         ),
-      ),
+        ...secondMembershipsOf(vendors).flatMap(
+          ({ vendor, member }) =>
+            secondMembershipSeedData(vendor.organizationId, member).membership,
+        ),
+      ]),
     ],
     { discard: true },
   );
+
+/**
+ * Alan is also a member of the second seeded vendor, not by default, so a
+ * live pass can switch organization (#527). Absent when the fleet seeds one
+ * vendor only.
+ */
+const secondMembershipsOf = (vendors: readonly SeededVendor[]) => {
+  const second = vendors[1];
+  return second === undefined ? [] : [{ vendor: second, member: ALAN }];
+};
 
 /** Each seeded vendor beside the member who runs it, by position. */
 const membersOf = (vendors: readonly SeededVendor[]) =>

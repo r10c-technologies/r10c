@@ -8,5 +8,7 @@ export * from './use-cases/register-user';
 export * from './use-cases/resolve-session';
 export * from './use-cases/revoke-user-sessions';
 export * from './use-cases/sign-out-other-sessions';
+export * from './use-cases/sign-out-session';
+export * from './use-cases/switch-organization';
 export * from './use-cases/update-user-aspects';
 export * from './values';
