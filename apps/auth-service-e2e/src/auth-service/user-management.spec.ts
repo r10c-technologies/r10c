@@ -251,10 +251,16 @@ describe('auth-service user management', () => {
       // caller does not hold cannot appear. `sign-out-others` is here because
       // every role holds it — ending your own sessions is not an administrative
       // capability (ADR 0044) — and it is `unbound`, so it reaches the command
-      // palette rather than this entity's form.
+      // palette rather than this entity's form. `switch-organization` is held
+      // by every role for the same reason: it acts on the caller's own session.
       expect(
         res.data.data.useCases.map((d: { key: string }) => d.key).sort(),
-      ).toEqual(['revoke-sessions', 'sign-out-others', 'update-aspects']);
+      ).toEqual([
+        'revoke-sessions',
+        'sign-out-others',
+        'switch-organization',
+        'update-aspects',
+      ]);
     });
 
     it('serves the whole triple on a wildcard grant', async () => {
