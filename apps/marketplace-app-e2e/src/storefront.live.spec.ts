@@ -274,7 +274,7 @@ test.describe('browsing the published catalog', () => {
     await buy.getByRole('spinbutton', { name: 'Cantidad' }).fill('2');
     await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
 
-    await page.waitForURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart(\?|$)/);
     await expect(page.getByTestId('cart-line-price')).toContainText(
       ((offering.amount * 2) / 100).toFixed(2).replace('.', ','),
     );

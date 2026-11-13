@@ -1889,3 +1889,97 @@ describe('The edge owns the origins, and every hop holds a quiet stream', () => 
     });
   });
 });
+
+/**
+ * The component-audit skill states only rules a check enforces (#535, ADR
+ * 0046): every bullet links a file that exists — the spec, script or workflow
+ * that fails the build — or names an Nx target, `pnpm nx run <project>:<target>`,
+ * that the project really has. A bullet with neither is a convention that is
+ * only stated, and the skill is where it would quietly go stale.
+ */
+describe('The component-audit skill cites only checks that exist', () => {
+  const SKILL = '.claude/skills/component-audit/SKILL.md';
+  const TARGET = /`pnpm nx run (@[\w.-]+\/[\w.-]+):([\w:.-]+)`/g;
+
+  /** Each list item, its continuation lines folded in. */
+  const bullets = (text: string): string[] =>
+    text
+      .replace(/^---\n[\s\S]*?\n---\n/, '')
+      .split('\n')
+      .reduce<string[]>((items, line) => {
+        if (line.startsWith('- ')) return [...items, line];
+        if (items.length > 0 && /^ {2}\S/.test(line)) {
+          items[items.length - 1] += ` ${line.trim()}`;
+          return items;
+        }
+        if (!line.startsWith('  ')) items.push('');
+        return items;
+      }, [])
+      .filter(item => item.startsWith('- '));
+
+  const targets = new Map<string, readonly string[]>();
+  const targetsOf = (project: string): readonly string[] => {
+    const known = targets.get(project);
+    if (known !== undefined) return known;
+    let names: string[] = [];
+    try {
+      names = Object.keys(
+        (
+          JSON.parse(
+            execFileSync('pnpm', ['nx', 'show', 'project', project, '--json'], {
+              cwd: REPO_ROOT,
+              encoding: 'utf8',
+            }),
+          ) as { targets: Record<string, unknown> }
+        ).targets,
+      );
+    } catch {
+      // An unknown project names no target.
+    }
+    targets.set(project, names);
+    return names;
+  };
+
+  /** What in one bullet proves it, or why nothing does. */
+  const evidence = (bullet: string) => {
+    const files = localLinks(bullet).filter(({ target }) =>
+      existsSync(resolve(join(REPO_ROOT, dirname(SKILL)), target)),
+    );
+    const runs = [...bullet.matchAll(TARGET)].filter(([, project, target]) =>
+      targetsOf(project as string).includes(target as string),
+    );
+    return files.length + runs.length;
+  };
+
+  it('is committed, so the rule reaches everyone who works here', () => {
+    expect(
+      execFileSync('git', ['ls-files', SKILL], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+      }).trim(),
+    ).toBe(SKILL);
+  });
+
+  it('finds the bullets it is meant to check', () => {
+    expect(bullets(read(SKILL)).length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('links a check from every bullet', () => {
+    expect(
+      bullets(read(SKILL)).filter(bullet => evidence(bullet) === 0),
+    ).toEqual([]);
+  }, 120_000);
+
+  it('fails a bullet that only states, or cites what does not exist', () => {
+    expect(evidence('- Prefer accessible components.')).toBe(0);
+    expect(evidence('- Gated by [a spec](../../../no/such.spec.ts).')).toBe(0);
+    expect(
+      evidence(
+        '- Run `pnpm nx run @r10c/storefront-storybook:no-such-target`.',
+      ),
+    ).toBe(0);
+    expect(
+      evidence('- Run `pnpm nx run @r10c/storefront-storybook:test-a11y`.'),
+    ).toBe(1);
+  }, 60_000);
+});

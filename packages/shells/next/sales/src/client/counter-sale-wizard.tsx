@@ -17,13 +17,15 @@ import {
   useWizardStepUrl,
 } from '@entifix/next-shell';
 import {
+  Alert,
   Button,
   Card,
   Cluster,
+  Money,
+  QuantityInput,
   Select,
   Stack,
   Text,
-  TextInput,
   useLocale,
   useTranslateKey,
   Wizard,
@@ -34,7 +36,6 @@ import {
 } from '@entifix/react-integration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
-import { formatPrice } from '@r10c/utils-react-ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COUNTER_SALE_SURFACE } from '../sales-surfaces';
@@ -240,7 +241,7 @@ export function CounterSaleWizard({
     (readStepDraft(state, 'payment')['paymentMethod'] as string) ?? 'cash';
 
   const [pendingOffering, setPendingOffering] = useState('');
-  const [pendingQuantity, setPendingQuantity] = useState('1');
+  const [pendingQuantity, setPendingQuantity] = useState(1);
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
   const [charging, setCharging] = useState(false);
   const [failure, setFailure] = useState<string | undefined>(undefined);
@@ -298,10 +299,10 @@ export function CounterSaleWizard({
     const offering = offerings.items.find(
       candidate => candidate.offeringId === pendingOffering,
     );
-    const quantity = Number(pendingQuantity);
-    if (offering === undefined || !Number.isInteger(quantity) || quantity < 1) {
-      return;
-    }
+    // The count is a whole unit of at least one by construction:
+    // `QuantityInput` clamps what is typed before it reaches this state.
+    if (offering === undefined) return;
+    const quantity = pendingQuantity;
     setLines([
       ...lines,
       {
@@ -314,7 +315,7 @@ export function CounterSaleWizard({
       },
     ]);
     setPendingOffering('');
-    setPendingQuantity('1');
+    setPendingQuantity(1);
   };
 
   // One key per sale, kept across a charge that never reached the service so
@@ -473,15 +474,12 @@ export function CounterSaleWizard({
                 </option>
               ))}
             </Select>
-            <label htmlFor="counter-sale-quantity">
-              {translateKey('r10c:sales.counterSale.quantity')}
-            </label>
-            <TextInput
+            <QuantityInput
               id="counter-sale-quantity"
-              type="number"
-              min={1}
+              label={translateKey('r10c:sales.counterSale.quantity')}
               value={pendingQuantity}
-              onChange={event => setPendingQuantity(event.target.value)}
+              min={1}
+              onChange={setPendingQuantity}
             />
             <Button onClick={addLine}>
               {translateKey('r10c:sales.counterSale.addLine')}
@@ -536,15 +534,25 @@ export function CounterSaleWizard({
           {lines.map(line => (
             <Text key={line.key}>
               {line.quantity} × {line.name} —{' '}
-              {formatPrice(locale, line.amount * line.quantity, line.currency)}
+              <Money
+                amount={line.amount * line.quantity}
+                currency={line.currency}
+                unit="minor"
+                locale={locale}
+              />
             </Text>
           ))}
           <Text>
             {translateKey('r10c:sales.counterSale.total')}:{' '}
-            {formatPrice(locale, totalOf(lines), currencyOf(lines))}
+            <Money
+              amount={totalOf(lines)}
+              currency={currencyOf(lines)}
+              unit="minor"
+              locale={locale}
+            />
           </Text>
           {failure !== undefined && (
-            <Text>{translateKey(`errors:${failure}`)}</Text>
+            <Alert tone="danger">{translateKey(`errors:${failure}`)}</Alert>
           )}
         </Stack>
       )}

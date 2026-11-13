@@ -30,7 +30,7 @@ export function CategoryNav({ label, items }: CategoryNavProps) {
             <a
               href={item.href}
               aria-current={item.current ? 'page' : undefined}
-              className={`inline-flex rounded-full border px-xs py-3xs ${
+              className={`inline-flex min-h-(--target-min) items-center rounded-full border px-xs py-3xs focus-ring ${
                 item.current
                   ? 'border-primary text-primary'
                   : 'border-border text-content hover:border-primary'

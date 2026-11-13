@@ -1,5 +1,3 @@
 {
-  "$fingerprints": "ancestry-1",
-  "scrollable-region-focusable|html > body > main:nth-child(n) > div:nth-child(n) > div:nth-child(n) > section:nth-child(n) > div:nth-child(n)|product:marketplace": "r10c-technologies/r10c#528",
-  "scrollable-region-focusable|html > body > main:nth-child(n) > div:nth-child(n) > div:nth-child(n) > section:nth-child(n) > div:nth-child(n)|product:marketplace-dark": "r10c-technologies/r10c#528"
+  "$fingerprints": "ancestry-1"
 }

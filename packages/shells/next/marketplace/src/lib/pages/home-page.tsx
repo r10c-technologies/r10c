@@ -20,7 +20,8 @@ import { cacheLife } from 'next/cache';
 import { Suspense } from 'react';
 
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
-import { emptyPage, runRead } from '../catalog/catalog-reads';
+import { emptyPage, runRead, runReadOutcome } from '../catalog/catalog-reads';
+import { CatalogUnavailable } from '../catalog/catalog-unavailable';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
@@ -51,14 +52,25 @@ async function OfferingStrip({
   readonly query: OfferingQuery;
 }) {
   'use cache';
-  cacheLife(CATALOG_CACHE);
 
   const t = getServerTFor(locale, 'r10c');
-  const page = await runRead(
+  const { value: page, failed } = await runReadOutcome(
     PublishedOffering,
     loadOfferings({ ...query, pageSize: STRIP_SIZE }),
     emptyPage<PublishedOffering>(),
   );
+  // A failure is kept for seconds, not the catalog's minutes (#533).
+  if (failed) cacheLife('seconds');
+  else cacheLife(CATALOG_CACHE);
+
+  if (failed) {
+    return (
+      <CatalogUnavailable
+        locale={locale}
+        retryHref={localeHref(locale, storePaths.home())}
+      />
+    );
+  }
 
   return (
     <OfferingGrid
@@ -83,7 +95,7 @@ async function CategoryTiles({ locale }: { readonly locale: Locale }) {
         <li key={category.code}>
           <a
             href={localeHref(locale, storePaths.category(category.code))}
-            className="flex h-full flex-col gap-3xs rounded-xl border border-border bg-surface-elevated p-s hover:border-primary"
+            className="flex h-full flex-col gap-3xs rounded-xl border border-border bg-surface-elevated p-s focus-ring hover:border-primary"
           >
             <Text weight="semibold">{category.name}</Text>
             {category.description ? (

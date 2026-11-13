@@ -1,6 +1,10 @@
 'use server';
 
 import {
+  type ConfirmActionState,
+  whenConfirmed,
+} from '@entifix/next-shell/server';
+import {
   digestFlowCapability,
   makeFlowCapability,
 } from '@entifix/transactions';
@@ -28,8 +32,20 @@ import { readReceipt } from './receipt-cookie';
  * receipt follows it to its end, by a flow capability this action mints and
  * keeps in an `httpOnly` ticket. The receipt marks the order cancelled only
  * once the flow completed.
+ *
+ * ⚠️ It acts only on a confirmed post (`whenConfirmed`). Cancelling refunds,
+ * and a refund is not undone, so a post that skipped the confirmation — a
+ * first click with scripting off, a stale page, a script — is answered with
+ * the confirmation step instead (a3-2, ADR 0075).
  */
-export async function cancelOrder(formData: FormData) {
+export async function cancelOrder(
+  _state: ConfirmActionState,
+  formData: FormData,
+): Promise<ConfirmActionState> {
+  return whenConfirmed(formData, () => cancelConfirmed(formData));
+}
+
+async function cancelConfirmed(formData: FormData) {
   const locale = String(formData.get('locale') ?? '');
   const orderId = String(formData.get('orderId') ?? '');
   const receipt = await readReceipt();

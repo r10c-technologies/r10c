@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Alert,
   ButtonLink,
   Card,
   HeadingOne,
@@ -73,11 +74,11 @@ function SignIn() {
             {/* An unrecognised code is reported as `unexpected` rather than
                 rendered raw: whatever produced it came from outside. */}
             {error === null ? null : (
-              <Text className="text-danger" role="alert">
+              <Alert tone="danger">
                 {isSignInError(error)
                   ? t(`auth.signIn.errors.${error}`)
                   : t('auth.signIn.errors.unexpected')}
-              </Text>
+              </Alert>
             )}
             <Text muted>{t('auth.signIn.hosted')}</Text>
             <ButtonLink href={startHref}>

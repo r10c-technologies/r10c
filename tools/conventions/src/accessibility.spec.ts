@@ -119,3 +119,60 @@ describe('every accessibility ratchet entry', () => {
     },
   );
 });
+
+/**
+ * What a shell may not hand-roll (#528). A message is entifix's `Alert`, which
+ * picks `role="alert"` or `role="status"` from its tone so a message is
+ * announced and never both; a count is `QuantityInput` or `NumberInput`, text
+ * fields that take a comma decimal and do not spin on a scroll wheel. A shell
+ * that writes the role or the field by hand has stepped outside the gates
+ * those components are held to.
+ *
+ * Comments are stripped first, so a sentence explaining the rule is not a
+ * breach of it.
+ */
+const HAND_ROLLED: readonly (readonly [string, RegExp])[] = [
+  ['a hand-written message role', /\brole=(?:"|\{\s*['"])(?:alert|status)\b/],
+  [
+    'a danger colour on an element with a role',
+    /<[A-Za-z][^<>]*(?:\btext-danger\b[^<>]*\brole=|\brole=[^<>]*\btext-danger\b)/,
+  ],
+  ['a native number field', /\btype=(?:"|\{\s*['"])number\b/],
+];
+
+const withoutComments = (source: string) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+const handRolled = (source: string) => {
+  const code = withoutComments(source);
+  return HAND_ROLLED.filter(([, pattern]) => pattern.test(code)).map(
+    ([what]) => what,
+  );
+};
+
+describe('a shell hand-rolls no message and no number field', () => {
+  it.each([
+    ['<p role="alert" className="text-danger">x</p>', 2],
+    ["<div role={'status'}>x</div>", 1],
+    ['<Text\n  className="text-danger"\n  role="note"\n>x</Text>', 1],
+    ['<input type="number" name="q" />', 1],
+    [
+      '{/* never <p role="alert"> or type="number" */}\n<Alert tone="danger">x</Alert>',
+      0,
+    ],
+    [
+      '// role="status" is the Alert’s to pick\n<Alert tone="info">x</Alert>',
+      0,
+    ],
+  ])('finds what is planted in %j', (source, found) => {
+    expect(handRolled(source)).toHaveLength(found);
+  });
+
+  it.each(
+    tracked('packages/shells/*.tsx').filter(
+      path => !/\.(spec|stories)\.tsx$/.test(path),
+    ),
+  )('finds nothing in %s', path => {
+    expect(handRolled(readFileSync(join(REPO_ROOT, path), 'utf8'))).toEqual([]);
+  });
+});

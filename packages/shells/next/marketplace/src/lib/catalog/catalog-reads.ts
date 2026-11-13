@@ -85,7 +85,19 @@ export const emptyPage = <TEntity extends Entity>(): EntityPage<TEntity> => ({
 });
 
 /**
- * A runner for cell reads: each one runs over the REST repository for the
+ * What a read came back with, and whether that is the answer or the fallback.
+ *
+ * A page that only needs *something* to render reads `value`. A page that
+ * would otherwise say "nothing here" reads `failed` too, because an empty
+ * catalog and an unreachable one must not look alike to a buyer (#533).
+ */
+export interface ReadOutcome<A> {
+  readonly value: A;
+  readonly failed: boolean;
+}
+
+/**
+ * The runners for cell reads: each one runs over the REST repository for the
  * entity it names, and **never rejects**.
  *
  * The entity is named here, not inferred, because a read requires *a*
@@ -96,15 +108,15 @@ export const emptyPage = <TEntity extends Entity>(): EntityPage<TEntity> => ({
  * `next build` prerenders the home page per locale, and a build machine has no
  * fleet — a throw here would make the build depend on a running backend. And a
  * storefront that answers `500` because one backend blinked is worse than one
- * that renders its own "nothing here yet" copy over an intact page.
+ * that renders the rest of an intact page.
  *
- * ⚠️ The cost is real and is accepted rather than hidden: **an empty catalog
- * and a broken backend render identically.** The log is the only thing that
- * tells them apart, which is why this must not spread to anything that writes.
+ * ⚠️ So the fallback alone cannot tell an empty catalog from a broken backend.
+ * `runReadOutcome` says which it was, and a listing that would show its empty
+ * copy shows a notice with a retry instead (ADR 0051, revised by ADR 0075).
  * `catchCause` rather than `catch` so a defect is caught too — a defect
  * escaping into a prerender fails the build just as loudly as a failure.
  */
-export const makeRunRead = () => {
+export const makeCatalogReads = () => {
   /**
    * Where the URL for the key above comes from.
    *
@@ -126,7 +138,31 @@ export const makeRunRead = () => {
     ),
   };
 
-  return <A, TEntity extends Entity>(
+  const runReadOutcome = <A, TEntity extends Entity>(
+    entityConstructor: EntityConstructor<TEntity>,
+    read: Effect.Effect<
+      A,
+      EntifixFailure,
+      EntityRepositoryTag | EntityFacetCounterTag
+    >,
+    fallback: A,
+  ): Promise<ReadOutcome<A>> =>
+    Effect.runPromise(
+      read.pipe(
+        Effect.map((value): ReadOutcome<A> => ({ value, failed: false })),
+        Effect.provide(repositoryFor(entityConstructor, options)),
+        Effect.catchCause(cause =>
+          Effect.sync((): ReadOutcome<A> => {
+            console.error(
+              `The storefront could not read ${entityConstructor.name}: ${Cause.pretty(cause)}`,
+            );
+            return { value: fallback, failed: true };
+          }),
+        ),
+      ),
+    );
+
+  const runRead = <A, TEntity extends Entity>(
     entityConstructor: EntityConstructor<TEntity>,
     read: Effect.Effect<
       A,
@@ -135,23 +171,15 @@ export const makeRunRead = () => {
     >,
     fallback: A,
   ): Promise<A> =>
-    Effect.runPromise(
-      read.pipe(
-        Effect.provide(repositoryFor(entityConstructor, options)),
-        Effect.catchCause(cause =>
-          Effect.sync(() => {
-            console.error(
-              `The storefront could not read ${entityConstructor.name}: ${Cause.pretty(cause)}`,
-            );
-            return fallback;
-          }),
-        ),
-      ),
+    runReadOutcome(entityConstructor, read, fallback).then(
+      outcome => outcome.value,
     );
+
+  return { runRead, runReadOutcome };
 };
 
 /**
- * The storefront's one runner, so the configuration lookup is shared and
- * memoized for the life of the process.
+ * The storefront's one pair of runners, so the configuration lookup is shared
+ * and memoized for the life of the process.
  */
-export const runRead = makeRunRead();
+export const { runRead, runReadOutcome } = makeCatalogReads();

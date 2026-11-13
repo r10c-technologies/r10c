@@ -241,8 +241,12 @@ describe('the till', () => {
     // total computed here that disagreed would be a bug in this file alone,
     // never a mischarge.
     // Minor units, formatted: 12998 is 129,98 quetzales, never "12998 GTQ".
-    expect(await screen.findByText(/Total: 129,98\sGTQ/)).toBeInTheDocument();
-    expect(screen.getByText(/2 × Café de altura — 129,98\sGTQ/)).toBeVisible();
+    // `Money` renders the figure in a span of its own, so the line is matched
+    // by its own words and the amount by the whole line's text.
+    expect(await screen.findByText(/^Total:/)).toHaveTextContent(/129,98/);
+    expect(screen.getByText(/^2 × Café de altura —/)).toHaveTextContent(
+      /129,98/,
+    );
   });
 
   it('sends offering ids and quantities, never prices', async () => {
@@ -365,7 +369,7 @@ describe('the till', () => {
     expect(
       await screen.findByText('No hay existencia suficiente para reservar.'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Total: 129,98\sGTQ/)).toBeInTheDocument();
+    expect(screen.getByText(/^Total:/)).toHaveTextContent(/129,98/);
   });
 });
 
@@ -450,7 +454,7 @@ describe('the lines step', () => {
     ).toBeVisible();
   });
 
-  it('adds nothing for a quantity that is not a whole unit', async () => {
+  it('clamps a count below one to one before it reaches the line', async () => {
     const user = userEvent.setup();
     renderTill();
     await reachLines(user);
@@ -464,9 +468,7 @@ describe('the lines step', () => {
 
     await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
 
-    expect(
-      screen.getByText('Agregue al menos un producto para cobrar.'),
-    ).toBeVisible();
+    expect(screen.getByText(/^1 × Café de altura/)).toBeVisible();
   });
 
   it('removes a line the seller changed their mind about', async () => {

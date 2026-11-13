@@ -56,7 +56,7 @@ const SCREENS = [
   {
     screen: 'user-create',
     path: '/es/users/new',
-    ready: { role: 'button', name: 'Crear usuario' },
+    ready: { role: 'textbox', name: 'Correo' },
   },
   {
     screen: 'configuration',

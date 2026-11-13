@@ -156,9 +156,15 @@ test.describe('browsing the catalog', () => {
     const gallery = page.getByRole('region', {
       name: 'Imágenes del producto',
     });
-    await expect(gallery.getByRole('link')).toHaveCount(3);
+    // entifix's gallery: one figure per picture, the scroller a Tab stop so
+    // arrow keys scroll it (a1-18), and each slide's neighbours a link away.
+    await expect(gallery.getByRole('figure')).toHaveCount(3);
+    await expect(gallery).toHaveAttribute('tabindex', '0');
     await expect(
-      gallery.getByRole('link', { name: 'Cobalto Arc Lamp, marble foot' }),
+      gallery.getByRole('img', { name: 'Cobalto Arc Lamp, marble foot' }),
+    ).toBeVisible();
+    await expect(
+      gallery.getByRole('link', { name: 'Imagen siguiente' }).first(),
     ).toHaveAttribute('href', /^#/);
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
     await expect(trail.getByRole('link', { name: 'Lighting' })).toBeVisible();
@@ -237,9 +243,15 @@ test.describe('browsing the catalog', () => {
 
     await page.waitForURL(/sort=price-desc/);
     await expect(page).toHaveURL(/sort=price-desc/);
+    // The order in force is the current choice, not a link to itself.
+    await expect(
+      page.locator('[aria-current="true"]', {
+        hasText: 'Precio: mayor a menor',
+      }),
+    ).toBeVisible();
     await expect(
       page.getByRole('link', { name: 'Precio: mayor a menor' }),
-    ).toHaveAttribute('aria-current', 'true');
+    ).toHaveCount(0);
     await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
   });
 
@@ -311,8 +323,8 @@ test.describe('browsing the catalog', () => {
     const price = page
       .getByRole('complementary', { name: 'Filtrar' })
       .getByRole('region', { name: 'Precio' });
-    await price.getByRole('spinbutton', { name: 'Desde' }).fill('50');
-    await price.getByRole('spinbutton', { name: 'Hasta' }).fill('100');
+    await price.getByRole('textbox', { name: 'Desde' }).fill('50');
+    await price.getByRole('textbox', { name: 'Hasta' }).fill('100');
     await price.getByRole('button', { name: 'Aplicar' }).click();
 
     await page.waitForURL(/min=50/);
@@ -320,7 +332,7 @@ test.describe('browsing the catalog', () => {
     await expect(page).toHaveURL(/max=100/);
     // Every fixture between 50,00 and 100,00 in its own currency whose name
     // has an "a" — the range compares minor units, so 5000 ≤ amount ≤ 10000.
-    await expect(page.getByRole('spinbutton', { name: 'Desde' })).toHaveValue(
+    await expect(page.getByRole('textbox', { name: 'Desde' })).toHaveValue(
       '50',
     );
     const articles = await page.getByRole('main').getByRole('article').all();
@@ -404,6 +416,27 @@ test.describe('browsing the catalog', () => {
  * filters above the first product. The panel folds behind a native disclosure
  * there and is forced open from `sm` up, with no script either way.
  */
+/**
+ * #533: a read that failed is not a catalog with nothing in it. The mock
+ * backend answers this one term with a `503` (`support/server-mocks.mjs`).
+ */
+test.describe('a listing whose read failed', () => {
+  test('says so, offers a retry, and never says there is nothing', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=e2e-backend-down');
+
+    const notice = page.getByTestId('catalog-unavailable');
+    await expect(notice).toHaveRole('status');
+    await expect(notice).toContainText('No pudimos cargar el catálogo');
+    await expect(
+      notice.getByRole('link', { name: 'Reintentar' }),
+    ).toHaveAttribute('href', /\/es\/search\?q=e2e-backend-down/);
+    await expect(page.getByText('No encontramos nada para')).toHaveCount(0);
+    await expect(page.getByText('Ningún producto coincide')).toHaveCount(0);
+  });
+});
+
 test.describe('a listing on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -467,17 +500,17 @@ test.describe('the cart', () => {
     // the visible `main`: under Cache Components the product page navigated
     // away from stays in the DOM, hidden by React's `<Activity>`, and a bare
     // `getByText` finds it too. A role query skips what is hidden.
-    await page.waitForURL(/\/es\/cart$/);
-    await expect(page).toHaveURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart(\?|$)/);
+    await expect(page).toHaveURL(/\/es\/cart(\?|$)/);
     await expect(
-      page.getByRole('main').getByText('Aurora Desk Lamp'),
+      page.getByRole('main').getByText('Aurora Desk Lamp', { exact: true }),
     ).toBeVisible();
 
     // The point of the cookie: a full reload still has it, because the server
     // rendered it — not because a client store rehydrated.
     await page.reload();
     await expect(
-      page.getByRole('main').getByText('Aurora Desk Lamp'),
+      page.getByRole('main').getByText('Aurora Desk Lamp', { exact: true }),
     ).toBeVisible();
   });
 
@@ -489,7 +522,7 @@ test.describe('the cart', () => {
         .getByRole('form', { name: 'Comprar' })
         .getByRole('button', { name: 'Añadir al carrito' })
         .click();
-      await page.waitForURL(/\/es\/cart$/);
+      await page.waitForURL(/\/es\/cart(\?|$)/);
     }
 
     // 2 × 1999 minor units, in `es`'s separators. A count of units would read
@@ -504,7 +537,7 @@ test.describe('the cart', () => {
     await buy.getByRole('spinbutton', { name: 'Cantidad' }).fill('2');
     await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
 
-    await page.waitForURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart(\?|$)/);
     await expect(page.getByTestId('cart-line-price')).toContainText('39,98');
   });
 
@@ -527,7 +560,7 @@ test.describe('the cart', () => {
       .getByRole('button', { name: 'Añadir al carrito' })
       .click();
 
-    await page.waitForURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart(\?|$)/);
     await expect(page.getByTestId('cart-line-price')).toHaveCount(1);
   });
 
@@ -539,16 +572,19 @@ test.describe('the cart', () => {
       .getByRole('form', { name: 'Comprar' })
       .getByRole('button', { name: 'Añadir al carrito' })
       .click();
-    await page.waitForURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart(\?|$)/);
 
-    await page.getByRole('spinbutton', { name: 'Cantidad' }).fill('3');
+    const quantity = page.getByRole('spinbutton', {
+      name: 'Cantidad de Aurora Desk Lamp',
+    });
+    await quantity.fill('3');
     await page.getByRole('button', { name: 'Actualizar' }).click();
 
     // 3 × 1999 minor units: the server re-rendered the line and the total.
     await expect(page.getByTestId('cart-line-price')).toContainText('59,97');
     await expect(page.getByTestId('cart-total')).toContainText('59,97');
 
-    await page.getByRole('spinbutton', { name: 'Cantidad' }).fill('0');
+    await quantity.fill('0');
     await page.getByRole('button', { name: 'Actualizar' }).click();
     await expect(page.getByText('Tu carrito está vacío.')).toBeVisible();
   });
@@ -559,8 +595,8 @@ test.describe('the cart', () => {
       .getByRole('form', { name: 'Comprar' })
       .getByRole('button', { name: 'Añadir al carrito' })
       .click();
-    await page.waitForURL(/\/es\/cart$/);
-    await expect(page).toHaveURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart(\?|$)/);
+    await expect(page).toHaveURL(/\/es\/cart(\?|$)/);
 
     // Home is prerendered, so its HTML carries no count at all — the island
     // fills it in from the cookie once it mounts.
@@ -568,18 +604,53 @@ test.describe('the cart', () => {
     await expect(page.getByTestId('cart-count')).toHaveText('1');
   });
 
-  test('an item can be removed', async ({ page }) => {
+  /**
+   * a4-6: removing a line is immediate, so it says so in a status region and
+   * offers the way back — with the count the line had, not one — and all of it
+   * is forms, so it needs no script.
+   */
+  test('a removed line is announced, and Undo puts it back with its count', async ({
+    page,
+  }) => {
     await page.goto('/es/p/offering-aurora-desk-lamp');
+    const buy = page.getByRole('form', { name: 'Comprar' });
+    await buy.getByRole('spinbutton', { name: 'Cantidad' }).fill('3');
+    await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart(\?|$)/);
+
+    await page
+      .getByRole('button', { name: 'Quitar Aurora Desk Lamp del carrito' })
+      .click();
+
+    const removed = page.getByRole('status').filter({
+      hasText: 'Se quitó Aurora Desk Lamp del carrito.',
+    });
+    await expect(removed).toBeVisible();
+    await expect(page.getByText('Tu carrito está vacío')).toBeVisible();
+
+    await removed.getByRole('button', { name: 'Deshacer' }).click();
+
+    await expect(
+      page.getByRole('spinbutton', { name: 'Cantidad de Aurora Desk Lamp' }),
+    ).toHaveValue('3');
+    await expect(page.getByTestId('cart-line-price')).toContainText('59,97');
+    await expect(page.getByTestId('cart-removed')).toHaveCount(0);
+  });
+
+  /** a3-27: an add is announced, not only shown by the page it lands on. */
+  test('an add is announced in a status region', async ({ page }) => {
+    await page.goto('/es/p/offering-terra-ceramic-mug');
     await page
       .getByRole('form', { name: 'Comprar' })
       .getByRole('button', { name: 'Añadir al carrito' })
       .click();
-    await page.waitForURL(/\/es\/cart$/);
-    await expect(page).toHaveURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart\?added=/);
 
-    await page.getByRole('button', { name: 'Quitar' }).click();
-
-    await expect(page.getByText('Tu carrito está vacío')).toBeVisible();
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: 'Se añadió Terra Ceramic Mug al carrito.' }),
+    ).toBeVisible();
   });
 });
 

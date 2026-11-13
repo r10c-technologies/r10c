@@ -150,11 +150,19 @@ export type SearchParams =
  * `withParam` checks values against `allowed`, which a price cannot use, so a
  * price that is not a number is dropped here instead. A hand-edited `?min=abc`
  * then filters on nothing rather than on `NaN`.
+ *
+ * A comma decimal is read as a point first: the range field is text in the
+ * buyer's own locale, and in `es` a price is typed `64,99`.
  */
+const validPrices = (prices: readonly string[]) =>
+  prices
+    .map(price => price.replace(',', '.'))
+    .filter(price => PRICE.test(price));
+
 const withValidPrices = (state: SearchState): SearchState => ({
   ...state,
-  min: state.min.filter(price => PRICE.test(price)),
-  max: state.max.filter(price => PRICE.test(price)),
+  min: validPrices(state.min),
+  max: validPrices(state.max),
 });
 
 const toSearchString = (params: SearchParams): string => {

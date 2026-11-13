@@ -18,6 +18,9 @@ export default defineEntifixTest({
     '**/lib/pages/**',
     '**/lib/chrome/**',
     '**/lib/catalog/offering-grid.tsx',
+    // The failed-read notice: a server component like the grid, rendered by
+    // `marketplace-app-e2e`'s catalog-unavailable journey.
+    '**/lib/catalog/catalog-unavailable.tsx',
     // The search composition: an async server component like the grid. Its
     // decisions are the codec's and the facets', covered at 100% in
     // `marketplace-catalog/next`; this file wires them to the page.

@@ -1,6 +1,7 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
+  Breadcrumbs,
   HeadingOne,
   Overline,
   Stack,
@@ -16,7 +17,7 @@ import {
   parseSearch,
   type SearchParams,
 } from '@r10c/implementation-marketplace-catalog-next';
-import { Breadcrumbs, CategoryNav } from '@r10c/utils-react-ui';
+import { CategoryNav } from '@r10c/utils-react-ui';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';

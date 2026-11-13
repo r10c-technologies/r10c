@@ -1,4 +1,4 @@
-import { Grid } from '@entifix/react-controls/primitives';
+import { Grid, StatusTag } from '@entifix/react-controls/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { ProductCard } from './product-card.js';
@@ -24,8 +24,8 @@ const meta = {
     title: 'Aurora Desk Lamp',
     brand: 'Aurora',
     description: 'Warm dimmable LED with a brushed aluminium arm.',
-    price: 'Q19.99',
-    availability: 'Disponible',
+    price: { amount: 1999, currency: 'GTQ', locale: 'es-GT' },
+    availability: { label: 'Disponible', available: true },
     media: {
       url: 'https://picsum.photos/seed/aurora-desk-lamp/800/800',
       alt: 'Aurora Desk Lamp, arm raised',
@@ -48,19 +48,11 @@ export const EveryRole: Story = {
   args: {
     unitPrice: 'Q2.00 / unidad',
     rating: <span>★★★★☆ 4,1</span>,
-    badges: (
-      <span className="text-step--1 rounded-full bg-primary px-2xs text-primary-content">
-        Nuevo
-      </span>
-    ),
+    badges: <StatusTag tone="info">Nuevo</StatusTag>,
     chips: (
       <>
-        <span className="text-step--1 rounded-full border border-border px-2xs">
-          LED
-        </span>
-        <span className="text-step--1 rounded-full border border-border px-2xs">
-          Regulable
-        </span>
+        <StatusTag tone="neutral">LED</StatusTag>
+        <StatusTag tone="neutral">Regulable</StatusTag>
       </>
     ),
   },
@@ -81,7 +73,9 @@ export const NoBrand: Story = {
   args: { brand: undefined, description: undefined },
 };
 
-export const OutOfStock: Story = { args: { availability: 'Agotado' } };
+export const OutOfStock: Story = {
+  args: { availability: { label: 'Agotado', available: false } },
+};
 
 export const Compact: Story = { args: { density: 'compact' } };
 
@@ -99,7 +93,11 @@ export const InAGrid: Story = {
       <ProductCard {...args} />
       <ProductCard {...args} media={undefined} />
       <ProductCard {...args} brand={undefined} description={undefined} />
-      <ProductCard {...args} {...LongTitle.args} availability="Agotado" />
+      <ProductCard
+        {...args}
+        {...LongTitle.args}
+        availability={{ label: 'Agotado', available: false }}
+      />
     </Grid>
   ),
 };

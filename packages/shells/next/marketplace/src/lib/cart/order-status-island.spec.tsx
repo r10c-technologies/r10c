@@ -139,7 +139,7 @@ describe('OrderStatusIsland', () => {
     const { unmount } = mount({ state: 'running' });
     await flush();
 
-    expect(screen.getByTestId('order-pending').textContent).toBe('Waiting');
+    expect(screen.getByRole('status').textContent).toBe('Waiting');
     expect(heldCapabilities()).toEqual(['cap-1']);
     unmount();
     expect(heldCapabilities()).toEqual([]);
@@ -157,7 +157,7 @@ describe('OrderStatusIsland', () => {
     mount({ state: 'compensated' });
     await flush();
 
-    expect(screen.getByTestId('order-failed').textContent).toBe('It failed');
+    expect(screen.getByRole('alert').textContent).toContain('It failed');
     expect(screen.getByTestId('order-retry')).toBeTruthy();
   });
 

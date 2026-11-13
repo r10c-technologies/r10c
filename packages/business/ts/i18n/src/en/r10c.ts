@@ -63,15 +63,7 @@ export const r10c: EsR10c = {
       manage: 'Manage at r10c Identity',
     },
     fields: {
-      displayName: 'Display name',
       email: 'Email',
-      username: 'Username',
-      role: 'Role',
-    },
-    submit: {
-      wait: 'Please wait…',
-      creating: 'Creating…',
-      createUser: 'Create user',
     },
     users: {
       title: 'Users',
@@ -124,6 +116,14 @@ export const r10c: EsR10c = {
       available: 'Available',
       unavailable: 'Out of stock',
       gallery: 'Product images',
+      galleryPrevious: 'Previous image',
+      galleryNext: 'Next image',
+      galleryPosition: '{{index}} of {{total}}',
+    },
+    catalog: {
+      unavailable:
+        'We could not load the catalog just now. It is not that nothing is for sale: try again in a moment.',
+      retry: 'Try again',
     },
     listing: {
       // i18next picks the form from `count` by the locale's plural rules.
@@ -164,7 +164,12 @@ export const r10c: EsR10c = {
       heading: 'Cart',
       empty: 'Your cart is empty.',
       remove: 'Remove',
+      removeNamed: 'Remove {{name}} from the cart',
+      added: '{{name}} was added to the cart.',
+      removed: '{{name}} was removed from the cart.',
+      undo: 'Undo',
       quantity: 'Quantity',
+      quantityOf: 'Quantity of {{name}}',
       update: 'Update',
       total: 'Total',
       keepShopping: 'Keep shopping',
@@ -176,6 +181,7 @@ export const r10c: EsR10c = {
       // A tender per seller (ADR 0070). Cash on delivery is offered only where
       // the seller ships it.
       method: {
+        label: 'Payment method',
         card: 'Card',
         cod: 'Cash on delivery',
       },
@@ -203,8 +209,14 @@ export const r10c: EsR10c = {
       // agree because `RECEIPT_TTL_SECONDS` and the service's own dial are one
       // number (ADR 0058 §5).
       cancel: 'Cancel order',
+      cancelTitle: 'Cancel the order from {{seller}}?',
+      cancelMessage:
+        'This order will be cancelled and its total refunded to you. Orders from other sellers in this purchase do not change.',
+      cancelConfirm: 'Cancel order and refund',
+      cancelKeep: 'Keep the order',
+      cancelledTag: 'Cancelled',
+      cancelledAll: 'Every order in this purchase was cancelled.',
       cancelWindow: 'You can cancel this order until {{time}}.',
-      cancelPending: 'Cancelling…',
       cancelledHeading: 'Order cancelled',
       cancelled:
         'We have cancelled your order and the refund is on its way. It can take a few days to appear on your statement.',

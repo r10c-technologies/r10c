@@ -1,11 +1,15 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
-  Button,
+  Alert,
   ButtonLink,
   Card,
   Cluster,
+  EmptyState,
   HeadingOne,
+  Money,
+  QuantityInput,
+  Select,
   Stack,
   SubmitButton,
   Text,
@@ -14,10 +18,14 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
-import { formatPrice } from '@r10c/utils-react-ui';
 
-import { removeFromCart, setQuantity } from '../cart/cart-actions';
+import {
+  removeFromCart,
+  restoreToCart,
+  setQuantity,
+} from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
+import type { CartNotice } from '../cart/cart-notice';
 import { MAX_QUANTITY } from '../cart/cart-state';
 import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
 import { sellerParts, tenderField } from '../cart/checkout-start';
@@ -40,10 +48,13 @@ import { StoreShell } from './store-shell';
 export async function CartPage({
   locale,
   outcome,
+  notice,
 }: {
   readonly locale: Locale;
   /** What a previous checkout attempt did, carried back on the query string. */
   readonly outcome?: CheckoutOutcome;
+  /** What the action that redirected here did to a line, for the status region. */
+  readonly notice?: CartNotice;
 }) {
   const t = getServerTFor(locale, 'r10c');
   const lines = await readCart();
@@ -97,30 +108,82 @@ export async function CartPage({
     ).map(vendor => [vendor.vendorId, vendor]),
   );
 
+  // The line a notice names, read like any other: a removed line is no
+  // longer in the cookie, so its name is read for the notice alone.
+  const noticed =
+    notice === undefined
+      ? undefined
+      : (offerings.get(notice.offeringId) ??
+        (await runRead(
+          PublishedOffering,
+          getOffering(notice.offeringId),
+          undefined,
+        )));
+
   return (
     <StoreShell locale={locale}>
       <Stack gap="l">
         <HeadingOne>{t('storefront.cart.heading')}</HeadingOne>
 
+        {/* Only what the action itself can say: an empty cart, or a start the
+            coordinator never accepted. A refused line is the flow's outcome
+            and reaches the buyer on the status page the action redirects to,
+            never here. */}
         {outcome !== undefined && (
-          <Card>
-            {/* Only what the action itself can say: an empty cart, or a start
-                the coordinator never accepted. A refused line is the flow's
-                outcome and reaches the buyer on the status page the action
-                redirects to, never here. */}
-            <Text data-testid={`checkout-${outcome}`}>
-              {t(`storefront.checkout.${outcome}`)}
-            </Text>
-          </Card>
+          <Alert
+            tone={outcome === 'failed' ? 'danger' : 'warning'}
+            data-testid={`checkout-${outcome}`}
+          >
+            {t(`storefront.checkout.${outcome}`)}
+          </Alert>
         )}
 
+        {/* A polite status, so the outcome of an add or a remove is announced
+            as well as shown (a3-27). A removal carries its way back: the
+            line and its count, posted to an action, with no script (a4-6). */}
+        {notice !== undefined && noticed !== undefined ? (
+          notice.kind === 'added' ? (
+            <Alert tone="success" data-testid="cart-added">
+              {t('storefront.cart.added', { name: noticed.name })}
+            </Alert>
+          ) : (
+            <Alert
+              tone="info"
+              data-testid="cart-removed"
+              action={
+                <form action={restoreToCart}>
+                  <input
+                    type="hidden"
+                    name="offeringId"
+                    value={notice.offeringId}
+                  />
+                  <input
+                    type="hidden"
+                    name="quantity"
+                    value={notice.quantity}
+                  />
+                  <input type="hidden" name="locale" value={locale} />
+                  <SubmitButton variant="secondary" size="sm">
+                    {t('storefront.cart.undo')}
+                  </SubmitButton>
+                </form>
+              }
+            >
+              {t('storefront.cart.removed', { name: noticed.name })}
+            </Alert>
+          )
+        ) : null}
+
         {present.length === 0 ? (
-          <Stack gap="s" align="start">
-            <Text muted>{t('storefront.cart.empty')}</Text>
-            <ButtonLink href={localeHref(locale, storePaths.home())}>
-              {t('storefront.cart.keepShopping')}
-            </ButtonLink>
-          </Stack>
+          <EmptyState
+            action={
+              <ButtonLink href={localeHref(locale, storePaths.home())}>
+                {t('storefront.cart.keepShopping')}
+              </ButtonLink>
+            }
+          >
+            {t('storefront.cart.empty')}
+          </EmptyState>
         ) : (
           <Stack gap="s">
             {parts.map(part => (
@@ -145,38 +208,36 @@ export async function CartPage({
                             the server writes the cookie and renders the totals. */}
                           <form
                             action={setQuantity}
-                            className="flex items-end gap-2xs"
+                            className="flex flex-wrap items-end gap-2xs"
                           >
                             <input
                               type="hidden"
                               name="offeringId"
                               value={line.offeringId}
                             />
-                            <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
-                              {t('storefront.cart.quantity')}
-                              <input
-                                className="touch-target w-20 rounded-md border border-border-control bg-surface px-2xs py-3xs text-content"
-                                type="number"
-                                name="quantity"
-                                min="0"
-                                max={MAX_QUANTITY}
-                                step="1"
-                                inputMode="numeric"
-                                defaultValue={line.quantity}
-                              />
-                            </label>
-                            <Button type="submit" variant="secondary" size="sm">
+                            <QuantityInput
+                              label={t('storefront.cart.quantityOf', {
+                                name: offering.name,
+                              })}
+                              name="quantity"
+                              defaultValue={line.quantity}
+                              min={0}
+                              max={MAX_QUANTITY}
+                              className="touch-target"
+                            />
+                            <SubmitButton variant="secondary" size="sm">
                               {t('storefront.cart.update')}
-                            </Button>
+                            </SubmitButton>
                           </form>
                         </Stack>
 
                         <Text data-testid="cart-line-price">
-                          {formatPrice(
-                            locale,
-                            offering.amount * line.quantity,
-                            offering.currency,
-                          )}
+                          <Money
+                            amount={offering.amount * line.quantity}
+                            currency={offering.currency}
+                            unit="minor"
+                            locale={locale}
+                          />
                         </Text>
 
                         <form action={removeFromCart}>
@@ -185,9 +246,16 @@ export async function CartPage({
                             name="offeringId"
                             value={line.offeringId}
                           />
-                          <Button type="submit" variant="ghost" size="sm">
+                          <input type="hidden" name="locale" value={locale} />
+                          <SubmitButton
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('storefront.cart.removeNamed', {
+                              name: offering.name,
+                            })}
+                          >
                             {t('storefront.cart.remove')}
-                          </Button>
+                          </SubmitButton>
                         </form>
                       </Cluster>
                     </Card>
@@ -204,7 +272,12 @@ export async function CartPage({
                   <Text key={total.currency} weight="semibold">
                     {t('storefront.cart.total')}
                     {': '}
-                    {formatPrice(locale, total.amount, total.currency)}
+                    <Money
+                      amount={total.amount}
+                      currency={total.currency}
+                      unit="minor"
+                      locale={locale}
+                    />
                   </Text>
                 ))}
               </Stack>
@@ -217,21 +290,34 @@ export async function CartPage({
                 </ButtonLink>
                 <form action={checkout} className="flex flex-col gap-2xs">
                   <input type="hidden" name="locale" value={locale} />
-                  {/* A tender per seller. Cash on delivery is offered only
-                      where the seller ships it — a hint from the published
-                      vendor record; the checkout's own eligibility step is
-                      what refuses. */}
+                  {/* A tender per seller, each its own group: the seller is
+                      the legend and the select is named by what it chooses,
+                      so a screen reader hears "Forma de pago" inside that
+                      seller's group rather than a seller's name alone
+                      (a3-26). Cash on delivery is offered only where the
+                      seller ships it — a hint from the published vendor
+                      record; the checkout's own eligibility step is what
+                      refuses. */}
                   {parts.map(part => (
-                    <label
+                    <fieldset
                       key={part.vendorId}
-                      className="text-step--1 flex items-center gap-2xs text-content-muted"
+                      className="flex flex-col gap-3xs"
                     >
-                      {vendors.get(part.vendorId)?.displayName ?? part.vendorId}
-                      <select
+                      <legend className="text-step--1 font-semibold">
+                        {vendors.get(part.vendorId)?.displayName ??
+                          part.vendorId}
+                      </legend>
+                      <label
+                        htmlFor={tenderField(part.vendorId)}
+                        className="text-step--1 text-content-muted"
+                      >
+                        {t('storefront.checkout.method.label')}
+                      </label>
+                      <Select
+                        id={tenderField(part.vendorId)}
                         name={tenderField(part.vendorId)}
                         defaultValue="card"
                         data-testid={`tender-${part.vendorId}`}
-                        className="rounded-md border border-border-control bg-surface px-2xs py-3xs text-content"
                       >
                         <option value="card">
                           {t('storefront.checkout.method.card')}
@@ -241,8 +327,8 @@ export async function CartPage({
                             {t('storefront.checkout.method.cod')}
                           </option>
                         ) : null}
-                      </select>
-                    </label>
+                      </Select>
+                    </fieldset>
                   ))}
                   <SubmitButton data-testid="checkout" className="touch-target">
                     {t('storefront.cart.checkout')}

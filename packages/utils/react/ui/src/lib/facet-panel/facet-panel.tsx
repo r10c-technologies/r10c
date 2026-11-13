@@ -1,4 +1,9 @@
-import { Stack, Text } from '@entifix/react-controls/primitives';
+import {
+  NumberInput,
+  Stack,
+  SubmitButton,
+  Text,
+} from '@entifix/react-controls/primitives';
 import { useId } from 'react';
 
 import { NarrowDisclosure } from '../narrow-disclosure/narrow-disclosure.js';
@@ -74,18 +79,17 @@ export interface FacetPanelProps {
   readonly collapsible?: { readonly summary: string };
 }
 
-/** The box a checkbox or a toggle draws, so a link reads as a choice. */
-function Mark({ selected }: { readonly selected: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-block size-3 shrink-0 rounded-sm border ${
-        selected ? 'border-primary bg-primary' : 'border-border'
-      }`}
-    />
-  );
-}
+/** A glyph, not copy: hidden from assistive technology, which hears `aria-current`. */
+const TICK = '✓';
 
+/**
+ * One choice: a link to the listing with it flipped.
+ *
+ * ⚠️ It draws no checkbox. A box that looks checkable on an element a screen
+ * reader announces as a link promised one control and delivered another
+ * (a1-19). What is in force is `aria-current="true"` for assistive technology
+ * and a tick plus weight for the eye, neither of them a control's shape.
+ */
 function ChoiceLink({
   label,
   href,
@@ -101,10 +105,15 @@ function ChoiceLink({
     <a
       href={href}
       aria-current={selected ? 'true' : undefined}
-      className="flex items-center gap-2xs text-content hover:text-primary"
+      className="inline-flex min-h-(--target-min) items-center gap-2xs rounded-sm text-content focus-ring hover:text-primary"
     >
-      <Mark selected={selected} />
-      <span className={selected ? 'font-semibold' : undefined}>{label}</span>
+      <span
+        aria-hidden="true"
+        className={`w-3 shrink-0 text-primary ${selected ? '' : 'invisible'}`}
+      >
+        {TICK}
+      </span>
+      <span className={selected ? 'font-semibold' : 'underline'}>{label}</span>
       {count === undefined ? null : (
         <span className="text-step--1 text-content-muted">{count}</span>
       )}
@@ -151,15 +160,16 @@ function Facet({ facet }: { readonly facet: FacetDefinition }) {
 }
 
 function RangeForm({ facet }: { readonly facet: RangeFacet }) {
+  // entifix's `NumberInput`, text with a decimal keypad, rather than
+  // `type="number"`: a number field swallows a comma decimal typed in `es`,
+  // and its spinner steps by a cent. The listing's codec is what reads the
+  // bound, and it ignores one it cannot parse.
   const field = (bound: RangeBound) => (
     <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
       {bound.label}
-      <input
-        className="w-24 rounded-md border border-border bg-surface px-2xs py-3xs text-content"
-        type="number"
-        inputMode="decimal"
-        min="0"
-        step="0.01"
+      <NumberInput
+        className="w-24"
+        autoComplete="off"
         name={bound.name}
         defaultValue={bound.value}
       />
@@ -182,12 +192,7 @@ function RangeForm({ facet }: { readonly facet: RangeFacet }) {
       ))}
       {field(facet.min)}
       {field(facet.max)}
-      <button
-        type="submit"
-        className="rounded-md border border-border px-2xs py-3xs hover:border-primary"
-      >
-        {facet.submitLabel}
-      </button>
+      <SubmitButton variant="secondary">{facet.submitLabel}</SubmitButton>
     </form>
   );
 }

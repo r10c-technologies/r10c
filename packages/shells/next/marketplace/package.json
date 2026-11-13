@@ -46,6 +46,7 @@
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@entifix/i18n": "catalog:",
+    "@entifix/next-shell": "catalog:",
     "@entifix/react-controls": "catalog:",
     "@entifix/react-integration": "catalog:",
     "@entifix/rest": "catalog:",

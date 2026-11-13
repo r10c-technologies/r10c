@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Stack, Text } from '@entifix/react-controls/primitives';
+import { Alert, SubmitButton } from '@entifix/react-controls/primitives';
 import {
   type FlowStatusRead,
   usePendingFlowStore,
@@ -120,22 +120,32 @@ export function OrderStatusIsland({
     router,
   ]);
 
+  // Both are live regions, so the outcome is announced as well as shown
+  // (a4-29): waiting is polite, a failure is assertive.
   return failed ? (
-    <Stack gap="s" align="start">
-      <Text data-testid="order-failed">{labels.failed}</Text>
-      {/* The same `Idempotency-Key` the first attempt used: a retried checkout
-          is that flow again, never a second one. The cart was never touched. */}
-      {retry === undefined ? undefined : (
-        <form action={retry}>
-          <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="retry" value="1" />
-          <Button type="submit" data-testid="order-retry">
-            {labels.retry}
-          </Button>
-        </form>
-      )}
-    </Stack>
+    <Alert
+      tone="danger"
+      data-testid="order-failed"
+      action={
+        // The same `Idempotency-Key` the first attempt used: a retried
+        // checkout is that flow again, never a second one. The cart was
+        // never touched.
+        retry === undefined ? undefined : (
+          <form action={retry}>
+            <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="retry" value="1" />
+            <SubmitButton data-testid="order-retry">
+              {labels.retry}
+            </SubmitButton>
+          </form>
+        )
+      }
+    >
+      {labels.failed}
+    </Alert>
   ) : (
-    <Text data-testid="order-pending">{labels.pending}</Text>
+    <Alert tone="info" data-testid="order-pending">
+      {labels.pending}
+    </Alert>
   );
 }

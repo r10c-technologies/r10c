@@ -1,13 +1,13 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
-  button,
   ButtonLink,
   Cluster,
+  EmptyState,
   Grid,
   Skeleton,
   Stack,
-  Text,
+  SubmitButton,
 } from '@entifix/react-controls/primitives';
 import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
@@ -44,7 +44,7 @@ export async function OfferingGrid({
   emptyLabel,
 }: OfferingGridProps) {
   if (offerings.length === 0) {
-    return <Text muted>{emptyLabel}</Text>;
+    return <EmptyState>{emptyLabel}</EmptyState>;
   }
 
   const brands = await runRead(
@@ -73,8 +73,8 @@ export async function OfferingGrid({
           })}
           // Two actions, and neither is a client component. "View product"
           // navigates, so it is a `ButtonLink`. "Add to cart" is a form posting
-          // to the same Server Action the product page uses, with a plain
-          // `<button>` wearing the button recipe: entifix's `Button` is
+          // to the same Server Action the product page uses, with
+          // `SubmitButton`, a server component: entifix's `Button` is
           // `'use client'`, and one per tile is a client boundary per tile.
           cta={
             <Cluster gap="2xs">
@@ -85,12 +85,9 @@ export async function OfferingGrid({
                   value={offering.offeringId}
                 />
                 <input type="hidden" name="locale" value={locale} />
-                <button
-                  type="submit"
-                  className={button({ variant: 'primary', size: 'sm' })}
-                >
+                <SubmitButton variant="primary" size="sm">
                   {t('storefront.product.addToCart')}
-                </button>
+                </SubmitButton>
               </form>
               <ButtonLink
                 href={localeHref(

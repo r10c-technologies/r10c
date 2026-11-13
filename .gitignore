@@ -47,8 +47,14 @@ infra/local/.heal.lock/
 .env.*.local
 !.env.example
 
-# Claude Code local artifacts — entire directory excluded
-.claude/
+# Claude Code local artifacts — excluded, except the one skill the repo ships:
+# component-audit states only rules a check enforces, and `@r10c/docs-check`
+# holds it to that, so it has to be committed (#535). A directory pattern
+# (`.claude/`) could not be re-included from, hence the per-level negations.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/component-audit/
 # Skills CLI lockfile — the skill itself lives under the ignored .claude/, so
 # the lock is local tooling only (re-fetch via `npx skills add`).
 skills-lock.json

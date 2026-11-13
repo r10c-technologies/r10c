@@ -69,15 +69,7 @@ export const r10c = {
       manage: 'Administrar en r10c Identity',
     },
     fields: {
-      displayName: 'Nombre visible',
       email: 'Correo',
-      username: 'Usuario',
-      role: 'Rol',
-    },
-    submit: {
-      wait: 'Espera…',
-      creating: 'Creando…',
-      createUser: 'Crear usuario',
     },
     users: {
       title: 'Usuarios',
@@ -136,6 +128,14 @@ export const r10c = {
       available: 'Disponible',
       unavailable: 'Sin existencias',
       gallery: 'Imágenes del producto',
+      galleryPrevious: 'Imagen anterior',
+      galleryNext: 'Imagen siguiente',
+      galleryPosition: '{{index}} de {{total}}',
+    },
+    catalog: {
+      unavailable:
+        'No pudimos cargar el catálogo en este momento. No es que no haya productos: inténtalo de nuevo en un momento.',
+      retry: 'Reintentar',
     },
     listing: {
       // i18next picks the form from `count` by the locale's plural rules.
@@ -178,7 +178,12 @@ export const r10c = {
       heading: 'Carrito',
       empty: 'Tu carrito está vacío.',
       remove: 'Quitar',
+      removeNamed: 'Quitar {{name}} del carrito',
+      added: 'Se añadió {{name}} al carrito.',
+      removed: 'Se quitó {{name}} del carrito.',
+      undo: 'Deshacer',
       quantity: 'Cantidad',
+      quantityOf: 'Cantidad de {{name}}',
       update: 'Actualizar',
       total: 'Total',
       keepShopping: 'Seguir comprando',
@@ -190,6 +195,7 @@ export const r10c = {
       // Un medio de pago por vendedor (ADR 0070). El pago contra entrega solo
       // se ofrece donde el vendedor lo acepta.
       method: {
+        label: 'Forma de pago',
         card: 'Tarjeta',
         cod: 'Contra entrega',
       },
@@ -217,8 +223,14 @@ export const r10c = {
       // concuerdan porque `RECEIPT_TTL_SECONDS` y el ajuste del servicio son un
       // solo número (ADR 0058 §5).
       cancel: 'Cancelar pedido',
+      cancelTitle: '¿Cancelar el pedido de {{seller}}?',
+      cancelMessage:
+        'Se cancelará este pedido y te reembolsaremos su total. Los pedidos de otros vendedores en esta compra no cambian.',
+      cancelConfirm: 'Cancelar pedido y reembolsar',
+      cancelKeep: 'Conservar el pedido',
+      cancelledTag: 'Cancelado',
+      cancelledAll: 'Todos los pedidos de esta compra quedaron cancelados.',
       cancelWindow: 'Puedes cancelar este pedido hasta las {{time}}.',
-      cancelPending: 'Cancelando…',
       cancelledHeading: 'Pedido cancelado',
       cancelled:
         'Cancelamos tu pedido y el reembolso ya va en camino. Puede tardar unos días en aparecer en tu estado de cuenta.',

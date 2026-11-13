@@ -1,4 +1,5 @@
 import { type Locale, localeHref } from '@entifix/core';
+import { cn } from '@entifix/react-controls/primitives';
 import Link from 'next/link';
 import type { ComponentPropsWithoutRef } from 'react';
 
@@ -16,12 +17,27 @@ import type { ComponentPropsWithoutRef } from 'react';
  *
  * `localeHref` is idempotent and leaves absolute URLs alone, so applying it at
  * every call site is safe.
+ *
+ * Every one wears `focus-ring`, the design system's focus indicator, so a
+ * keyboard user sees where they are on a link the same way as on a control
+ * (a2-25). A caller's classes add to it rather than replace it.
  */
 export type StoreLinkProps = ComponentPropsWithoutRef<typeof Link> & {
   readonly locale: Locale;
   readonly href: string;
 };
 
-export function StoreLink({ locale, href, ...props }: StoreLinkProps) {
-  return <Link href={localeHref(locale, href)} {...props} />;
+export function StoreLink({
+  locale,
+  href,
+  className,
+  ...props
+}: StoreLinkProps) {
+  return (
+    <Link
+      href={localeHref(locale, href)}
+      className={cn('rounded-sm focus-ring', className)}
+      {...props}
+    />
+  );
 }

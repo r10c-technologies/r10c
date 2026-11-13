@@ -41,4 +41,5 @@ export * from './lib/routing/store-link';
 export * from './lib/cart/cancel-outcome';
 export * from './lib/cart/cart-actions';
 export * from './lib/cart/cart-cookie';
+export * from './lib/cart/cart-notice';
 export * from './lib/cart/cart-state';

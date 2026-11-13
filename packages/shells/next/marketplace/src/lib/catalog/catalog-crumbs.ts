@@ -1,6 +1,6 @@
 import { type Locale, localeHref } from '@entifix/core';
+import type { BreadcrumbItem } from '@entifix/react-controls/primitives';
 import type { ProductCategory } from '@r10c/business-ts-catalog-reference';
-import type { Crumb } from '@r10c/utils-react-ui';
 
 import { storePaths } from '../routing/paths';
 
@@ -28,8 +28,8 @@ export function catalogCrumbs({
   home,
   trail,
   leaf,
-}: CatalogCrumbsInput): Crumb[] {
-  const crumbs: Crumb[] = [
+}: CatalogCrumbsInput): BreadcrumbItem[] {
+  const crumbs: BreadcrumbItem[] = [
     { label: home, href: localeHref(locale, storePaths.home()) },
     ...trail.map(category => ({
       label: category.name,

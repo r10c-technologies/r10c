@@ -79,6 +79,9 @@ describe('FacetPanel', () => {
     expect(aurora).toHaveAttribute('href', '/es/search?brand=a');
     expect(aurora).toHaveAttribute('aria-current', 'true');
     expect(aurora).toHaveTextContent('3');
+    // A link, drawn as one: no box that promises a checkbox (a1-19).
+    expect(brand.querySelector('[role=checkbox], input')).toBeNull();
+    expect(aurora).toHaveClass('focus-ring');
     expect(
       within(brand).getByRole('link', { name: 'Terra' }),
     ).not.toHaveAttribute('aria-current');
@@ -113,8 +116,9 @@ describe('FacetPanel', () => {
     const form = container.querySelector('form');
     expect(form).toHaveAttribute('method', 'get');
     expect(form).toHaveAttribute('action', '/es/search');
-    expect(screen.getByLabelText('Mínimo')).toHaveValue(10);
-    expect(screen.getByLabelText('Máximo')).toHaveValue(null);
+    expect(screen.getByRole('textbox', { name: 'Mínimo' })).toHaveValue('10');
+    expect(screen.getByRole('textbox', { name: 'Máximo' })).toHaveValue('');
+    expect(container.querySelector('input[type=number]')).toBeNull();
     const hidden = [
       ...container.querySelectorAll<HTMLInputElement>('input[type=hidden]'),
     ].map(input => [input.name, input.value]);

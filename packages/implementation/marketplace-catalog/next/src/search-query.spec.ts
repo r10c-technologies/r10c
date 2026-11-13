@@ -64,6 +64,13 @@ describe('parseSearch', () => {
     });
   });
 
+  it('reads a price typed with a comma decimal, as `es` types it', () => {
+    const state = parseSearch({ min: '64,99', max: '100' });
+
+    expect(state.min).toEqual(['64.99']);
+    expect(state.max).toEqual(['100']);
+  });
+
   it('writes page 1 as no page at all', () => {
     expect(parseSearch({ page: '1' }).page).toEqual([]);
   });

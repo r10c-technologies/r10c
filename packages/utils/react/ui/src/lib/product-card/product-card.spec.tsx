@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 import { ProductCard } from './product-card.js';
 
+const PRICE = { amount: 1999, currency: 'GTQ', locale: 'es-GT' } as const;
+// Divided by 100 and given its symbol; the exact spacing is `Money`'s.
+const FORMATTED = /^Q\s?19\.99$/;
+
 const MEDIA = {
   url: 'https://example.com/lamp.jpg',
   alt: 'Lámpara de escritorio',
@@ -10,20 +14,20 @@ const MEDIA = {
 
 describe('ProductCard', () => {
   it('is an article named by its title', () => {
-    render(<ProductCard title="Aurora Desk Lamp" price="Q19.99" />);
+    render(<ProductCard title="Aurora Desk Lamp" price={PRICE} />);
 
     const card = screen.getByRole('article', { name: 'Aurora Desk Lamp' });
     expect(
       within(card).getByRole('heading', { level: 3, name: 'Aurora Desk Lamp' }),
     ).toHaveClass('line-clamp-2');
-    expect(within(card).getByText('Q19.99')).toBeInTheDocument();
+    expect(within(card).getByText(FORMATTED)).toBeInTheDocument();
   });
 
   it('renders every role it is given', () => {
     render(
       <ProductCard
         title="Aurora Desk Lamp"
-        price="Q19.99"
+        price={PRICE}
         brand="Aurora"
         description="Warm dimmable LED."
         media={MEDIA}
@@ -31,7 +35,7 @@ describe('ProductCard', () => {
         badges={<span>Nuevo</span>}
         chips={<span>LED</span>}
         rating={<span>4,5</span>}
-        availability="Disponible"
+        availability={{ label: 'Disponible', available: true }}
         cta={<a href="/es/p/1">Ver producto</a>}
       />,
     );
@@ -56,7 +60,7 @@ describe('ProductCard', () => {
 
   it('leaves out what it is not given, keeping the media box', () => {
     const { container } = render(
-      <ProductCard title="Terra Ceramic Mug" price="Q34.99" />,
+      <ProductCard title="Terra Ceramic Mug" price={PRICE} />,
     );
 
     expect(screen.queryByRole('img')).toBeNull();
@@ -67,11 +71,24 @@ describe('ProductCard', () => {
     expect(container.querySelectorAll('p')).toHaveLength(1);
   });
 
+  it('formats the price in minor units, and tags availability in words', () => {
+    render(
+      <ProductCard
+        title="Mug"
+        price={PRICE}
+        availability={{ label: 'Agotado', available: false }}
+      />,
+    );
+
+    expect(screen.getByText(FORMATTED)).toBeInTheDocument();
+    expect(screen.getByText('Agotado')).toBeInTheDocument();
+  });
+
   it.each([
     ['comfortable', 'gap-s'],
     ['compact', 'gap-xs'],
   ] as const)('spaces a %s card with %s', (density, gap) => {
-    render(<ProductCard title="Mug" price="Q1" density={density} />);
+    render(<ProductCard title="Mug" price={PRICE} density={density} />);
 
     const card = screen.getByRole('article');
     expect(card).toHaveAttribute('data-density', density);

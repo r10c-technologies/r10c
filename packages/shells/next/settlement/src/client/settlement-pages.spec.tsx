@@ -235,12 +235,14 @@ describe('the agreement record page', () => {
       expect(screen.getByDisplayValue('800')).toBeInTheDocument(),
     );
 
-    const inputs = screen.getAllByRole('spinbutton') as HTMLInputElement[];
-    const values = inputs.map(input => input.value);
+    const values = [
+      ...document.querySelectorAll<HTMLInputElement>(
+        'input[data-channel-rate]',
+      ),
+    ].map(input => input.value);
 
     expect(values).toContain('0');
-    // Three of the four channel inputs carry no value at all, beside the
-    // default-rate input which carries 800.
+    // Three of the four channel inputs carry no value at all.
     expect(values.filter(value => value === '').length).toBe(3);
   });
 

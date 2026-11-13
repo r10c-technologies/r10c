@@ -1,6 +1,6 @@
 'use client';
 
-import { TextInput, useT } from '@entifix/react-controls';
+import { NumberInput, useT } from '@entifix/react-controls';
 import {
   type SalesChannelType,
   SalesChannelTypes,
@@ -57,6 +57,9 @@ export function ChannelRateEditor({
   const st = useT('r10c');
 
   const setRate = (channelType: SalesChannelType, raw: string) => {
+    // Whole basis points or nothing: the field is text, so a stray letter or a
+    // decimal is refused here rather than written as `NaN`.
+    if (!/^\d*$/.test(raw)) return;
     const next: Record<string, number> = {};
     for (const type of SalesChannelTypes) {
       const current = type === channelType ? raw : rawValue(value, type);
@@ -73,10 +76,10 @@ export function ChannelRateEditor({
       {SalesChannelTypes.map((channelType, index) => (
         <label key={channelType}>
           {et(`sales-channel.values.type.${channelType}`)}
-          <TextInput
+          <NumberInput
             id={index === 0 ? id : `${id}-${channelType}`}
-            type="number"
             inputMode="numeric"
+            data-channel-rate={channelType}
             disabled={disabled}
             // An empty string, never `0`. A `value` of `0` and a value of `''`
             // render identically to a reader who is not looking for it, and

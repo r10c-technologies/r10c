@@ -2,7 +2,9 @@ import {
   Card,
   Cluster,
   HeadingThree,
+  Money,
   Stack,
+  StatusTag,
   Text,
 } from '@entifix/react-controls/primitives';
 import { type ReactNode, useId } from 'react';
@@ -14,6 +16,20 @@ export interface ProductCardMedia {
 }
 
 export type ProductCardDensity = 'comfortable' | 'compact';
+
+/** A price in minor units (cents), and the locale to read it in. */
+export interface ProductCardPrice {
+  readonly amount: number;
+  /** ISO 4217, e.g. `GTQ`. */
+  readonly currency: string;
+  readonly locale: string;
+}
+
+/** Whether it can be bought, and the words for it, already translated. */
+export interface ProductCardAvailability {
+  readonly label: string;
+  readonly available: boolean;
+}
 
 /**
  * A product tile, as **roles** rather than as a product.
@@ -27,13 +43,15 @@ export type ProductCardDensity = 'comfortable' | 'compact';
  * `unitPrice` and `rating` are declared and nothing fills them yet. They are
  * here so that the card's layout already has a place for them.
  *
- * The roles are nodes, already formatted and translated by whoever renders
- * the card. That keeps this package free of copy, locales and money rules.
+ * The roles are nodes, already translated by whoever renders the card, with
+ * two exceptions that carry a rule rather than copy: the price is an amount
+ * entifix's `Money` formats, so every price on the storefront is formatted one
+ * way, and availability is a `StatusTag`, so it is never colour alone.
  */
 export interface ProductCardProps {
   /** Plain text: it names the card for assistive technology, and clamps at two lines. */
   readonly title: string;
-  readonly price: ReactNode;
+  readonly price: ProductCardPrice;
   readonly brand?: ReactNode;
   readonly description?: ReactNode;
   /** The first picture. Absent, the box keeps its size and shows the title's initial. */
@@ -42,7 +60,7 @@ export interface ProductCardProps {
   readonly badges?: ReactNode;
   readonly chips?: ReactNode;
   readonly rating?: ReactNode;
-  readonly availability?: ReactNode;
+  readonly availability?: ProductCardAvailability;
   /** The call to action: a link or a form. The card does not decide which. */
   readonly cta?: ReactNode;
   readonly density?: ProductCardDensity;
@@ -139,16 +157,20 @@ export function ProductCard({
           both layouts at once.
         */}
         <Stack gap="3xs" className="mt-auto">
-          <Text weight="semibold">{price}</Text>
+          <Text weight="semibold">
+            <Money unit="minor" {...price} />
+          </Text>
           {unitPrice === undefined ? null : (
             <Text muted step={-1}>
               {unitPrice}
             </Text>
           )}
           {availability === undefined ? null : (
-            <Text muted step={-1}>
-              {availability}
-            </Text>
+            <span>
+              <StatusTag tone={availability.available ? 'success' : 'neutral'}>
+                {availability.label}
+              </StatusTag>
+            </span>
           )}
         </Stack>
 

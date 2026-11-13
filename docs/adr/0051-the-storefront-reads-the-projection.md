@@ -6,7 +6,8 @@
 - Revised: 2026-10-24 — the price formatter is now `formatPrice` in `@r10c/utils-react-ui`, which replaced the storefront shell's `formatMoney` (#334).
 - Revised: 2026-10-24 — under Cache Components (#346) the build-time rule is kept by a short cache lifetime rather than by `revalidate` and empty `generateStaticParams`, and a missing product or category now answers `404`, decided in the proxy; the `200` was a `loading.tsx` streaming ahead of `notFound()`, not the package boundary.
 - Revised: 2026-10-26 — a listing also reads its facet counts from `$facets`, in parallel with the page and through the same never-rejecting runner, so a failed count renders the panel without numbers rather than the page without products (#350).
-- Read when: the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read renders an empty catalog and logs
+- Revised: 2026-11-11 by [ADR 0075](0075-accessible-by-default-the-screen-gate-and-heuristics-per-surface.md) — a failed listing read no longer renders the empty-catalog copy: it renders a notice with a retry and is cached for seconds, so empty and broken stop looking alike (#533); and every price renders through entifix's `Money`, which replaced `formatPrice` (#528).
+- Read when: the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read still renders and logs, but says it failed
 
 ## Context
 
@@ -103,9 +104,9 @@ instead — bounded by construction, because a marketplace _merges_ its browse
 tree and `catalog-reference` is operator-authored — and a miss stays `undefined`,
 since nothing enforces a reference across a store boundary.
 
-### A read that fails renders an empty catalog, and says so in the log
+### A read that fails still renders, logs, and says it failed
 
-Every exported query catches, logs and answers an empty page. Two reasons, and
+Every exported query catches, logs and answers a fallback. Two reasons, and
 the second is the one that decided it: a storefront that answers `500` because
 one backend blinked is worse than one that renders its own "nothing here yet"
 copy over an intact page — and `next build` prerenders, so a throw would make the
@@ -115,11 +116,17 @@ The listing's facet counts are a second read under the same rule (#350): a
 count that fails falls back to none, and the panel shows its choices without
 numbers — never a page without products because the counter blinked.
 
-⚠️ **The cost is stated rather than hidden: empty and broken render
-identically.** The log is the only thing that separates them, which is why this
-must not spread to anything that writes, and why the live-profile storefront e2e
-[#148](https://github.com/r10c-technologies/r10c/issues/148) adds is the check
-that will actually assert real data.
+⚠️ **Empty and broken used to render identically**, and the log was the only
+thing that separated them. A buyer could not tell "nothing for sale" from "we
+could not ask" (#533). So the runner now also says whether its answer is the
+fallback (`runReadOutcome`), and a listing whose offering read failed renders a
+status notice with a retry link where the empty copy would have been. The page
+still renders and still logs; what changed is only what it tells the buyer. A
+failed render is cached for `seconds` rather than the catalog's lifetime, so the
+retry asks the backend again, and a build with no fleet does not prerender it.
+The vocabulary reads — categories, brands, sellers, counts — keep degrading
+silently, because a page without them is still a true page. It still must not
+spread to anything that writes.
 
 ### Nothing is enumerated at build time, and the home page stopped being either
 
@@ -216,7 +223,7 @@ reason the source condition must be off.
 Price and availability, which ADR 0049 put on the projection precisely so a card
 could be drawn without reading tenant storage, and which nothing had read.
 `amount` is in **minor units**, so the conversion lives in one function rather
-than at each render site (`formatPrice` in `@r10c/utils-react-ui` since #334), and `Intl` decides the symbol and the
+than at each render site (entifix's `Money`, `unit: 'minor'`, since #528), and `Intl` decides the symbol and the
 separators from the locale — `1999` GTQ is `19,99 GTQ` in Spanish and
 `GTQ 19.99` in English, neither of which belongs in a template literal. An
 unrecognised currency falls back to the bare amount rather than throwing inside a
@@ -235,8 +242,8 @@ hands each card a name; a dangling reference renders nothing.
   modules are gone.
 - **`next build` is hermetic**, and stays that way: it reaches no service, which
   is what lets CI build the app and the e2e build its own artifact.
-- ⚠️ **A backend outage looks like an empty catalog.** Stated above. The remedy
-  is the live e2e, not a second rendering path.
+- ~~A backend outage looks like an empty catalog.~~ No longer: since #533 it
+  renders a notice with a retry (ADR 0075). The live e2e still asserts real data.
 - ⚠️ **The first visitor of each locale pays a render.** Roughly the cost of one
   service round trip, once per locale per deploy, and the alternative was serving
   them a page built from data the builder could not read.

@@ -42,17 +42,19 @@ const existing = () => {
 const renderForm = (form: ReactElement) =>
   render(<EntifixQueryProvider>{form}</EntifixQueryProvider>);
 
-const rateInputs = () =>
-  screen.getAllByRole('spinbutton') as HTMLInputElement[];
+/** The default rate, the generated form's own number field. */
+const defaultRate = () => screen.getByRole('spinbutton') as HTMLInputElement;
 
-/** The channel inputs, in `SalesChannelTypes` order, after the default rate. */
-const channelInputs = () => rateInputs().slice(1);
+/** The channel inputs, in `SalesChannelTypes` order. */
+const channelInputs = () => [
+  ...document.querySelectorAll<HTMLInputElement>('input[data-channel-rate]'),
+];
 
 describe('the agreement form', () => {
   it('seeds the default rate and the per-channel overrides from the record', () => {
     renderForm(<AgreementForm entity={existing()} onSave={vi.fn()} />);
 
-    expect(rateInputs()[0]?.value).toBe('800');
+    expect(defaultRate().value).toBe('800');
     expect(channelInputs().map(input => input.value)).toContain('0');
   });
 
@@ -97,6 +99,17 @@ describe('the agreement form', () => {
    * stored empty object reads as "there are overrides here" to anyone inspecting
    * the record, and `commissionFor` treats the two identically anyway.
    */
+  it('refuses what is not a whole number of basis points', () => {
+    renderForm(<AgreementForm entity={existing()} onSave={vi.fn()} />);
+
+    const [first] = channelInputs();
+    const before = first?.value;
+    fireEvent.change(first as HTMLInputElement, { target: { value: '1,5' } });
+
+    expect(first?.value).toBe(before);
+    expect(first).not.toHaveAttribute('type', 'number');
+  });
+
   it('writes no rate map at all when every channel is cleared', async () => {
     const onSave = vi.fn();
     renderForm(<AgreementForm entity={existing()} onSave={onSave} />);
