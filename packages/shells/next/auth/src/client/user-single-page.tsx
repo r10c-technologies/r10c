@@ -8,7 +8,12 @@ import {
 } from '@entifix/core';
 import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
 import { useLocaleHref } from '@entifix/next-shell';
-import { EntityForm, useErrorMessage, useT } from '@entifix/react-controls';
+import {
+  Alert,
+  EntityForm,
+  useErrorMessage,
+  useT,
+} from '@entifix/react-controls';
 import { useEntityUseCases } from '@entifix/react-integration';
 import { UserIdentity } from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
@@ -176,12 +181,12 @@ export function UserDetailPage({
 
   const failure = saveError ?? error;
 
+  // Above the form rather than its `formError`, which shows only while
+  // editing: a failed load or a refused verb happens in read mode.
   return (
     <>
       {failure === undefined ? null : (
-        <p role="alert" className="text-danger">
-          {errorMessage(failure)}
-        </p>
+        <Alert tone="danger">{errorMessage(failure)}</Alert>
       )}
       <EntityForm
         entityConstructor={UserIdentity}

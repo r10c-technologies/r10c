@@ -73,7 +73,7 @@ test('the storefront reflows at 320px and keeps commerce above the fold', async 
 
   await test.step('cart', async () => {
     await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
-    await page.waitForURL(/\/es\/cart$/);
+    await page.waitForURL(/\/es\/cart(\?|$)/);
     await expectNoSidewaysScroll(page);
     await expectTouchTarget(page.getByTestId('checkout'));
     await expectTouchTarget(page.getByRole('spinbutton').first());

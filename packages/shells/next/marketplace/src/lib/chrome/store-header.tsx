@@ -1,6 +1,10 @@
 import type { Locale } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
-import { Button, Cluster, TextInput } from '@entifix/react-controls/primitives';
+import {
+  Cluster,
+  SubmitButton,
+  TextInput,
+} from '@entifix/react-controls/primitives';
 import { NarrowDisclosure } from '@r10c/utils-react-ui';
 import type { ReactNode } from 'react';
 
@@ -80,7 +84,7 @@ export function StoreHeader({
               aria-label={t('storefront.search.label')}
               placeholder={t('storefront.search.placeholder')}
             />
-            <Button type="submit">{t('storefront.search.submit')}</Button>
+            <SubmitButton>{t('storefront.search.submit')}</SubmitButton>
           </form>
         </Cluster>
       </div>

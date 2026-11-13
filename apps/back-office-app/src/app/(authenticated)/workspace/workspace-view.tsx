@@ -1,7 +1,7 @@
 'use client';
 
 import { WorkspaceShell } from '@entifix/next-shell';
-import { Menu, useT } from '@entifix/react-controls';
+import { Alert, EmptyState, Menu, useT } from '@entifix/react-controls';
 
 import { workspaceRegistry } from './workspace-registry';
 
@@ -31,12 +31,8 @@ export function WorkspaceView({ scope }: { scope: string }) {
           </Menu.Items>
         </Menu>
       }
-      emptyState={
-        <p className="text-content-muted">{shellT('workspace.empty')}</p>
-      }
-      fallback={
-        <p className="text-danger">{shellT('workspace.unsupported')}</p>
-      }
+      emptyState={<EmptyState>{shellT('workspace.empty')}</EmptyState>}
+      fallback={<Alert tone="danger">{shellT('workspace.unsupported')}</Alert>}
     />
   );
 }

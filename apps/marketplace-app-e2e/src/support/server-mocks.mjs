@@ -332,7 +332,24 @@ const buyerCancelHandler = http.post(
   },
 );
 
+/**
+ * A search for this term reaches a backend that is down, so a spec can show
+ * what a failed catalog read renders (#533) without stopping a process every
+ * other worker is reading from. Matched on the raw query, whichever parameter
+ * the adapters put the name filter in.
+ */
+const UNAVAILABLE_TERM = 'e2e-backend-down';
+
+const unavailableHandler = http.get(
+  `${SERVICE_URL}/published-offering`,
+  ({ request }) =>
+    decodeURIComponent(new URL(request.url).search).includes(UNAVAILABLE_TERM)
+      ? new HttpResponse(null, { status: 503 })
+      : undefined,
+);
+
 setupServer(
+  unavailableHandler,
   buyerCancelHandler,
   buyerReceiptHandler,
   configurationHandler(CONFIG_URL, CONFIGURATION),

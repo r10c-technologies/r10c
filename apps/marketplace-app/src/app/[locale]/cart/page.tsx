@@ -1,4 +1,8 @@
-import { cartMetadata, CartPage } from '@r10c/shells-next-marketplace/server';
+import {
+  cartMetadata,
+  CartPage,
+  parseCartNotice,
+} from '@r10c/shells-next-marketplace/server';
 
 import { type LocaleRouteProps, requireLocale } from '../locale-param';
 
@@ -7,7 +11,7 @@ export async function generateMetadata({ params }: LocaleRouteProps) {
 }
 
 /**
- * `searchParams` carries what a checkout attempt did. It is a query param rather
+ * `searchParams` carries what a checkout attempt, or a cart action, did. It is a query param rather
  * than a cookie or a flash message because the server action redirects here:
  * the result has to survive exactly one navigation and no longer.
  */
@@ -32,6 +36,7 @@ export default async function CartRoute({
       outcome={
         outcome === 'empty' || outcome === 'failed' ? outcome : undefined
       }
+      notice={parseCartNotice(query)}
     />
   );
 }

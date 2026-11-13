@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { type CartNotice, cartNoticeQuery } from './cart-notice';
 import {
   CART_COOKIE,
   type CartLine,
@@ -29,6 +30,10 @@ import {
  */
 
 const ONE_MONTH = 60 * 60 * 24 * 30;
+
+/** The cart page, carrying what the action did for its status region. */
+const cartWith = (locale: string, notice: CartNotice) =>
+  `/${locale}/cart?${cartNoticeQuery(notice)}`;
 
 async function writeCart(lines: readonly CartLine[]) {
   (await cookies()).set(CART_COOKIE, serializeCart(lines), {
@@ -70,17 +75,52 @@ export async function addToCart(formData: FormData) {
   );
 
   // `redirect` throws to unwind the action, so it must come after the write.
-  if (locale) redirect(`/${locale}/cart`);
+  if (locale) redirect(cartWith(locale, { kind: 'added', offeringId }));
 }
 
 export async function removeFromCart(formData: FormData) {
   const offeringId = String(formData.get('offeringId') ?? '');
+  const locale = String(formData.get('locale') ?? '');
   if (!offeringId) return;
 
   const store = await cookies();
   const lines = parseCart(store.get(CART_COOKIE)?.value);
+  const removed = lines.find(line => line.offeringId === offeringId);
 
   await writeCart(lines.filter(line => line.offeringId !== offeringId));
+
+  // The count goes with the notice: the cookie no longer has it, and Undo
+  // gives back what was there rather than one.
+  if (locale && removed)
+    redirect(
+      cartWith(locale, {
+        kind: 'removed',
+        offeringId,
+        quantity: removed.quantity,
+      }),
+    );
+}
+
+/**
+ * Undo for a removal: the line comes back with the count it had. An add rather
+ * than a write of the old cart, so anything the buyer did since is kept, and a
+ * line that came back some other way meanwhile is summed rather than lost.
+ */
+export async function restoreToCart(formData: FormData) {
+  const offeringId = String(formData.get('offeringId') ?? '');
+  const locale = String(formData.get('locale') ?? '');
+  if (!offeringId) return;
+
+  const store = await cookies();
+  await writeCart(
+    withAdded(
+      parseCart(store.get(CART_COOKIE)?.value),
+      offeringId,
+      Number(formData.get('quantity') ?? 1),
+    ),
+  );
+
+  if (locale) redirect(`/${locale}/cart`);
 }
 
 /**

@@ -1,17 +1,20 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
+import { ConfirmAction } from '@entifix/next-shell';
 import {
-  Button,
+  Alert,
   ButtonLink,
   Card,
   Cluster,
+  EmptyState,
   HeadingOne,
+  Money,
   Stack,
+  StatusTag,
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
-import { formatPrice } from '@r10c/utils-react-ui';
 
 import { cancelOrder } from '../cart/cancel-action';
 import type { CancelOutcome } from '../cart/cancel-outcome';
@@ -93,14 +96,16 @@ export async function OrderStatusPage({
     <StoreShell locale={locale}>
       <Stack gap="l">
         <HeadingOne>{t('storefront.order.expiredHeading')}</HeadingOne>
-        <Stack gap="s" align="start">
-          <Text muted data-testid="receipt-expired">
-            {t('storefront.order.expired')}
-          </Text>
-          <ButtonLink href={localeHref(locale, storePaths.home())}>
-            {t('storefront.order.keepShopping')}
-          </ButtonLink>
-        </Stack>
+        <EmptyState
+          data-testid="receipt-expired"
+          action={
+            <ButtonLink href={localeHref(locale, storePaths.home())}>
+              {t('storefront.order.keepShopping')}
+            </ButtonLink>
+          }
+        >
+          {t('storefront.order.expired')}
+        </EmptyState>
       </Stack>
     </StoreShell>
   );
@@ -130,13 +135,24 @@ async function ReceiptView({
     : undefined;
   const receiptHref = (cancel: CancelOutcome) =>
     `${localeHref(locale, storePaths.orderStatus(receipt.groupId))}?cancel=${cancel}`;
+  // Once every order on it is cancelled, the receipt no longer thanks anyone
+  // for a purchase that did not happen (a3-2): it says what did.
+  const allCancelled = receipt.orders.every(order => order.cancelled === true);
 
   return (
     <Stack gap="l">
-      <HeadingOne>{t('storefront.order.heading')}</HeadingOne>
+      <HeadingOne>
+        {allCancelled
+          ? t('storefront.order.cancelledHeading')
+          : t('storefront.order.heading')}
+      </HeadingOne>
       <Card>
         <Stack gap="3xs">
-          <Text data-testid="order-placed">{t('storefront.order.placed')}</Text>
+          <Text data-testid="order-placed">
+            {allCancelled
+              ? t('storefront.order.cancelledAll')
+              : t('storefront.order.placed')}
+          </Text>
           <Text weight="semibold" data-testid="order-id">
             {t('storefront.order.reference')}
             {': '}
@@ -146,18 +162,19 @@ async function ReceiptView({
       </Card>
 
       {outcome === 'failed' ? (
-        <Card>
-          <Text data-testid="cancel-failed">
-            {t('storefront.order.cancelFailed')}
-          </Text>
-        </Card>
+        <Alert tone="danger" data-testid="cancel-failed">
+          {t('storefront.order.cancelFailed')}
+        </Alert>
       ) : undefined}
       {outcome === 'pending' ? (
-        <Card>
-          <Text data-testid="cancel-payment-pending">
-            {t('storefront.order.cancelPaymentPending')}
-          </Text>
-        </Card>
+        <Alert tone="warning" data-testid="cancel-payment-pending">
+          {t('storefront.order.cancelPaymentPending')}
+        </Alert>
+      ) : undefined}
+      {outcome === 'cancelled' ? (
+        <Alert tone="success" data-testid="cancel-done">
+          {t('storefront.order.cancelled')}
+        </Alert>
       ) : undefined}
 
       {cancelling === undefined ? undefined : (
@@ -202,7 +219,12 @@ async function ReceiptView({
             <Text key={total.currency} weight="semibold">
               {t('storefront.order.total')}
               {': '}
-              {formatPrice(locale, total.amount, total.currency)}
+              <Money
+                amount={total.amount}
+                currency={total.currency}
+                unit="minor"
+                locale={locale}
+              />
             </Text>
           ))}
         </Stack>
@@ -259,9 +281,11 @@ async function VendorOrderCard({
           </Text>
         </Cluster>
         {order.cancelled === true ? (
-          <Text data-testid="vendor-order-cancelled">
-            {t('storefront.order.cancelled')}
-          </Text>
+          <span>
+            <StatusTag tone="neutral" data-testid="vendor-order-cancelled">
+              {t('storefront.order.cancelledTag')}
+            </StatusTag>
+          </span>
         ) : undefined}
         {order.lines === undefined ? (
           <Text muted data-testid="order-summary-only">
@@ -277,31 +301,44 @@ async function VendorOrderCard({
                 </Text>
               </Stack>
               <Text>
-                {formatPrice(
-                  locale,
-                  line.amount * line.quantity,
-                  line.currency,
-                )}
+                <Money
+                  amount={line.amount * line.quantity}
+                  currency={line.currency}
+                  unit="minor"
+                  locale={locale}
+                />
               </Text>
             </Cluster>
           ))
         )}
         <Cluster justify="between" gap="s">
           <Text weight="semibold">
-            {formatPrice(locale, order.total.amount, order.total.currency)}
+            <Money
+              amount={order.total.amount}
+              currency={order.total.currency}
+              unit="minor"
+              locale={locale}
+            />
           </Text>
+          {/* Asks first, with or without JavaScript: the title names the
+              order, the message states the refund, and only the confirming
+              post acts (a3-2, entifix ADR 0026). */}
           {cancellable ? (
-            <form action={cancelOrder}>
-              <input type="hidden" name="locale" value={locale} />
-              <input type="hidden" name="orderId" value={order.orderId} />
-              <Button
-                type="submit"
-                variant="destructive"
-                data-testid={`cancel-${order.vendorId}`}
+            <div data-testid={`cancel-${order.vendorId}`}>
+              <ConfirmAction
+                action={cancelOrder}
+                fields={{ locale, orderId: order.orderId }}
+                tone="destructive"
+                title={t('storefront.order.cancelTitle', {
+                  seller: order.vendorName ?? order.vendorId,
+                })}
+                message={t('storefront.order.cancelMessage')}
+                confirmLabel={t('storefront.order.cancelConfirm')}
+                cancelLabel={t('storefront.order.cancelKeep')}
               >
                 {t('storefront.order.cancel')}
-              </Button>
-            </form>
+              </ConfirmAction>
+            </div>
           ) : undefined}
         </Cluster>
       </Stack>

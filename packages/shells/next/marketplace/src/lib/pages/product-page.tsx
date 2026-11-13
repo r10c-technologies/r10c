@@ -1,12 +1,17 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
+  Breadcrumbs,
   Card,
   Cluster,
   HeadingOne,
   HeadingTwo,
+  MediaGallery,
+  Money,
   Overline,
+  QuantityInput,
   Stack,
+  StatusTag,
   SubmitButton,
   Text,
 } from '@entifix/react-controls/primitives';
@@ -14,7 +19,6 @@ import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { loadCategoryTrail } from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
-import { Breadcrumbs, formatPrice, MediaGallery } from '@r10c/utils-react-ui';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -37,8 +41,10 @@ import { StoreShell } from './store-shell';
  *
  * The buy box is a plain `<form>` posting to a Server Action. That is why
  * add-to-cart works on a **cached** page: the page itself carries no client
- * state, and the action writes the cookie server-side. The buy box ships no
- * JavaScript at all: its button is `SubmitButton`, a server component.
+ * state, and the action writes the cookie server-side. Its button is
+ * `SubmitButton`, a server component, and its count is an uncontrolled
+ * `QuantityInput` — a client component, but one whose field is server-rendered
+ * with its name and starting count, so the form posts with scripting off.
  */
 async function RelatedOfferings({
   locale,
@@ -176,13 +182,22 @@ async function ProductContent({
 
             <Cluster gap="s" justify="between">
               <Text weight="semibold" step={1}>
-                {formatPrice(locale, offering.amount, offering.currency)}
+                <Money
+                  amount={offering.amount}
+                  currency={offering.currency}
+                  unit="minor"
+                  locale={locale}
+                />
               </Text>
-              <Text muted>
-                {offering.availableHint
-                  ? t('storefront.product.available')
-                  : t('storefront.product.unavailable')}
-              </Text>
+              {offering.availableHint ? (
+                <StatusTag tone="success">
+                  {t('storefront.product.available')}
+                </StatusTag>
+              ) : (
+                <StatusTag tone="neutral">
+                  {t('storefront.product.unavailable')}
+                </StatusTag>
+              )}
             </Cluster>
 
             {/*
@@ -202,19 +217,14 @@ async function ProductContent({
                 value={offering.offeringId}
               />
               <input type="hidden" name="locale" value={locale} />
-              <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
-                {t('storefront.cart.quantity')}
-                <input
-                  className="touch-target w-20 rounded-md border border-border-control bg-surface px-2xs py-xs text-content"
-                  type="number"
-                  name="quantity"
-                  min="1"
-                  max={MAX_QUANTITY}
-                  step="1"
-                  inputMode="numeric"
-                  defaultValue={1}
-                />
-              </label>
+              <QuantityInput
+                label={t('storefront.cart.quantity')}
+                name="quantity"
+                defaultValue={1}
+                min={1}
+                max={MAX_QUANTITY}
+                className="touch-target"
+              />
               <SubmitButton
                 variant="primary"
                 size="lg"
@@ -278,8 +288,28 @@ async function ProductContent({
           </Stack>
           {media.length > 0 ? (
             <MediaGallery
-              label={t('storefront.product.gallery')}
-              items={media}
+              items={media.map((item, index) => ({
+                id: `media-${index + 1}`,
+                src: item.url,
+                alt: item.alt,
+              }))}
+              labels={{
+                region: t('storefront.product.gallery'),
+                previous: t('storefront.product.galleryPrevious'),
+                next: t('storefront.product.galleryNext'),
+                position: (index, total) =>
+                  t('storefront.product.galleryPosition', { index, total }),
+              }}
+              renderMedia={item => (
+                <img
+                  className="h-full w-full object-cover"
+                  src={item.src}
+                  alt={item.alt}
+                  // The first picture is what the page is about; the rest wait.
+                  loading={item.id === 'media-1' ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+              )}
             />
           ) : (
             // No pictures: the same square, so the page keeps its shape.

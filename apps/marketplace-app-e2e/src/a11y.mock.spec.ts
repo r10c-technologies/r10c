@@ -58,7 +58,7 @@ for (const palette of PALETTES) {
         .getByRole('form', { name: 'Comprar' })
         .getByRole('button', { name: 'Añadir al carrito' })
         .click();
-      await page.waitForURL(/\/es\/cart$/);
+      await page.waitForURL(/\/es\/cart(\?|$)/);
       await expect(page.getByTestId('checkout')).toBeVisible();
       await gate('cart');
     });
@@ -69,6 +69,25 @@ for (const palette of PALETTES) {
       script.outcome = 'flow.completed';
       await expect(page.getByTestId('order-id')).toBeVisible();
       await gate('receipt');
+    });
+
+    // After the cancel the page reloads onto the cancelled receipt; the walk
+    // proves focus lands somewhere a keyboard user can continue from, never
+    // on `<body>` (#525).
+    await test.step('cancelled receipt', async () => {
+      await page
+        .getByTestId('cancel-demo-organization')
+        .getByRole('button', { name: 'Cancelar pedido' })
+        .click();
+      await page
+        .getByRole('alertdialog')
+        .getByRole('button', { name: 'Cancelar pedido y reembolsar' })
+        .click();
+      await page.waitForURL(/cancel=cancelled/);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+        'Pedido cancelado',
+      );
+      await gate('cancelled');
     });
 
     await test.step('not-found', async () => {

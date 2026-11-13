@@ -3,6 +3,7 @@ import { getServerTFor } from '@entifix/i18n';
 import {
   Cluster,
   PaginationLinks,
+  SegmentedNav,
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
@@ -31,11 +32,12 @@ import {
   type SearchState,
 } from '@r10c/implementation-marketplace-catalog-next';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
-import { FacetPanel, SortControl } from '@r10c/utils-react-ui';
+import { FacetPanel, NarrowDisclosure } from '@r10c/utils-react-ui';
 import { cacheLife } from 'next/cache';
 
 import { CATALOG_CACHE } from './catalog-cache';
-import { emptyPage, runRead } from './catalog-reads';
+import { emptyPage, runRead, runReadOutcome } from './catalog-reads';
+import { CatalogUnavailable } from './catalog-unavailable';
 import { OfferingGrid } from './offering-grid';
 
 /** Each order's label in the `storefront.listing.sorts` catalog. */
@@ -89,9 +91,9 @@ export async function OfferingListing({
   emptyLabel,
 }: OfferingListingProps) {
   // Keyed by every prop, the parsed search included: one entry per distinct
-  // listing, each reused for the catalog's lifetime.
+  // listing, each reused for the catalog's lifetime — unless the read failed,
+  // below.
   'use cache';
-  cacheLife(CATALOG_CACHE);
 
   const t = getServerTFor(locale, 'r10c');
   const controls = getServerTFor(locale, 'controls');
@@ -122,8 +124,8 @@ export async function OfferingListing({
   // Two reads in parallel: the page, and the counts beside its filters. A
   // failed count renders the panel without numbers, never the page without
   // products.
-  const [result, counts] = await Promise.all([
-    runRead(
+  const [{ value: result, failed }, counts] = await Promise.all([
+    runReadOutcome(
       PublishedOffering,
       searchOfferings(searched, context),
       emptyPage<PublishedOffering>(),
@@ -134,6 +136,12 @@ export async function OfferingListing({
       {} as OfferingFacetCounts,
     ),
   ]);
+
+  // One `cacheLife` per invocation, chosen by the outcome: a failure is kept
+  // for seconds rather than the catalog's minutes, so Retry asks the backend
+  // again, and a page built with no fleet does not prerender it (#533).
+  if (failed) cacheLife('seconds');
+  else cacheLife(CATALOG_CACHE);
 
   const roots = categories.items.filter(category => !category.parentId);
 
@@ -219,26 +227,36 @@ export async function OfferingListing({
           <Text muted>
             {t('storefront.listing.results', { count: result.total })}
           </Text>
-          <SortControl
-            label={t('storefront.listing.sort')}
-            options={SEARCH_SORTS.map(value => ({
-              value,
-              label: t(SORT_LABEL[value]),
-            }))}
-            current={sort}
-            hrefFor={value => searchHref(href, state, { sort: [value] })}
-            // The bare label, not the order in force: at 320px a summary
-            // naming it no longer shared a row with the count (#529). The
-            // order in force is marked inside, `aria-current`.
-            collapsible={{ summary: t('storefront.listing.sort') }}
-          />
+          {/* The bare label, not the order in force: at 320px a summary
+              naming it no longer shared a row with the count (#529). The
+              order in force is marked inside, `aria-current="true"` — one
+              page in several orders, never several pages. */}
+          <NarrowDisclosure summary={t('storefront.listing.sort')}>
+            <SegmentedNav
+              kind="sort"
+              label={t('storefront.listing.sort')}
+              items={SEARCH_SORTS.map(value => ({
+                key: value,
+                label: t(SORT_LABEL[value]),
+                href: searchHref(href, state, { sort: [value] }),
+                current: value === sort,
+              }))}
+            />
+          </NarrowDisclosure>
         </Cluster>
 
-        <OfferingGrid
-          locale={locale}
-          offerings={result.items}
-          emptyLabel={emptyLabel}
-        />
+        {failed ? (
+          <CatalogUnavailable
+            locale={locale}
+            retryHref={searchHref(href, state, {})}
+          />
+        ) : (
+          <OfferingGrid
+            locale={locale}
+            offerings={result.items}
+            emptyLabel={emptyLabel}
+          />
+        )}
 
         <PaginationLinks
           currentPage={current}

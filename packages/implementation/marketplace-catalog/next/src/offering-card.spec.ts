@@ -1,5 +1,4 @@
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { formatPrice } from '@r10c/utils-react-ui';
 import { describe, expect, it } from 'vitest';
 
 import { offeringCard, type OfferingCardContext } from './offering-card.js';
@@ -35,12 +34,12 @@ describe('offeringCard', () => {
 
     expect(card).toEqual({
       title: 'Lámpara Arco',
-      price: formatPrice('es', 45000, 'GTQ'),
+      price: { amount: 45000, currency: 'GTQ', locale: 'es' },
       brand: 'Aurora',
       description: 'Luz cálida',
       // The first picture only: the rest belong to the product page.
       media: { url: 'https://img.example/1.jpg', alt: 'De frente' },
-      availability: 'Disponible',
+      availability: { label: 'Disponible', available: true },
     });
   });
 
@@ -50,7 +49,7 @@ describe('offeringCard', () => {
     expect(card.brand).toBeUndefined();
     expect(card.description).toBeUndefined();
     expect(card.media).toBeUndefined();
-    expect(card.availability).toBe('Agotado');
+    expect(card.availability).toEqual({ label: 'Agotado', available: false });
   });
 
   it('leaves the brand absent when the vocabulary does not know it', () => {

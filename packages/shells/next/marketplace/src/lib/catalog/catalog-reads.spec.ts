@@ -24,7 +24,7 @@ import {
 } from '@r10c/implementation-marketplace-catalog-next';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { emptyPage, makeRunRead } from './catalog-reads.js';
+import { emptyPage, makeCatalogReads } from './catalog-reads.js';
 
 /**
  * These run the cells' reads through the storefront's **real** composition —
@@ -140,7 +140,7 @@ const server = setupEntifixServer(
  * pass against a cached success.
  */
 const load = () => ({
-  runRead: makeRunRead(),
+  ...makeCatalogReads(),
   emptyPage,
   loadOfferings,
   getOffering,
@@ -208,6 +208,19 @@ describe('the offering reads, on the wire', () => {
       'Taza Terra',
     ]);
     expect(result.items[0]?.amount).toBe(1999);
+  });
+
+  it('says an answer that came back is not the fallback', async () => {
+    const { runReadOutcome, loadOfferings, emptyPage } = load();
+
+    const outcome = await runReadOutcome(
+      PublishedOffering,
+      loadOfferings(),
+      emptyPage<PublishedOffering>(),
+    );
+
+    expect(outcome.failed).toBe(false);
+    expect(outcome.value.items).toHaveLength(2);
   });
 
   it('sends a category subtree and a name match as RSQL', async () => {
@@ -342,6 +355,23 @@ describe('when the backend does not answer', () => {
     expect(logged).toHaveBeenCalledWith(
       expect.stringContaining('PublishedOffering'),
     );
+    logged.mockRestore();
+  });
+
+  it('says the answer is the fallback, so a listing can tell it from an empty one', async () => {
+    const { runReadOutcome, loadOfferings, emptyPage } = load();
+    const logged = vi.spyOn(console, 'error').mockImplementation(noop);
+
+    server.use(http.get(OFFERING_URL, () => HttpResponse.error()));
+
+    const outcome = await runReadOutcome(
+      PublishedOffering,
+      loadOfferings(),
+      emptyPage<PublishedOffering>(),
+    );
+
+    expect(outcome.failed).toBe(true);
+    expect(outcome.value.items).toEqual([]);
     logged.mockRestore();
   });
 

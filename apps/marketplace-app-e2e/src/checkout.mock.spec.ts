@@ -28,12 +28,28 @@ const addToCart = async (page: Page, offeringId: string) => {
     .getByRole('form', { name: 'Comprar' })
     .getByRole('button', { name: 'Añadir al carrito' })
     .click();
-  await page.waitForURL(/\/es\/cart$/);
+  await page.waitForURL(/\/es\/cart(\?|$)/);
 };
 
 const startCheckout = async (page: Page) => {
   await page.getByTestId('checkout').click();
   await page.waitForURL(STATUS_PAGE);
+};
+
+/**
+ * A seller's cancel, through its confirmation: the trigger opens an alert
+ * dialog naming the order and the refund, and only its confirm acts (a3-2).
+ */
+const cancelOrder = async (page: Page, vendorId: string) => {
+  await page
+    .getByTestId(`cancel-${vendorId}`)
+    .getByRole('button', { name: 'Cancelar pedido' })
+    .click();
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toContainText('reembolsaremos');
+  await dialog
+    .getByRole('button', { name: 'Cancelar pedido y reembolsar' })
+    .click();
 };
 
 test.describe('a checkout', () => {
@@ -45,12 +61,16 @@ test.describe('a checkout', () => {
     await addToCart(page, 'offering-aurora-desk-lamp');
     await startCheckout(page);
 
-    await expect(page.getByTestId('order-pending')).toBeVisible();
+    // A live region, so waiting is announced as well as shown (a4-29).
+    await expect(page.getByTestId('order-pending')).toHaveRole('status');
 
     script.outcome = 'flow.completed';
 
     await expect(page.getByTestId('order-id')).toContainText(
       'e2e-flow-placed-',
+    );
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      '¡Gracias por tu compra!',
     );
     const order = page.getByTestId('vendor-order-demo-organization');
     await expect(order).toContainText('Demo Vendor');
@@ -94,7 +114,7 @@ test.describe('a checkout', () => {
 
     script.outcome = 'flow.failed';
 
-    await expect(page.getByTestId('order-failed')).toBeVisible();
+    await expect(page.getByTestId('order-failed')).toHaveRole('alert');
     await expect(page.getByTestId('order-retry')).toBeVisible();
     await expect(page.getByTestId('order-id')).toHaveCount(0);
 
@@ -140,6 +160,13 @@ test.describe('a checkout', () => {
 
     const solano = page.getByTestId('tender-vendor-casa-solano');
     const demo = page.getByTestId('tender-demo-organization');
+    // Named by what it chooses, inside a group the seller names (a3-26).
+    await expect(solano).toHaveAccessibleName('Forma de pago');
+    await expect(
+      page.getByRole('group', { name: 'Casa Solano' }).getByRole('combobox', {
+        name: 'Forma de pago',
+      }),
+    ).toBeVisible();
     await expect(solano.locator('option[value="cod"]')).toHaveCount(1);
     await expect(demo.locator('option[value="cod"]')).toHaveCount(0);
     await solano.selectOption('cod');
@@ -179,7 +206,7 @@ test.describe('the receipt', () => {
     script.outcome = 'flow.completed';
 
     await expect(page.getByTestId('cancel-window')).toBeVisible();
-    await page.getByTestId('cancel-vendor-casa-solano').click();
+    await cancelOrder(page, 'vendor-casa-solano');
     await page.waitForURL(/cancel=cancelled/);
 
     await expect(
@@ -192,6 +219,82 @@ test.describe('the receipt', () => {
     await expect(page.getByTestId('order-id')).toContainText(
       'e2e-flow-placed-',
     );
+    // One order of two is still standing, so the receipt still thanks.
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      '¡Gracias por tu compra!',
+    );
+  });
+
+  test('says the purchase was cancelled once every order on it is', async ({
+    page,
+    network,
+  }) => {
+    const script = scriptStream(network);
+    await addToCart(page, 'offering-aurora-desk-lamp');
+    await startCheckout(page);
+    script.outcome = 'flow.completed';
+    await expect(page.getByTestId('cancel-window')).toBeVisible();
+
+    // Dismissing the dialog acts on nothing.
+    await page
+      .getByTestId('cancel-demo-organization')
+      .getByRole('button', { name: 'Cancelar pedido' })
+      .click();
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', { name: 'Conservar el pedido' })
+      .click();
+    await expect(page).not.toHaveURL(/cancel=/);
+    await expect(page.getByTestId('vendor-order-cancelled')).toHaveCount(0);
+
+    await cancelOrder(page, 'demo-organization');
+    await page.waitForURL(/cancel=cancelled/);
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Pedido cancelado',
+    );
+    await expect(page.getByText('¡Gracias por tu compra!')).toHaveCount(0);
+    await expect(page.getByTestId('cancel-done')).toHaveRole('status');
+  });
+
+  /**
+   * The confirmation is the action's, not the dialog's (entifix ADR 0026): a
+   * post that skipped the dialog — a stale page, a script, a first click with
+   * scripting off — acts on nothing, because `whenConfirmed` is what the post
+   * reaches. Only the dialog's confirming post starts the cancellation.
+   *
+   * ⚠️ The post is made natively (`form.submit()` bypasses the dialog's
+   * handler) rather than from a context with scripting off: the receipt is a
+   * dynamic page that streams behind a Suspense boundary, and with scripting
+   * off its streamed content is never swapped in, so that context sees an
+   * empty `main` whatever the action does.
+   */
+  test('a cancel that skipped the dialog acts on nothing', async ({
+    page,
+    network,
+  }) => {
+    const script = scriptStream(network);
+    await addToCart(page, 'offering-aurora-desk-lamp');
+    await startCheckout(page);
+    script.outcome = 'flow.completed';
+    await expect(page.getByTestId('cancel-window')).toBeVisible();
+    const receipt = page.url();
+
+    await page
+      .getByTestId('cancel-demo-organization')
+      .locator('form')
+      .first()
+      .evaluate(form => (form as HTMLFormElement).submit());
+    await page.waitForLoadState();
+
+    await expect(page.getByTestId('order-id')).toBeVisible();
+    expect(page.url()).toBe(receipt);
+    await expect(page.getByText('Cancelando este pedido…')).toHaveCount(0);
+    await expect(page.getByTestId('vendor-order-cancelled')).toHaveCount(0);
+
+    await cancelOrder(page, 'demo-organization');
+    await page.waitForURL(/cancel=cancelled/);
+    await expect(page.getByTestId('vendor-order-cancelled')).toBeVisible();
   });
 
   /**
@@ -208,7 +311,7 @@ test.describe('the receipt', () => {
     await startCheckout(page);
     script.outcome = 'flow.completed';
 
-    await page.getByTestId('cancel-demo-organization').click();
+    await cancelOrder(page, 'demo-organization');
     await page.waitForURL(/cancel=pending/);
 
     await expect(page.getByTestId('cancel-payment-pending')).toContainText(
