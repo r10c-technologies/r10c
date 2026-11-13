@@ -24,14 +24,13 @@ import {
   restoreToCart,
   setQuantity,
 } from '../cart/cart-actions';
-import { readCart } from '../cart/cart-cookie';
 import type { CartNotice } from '../cart/cart-notice';
 import { MAX_QUANTITY } from '../cart/cart-state';
-import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
-import { sellerParts, tenderField } from '../cart/checkout-start';
+import type { CheckoutOutcome } from '../cart/checkout-action';
+import { tenderField, tenderOf } from '../cart/checkout-start';
+import { readPricedCart } from '../cart/priced-cart';
 import { runRead } from '../catalog/catalog-reads';
-import { totalsByCurrency } from '../catalog/money';
-import { storePaths } from '../routing/paths';
+import { storePaths, type TenderChoice } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
 /**
@@ -43,61 +42,24 @@ import { StoreShell } from './store-shell';
  * after hydration — which is both a visible flash and, for a page whose whole
  * job is to be trustworthy about what you are buying, the wrong default.
  *
- * Dynamic by necessity, not by accident: `readCart` reads `cookies()`.
+ * Dynamic by necessity, not by accident: `readPricedCart` reads `cookies()`.
  */
 export async function CartPage({
   locale,
   outcome,
   notice,
+  tenders = {},
 }: {
   readonly locale: Locale;
   /** What a previous checkout attempt did, carried back on the query string. */
   readonly outcome?: CheckoutOutcome;
   /** What the action that redirected here did to a line, for the status region. */
   readonly notice?: CartNotice;
+  /** The tenders already chosen, when the buyer came back from the review. */
+  readonly tenders?: TenderChoice;
 }) {
   const t = getServerTFor(locale, 'r10c');
-  const lines = await readCart();
-
-  const items = await Promise.all(
-    lines.map(async line => ({
-      line,
-      offering: await runRead(
-        PublishedOffering,
-        getOffering(line.offeringId),
-        undefined,
-      ),
-    })),
-  );
-  // A line whose offering is gone — unpublished since it was added — is
-  // dropped from the view rather than rendered nameless. The cookie keeps it
-  // until the next write, which costs nothing and avoids a mutation on a read.
-  const present = items.flatMap(({ line, offering }) =>
-    offering === undefined ? [] : [{ line, offering }],
-  );
-  // Summed over what is shown, not over the cookie: a dropped line must not
-  // keep adding to a figure the buyer cannot trace back to a row.
-  const totals = totalsByCurrency(
-    present.map(({ line, offering }) => ({
-      amount: offering.amount,
-      currency: offering.currency,
-      quantity: line.quantity,
-    })),
-  );
-  // One part per seller, in the order each first appears: a checkout writes
-  // one order per vendor, and the buyer picks a tender for each (ADR 0070).
-  const offerings = new Map(
-    present.map(({ line, offering }) => [line.offeringId, offering]),
-  );
-  const parts = sellerParts(
-    present.map(({ line, offering }) => ({
-      offeringId: line.offeringId,
-      vendorId: offering.vendorId,
-      quantity: line.quantity,
-      amount: offering.amount,
-      currency: offering.currency,
-    })),
-  );
+  const { present, parts, offerings, totals } = await readPricedCart();
   const vendors = new Map(
     (
       await runRead(
@@ -163,6 +125,14 @@ export async function CartPage({
                     value={notice.quantity}
                   />
                   <input type="hidden" name="locale" value={locale} />
+                  {Object.entries(tenders).map(([vendorId, tender]) => (
+                    <input
+                      key={vendorId}
+                      type="hidden"
+                      name={tenderField(vendorId)}
+                      value={tender}
+                    />
+                  ))}
                   <SubmitButton variant="secondary" size="sm">
                     {t('storefront.cart.undo')}
                   </SubmitButton>
@@ -247,6 +217,14 @@ export async function CartPage({
                             value={line.offeringId}
                           />
                           <input type="hidden" name="locale" value={locale} />
+                          {Object.entries(tenders).map(([vendorId, tender]) => (
+                            <input
+                              key={vendorId}
+                              type="hidden"
+                              name={tenderField(vendorId)}
+                              value={tender}
+                            />
+                          ))}
                           <SubmitButton
                             variant="ghost"
                             size="sm"
@@ -288,8 +266,14 @@ export async function CartPage({
                 >
                   {t('storefront.cart.keepShopping')}
                 </ButtonLink>
-                <form action={checkout} className="flex flex-col gap-2xs">
-                  <input type="hidden" name="locale" value={locale} />
+                {/* A plain `GET` to the review step, so the buyer sees every
+                    seller's lines, tender and the total before anything
+                    starts — and so it needs no script (#534). */}
+                <form
+                  action={localeHref(locale, storePaths.checkoutReview())}
+                  method="get"
+                  className="flex flex-col gap-2xs"
+                >
                   {/* A tender per seller, each its own group: the seller is
                       the legend and the select is named by what it chooses,
                       so a screen reader hears "Forma de pago" inside that
@@ -316,7 +300,7 @@ export async function CartPage({
                       <Select
                         id={tenderField(part.vendorId)}
                         name={tenderField(part.vendorId)}
-                        defaultValue="card"
+                        defaultValue={tenderOf(tenders[part.vendorId])}
                         data-testid={`tender-${part.vendorId}`}
                       >
                         <option value="card">
@@ -330,8 +314,8 @@ export async function CartPage({
                       </Select>
                     </fieldset>
                   ))}
-                  <SubmitButton data-testid="checkout" className="touch-target">
-                    {t('storefront.cart.checkout')}
+                  <SubmitButton data-testid="review" className="touch-target">
+                    {t('storefront.cart.review')}
                   </SubmitButton>
                 </form>
               </Cluster>

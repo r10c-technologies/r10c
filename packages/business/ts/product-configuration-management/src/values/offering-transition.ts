@@ -67,3 +67,10 @@ export function isLegalOfferingTransition(
 ): boolean {
   return offeringStatusAfter(current, transition) !== undefined;
 }
+
+/** The statuses a transition is legal from — what a verb is offered in. */
+export function statusesBefore(
+  transition: OfferingTransition,
+): readonly OfferingStatus[] {
+  return Object.keys(TRANSITIONS[transition]) as OfferingStatus[];
+}

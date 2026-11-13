@@ -1,8 +1,9 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
-import { InvalidBody } from '@r10c/business-ts-common';
+import { InvalidBody, SelectionTooLarge } from '@r10c/business-ts-common';
 
 import { ProductOffering } from '../../entities/product-offering';
+import { statusesBefore } from '../../values/offering-transition';
 import { OfferingChanged } from '../offering-flows/offering-flows';
 import {
   IllegalOfferingTransition,
@@ -33,6 +34,9 @@ import {
   // the third segment of one permission, so three `@useCase()` declarations
   // would have been three permissions for one act — and a grant that let
   // somebody publish one offering but not twenty.
+  // Offered only on what is up: taking down a draft is the one illegal move
+  // a person can ask for, read off the transition table.
+  availableWhen: { member: 'status', in: statusesBefore('unpublish') },
   alsoAt: [
     { binding: 'entity', placement: 'context-dependent' },
     { binding: 'collection', placement: 'context-dependent' },
@@ -52,6 +56,7 @@ import {
     OfferingHasNoSpecification,
     OfferingChanged,
     InvalidBody,
+    SelectionTooLarge,
   ],
 })
 export class UnpublishProductOfferingUC {

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-02
+- Revised: 2026-11-13 — `ShippingOrder.dispatch` is a collection verb a vendor's `admin` reaches, beside `ProductOffering`'s `publish` and `unpublish`; §6 names the first collection verb, not the only one; and a selection past the cap is refused whole rather than cut short (#534)
 - Area: frontend
 - Read when: declaring where an action appears, or acting on a selection — nine cells, every one mapped or rejected, and two select-alls are two state shapes
 - Amends: [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md)
@@ -228,6 +229,12 @@ The **entityKey** segment is wildcarded; the **action** segment is not. ADR
 0026's recorded residual stands — no role but `super-admin` wildcards an action,
 so a new verb still escalates to nobody.
 
+> **2026-11-13.** `retire` was the first collection verb, not the only one.
+> A vendor's `admin` reaches three: `ProductOffering`'s `publish` and
+> `unpublish` (#216), and `ShippingOrder`'s `dispatch` over the worklist
+> (#534) — each under the permission its record-bound form already holds, so
+> no grant was added for a selection.
+
 ### 7. The proxy carries the caching contract
 
 `createServiceProxyRoute` rebuilt every response as a fresh body, which dropped
@@ -254,7 +261,9 @@ rebuilt response is how a proxy serves a truncated payload.
   pivots are always in the DOM, so an id would be emitted twice per row.
 - `BULK_SELECTION_CAP` (500) bounds one request. Past it the work is a saga
   (#121), which is not built, so the cap is deliberate and visible rather than a
-  silent truncation.
+  silent truncation: a selection past it is refused whole with
+  `selectionTooLarge` before any row is touched (#534 — until then a `matching`
+  selection was quietly cut at the cap).
 - A bulk request resolves a `matching` selection through the **same**
   `loadUCFactory` the listing uses, so the rows an action touches are the rows
   the filter shows — one query path, one RSQL allowlist.

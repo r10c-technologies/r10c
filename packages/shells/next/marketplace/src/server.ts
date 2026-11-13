@@ -13,6 +13,7 @@
 // The pages themselves — every one a React server component.
 export * from './lib/pages/cart-page';
 export * from './lib/pages/category-page';
+export * from './lib/pages/checkout-review-page';
 export * from './lib/pages/home-page';
 export * from './lib/pages/order-status-page';
 export * from './lib/pages/product-page';

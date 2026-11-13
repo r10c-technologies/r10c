@@ -173,7 +173,20 @@ export const r10c: EsR10c = {
       update: 'Update',
       total: 'Total',
       keepShopping: 'Keep shopping',
-      checkout: 'Check out',
+      review: 'Review order',
+    },
+    review: {
+      changed:
+        'Something changed since you reviewed this order: a price, or an item that is no longer on sale. Check it again before placing it.',
+      unavailable:
+        'Some items in your cart are no longer on sale and are not part of this order.',
+      heading: 'Review your order',
+      intro:
+        "Check each seller's items and how you pay them. Nothing is ordered or charged until you place the order.",
+      subtotal: 'Subtotal',
+      codNote: 'You pay {{seller}} in cash when the parcel arrives.',
+      edit: 'Edit cart',
+      place: 'Place order',
     },
     checkout: {
       empty: 'Nothing here is still on sale.',

@@ -5,7 +5,10 @@ import { Effect } from 'effect';
 
 import { ProductOrder } from '../../entities/product-order';
 import { OrderNotCancellable } from '../../failures/order-failures';
-import { orderStatusAfter } from '../../values/order-transition';
+import {
+  orderStatusAfter,
+  statusesBefore,
+} from '../../values/order-transition';
 
 /**
  * Cancel one vendor's order: claim it, refund its share of the capture, put its
@@ -27,6 +30,9 @@ import { orderStatusAfter } from '../../values/order-transition';
   binding: 'entity',
   placement: 'context-independent',
   labelKey: 'entity:product-order.useCases.cancel',
+  // Offered only where the claim would land — read off the transition table,
+  // so the order's form and its store agree on when a cancel is possible.
+  availableWhen: { member: 'status', in: statusesBefore('claim-cancel') },
   recipe: 'cancellation',
   confirm: {
     tone: 'destructive',

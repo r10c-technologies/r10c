@@ -32,6 +32,8 @@ export const errors = {
   notAMember: 'No perteneces a esa organización.',
   invalidRequest: 'La solicitud no es válida.',
   invalidBody: 'El cuerpo de la solicitud no es válido.',
+  selectionTooLarge:
+    'Esa selección es demasiado grande para actuar sobre ella de una vez. Acota el filtro o selecciona menos filas, e inténtalo de nuevo.',
   paymentDeclined: 'No se pudo procesar el pago. Intenta con otro método.',
   refundDeclined: 'No se pudo procesar el reembolso. Contacta a soporte.',
   noCapturedPayment:

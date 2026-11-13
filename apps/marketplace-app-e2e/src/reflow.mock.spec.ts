@@ -75,12 +75,23 @@ test('the storefront reflows at 320px and keeps commerce above the fold', async 
     await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
     await page.waitForURL(/\/es\/cart(\?|$)/);
     await expectNoSidewaysScroll(page);
-    await expectTouchTarget(page.getByTestId('checkout'));
+    await expectTouchTarget(
+      page.getByTestId('review').filter({ visible: true }),
+    );
     await expectTouchTarget(page.getByRole('spinbutton').first());
   });
 
+  await test.step('review', async () => {
+    await page.getByTestId('review').filter({ visible: true }).click();
+    await page.waitForURL(/\/es\/cart\/review/);
+    await expectNoSidewaysScroll(page);
+    await expectTouchTarget(
+      page.getByTestId('checkout').filter({ visible: true }),
+    );
+  });
+
   await test.step('receipt', async () => {
-    await page.getByTestId('checkout').click();
+    await page.getByTestId('checkout').filter({ visible: true }).click();
     await page.waitForURL(/\/es\/order\/status\/e2e-flow-/);
     script.outcome = 'flow.completed';
     await expect(page.getByTestId('order-id')).toBeVisible();

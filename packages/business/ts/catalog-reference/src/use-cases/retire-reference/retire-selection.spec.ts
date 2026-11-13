@@ -72,6 +72,24 @@ describe('retireSelection', () => {
     expect(outcomes.map(outcome => outcome.id)).toEqual(['b-1', 'b-3']);
   });
 
+  it('refuses a selection past the cap whole, touching no row', async () => {
+    const brands = Array.from({ length: 501 }, (_unused, index) =>
+      brand(`b-${String(index)}`),
+    );
+
+    const refused = await run(
+      Effect.flip(
+        retireSelection(ProductBrand, {
+          selection: { mode: 'matching', total: 501, excluded: new Set() },
+          retired: true,
+        }),
+      ),
+      { brands },
+    );
+
+    expect(refused).toMatchObject({ code: 'selectionTooLarge', max: 500 });
+  });
+
   it('asks the store-wide guard per row', async () => {
     const outcomes = await run(
       retireSelection(ProductCategory, {

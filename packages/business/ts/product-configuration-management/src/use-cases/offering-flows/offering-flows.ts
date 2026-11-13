@@ -11,6 +11,7 @@ import {
   isFailure,
   loadRequestFor,
 } from '@entifix/core';
+import { refuseSelectionAbove } from '@r10c/business-ts-common';
 import { Effect, Option, Schema } from 'effect';
 
 import { ProductOffering } from '../../entities/product-offering';
@@ -38,7 +39,10 @@ export class OfferingChanged extends Failure.conflict<OfferingChanged>()(
   },
 ) {}
 
-/** One page, capped: a bulk action over more is a saga, not a request (#121). */
+/**
+ * The most rows one bulk request takes: a bulk action over more is a saga,
+ * not a request (#121), so a larger selection is refused whole.
+ */
 const BULK_SELECTION_CAP = 500;
 
 const REBUILD_PAGE_SIZE = 100;
@@ -128,7 +132,7 @@ export const transitionOfferingSelection = (input: {
             const page = yield* offerings.load<ProductOffering>(
               loadRequestFor(selection, {
                 page: 1,
-                pageSize: BULK_SELECTION_CAP,
+                pageSize: BULK_SELECTION_CAP + selection.excluded.size + 1,
               }),
             );
             const excluded = Array.from(selection.excluded).map(String);
@@ -136,6 +140,10 @@ export const transitionOfferingSelection = (input: {
               .map(item => item.id)
               .filter(id => excluded.indexOf(String(id)) === -1);
           });
+    // Refused whole, before any row is touched: acting on the first
+    // BULK_SELECTION_CAP rows and saying nothing about the rest is the silent
+    // truncation ADR 0035 rules out.
+    yield* refuseSelectionAbove(BULK_SELECTION_CAP, ids.length);
 
     const outcomes: BulkOutcome[] = [];
     for (const id of ids) {

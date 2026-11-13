@@ -1,8 +1,9 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
-import { InvalidBody } from '@r10c/business-ts-common';
+import { InvalidBody, SelectionTooLarge } from '@r10c/business-ts-common';
 
 import { ProductOffering } from '../../entities/product-offering';
+import { statusesBefore } from '../../values/offering-transition';
 import { OfferingChanged } from '../offering-flows/offering-flows';
 import {
   IllegalOfferingTransition,
@@ -42,6 +43,9 @@ import {
     { binding: 'collection', placement: 'context-dependent' },
   ],
   labelKey: 'entity:product-offering.useCases.publish',
+  // Every status today, read off the table like every lifecycle verb's, so a
+  // state that cannot publish hides the verb the day the table says so.
+  availableWhen: { member: 'status', in: statusesBefore('publish') },
   confirm: {
     tone: 'neutral',
     messageKey: 'entity:product-offering.useCases.publishConfirm',
@@ -52,6 +56,7 @@ import {
     OfferingHasNoSpecification,
     OfferingChanged,
     InvalidBody,
+    SelectionTooLarge,
   ],
 })
 export class PublishProductOfferingUC {

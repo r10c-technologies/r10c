@@ -59,12 +59,23 @@ for (const palette of PALETTES) {
         .getByRole('button', { name: 'Añadir al carrito' })
         .click();
       await page.waitForURL(/\/es\/cart(\?|$)/);
-      await expect(page.getByTestId('checkout')).toBeVisible();
+      await expect(
+        page.getByTestId('review').filter({ visible: true }),
+      ).toBeVisible();
       await gate('cart');
     });
 
+    await test.step('review', async () => {
+      await page.getByTestId('review').filter({ visible: true }).click();
+      await page.waitForURL(/\/es\/cart\/review/);
+      await expect(
+        page.getByTestId('checkout').filter({ visible: true }),
+      ).toBeVisible();
+      await gate('review');
+    });
+
     await test.step('receipt', async () => {
-      await page.getByTestId('checkout').click();
+      await page.getByTestId('checkout').filter({ visible: true }).click();
       await page.waitForURL(/\/es\/order\/status\/e2e-flow-/);
       script.outcome = 'flow.completed';
       await expect(page.getByTestId('order-id')).toBeVisible();

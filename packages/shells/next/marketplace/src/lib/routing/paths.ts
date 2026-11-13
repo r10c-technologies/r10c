@@ -1,4 +1,48 @@
 /**
+ * The tender a buyer picked for each seller, by vendor id, as it travels
+ * between the cart and the review step. Raw: `tenderOf` narrows it where it is
+ * used.
+ */
+export type TenderChoice = Readonly<Record<string, string>>;
+
+/** The query-string prefix a seller's tender travels under, `method:<id>`. */
+export const TENDER_PREFIX = 'method:';
+
+/**
+ * A query string from the tenders and anything else a page carries — empty
+ * when there is nothing to carry, so a bare path stays bare.
+ */
+const queryOf = (
+  tenders: TenderChoice,
+  extra: Readonly<Record<string, string>>,
+) => {
+  const query = new URLSearchParams([
+    ...Object.entries(tenders).map(([vendorId, tender]) => [
+      `${TENDER_PREFIX}${vendorId}`,
+      tender,
+    ]),
+    ...Object.entries(extra),
+  ]).toString();
+  return query === '' ? '' : `?${query}`;
+};
+
+/**
+ * The tenders a query string carries — every `method:<vendorId>` parameter,
+ * first value wins. Anything else on the query is ignored.
+ */
+export const parseTenderChoice = (
+  query: Readonly<Record<string, string | string[] | undefined>> | undefined,
+): TenderChoice =>
+  Object.fromEntries(
+    Object.entries(query ?? {}).flatMap(([key, value]) => {
+      const first = Array.isArray(value) ? value[0] : value;
+      return key.startsWith(TENDER_PREFIX) && first !== undefined
+        ? [[key.slice(TENDER_PREFIX.length), first]]
+        : [];
+    }),
+  );
+
+/**
  * Every internal path the storefront can produce, in one place.
  *
  * Locale-free on purpose: `StoreLink` applies the prefix. A component that
@@ -22,7 +66,24 @@ export const storePaths = {
   offering: (offeringId: string) => `/p/${offeringId}`,
   search: (term?: string) =>
     term ? `/search?q=${encodeURIComponent(term)}` : '/search',
-  cart: () => '/cart',
+  /**
+   * The cart, optionally with the tenders already chosen for each seller —
+   * the review step's way back — and whatever else the page reads, such as
+   * an action's notice. Every cart action carries the tenders it was posted
+   * with, so editing the cart never resets a seller's payment choice.
+   */
+  cart: (
+    tenders: TenderChoice = {},
+    extra: Readonly<Record<string, string>> = {},
+  ) => `/cart${queryOf(tenders, extra)}`,
+  /**
+   * The review step between the cart and the checkout. The cart's `GET` form
+   * lands here with a tender per seller on the query string.
+   */
+  checkoutReview: (
+    tenders: TenderChoice = {},
+    extra: Readonly<Record<string, string>> = {},
+  ) => `/cart/review${queryOf(tenders, extra)}`,
   /**
    * Where a buyer waits on their checkout and then reads its receipt.
    *

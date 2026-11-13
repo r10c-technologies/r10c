@@ -2,6 +2,7 @@ import {
   cartMetadata,
   CartPage,
   parseCartNotice,
+  parseTenderChoice,
 } from '@r10c/shells-next-marketplace/server';
 
 import { type LocaleRouteProps, requireLocale } from '../locale-param';
@@ -37,6 +38,8 @@ export default async function CartRoute({
         outcome === 'empty' || outcome === 'failed' ? outcome : undefined
       }
       notice={parseCartNotice(query)}
+      // The tenders already chosen, when the buyer came back from the review.
+      tenders={parseTenderChoice(query)}
     />
   );
 }

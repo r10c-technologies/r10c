@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Revised: 2026-11-13 — the storefront's checkout starts from a review step that shows each seller's lines, tender and the total; the cart no longer starts it (#534)
 - Area: business
 - Read when: a basket spans vendors, a vendor acts on their part of a sale, or a refund is partial — a checkout writes one group and one order per vendor, and one capture is allocated per order
 
@@ -28,6 +29,16 @@ cancellation digest — and one `ProductOrder` per vendor carrying top-level
 `vendorId`, `groupId` and `paymentMethod`. Statuses gain `confirmed` and
 `dispatched`. Cancel, fulfil and refund act on one vendor's order, and
 `multiVendorOrder` is deleted.
+
+The storefront writes none of it from the cart (#534). The cart's form is a
+plain `GET` to a review step, carrying the tender chosen per seller on the
+query string; the review shows each seller's lines, how they are paid and the
+total, and only Place order there posts the checkout — with the totals it
+showed. The checkout re-prices from the published catalog rather than trusting
+the page, and when that no longer matches what was reviewed — a price moved, a
+line stopped being sold — it starts nothing and sends the buyer back to the
+review, which says so. Both steps are plain forms, which is what a buyer
+without script relies on.
 
 ### One capture, allocated per order
 

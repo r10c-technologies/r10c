@@ -16,11 +16,13 @@ import {
   makeEntityEnvelope,
   makeEnvelope,
   NotFound,
+  readWireSelection,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import type { FlowAccepted } from '@r10c/business-ts-flow-contracts';
 import {
   dispatchShipment,
+  dispatchShipmentSelection,
   DispatchShippingOrderUC,
   RecordDeliveryUC,
   RecordRefusalUC,
@@ -98,6 +100,25 @@ const dispatchVerb = verbEndpoint(DispatchShippingOrderUC, {
         shippingOrderId: request.params?.id as string,
       });
       return makeEnvelope('flowAccepted', KEY, accepted);
+    }),
+  // The same verb over the worklist's selection: one delivery flow per
+  // shipment, each row answering whether its flow started.
+  bulk: (request: EntityApiRequest) =>
+    Effect.gen(function* () {
+      const selection = readWireSelection<ShippingOrder>(
+        (request.payload as { readonly selection?: unknown }).selection,
+      );
+      if (!selection) {
+        return yield* new InvalidBody({
+          reason:
+            'a bulk request carries a `selection` in `ids` or `matching` mode',
+        });
+      }
+      const outcomes = yield* dispatchShipmentSelection({
+        organizationId: yield* OrganizationIdTag,
+        selection,
+      });
+      return makeEnvelope('bulkOutcome', KEY, outcomes);
     }),
 });
 

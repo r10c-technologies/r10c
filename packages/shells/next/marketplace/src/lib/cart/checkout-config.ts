@@ -31,7 +31,8 @@ export const checkoutServiceUrl = (): string =>
  * the seed, and rotated by setting the variable.
  */
 export const coordinatorCrossingToken = (): string =>
-  process.env['COORDINATOR_CROSSING_TOKEN'] ?? 'dev-flow-crossing-token-change-me';
+  process.env['COORDINATOR_CROSSING_TOKEN'] ??
+  'dev-flow-crossing-token-change-me';
 
 /**
  * order-service's API root, server-side — where a buyer's own cancel is

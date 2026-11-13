@@ -1,6 +1,8 @@
+import { describeEntityUseCases } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { ShippingOrder } from '../../entities/shipping-order/index.js';
 import {
   DISPATCH_SHIPPING_ORDER,
   DispatchShippingOrderUC,
@@ -55,6 +57,42 @@ describe('the vendor verbs', () => {
       'shipping-order-management:shipping-order:record-delivery',
       'shipping-order-management:shipping-order:record-refusal',
       'shipping-order-management:shipping-order:record-return',
+    ]);
+  });
+});
+
+describe('where each verb is offered', () => {
+  const declared = Object.fromEntries(
+    describeEntityUseCases(ShippingOrder).map(descriptor => [
+      descriptor.key,
+      descriptor,
+    ]),
+  );
+
+  // Read off the transition table, so a shipment's form offers exactly the
+  // moves the store would accept from where it stands.
+  it.each([
+    ['dispatch', ['awaiting-dispatch']],
+    ['record-delivery', ['dispatched']],
+    ['record-refusal', ['dispatched']],
+    ['record-return', ['refused']],
+  ])('%s is offered from %o', (key, states) => {
+    expect(declared[key]?.availableWhen).toEqual({
+      member: 'status',
+      in: states,
+    });
+  });
+
+  it('asks before the three moves that cannot be taken back, and not before a delivery', () => {
+    expect(declared['dispatch']?.confirm?.tone).toBe('neutral');
+    expect(declared['record-refusal']?.confirm?.tone).toBe('neutral');
+    expect(declared['record-return']?.confirm?.tone).toBe('neutral');
+    expect(declared['record-delivery']?.confirm).toBeUndefined();
+  });
+
+  it('dispatches over a selection too, under the one permission', () => {
+    expect(declared['dispatch']?.alsoAt).toEqual([
+      { binding: 'collection', placement: 'context-dependent' },
     ]);
   });
 });

@@ -321,8 +321,12 @@ const cancelHandlers = [
 
 /** A shipment awaiting dispatch — the one the dispatch journey hands over. */
 export const AWAITING_SHIPMENT_ID = 'shipping-order-awaiting-1';
+/** A second shipment awaiting dispatch, for a selection of two. */
+export const AWAITING_SHIPMENT_2_ID = 'shipping-order-awaiting-2';
 /** A shipment already on its way, which the worklist must not open on. */
 export const DISPATCHED_SHIPMENT_ID = 'shipping-order-dispatched-1';
+/** A parcel the buyer refused, which only a return moves on from. */
+export const REFUSED_SHIPMENT_ID = 'shipping-order-refused-1';
 
 const shipment = (id: string, orderId: string, status: string) => ({
   id,
@@ -336,10 +340,12 @@ const shipment = (id: string, orderId: string, status: string) => ({
   status,
 });
 
-/** The shipments a seeded vendor holds, one awaiting and one dispatched. */
+/** The shipments a seeded vendor holds: two awaiting, one out, one refused. */
 export const shipmentSeed = () => [
   shipment(AWAITING_SHIPMENT_ID, 'order-awaiting-1', 'awaiting-dispatch'),
+  shipment(AWAITING_SHIPMENT_2_ID, 'order-awaiting-2', 'awaiting-dispatch'),
   shipment(DISPATCHED_SHIPMENT_ID, 'order-dispatched-1', 'dispatched'),
+  shipment(REFUSED_SHIPMENT_ID, 'order-refused-1', 'refused'),
 ];
 
 const shippingOrders = entityBackendHandlers(ShippingOrder, {
@@ -382,11 +388,61 @@ export const dispatches: string[] = [];
  * flow's dispatch step), while a courier's report is a plain move answering the
  * record as it now stands.
  */
+const standingOf = (id: string) =>
+  shippingOrders.backend.rows().find(r => r['id'] === id)?.['status'];
+
+/** The service's refusal of a move the shipment's status does not allow. */
+const notTransitionable = (
+  id: string,
+  transition: 'dispatch' | 'record-delivery',
+) =>
+  HttpResponse.json(
+    problemOf(
+      new ShippingOrderNotTransitionable({
+        shippingOrderId: id,
+        standing: String(standingOf(id)),
+        transition,
+      }),
+    ),
+    {
+      status: 409,
+      headers: { 'content-type': 'application/problem+json' },
+    },
+  );
+
 const shippingVerbHandlers = [
+  // Over a selection: one flow per shipment, each row answering its own
+  // outcome — a shipment no longer awaiting dispatch is that row's refusal.
+  http.post(
+    `${FULFILMENT_SERVICE_URL}/shipping-order/dispatch`,
+    async ({ request }) => {
+      const { selection } = (await request.json()) as {
+        selection: { ids: string[] };
+      };
+      return HttpResponse.json(
+        {
+          meta: { type: 'bulkOutcome', entity: 'shipping-order' },
+          data: selection.ids.map(id => {
+            if (standingOf(id) !== 'awaiting-dispatch') {
+              return { id, ok: false, code: 'shippingOrderNotTransitionable' };
+            }
+            dispatches.push(id);
+            return { id, ok: true };
+          }),
+        },
+        { status: 202 },
+      );
+    },
+  ),
   http.post(
     `${FULFILMENT_SERVICE_URL}/shipping-order/:id/dispatch`,
     ({ params }) => {
-      dispatches.push(String(params['id']));
+      const id = String(params['id']);
+      // Checked before the flow starts, as `dispatchShipment` does.
+      if (standingOf(id) !== 'awaiting-dispatch') {
+        return notTransitionable(id, 'dispatch');
+      }
+      dispatches.push(id);
       return HttpResponse.json(
         {
           meta: { type: 'flowAccepted', entity: 'shipping-order' },
@@ -406,24 +462,9 @@ const shippingVerbHandlers = [
     `${FULFILMENT_SERVICE_URL}/shipping-order/:id/record-delivery`,
     ({ params }) => {
       const id = String(params['id']);
-      const standing = shippingOrders.backend
-        .rows()
-        .find(r => r['id'] === id)?.['status'];
       // The conditional write: delivery is recorded only on a dispatched parcel.
-      if (standing !== 'dispatched') {
-        return HttpResponse.json(
-          problemOf(
-            new ShippingOrderNotTransitionable({
-              shippingOrderId: id,
-              standing: String(standing),
-              transition: 'record-delivery',
-            }),
-          ),
-          {
-            status: 409,
-            headers: { 'content-type': 'application/problem+json' },
-          },
-        );
+      if (standingOf(id) !== 'dispatched') {
+        return notTransitionable(id, 'record-delivery');
       }
       moveShipment(id, 'delivered');
       const row = shippingOrders.backend.rows().find(r => r['id'] === id);

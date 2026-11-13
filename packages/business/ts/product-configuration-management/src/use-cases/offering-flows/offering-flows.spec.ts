@@ -204,6 +204,44 @@ describe('transitionOfferingSelection', () => {
     expect(outcomes).toEqual([{ id: 'o-1', ok: true }]);
     expect(down).toEqual([{ id: 'o-9', ok: false, code: 'unavailable' }]);
   });
+
+  it('refuses a selection past the cap whole, before any row moves', async () => {
+    const ids = new Set(
+      Array.from({ length: 501 }, (_unused, index) => `o-${String(index)}`),
+    );
+
+    const refused = await world({}).run(
+      Effect.flip(
+        transitionOfferingSelection({
+          organizationId: 'acme',
+          selection: { mode: 'ids', ids },
+          transition: 'publish',
+          source: SOURCE,
+        }),
+      ),
+    );
+
+    expect(refused).toMatchObject({ code: 'selectionTooLarge', max: 500 });
+  });
+
+  it('refuses a matching selection one row past the cap', async () => {
+    const offerings = Array.from({ length: 501 }, (_unused, index) =>
+      offering(`o-${String(index)}`, 'draft'),
+    );
+
+    const refused = await world({ offerings }).run(
+      Effect.flip(
+        transitionOfferingSelection({
+          organizationId: 'acme',
+          selection: { mode: 'matching', total: 501, excluded: new Set() },
+          transition: 'publish',
+          source: SOURCE,
+        }),
+      ),
+    );
+
+    expect(refused).toMatchObject({ code: 'selectionTooLarge' });
+  });
 });
 
 describe('preserveOfferingLifecycle', () => {

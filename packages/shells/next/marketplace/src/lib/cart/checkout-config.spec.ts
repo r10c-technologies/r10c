@@ -45,7 +45,9 @@ describe('checkout-config', () => {
   it('falls back to the seeded development secret', () => {
     // The same literal config-service seeds, so a fresh lab works without a
     // variable and a real deployment overrides it.
-    expect(coordinatorCrossingToken()).toBe('dev-flow-crossing-token-change-me');
+    expect(coordinatorCrossingToken()).toBe(
+      'dev-flow-crossing-token-change-me',
+    );
   });
 
   it('reads order-service’s address from the environment', () => {
