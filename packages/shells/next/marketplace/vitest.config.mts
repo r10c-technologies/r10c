@@ -50,6 +50,10 @@ export default defineEntifixTest({
     // what they decide lives in covered modules beside them, and the
     // storefront e2e drives the actions themselves.
     '**/lib/cart/checkout-action.ts',
+    // The cart's reads — one `cookies()` read and the cell reads, composed
+    // like the pages. What is decided from them is `priced-cart-state.ts`,
+    // covered here.
+    '**/lib/cart/priced-cart.ts',
     '**/lib/cart/settle-action.ts',
     '**/lib/cart/settle-cancel-action.ts',
     '**/lib/cart/flow-ticket-cookie.ts',

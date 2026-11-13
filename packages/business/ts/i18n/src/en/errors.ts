@@ -49,6 +49,8 @@ export const errors: EsErrors = {
   cancelNotAuthorized:
     'This order cannot be cancelled from here. The cancellation window may have closed.',
   invalidBody: 'The request body is not valid.',
+  selectionTooLarge:
+    'That selection is too large to act on at once. Narrow the filter or select fewer rows, and try again.',
   invalidQuery: 'The query is not valid.',
   notFound: 'The record was not found.',
   alreadyRetired: 'It was already retired.',

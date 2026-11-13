@@ -40,6 +40,15 @@ export const cartMetadata = (locale: Locale): Metadata => ({
   robots: { index: false },
 });
 
+export const checkoutReviewMetadata = (locale: Locale): Metadata => ({
+  ...pageMetadata({
+    locale,
+    path: storePaths.checkoutReview(),
+    title: getServerTFor(locale, 'r10c')('storefront.review.heading'),
+  }),
+  robots: { index: false },
+});
+
 export async function categoryMetadata(
   locale: Locale,
   code: string,

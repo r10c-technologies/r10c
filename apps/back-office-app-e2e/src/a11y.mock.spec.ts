@@ -39,6 +39,16 @@ const SCREENS = [
     ready: { record: 'order-1' },
   },
   {
+    screen: 'operaciones-shipment-worklist',
+    path: '/es/fulfilment/shipping-order',
+    ready: { record: 'order-awaiting-1' },
+  },
+  {
+    screen: 'shipment-detail',
+    path: '/es/fulfilment/shipping-order/shipping-order-dispatched-1',
+    ready: { role: 'button', name: 'Registrar entrega' },
+  },
+  {
     screen: 'till',
     path: '/es/sales/counter-sale',
     ready: { role: 'combobox', name: 'Canal' },

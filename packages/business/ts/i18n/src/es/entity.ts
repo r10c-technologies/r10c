@@ -775,9 +775,15 @@ export const entity = {
     },
     useCases: {
       dispatch: 'Despachar',
+      dispatchConfirm:
+        'El paquete se entrega al mensajero y el pedido ya no puede cancelarse. Solo un rechazo en la puerta devuelve la mercadería.',
       'record-delivery': 'Registrar entrega',
       'record-refusal': 'Registrar rechazo',
+      recordRefusalConfirm:
+        'El comprador rechazó el paquete, así que el pedido se cierra sin venta. No se puede deshacer; registre la devolución cuando el paquete esté con usted.',
       'record-return': 'Registrar devolución',
+      recordReturnConfirm:
+        'La mercadería devuelta vuelve a su inventario y a la venta. No se puede deshacer.',
     },
   },
 };

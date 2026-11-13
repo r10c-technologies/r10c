@@ -56,6 +56,9 @@ export type CounterSalePayload = typeof CounterSalePayload.Type;
   binding: 'entity',
   placement: 'context-independent',
   labelKey: 'entity:sales-channel.useCases.sell',
+  // A retired channel's form offers no Sell; `run` below still refuses one,
+  // because a page rendered before the retirement still shows the button.
+  availableWhen: { member: 'status', in: ['active'] },
   recipe: 'checkout',
   payload: CounterSalePayload,
   errors: [

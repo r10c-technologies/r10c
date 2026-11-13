@@ -10,6 +10,7 @@ import {
   type EntitySelection,
   loadRequestFor,
 } from '@entifix/core';
+import { refuseSelectionAbove } from '@r10c/business-ts-common';
 import { Effect } from 'effect';
 
 import { ProductCategory } from '../../entities/product-category';
@@ -22,9 +23,9 @@ import {
 } from './retire-reference';
 
 /**
- * One page, capped. A bulk action over more rows than this is a saga rather
- * than a request (#121), and a partial result under a cap is honest where a
- * silent timeout is not.
+ * The most rows one bulk request takes. A bulk action over more is a saga
+ * rather than a request (#121), so a larger selection is refused whole rather
+ * than timed out or quietly cut short.
  */
 const BULK_SELECTION_CAP = 500;
 
@@ -73,7 +74,7 @@ export const retireSelection = <T extends RetirableReference>(
             const page = yield* repository.load<T>(
               loadRequestFor(selection, {
                 page: 1,
-                pageSize: BULK_SELECTION_CAP,
+                pageSize: BULK_SELECTION_CAP + selection.excluded.size + 1,
               }),
             );
             const excluded = Array.from(selection.excluded).map(String);
@@ -81,6 +82,10 @@ export const retireSelection = <T extends RetirableReference>(
               .map(item => item.id)
               .filter(id => excluded.indexOf(String(id)) === -1);
           });
+    // Refused whole, before any row is touched: acting on the first
+    // BULK_SELECTION_CAP rows and saying nothing about the rest is the silent
+    // truncation ADR 0035 rules out.
+    yield* refuseSelectionAbove(BULK_SELECTION_CAP, ids.length);
 
     const refuse =
       guard === undefined

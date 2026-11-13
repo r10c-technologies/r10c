@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { parseTenderChoice, storePaths } from '../routing/paths';
 import { type CartNotice, cartNoticeQuery } from './cart-notice';
 import {
   CART_COOKIE,
@@ -31,9 +32,26 @@ import {
 
 const ONE_MONTH = 60 * 60 * 24 * 30;
 
-/** The cart page, carrying what the action did for its status region. */
-const cartWith = (locale: string, notice: CartNotice) =>
-  `/${locale}/cart?${cartNoticeQuery(notice)}`;
+/** The tenders a cart form was posted with: its `method:<vendorId>` fields. */
+const tendersOf = (formData: FormData) =>
+  parseTenderChoice(
+    Object.fromEntries(
+      Array.from(formData.entries(), ([key, value]) => [key, String(value)]),
+    ),
+  );
+
+/**
+ * The cart page, carrying what the action did for its status region and the
+ * tenders the buyer had chosen, so a removal or its undo never resets a
+ * seller's payment choice.
+ */
+const cartWith = (locale: string, formData: FormData, notice?: CartNotice) =>
+  `/${locale}${storePaths.cart(
+    tendersOf(formData),
+    notice === undefined
+      ? {}
+      : Object.fromEntries(new URLSearchParams(cartNoticeQuery(notice))),
+  )}`;
 
 async function writeCart(lines: readonly CartLine[]) {
   (await cookies()).set(CART_COOKIE, serializeCart(lines), {
@@ -75,7 +93,8 @@ export async function addToCart(formData: FormData) {
   );
 
   // `redirect` throws to unwind the action, so it must come after the write.
-  if (locale) redirect(cartWith(locale, { kind: 'added', offeringId }));
+  if (locale)
+    redirect(cartWith(locale, formData, { kind: 'added', offeringId }));
 }
 
 export async function removeFromCart(formData: FormData) {
@@ -93,7 +112,7 @@ export async function removeFromCart(formData: FormData) {
   // gives back what was there rather than one.
   if (locale && removed)
     redirect(
-      cartWith(locale, {
+      cartWith(locale, formData, {
         kind: 'removed',
         offeringId,
         quantity: removed.quantity,
@@ -120,7 +139,7 @@ export async function restoreToCart(formData: FormData) {
     ),
   );
 
-  if (locale) redirect(`/${locale}/cart`);
+  if (locale) redirect(cartWith(locale, formData));
 }
 
 /**

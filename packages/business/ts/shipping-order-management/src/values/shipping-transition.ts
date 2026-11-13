@@ -30,9 +30,9 @@ export type ShippingTransition = (typeof ShippingTransitions)[number];
  * and the hold's own refusal from `dispatched` are the two halves of one
  * conditional write, and exactly one of a racing dispatch and hold wins.
  *
- * **`record-return` is legal from `delivered` and `refused`.** A refused parcel
- * comes back to the vendor, and so may a delivered one inside the return
- * window; both put stock back as a `return` movement.
+ * **`record-return` is legal from `refused` alone.** A refused parcel comes
+ * back to the vendor and puts its stock back as a `return` movement; a
+ * delivered one coming back is a flow of its own, and not this one.
  */
 const TRANSITIONS: Record<
   ShippingTransition,
@@ -57,6 +57,16 @@ export function shippingStatusAfter(
   transition: ShippingTransition,
 ): ShippingStatus | undefined {
   return TRANSITIONS[transition][current];
+}
+
+/**
+ * Every status a move is legal from — what a verb declares as the states it
+ * is offered in, read off this table so the two can never disagree.
+ */
+export function statusesBefore(
+  transition: ShippingTransition,
+): readonly ShippingStatus[] {
+  return Object.keys(TRANSITIONS[transition]) as ShippingStatus[];
 }
 
 /** The stamp a transition writes beside the status, if it writes one. */

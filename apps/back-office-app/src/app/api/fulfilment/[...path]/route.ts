@@ -3,7 +3,8 @@ import { FULFILMENT_SERVICE_URL } from '@r10c/shells-next-fulfilment/server';
 
 /**
  * Same-origin proxy for fulfilment-service — a vendor's shipments, their
- * served affordances, and the four verbs that move one.
+ * served affordances, the four verbs that move one, and `dispatch` over a
+ * selection of them.
  *
  * ⚠️ **`GET` and `POST`, and no other method.** `dispatch`, `record-delivery`,
  * `record-refusal` and `record-return` are `POST`s guarded by the permission

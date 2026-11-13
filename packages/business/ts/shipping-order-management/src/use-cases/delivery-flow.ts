@@ -1,9 +1,19 @@
-import { IdempotencyKeyTag } from '@entifix/business';
-import { NotFound } from '@entifix/core';
+import {
+  EntityRepositoryFactoryTag,
+  IdempotencyKeyTag,
+} from '@entifix/business';
+import {
+  type BulkOutcome,
+  type EntityId,
+  type EntitySelection,
+  loadRequestFor,
+  NotFound,
+} from '@entifix/core';
+import { refuseSelectionAbove } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import { Effect, Option } from 'effect';
 
-import type { ShippingOrder } from '../entities/shipping-order';
+import { ShippingOrder } from '../entities/shipping-order';
 import { ShippingOrderStoreTag } from '../ports/shipping-order-store';
 import { decideShippingMove } from './shipping-order-verbs';
 
@@ -66,4 +76,67 @@ export const dispatchShipment = (input: {
       deliveryInput(input.organizationId, order),
       `delivery:${input.shippingOrderId}:${requestKey ?? globalThis.crypto.randomUUID()}`,
     );
+  });
+
+/**
+ * The most shipments one bulk dispatch takes, either select-all. A vendor's
+ * worklist is a morning's parcels, not a warehouse, and every row starts a
+ * flow; a larger selection is refused whole.
+ */
+export const BULK_DISPATCH_CAP = 200;
+
+/**
+ * A vendor dispatching a selection of their shipments: one delivery flow per
+ * shipment, each through {@link dispatchShipment}, so every row is checked and
+ * keyed exactly as a single dispatch is. One row's refusal — a shipment a
+ * cancellation holds, one already dispatched — is that row's outcome and never
+ * ends the run. A row answered `ok` started its flow; whether the parcel
+ * actually left is the flow's to say, and arrives as a push.
+ */
+export const dispatchShipmentSelection = (input: {
+  readonly organizationId: string;
+  readonly selection: EntitySelection<ShippingOrder>;
+}) =>
+  Effect.gen(function* () {
+    const { selection, organizationId } = input;
+    // `Array.from`, never a spread: SWC's loose helper wraps a `Set`.
+    const ids: readonly EntityId[] =
+      selection.mode === 'ids'
+        ? Array.from(selection.ids)
+        : yield* Effect.gen(function* () {
+            const factory = yield* EntityRepositoryFactoryTag;
+            const shipments = yield* factory.for(ShippingOrder, {
+              organizationId,
+            });
+            const page = yield* shipments.load<ShippingOrder>(
+              loadRequestFor(selection, {
+                page: 1,
+                pageSize: BULK_DISPATCH_CAP + selection.excluded.size + 1,
+              }),
+            );
+            const excluded = Array.from(selection.excluded).map(String);
+            return page.items
+              .map(item => item.id)
+              .filter(id => !excluded.includes(String(id)));
+          });
+    // Refused whole, before any row is touched: acting on the first
+    // BULK_DISPATCH_CAP rows and saying nothing about the rest is the silent
+    // truncation ADR 0035 rules out.
+    yield* refuseSelectionAbove(BULK_DISPATCH_CAP, ids.length);
+
+    const outcomes: BulkOutcome[] = [];
+    for (const id of ids) {
+      outcomes.push(
+        yield* dispatchShipment({
+          organizationId,
+          shippingOrderId: String(id),
+        }).pipe(
+          Effect.as<BulkOutcome>({ id, ok: true }),
+          Effect.catch(failure =>
+            Effect.succeed<BulkOutcome>({ id, ok: false, code: failure.code }),
+          ),
+        ),
+      );
+    }
+    return outcomes;
   });

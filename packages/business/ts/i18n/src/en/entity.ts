@@ -730,9 +730,15 @@ export const entity: EsEntity = {
     },
     useCases: {
       dispatch: 'Dispatch',
+      dispatchConfirm:
+        'The parcel is handed to the courier and the order can no longer be cancelled. Only a refusal at the door brings the goods back.',
       'record-delivery': 'Record delivery',
       'record-refusal': 'Record refusal',
+      recordRefusalConfirm:
+        'The buyer refused the parcel, so the order closes without a sale. This cannot be taken back; record the return once the parcel is with you.',
       'record-return': 'Record return',
+      recordReturnConfirm:
+        'The returned goods go back into your stock and on sale again. This cannot be taken back.',
     },
   },
 };

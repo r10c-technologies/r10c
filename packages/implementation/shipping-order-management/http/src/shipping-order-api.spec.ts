@@ -67,6 +67,11 @@ const [open, hold, release, withdrawal, dispatchStep] = shippingOrderEndpoints;
 const [dispatch, delivery, refusal, returned] =
   shippingOrderApi.options.useCases;
 
+/** The dispatch verb over a selection, as the shell would call it. */
+const dispatchSelected = (payload: object) =>
+  (dispatch.bulk?.({ payload } as never) ??
+    Effect.die('no bulk')) as Effect.Effect<unknown, unknown, R>;
+
 const at = (endpoint: { handler: (input: never) => unknown }, input: object) =>
   endpoint.handler(input as never) as Effect.Effect<unknown, unknown, R>;
 
@@ -219,6 +224,30 @@ describe('the vendor’s verbs', () => {
     expect((await w.refusal(verb(returned, delivered))).code).toBe(
       'shippingOrderNotTransitionable',
     );
+  });
+
+  it('dispatch a selection, one flow per shipment and one outcome per row', async () => {
+    const w = world();
+    const first = await opened(w);
+    const held = await opened(w, 'order-2');
+    await w.run(at(hold, { params: { id: held } }));
+
+    const answer = (await w.run(
+      dispatchSelected({ selection: { mode: 'ids', ids: [first, held] } }),
+    )) as unknown as { meta: { type: string }; data: unknown };
+
+    expect(answer.meta.type).toBe('bulkOutcome');
+    expect(answer.data).toEqual([
+      { id: first, ok: true },
+      { id: held, ok: false, code: 'shippingOrderNotTransitionable' },
+    ]);
+    expect(w.started).toHaveLength(1);
+  });
+
+  it('refuses a bulk dispatch that names no selection', async () => {
+    const w = world();
+
+    expect((await w.refusal(dispatchSelected({}))).code).toBe('invalidBody');
   });
 
   it('answers a shipment that is not the caller’s as not found', async () => {

@@ -2,6 +2,7 @@ import { FlowAccepted } from '@entifix/transactions';
 import { Option, Schema } from 'effect';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
+import { TENDER_PREFIX } from '../routing/paths';
 
 /** How a buyer pays one seller: a card at checkout, or cash on delivery. */
 export type Tender = 'card' | 'cod';
@@ -11,7 +12,7 @@ export const tenderOf = (value: unknown): Tender =>
   value === 'cod' ? 'cod' : 'card';
 
 /** The form field one seller's tender travels in. */
-export const tenderField = (vendorId: string) => `method:${vendorId}`;
+export const tenderField = (vendorId: string) => `${TENDER_PREFIX}${vendorId}`;
 
 /** One cart line priced from the published offering. */
 export interface PricedLine {

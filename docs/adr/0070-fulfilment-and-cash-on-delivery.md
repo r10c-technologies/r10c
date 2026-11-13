@@ -4,6 +4,7 @@
 - Date: 2026-10-28
 - Revised: 2026-11-04 — the delivery flow built (#488): a vendor's `dispatch` starts it, it branches on the courier's report through guards on its waits, a refused card delivery refunds as a retried step after the dispatch pivot rather than through a child flow, a return the window never sees strands the flow, and a parcel is returned only after it was refused
 - Revised: 2026-11-04 — the dispatch worklist (#489): a vendor's `dispatch` settles when the flow parks on the courier's report, through `flow.waiting`, rather than when the flow ends
+- Revised: 2026-11-13 — a vendor's shipment verbs are offered only from the statuses the transition table allows them, `dispatch`, `record-refusal` and `record-return` confirm first, and `dispatch` also runs over a selection of the worklist, one delivery flow per shipment (#534)
 - Area: business
 - Read when: an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout
 
@@ -55,6 +56,30 @@ which is exactly a refund that has to happen: retried, idempotent on its key,
 and refused by the allocation's guard past what was captured. A child flow
 would have been a second recipe, a second start route and a step calling the
 coordinator itself, all for the same call.
+
+**A vendor is offered only the moves a shipment can make, and asked before
+the three it cannot take back** (#534). Each verb declares the statuses it is
+legal from — read off the same transition table the store's conditional write
+matches, through `availableWhen` ([entifix ADR 0029](https://github.com/r10c-technologies/entifix/blob/v0.20.3/docs/adr/0029-a-verb-declares-the-states-it-is-legal-from.md)) — so
+a shipment awaiting dispatch offers Dispatch alone, a dispatched one Record
+delivery and Record refusal, and a refused one Record return. The store stays
+the authority: a page rendered before a cancellation held the shipment still
+shows Dispatch, and the refusal names the legal move. `dispatch`,
+`record-refusal` and `record-return` confirm first, in the neutral tone — each
+is irreversible and felt outside the record, and none deletes anything —
+while `record-delivery`, the commonest report, does not, because a dialog in
+front of the happy path trains people to click through it.
+
+`dispatch` also runs over a selection of the worklist, under the same
+permission: a vendor with a morning's parcels dispatches them at once. Each
+shipment starts its own delivery flow through the same check as a single
+dispatch, and each row answers its own outcome — one a cancellation holds is
+that row's refusal and never ends the run. A row answered `ok` started its
+flow; whether the parcel left is the flow's to say, and arrives by push — so
+the run answers `202`, as every cell of a flow-starting verb does, with the
+outcomes in its body. A selection past 200 shipments is refused whole, before
+any flow starts, as every bulk verb's cap now is
+([ADR 0035](0035-entity-actions-selection-and-bulk.md)).
 
 A return that the return window never sees **strands** the flow for a person:
 nothing in it can decide whether goods that are nowhere go back on the shelf.

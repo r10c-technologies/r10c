@@ -48,6 +48,8 @@ export const fulfilmentSlice: SliceDeclaration = {
     'POST /api/shipping-order/:id/withdrawal',
     'POST /api/shipping-order/:id/dispatch-step',
     'POST /api/shipping-order/:id/dispatch',
+    // The same verb over the worklist's selection (ADR 0035, #534).
+    'POST /api/shipping-order/dispatch',
     'POST /api/shipping-order/:id/record-delivery',
     'POST /api/shipping-order/:id/record-refusal',
     'POST /api/shipping-order/:id/record-return',

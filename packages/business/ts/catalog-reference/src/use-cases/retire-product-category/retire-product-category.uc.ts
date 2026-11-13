@@ -1,6 +1,6 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
-import { InvalidBody } from '@r10c/business-ts-common';
+import { InvalidBody, SelectionTooLarge } from '@r10c/business-ts-common';
 
 import { ProductCategory } from '../../entities/product-category';
 import { retireReferences } from '../retire-reference';
@@ -39,7 +39,7 @@ import { retireReferences } from '../retire-reference';
   // and offers Undo rather than asking first (entifix ADR 0026).
   reversible: 'undo',
   inverse: 'restore',
-  errors: [InvalidBody],
+  errors: [InvalidBody, SelectionTooLarge],
 })
 export class RetireProductCategoryUC {
   static run() {

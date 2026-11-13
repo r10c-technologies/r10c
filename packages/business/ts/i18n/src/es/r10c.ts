@@ -187,7 +187,20 @@ export const r10c = {
       update: 'Actualizar',
       total: 'Total',
       keepShopping: 'Seguir comprando',
-      checkout: 'Finalizar compra',
+      review: 'Revisar pedido',
+    },
+    review: {
+      changed:
+        'Algo cambió desde que revisaste este pedido: un precio, o un producto que ya no está a la venta. Revísalo de nuevo antes de confirmarlo.',
+      unavailable:
+        'Algunos productos de tu carrito ya no están a la venta y no forman parte de este pedido.',
+      heading: 'Revisa tu pedido',
+      intro:
+        'Revisa los productos de cada vendedor y cómo le pagas. No se pide ni se cobra nada hasta que confirmes el pedido.',
+      subtotal: 'Subtotal',
+      codNote: 'Pagas a {{seller}} en efectivo cuando llegue el paquete.',
+      edit: 'Editar carrito',
+      place: 'Confirmar pedido',
     },
     checkout: {
       empty: 'Ninguno de estos productos sigue a la venta.',

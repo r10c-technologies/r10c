@@ -31,8 +31,16 @@ const addToCart = async (page: Page, offeringId: string) => {
   await page.waitForURL(/\/es\/cart(\?|$)/);
 };
 
+/**
+ * From the cart through the review step (#534): Review order lands on a page
+ * that shows each seller's lines, tender and the total, and only Place order
+ * there starts the flow.
+ */
 const startCheckout = async (page: Page) => {
-  await page.getByTestId('checkout').click();
+  await page.getByTestId('review').filter({ visible: true }).click();
+  await page.waitForURL(/\/es\/cart\/review/);
+  // A review page an earlier navigation left hidden can still be in the DOM.
+  await page.getByTestId('checkout').filter({ visible: true }).click();
   await page.waitForURL(STATUS_PAGE);
 };
 
@@ -185,6 +193,95 @@ test.describe('a checkout', () => {
         .getByTestId('vendor-order-method'),
     ).toHaveText('Tarjeta');
   });
+});
+
+test.describe('the review step', () => {
+  test('shows each seller, how they are paid and the total, and starts nothing until placed', async ({
+    page,
+  }) => {
+    await addToCart(page, 'offering-aurora-desk-lamp');
+    await addToCart(page, 'offering-solano-clip-light');
+    await page.getByTestId('tender-vendor-casa-solano').selectOption('cod');
+
+    await page.getByTestId('review').filter({ visible: true }).click();
+    await page.waitForURL(/\/es\/cart\/review/);
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Revisa tu pedido' }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('review-method-vendor-casa-solano'),
+    ).toHaveText('Forma de pago: Contra entrega');
+    await expect(
+      page.getByTestId('review-method-demo-organization'),
+    ).toHaveText('Forma de pago: Tarjeta');
+    await expect(
+      page.getByTestId('review-seller-vendor-casa-solano'),
+    ).toContainText('en efectivo cuando llegue el paquete');
+    await expect(page.getByTestId('review-total')).toBeVisible();
+    // Reviewing is not ordering: no flow has a status page yet.
+    await expect(page).not.toHaveURL(STATUS_PAGE);
+  });
+
+  test("keeps each seller's tender through Edit cart and a removal", async ({
+    page,
+  }) => {
+    await addToCart(page, 'offering-aurora-desk-lamp');
+    await addToCart(page, 'offering-solano-clip-light');
+    await page.getByTestId('tender-vendor-casa-solano').selectOption('cod');
+    await page.getByTestId('review').filter({ visible: true }).click();
+    await page.waitForURL(/\/es\/cart\/review/);
+
+    await page.getByRole('link', { name: 'Editar carrito' }).click();
+    await page.waitForURL(/\/es\/cart\?/);
+    await expect(page.getByTestId('tender-vendor-casa-solano')).toHaveValue(
+      'cod',
+    );
+
+    // Removing the other seller's line redirects back to the cart, and the
+    // choice made for this one survives it.
+    await page
+      .getByTestId('cart-seller-demo-organization')
+      .getByRole('button', { name: /^Quitar / })
+      .click();
+    await expect(page.getByTestId('cart-removed')).toBeVisible();
+    await expect(page.getByTestId('tender-vendor-casa-solano')).toHaveValue(
+      'cod',
+    );
+  });
+
+  test('sends an empty cart back to the cart, which says why', async ({
+    page,
+  }) => {
+    await page.goto('/es/cart/review');
+
+    await page.waitForURL(/\/es\/cart\?checkout=empty/);
+    await expect(page.getByTestId('checkout-empty')).toBeVisible();
+  });
+});
+
+/**
+ * Without script the dynamic pages stream behind Suspense and render empty, so
+ * what is proved here is the part a script-free browser relies on: both steps
+ * are plain forms. Each is submitted natively — `form.submit()` bypasses
+ * React — and still reaches the next step.
+ */
+test('reviews and places an order through native form submissions', async ({
+  page,
+}) => {
+  await addToCart(page, 'offering-solano-clip-light');
+  await page.getByTestId('tender-vendor-casa-solano').selectOption('cod');
+
+  await page
+    .getByTestId('review')
+    .evaluate(button => (button as HTMLButtonElement).form?.submit());
+  await page.waitForURL(/\/es\/cart\/review\?method%3Avendor-casa-solano=cod/);
+
+  await page
+    .getByTestId('checkout')
+    .filter({ visible: true })
+    .evaluate(button => (button as HTMLButtonElement).form?.submit());
+  await page.waitForURL(STATUS_PAGE);
 });
 
 test.describe('the receipt', () => {
