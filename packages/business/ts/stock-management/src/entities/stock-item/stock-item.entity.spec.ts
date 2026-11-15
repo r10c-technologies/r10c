@@ -14,12 +14,14 @@ describe('StockItem', () => {
     item.id = 'stock-1';
     item.onHand = 50;
     item.reserved = 3;
+    item.available = 47;
 
     expect(serializeEntity(StockItem, item)).toEqual({
       id: 'stock-1',
       offeringId: 'offering-1',
       onHand: 50,
       reserved: 3,
+      available: 47,
     });
   });
 
@@ -46,13 +48,21 @@ describe('StockItem', () => {
     expect(item.reserved).toBe(0);
   });
 
-  it('carries no availability member, because it is derived', () => {
-    // `onHand - reserved` is computed at read time. Storing it would be a third
-    // counter to keep consistent with the two that are actually written, and
-    // the first place a lost update could hide.
-    const names = describeEntityColumns(StockItem).map(column => column.name);
+  it('carries what is available, sortable and filterable (#555)', () => {
+    // `onHand - reserved` is stored because a list has to sort and filter on
+    // it; the ledger moves it in the same update as the counter that moved, so
+    // it is never a third value read-modify-written (ADR 0010).
+    const columns = describeEntityColumns(StockItem);
+    const available = columns.find(column => column.name === 'available');
 
-    expect(names).toEqual(['id', 'offeringId', 'onHand', 'reserved']);
+    expect(columns.map(column => column.name)).toEqual([
+      'id',
+      'offeringId',
+      'onHand',
+      'reserved',
+      'available',
+    ]);
+    expect(available).toMatchObject({ sortable: true, filterable: true });
   });
 
   it('makes both counters filterable, since the checkout guard spans them', () => {

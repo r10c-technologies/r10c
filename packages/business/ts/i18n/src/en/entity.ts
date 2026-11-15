@@ -633,6 +633,7 @@ export const entity: EsEntity = {
       offeringId: 'Product',
       onHand: 'On hand',
       reserved: 'Reserved',
+      available: 'Available',
     },
   },
   'stock-movement': {

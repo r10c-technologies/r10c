@@ -12,9 +12,10 @@ import { accessor, entity } from '@entifix/core';
  * The two counters are separate on purpose. A vendor receiving goods moves
  * `onHand`; a buyer checking out moves `reserved`. Different fields, both
  * written with atomic in-place operators (`$inc`), so the two are
- * order-independent and there is no race to resolve. Availability is
- * `onHand - reserved`, computed and never stored — a third counter would be a
- * third thing to keep consistent.
+ * order-independent and there is no race to resolve. Availability,
+ * `onHand - reserved`, is stored as `available` and moved **in the same
+ * update** as whichever counter moved, so the three can never disagree and a
+ * list can sort and filter on the number a vendor sells from (#555).
  *
  * Neither counter is ever read-modify-written. An absolute-value write loses
  * updates between two requests inside a single process, long before any
@@ -41,6 +42,7 @@ export class StockItem implements Entity {
   #offeringId: string;
   #onHand = 0;
   #reserved = 0;
+  #available = 0;
   // #endregion
 
   // #region constructors
@@ -112,6 +114,24 @@ export class StockItem implements Entity {
   }
   set reserved(value: number) {
     this.#reserved = value;
+  }
+
+  /**
+   * What can still be sold: `onHand - reserved`, moved by the same atomic
+   * update that moves either counter. Sortable so a list can put what is out
+   * on top; filterable so "what am I out of?" is one query.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:stock-item.fields.available',
+    sortable: true,
+    filterable: true,
+  })
+  get available(): number {
+    return this.#available;
+  }
+  set available(value: number) {
+    this.#available = value;
   }
   // #endregion
 }

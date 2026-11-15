@@ -138,7 +138,14 @@ export const MongoStockLedgerLayer = Layer.effect(
           unit.db.collection(STOCK_ITEM_COLLECTION).findOneAndUpdate(
             filter,
             {
-              $inc: { ...inc, version: 1 },
+              // `available` moves in the same update as whichever counter
+              // moved, so it is never read-modify-written and never drifts
+              // from `onHand - reserved` (ADR 0010, #555).
+              $inc: {
+                ...inc,
+                available: (inc['onHand'] ?? 0) - (inc['reserved'] ?? 0),
+                version: 1,
+              },
               ...(upsert === undefined ? {} : { $setOnInsert: upsert }),
             },
             {
@@ -163,6 +170,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                   offeringId: String(item['offeringId']),
                   onHand: Number(item['onHand']),
                   reserved: Number(item['reserved']),
+                  available: Number(item['available']),
                   version: Number(item['version']),
                 },
                 source,

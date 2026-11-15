@@ -678,6 +678,7 @@ export const entity = {
       offeringId: 'Producto',
       onHand: 'En almacén',
       reserved: 'Reservado',
+      available: 'Disponible',
     },
   },
   'stock-movement': {

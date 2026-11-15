@@ -276,6 +276,9 @@ export const r10c = {
       movements: 'Libro de movimientos',
       reservations: 'Reservas',
     },
+    item: {
+      outOfStock: 'Sin existencias disponibles',
+    },
   },
   order: {
     nav: {

@@ -20,24 +20,28 @@ export const stockItemSeed = [
     offeringId: 'product-offering-1',
     onHand: 10,
     reserved: 0,
+    available: 10,
   },
   {
     id: 'stock-item-2',
     offeringId: 'product-offering-2',
     onHand: 13,
     reserved: 0,
+    available: 13,
   },
   {
     id: 'stock-item-3',
     offeringId: 'product-offering-3',
     onHand: 17,
     reserved: 2,
+    available: 15,
   },
   {
     id: 'stock-item-4',
     offeringId: 'product-offering-4',
     onHand: 0,
     reserved: 0,
+    available: 0,
   },
 ];
 

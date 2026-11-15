@@ -256,6 +256,9 @@ export const r10c: EsR10c = {
       movements: 'Movement ledger',
       reservations: 'Reservations',
     },
+    item: {
+      outOfStock: 'Nothing available to sell',
+    },
   },
   order: {
     nav: {

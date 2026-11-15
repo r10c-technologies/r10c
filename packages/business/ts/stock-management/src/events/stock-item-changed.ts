@@ -22,6 +22,8 @@ export interface StockItemChange {
   readonly offeringId: string;
   readonly onHand: number;
   readonly reserved: number;
+  /** `onHand - reserved`, as the same update left it. */
+  readonly available: number;
 }
 
 export const StockItemChangeSchema = openStruct({
@@ -29,6 +31,7 @@ export const StockItemChangeSchema = openStruct({
   offeringId: Schema.NonEmptyString,
   onHand: Schema.Finite,
   reserved: Schema.Finite,
+  available: Schema.Finite,
 });
 
 // Audience required: a change is the vendor's own, and fails closed to nobody
@@ -65,5 +68,6 @@ export const stockItemChangedEvent = (
     offeringId: change.offeringId,
     onHand: change.onHand,
     reserved: change.reserved,
+    available: change.available,
   },
 });

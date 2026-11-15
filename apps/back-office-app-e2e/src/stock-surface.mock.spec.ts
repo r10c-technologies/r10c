@@ -161,3 +161,23 @@ test('opens the stock list from the sidebar in the workspace', async ({
   // two were written out by hand.
   await expect(page).toHaveURL(/tab=operation%3Astock-item/);
 });
+
+test('says what is available, and makes nothing to sell stand out', async ({
+  page,
+}) => {
+  await page.goto('/stock/stock-item');
+
+  await expect(
+    page.getByRole('columnheader', { name: 'Disponible' }),
+  ).toBeVisible();
+  // 17 on hand with 2 held leaves 15 to sell.
+  const held = page.getByRole('row').filter({
+    has: page.getByRole('cell', { name: 'Plato de pared', exact: true }),
+  });
+  await expect(held).toContainText('15');
+  // The empty shelf says so in words, not only with a colour (ADR 0075).
+  const empty = page.getByRole('row').filter({
+    has: page.getByRole('cell', { name: 'Cuenco pintado', exact: true }),
+  });
+  await expect(empty).toContainText('Sin existencias disponibles');
+});
