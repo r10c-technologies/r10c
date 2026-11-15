@@ -1,3 +1,5 @@
+import { seedSession } from '@entifix/testing-e2e/playwright';
+
 import { expect, record, test } from './support/fixtures';
 
 /**
@@ -18,6 +20,11 @@ import { expect, record, test } from './support/fixtures';
  * ledger line, a run and a payout are each produced by a process. A regression
  * here would file a payout under a heading that says a person wrote it.
  */
+/**
+ * The suite's session is a vendor's, so the sidebar speaks to them (#559):
+ * "Mi acuerdo", "Mis comisiones", "Mis pagos". The run item has no vendor
+ * variant and keeps its plain name.
+ */
 test('files agreements under Definiciones and the statement under Operaciones', async ({
   page,
 }) => {
@@ -26,12 +33,12 @@ test('files agreements under Definiciones and the statement under Operaciones', 
   await expect(
     page
       .getByRole('group', { name: 'Definiciones' })
-      .getByRole('link', { name: 'Acuerdos', exact: true }),
+      .getByRole('link', { name: 'Mi acuerdo', exact: true }),
   ).toBeVisible();
 
   const operations = page.getByRole('group', { name: 'Operaciones' });
   await expect(
-    operations.getByRole('link', { name: 'Apuntes de comisión', exact: true }),
+    operations.getByRole('link', { name: 'Mis comisiones', exact: true }),
   ).toBeVisible();
   await expect(
     operations.getByRole('link', {
@@ -40,7 +47,7 @@ test('files agreements under Definiciones and the statement under Operaciones', 
     }),
   ).toBeVisible();
   await expect(
-    operations.getByRole('link', { name: 'Pagos a vendedores', exact: true }),
+    operations.getByRole('link', { name: 'Mis pagos', exact: true }),
   ).toBeVisible();
 });
 
@@ -133,4 +140,23 @@ test('round-trips both tiers through the workspace', async ({ page }) => {
   await expect(page).toHaveURL(
     /tab=operation%3Avendor-payout%3Avendor-payout-1/,
   );
+});
+
+test('an operator reads the same items in the operator’s words', async ({
+  context,
+  page,
+}) => {
+  // Re-seeded on the same context, so the mocks stay installed: the access
+  // cookie is replaced with an operator's.
+  await seedSession(context, {
+    roles: ['admin'],
+    partyRole: 'operator',
+    entitlements: ['settlement-management'],
+  });
+  await page.goto('/settlement/agreement');
+
+  const operations = page.getByRole('group', { name: 'Operaciones' });
+  await expect(
+    operations.getByRole('link', { name: 'Pagos a vendedores', exact: true }),
+  ).toBeVisible();
 });

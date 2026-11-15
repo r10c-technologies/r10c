@@ -276,9 +276,12 @@ export const r10c: EsR10c = {
     nav: {
       settlement: 'Settlement',
       agreements: 'Agreements',
+      agreements_vendor: 'My agreement',
       entries: 'Commission entries',
+      entries_vendor: 'My commissions',
       runs: 'Settlement runs',
       payouts: 'Vendor payouts',
+      payouts_vendor: 'My payouts',
     },
     agreement: {
       channelRatesHint:

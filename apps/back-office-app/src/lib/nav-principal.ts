@@ -20,6 +20,13 @@ export interface NavPrincipal {
   readonly organizationId?: string;
   /** The domains that organization is provisioned for. Empty when it has none. */
   readonly entitlements: readonly string[];
+  /**
+   * Which population the reader belongs to — `vendor`, `operator`. Routing
+   * context and never a grant (ADR 0015): it picks the **copy** a screen
+   * speaks in, so a vendor reads "Mis pagos" where an operator reads "Pagos a
+   * vendedores", and decides no access at all (#559).
+   */
+  readonly partyRole?: string;
 }
 
 /**
@@ -42,11 +49,13 @@ export async function navPrincipal(): Promise<NavPrincipal> {
   );
   const organizationId = claims?.activeOrganizationId;
   const entitlements = claims?.entitlements;
+  const partyRole = claims?.partyRole;
 
   return {
     roles: Array.isArray(claims?.roles) ? claims.roles : [],
     ...(typeof organizationId === 'string' ? { organizationId } : {}),
     entitlements: Array.isArray(entitlements) ? entitlements : [],
+    ...(typeof partyRole === 'string' ? { partyRole } : {}),
   };
 }
 

@@ -59,7 +59,7 @@ export async function BackOfficeChrome({
     // Every segment a sidebar item names resolves from that item's own key, so
     // a crumb reads exactly as the sidebar does — and a shell contributing a
     // section gets translated crumbs without an entry here (#531).
-    ...navBreadcrumbLabels(translateKey),
+    ...navBreadcrumbLabels(translateKey, principal.partyRole),
     // What follows names segments no sidebar item does, so it wins.
     home: t('admin.nav.dashboard'),
     // The Asistentes tier's own word, so a wizard's trail reads the way the

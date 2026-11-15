@@ -302,9 +302,12 @@ export const r10c = {
       // encabezado de cada grada sale de `nav.screenType`.
       settlement: 'Liquidaciones',
       agreements: 'Acuerdos',
+      agreements_vendor: 'Mi acuerdo',
       entries: 'Apuntes de comisión',
+      entries_vendor: 'Mis comisiones',
       runs: 'Cortes de liquidación',
       payouts: 'Pagos a vendedores',
+      payouts_vendor: 'Mis pagos',
     },
     agreement: {
       channelRatesHint:
