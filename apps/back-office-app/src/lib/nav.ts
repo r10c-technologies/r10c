@@ -135,7 +135,7 @@ export const visibleNav = (principal: NavPrincipal): GuardedNavSection[] =>
  */
 export const sidebarNav = (
   principal: NavPrincipal,
-  translate: (key: string) => string,
+  translate: (key: string, params?: Record<string, unknown>) => string,
 ): NavSection[] =>
   visibleNav(principal).map(section => ({
     title: section.title === undefined ? undefined : translate(section.title),
@@ -147,12 +147,41 @@ export const sidebarNav = (
     // not this app's to translate.
     type: section.type,
     items: section.items.map(({ label, href, icon, workspace }) => ({
-      label: translate(label),
+      // The party role as i18next `context`: an item with a `_vendor` variant
+      // speaks to the vendor reading it, and every other item falls back to
+      // its plain key. Copy only — the role grants nothing (ADR 0015, #559).
+      label: translate(
+        label,
+        principal.partyRole === undefined
+          ? undefined
+          : { context: principal.partyRole },
+      ),
       href,
       icon,
       workspace,
     })),
   }));
+
+/**
+ * The items whose name, translated, is their own section's heading.
+ *
+ * An item named like the group it sits in tells the reader nothing about where
+ * it goes (b0-18). A section heading is repeated across tiers on purpose
+ * (ADR 0041), so only an item against its own section is compared.
+ */
+export const itemsNamedLikeTheirSection = (
+  nav: readonly GuardedNavSection[],
+  translate: (key: string) => string,
+): string[] =>
+  nav.flatMap(section =>
+    section.title === undefined
+      ? []
+      : section.items
+          .filter(
+            item => translate(item.label) === translate(section.title ?? ''),
+          )
+          .map(item => item.label),
+  );
 
 const segmentsOf = (href: string): string[] =>
   href
@@ -172,14 +201,17 @@ const segmentsOf = (href: string): string[] =>
  * section). Over the unfiltered `NAV`, because a crumb is not a grant.
  */
 export const navBreadcrumbLabels = (
-  translate: (key: string) => string,
+  translate: (key: string, params?: Record<string, unknown>) => string,
+  partyRole?: string,
 ): Record<string, string> => {
+  // The same context the sidebar passes, so a crumb reads as its item does.
+  const params = partyRole === undefined ? undefined : { context: partyRole };
   const labels: Record<string, string> = {};
   for (const section of NAV) {
     for (const item of section.items) {
       const last = segmentsOf(item.href).at(-1);
       if (last !== undefined && labels[last] === undefined) {
-        labels[last] = translate(item.label);
+        labels[last] = translate(item.label, params);
       }
     }
   }

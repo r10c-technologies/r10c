@@ -1,3 +1,5 @@
+import type { EnumTone } from '@entifix/core';
+
 /**
  * The publication lifecycle of a vendor's offering.
  *
@@ -24,6 +26,15 @@ export const OfferingStatuses = [
 ] as const;
 
 export type OfferingStatus = (typeof OfferingStatuses)[number];
+
+/**
+ * A status read at a glance: a live offering succeeds, one waiting on review
+ * warns, and a draft or a withdrawn one is neutral. A value with no tone reads neutral.
+ */
+export const OfferingStatusTones = {
+  'pending-review': 'warning',
+  published: 'success',
+} as const satisfies Readonly<Partial<Record<OfferingStatus, EnumTone>>>;
 
 /** Narrow an unknown value to an offering status. */
 export const isOfferingStatus = (value: unknown): value is OfferingStatus =>

@@ -29,7 +29,7 @@ export const SYSTEM_MANAGEMENT_NAV: GuardedNavSection[] = [
       {
         label: 'r10c:systemManagement.nav.configuration',
         href: CONFIGURATION_LIST_HREF,
-        icon: '⚙',
+        icon: '⛭',
         // Definiciones like every other screen this shell serves, so the tab
         // address carries the type rather than a `system:` prefix of its own —
         // one grammar for every surface (ADR 0042).

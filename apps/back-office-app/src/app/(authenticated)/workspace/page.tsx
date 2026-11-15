@@ -1,3 +1,4 @@
+import { navPrincipal } from '../../../lib/nav-principal';
 import { workspaceScope } from '../../../lib/workspace-scope';
 import { WorkspaceView } from './workspace-view';
 
@@ -7,5 +8,13 @@ import { WorkspaceView } from './workspace-view';
  * session cookies are httpOnly.
  */
 export default async function WorkspacePage() {
-  return <WorkspaceView scope={await workspaceScope()} />;
+  // The party role words a vendor's settlement tabs (#559): copy only, read
+  // from unverified claims the way the sidebar reads it (ADR 0015).
+  const { partyRole } = await navPrincipal();
+  return (
+    <WorkspaceView
+      scope={await workspaceScope()}
+      {...(partyRole === undefined ? {} : { partyRole })}
+    />
+  );
 }

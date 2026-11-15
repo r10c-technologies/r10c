@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@entifix/i18n": "catalog:",
     "@entifix/jwt": "catalog:",

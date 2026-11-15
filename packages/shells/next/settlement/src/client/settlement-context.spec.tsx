@@ -6,12 +6,14 @@ import { Context, Effect } from 'effect';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it } from 'vitest';
 
+import { VENDOR_PAYOUT_SURFACE } from '../settlement-surfaces.js';
 import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { SettlementAdapters } from './client-types.js';
 import {
   SettlementProvider,
   useSettlementAdapters,
 } from './settlement-context.js';
+import { useSettlementListView } from './settlement-reader.js';
 
 /**
  * A writer that settles every write through the spec's own in-memory
@@ -97,5 +99,32 @@ describe('the settlement adapters context', () => {
     expect(() => renderHook(() => useSettlementAdapters())).toThrow(
       /useSettlementAdapters must be used inside/,
     );
+  });
+});
+
+describe('the reader the provider names', () => {
+  const readerWrapper = (partyRole?: string) =>
+    function Wrapper({ children }: PropsWithChildren) {
+      return (
+        <SettlementProvider adapters={adapters} partyRole={partyRole}>
+          {children}
+        </SettlementProvider>
+      );
+    };
+
+  it('words a vendor’s payouts for the vendor (#559)', () => {
+    const { result } = renderHook(
+      () => useSettlementListView(VENDOR_PAYOUT_SURFACE.entityKey),
+      { wrapper: readerWrapper('vendor') },
+    );
+    expect(result.current.titleKey).toBe('r10c:settlement.nav.payouts_vendor');
+  });
+
+  it('words nothing when no party role is given', () => {
+    const { result } = renderHook(
+      () => useSettlementListView(VENDOR_PAYOUT_SURFACE.entityKey),
+      { wrapper: readerWrapper() },
+    );
+    expect(result.current).toEqual({});
   });
 });

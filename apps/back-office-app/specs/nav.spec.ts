@@ -1,7 +1,11 @@
+import { r10cCatalogs } from '@r10c/business-ts-i18n';
+
 import {
   isNavItemVisible,
+  itemsNamedLikeTheirSection,
   NAV,
   navBreadcrumbLabels,
+  sidebarNav,
   visibleNav,
 } from '../src/lib/nav';
 import type { NavPrincipal } from '../src/lib/nav-principal';
@@ -115,5 +119,96 @@ describe('navBreadcrumbLabels', () => {
     expect(labels['stock']).toBe('r10c:stock.nav.stock');
     expect(labels['fulfilment']).toBe('r10c:fulfilment.nav.title');
     expect(labels['order']).toBe('r10c:order.nav.orders');
+  });
+});
+
+describe('Sidebar item names', () => {
+  /** A catalog key resolved against r10c's own copy, in one locale. */
+  const translateIn =
+    (locale: 'es' | 'en') =>
+    (key: string): string => {
+      const [namespace, path] = key.split(':') as [string, string];
+      const catalog = (
+        r10cCatalogs[locale] as unknown as Record<string, unknown>
+      )[namespace];
+      const value = path
+        .split('.')
+        .reduce<unknown>(
+          (node, segment) =>
+            (node as Record<string, unknown> | undefined)?.[segment],
+          catalog,
+        );
+      return typeof value === 'string' ? value : key;
+    };
+
+  it.each(['es', 'en'] as const)(
+    'never repeats its own section heading (%s)',
+    locale => {
+      // "Liquidaciones" under "Liquidaciones" told the reader nothing about
+      // where the item goes (b0-18). A section that spans two tiers keeps its
+      // name in both (ADR 0041); an item inside it needs one of its own.
+      const repeats = itemsNamedLikeTheirSection(NAV, translateIn(locale));
+      expect(repeats).toEqual([]);
+    },
+  );
+
+  it('catches a planted item named like its section', () => {
+    expect(
+      itemsNamedLikeTheirSection(
+        [
+          {
+            title: 'x:runs',
+            items: [{ label: 'x:runs', href: '/runs', permission: 'a:b:read' }],
+          },
+        ],
+        key => key,
+      ),
+    ).toEqual(['x:runs']);
+  });
+});
+
+describe('copy by party role', () => {
+  // A stand-in for i18next's `context`: the key with `_<context>` when one
+  // exists, the plain key otherwise.
+  const VARIANTS = new Set(['r10c:settlement.nav.payouts_vendor']);
+  const translate = (key: string, params?: Record<string, unknown>) => {
+    const variant = `${key}_${String(params?.['context'])}`;
+    return params?.['context'] !== undefined && VARIANTS.has(variant)
+      ? variant
+      : key;
+  };
+  const labelsOf = (nav: ReturnType<typeof sidebarNav>) =>
+    nav.flatMap(section => section.items).map(item => item.label);
+
+  it("speaks to a vendor in the vendor's words, and only where a variant exists", () => {
+    const labels = labelsOf(
+      sidebarNav(
+        principal({
+          partyRole: 'vendor',
+          entitlements: ['settlement-management'],
+        }),
+        translate,
+      ),
+    );
+
+    expect(labels).toContain('r10c:settlement.nav.payouts_vendor');
+    expect(labels).toContain('r10c:settlement.nav.runs');
+  });
+
+  it('keeps the plain copy for a reader with no party role', () => {
+    const labels = labelsOf(
+      sidebarNav(
+        principal({ entitlements: ['settlement-management'] }),
+        translate,
+      ),
+    );
+
+    expect(labels).toContain('r10c:settlement.nav.payouts');
+  });
+
+  it('names a crumb as its sidebar item does', () => {
+    expect(navBreadcrumbLabels(translate, 'vendor')['vendor-payout']).toBe(
+      'r10c:settlement.nav.payouts_vendor',
+    );
   });
 });

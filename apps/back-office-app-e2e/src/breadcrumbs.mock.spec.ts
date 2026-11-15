@@ -11,13 +11,18 @@ import { expect, test } from './support/fixtures';
  * which is the point — a crumb is not a grant.
  */
 const SCREENS = [
-  { path: '/order/product-order', label: 'Pedidos', inSidebar: false },
+  {
+    path: '/order/product-order',
+    label: 'Pedidos recibidos',
+    inSidebar: false,
+  },
   {
     path: '/stock/stock-item',
     label: 'Existencias en almacén',
     inSidebar: true,
   },
-  { path: '/settlement/agreement', label: 'Acuerdos', inSidebar: true },
+  // The suite's session is a vendor's, so the item reads in their words (#559).
+  { path: '/settlement/agreement', label: 'Mi acuerdo', inSidebar: true },
   { path: '/fulfilment/shipping-order', label: 'Envíos', inSidebar: true },
   { path: '/sales/sales-channel', label: 'Canales de venta', inSidebar: true },
   { path: '/users', label: 'Usuarios', inSidebar: true },

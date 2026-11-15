@@ -35,8 +35,12 @@ export interface FulfilmentSurface<TEntity extends Entity = Entity> {
   readonly icon: string;
   /** Shell-namespaced nav copy. `app:` keys are lint-restricted to `apps/`. */
   readonly navLabelKey: string;
+  /**
+   * What the palette matches a term against. A shipment is not named by it —
+   * the order id it carries is not what a person calls it — so a result names
+   * itself, noun and short id, until ADR 0076's order number names both (#552).
+   */
   readonly searchProperty: string;
-  readonly labelProperty: string;
   readonly sublabelProperty?: string;
 }
 
@@ -75,13 +79,9 @@ export const fulfilmentSurface = <TEntity extends Entity>(
 export const SHIPPING_ORDER_SURFACE = fulfilmentSurface(ShippingOrder, {
   entityKey: 'shipping-order',
   basePath: '/fulfilment/shipping-order',
-  icon: '📦',
+  icon: '⊡',
   navLabelKey: 'r10c:fulfilment.nav.shipments',
-  // The only string member that names a shipment to a person: the order it
-  // carries. A search source refuses a label member that is not sortable,
-  // filterable and a string, at module load.
   searchProperty: 'orderId',
-  labelProperty: 'orderId',
   sublabelProperty: 'status',
 });
 

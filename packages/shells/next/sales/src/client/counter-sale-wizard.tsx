@@ -23,11 +23,13 @@ import {
   Cluster,
   Money,
   QuantityInput,
+  SegmentedControl,
   Select,
   Stack,
   Text,
   useLocale,
   useTranslateKey,
+  useUiPreference,
   Wizard,
 } from '@entifix/react-controls';
 import {
@@ -39,7 +41,7 @@ import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COUNTER_SALE_SURFACE } from '../sales-surfaces';
-import { useSalesAdapters } from './sales-context';
+import { useSalesAdapters, useSalesScope } from './sales-context';
 
 /**
  * The till's step graph.
@@ -90,6 +92,25 @@ assertWizardDefinition(COUNTER_SALE_WIZARD);
 
 /** Where the flow begins — the first step declared, stated once. */
 const ENTRY_STEP = 'channel';
+
+/**
+ * The most channels a till offers as one row of buttons.
+ *
+ * Past five a segmented row wraps or truncates, and a select is the better
+ * control; at five or fewer every choice is visible and one tap away.
+ */
+export const SEGMENTED_CHANNEL_LIMIT = 5;
+
+/**
+ * The preference a till's last channel is remembered under, per scope.
+ *
+ * `undefined` without a scope: an unscoped key would be shared by every
+ * principal and organization this browser has held.
+ */
+export const lastChannelKey = (
+  scope: string | undefined,
+): string | undefined =>
+  scope === undefined ? undefined : `sales.counter-sale.last-channel:${scope}`;
 
 /** How the money arrived. The set `Payment.paymentMethod` accepts. */
 const PAYMENT_METHODS = ['cash', 'card', 'voucher', 'transfer'] as const;
@@ -233,6 +254,18 @@ export function CounterSaleWizard({
     queryKey: ['published-offering', 'counter-sale'],
   });
 
+  // A retired channel takes no sale, and the route refuses one, so offering it
+  // here would be offering a dead end.
+  const activeChannels = channels.items.filter(
+    channel => channel.status === 'active',
+  );
+  const scope = useSalesScope();
+  const preferenceKey = lastChannelKey(scope);
+  const lastChannel = useUiPreference<string>(
+    preferenceKey ?? 'sales.counter-sale.last-channel',
+    '',
+  );
+
   const [channelId] = readStepIds(state, 'channel');
   const lines = readLines(
     (readStepDraft(state, 'lines')['lines'] ?? []) as readonly EntityRowDraft[],
@@ -276,6 +309,54 @@ export function CounterSaleWizard({
         channel: { kind: 'selection', ids: id === '' ? [] : [id] },
       },
     });
+
+  // The question a till asks on every sale is answered for the vendor when the
+  // answer cannot vary: with one active channel the step is filled and the till
+  // opens on the lines; with several, the one last sold through is preselected.
+  // Once per mount, and only while nothing was chosen, so Back to the channel
+  // step shows the answer instead of skipping again. The step stays in the
+  // graph either way, and the summary names the channel before money is taken
+  // (ADR 0045).
+  const chose = useRef(false);
+  useEffect(() => {
+    // The memory is read before anything is chosen, or a fast channel list
+    // would preselect the first one over the channel the vendor last used.
+    const waiting = channels.isLoading || !lastChannel.isReady;
+    if (chose.current || waiting || channelId !== undefined) return;
+    if (activeStep !== ENTRY_STEP || step !== undefined) return;
+    if (activeChannels.length === 1) {
+      chose.current = true;
+      setChannel(String((activeChannels[0] as SalesChannel).id));
+      // Moved through the address rather than `goTo`: the follower above turns
+      // the push into the move, so browser-Back from the lines lands on the
+      // channel step exactly as a manual Continuar would have left it.
+      writeStep('lines');
+      return;
+    }
+    if (activeChannels.length === 0) return;
+    chose.current = true;
+    // The last channel sold through. Failing that, a row of buttons takes its
+    // first — it always shows one as chosen, so the one it shows has to be the
+    // one the sale would use — while a select can honestly show none.
+    const preselected =
+      activeChannels.find(
+        channel => String(channel.id) === lastChannel.value,
+      ) ??
+      (activeChannels.length <= SEGMENTED_CHANNEL_LIMIT
+        ? activeChannels[0]
+        : undefined);
+    if (preselected !== undefined) setChannel(String(preselected.id));
+  }, [
+    activeChannels,
+    activeStep,
+    channelId,
+    channels.isLoading,
+    lastChannel.isReady,
+    lastChannel.value,
+    setChannel,
+    step,
+    writeStep,
+  ]);
 
   const setLines = (next: readonly Line[]) =>
     save({
@@ -352,6 +433,7 @@ export function CounterSaleWizard({
     // with the button still busy.
     if (response?.status === 202 && typeof body?.data?.flowId === 'string') {
       setPendingFlow(body.data.flowId);
+      if (preferenceKey !== undefined) lastChannel.setValue(String(channelId));
       return;
     }
     setCharging(false);
@@ -431,26 +513,37 @@ export function CounterSaleWizard({
       {activeStep === 'channel' && (
         <Stack>
           <Text>{translateKey('r10c:sales.counterSale.channelHint')}</Text>
-          <label htmlFor="counter-sale-channel">
-            {translateKey('r10c:sales.counterSale.steps.channel')}
-          </label>
-          <Select
-            id="counter-sale-channel"
-            value={channelId ?? ''}
-            onChange={event => setChannel(event.target.value)}
-            disabled={channels.isLoading}
-          >
-            <option value="">—</option>
-            {channels.items
-              // A retired channel takes no sale, and the route refuses one, so
-              // offering it here would be offering a dead end.
-              .filter(channel => channel.status === 'active')
-              .map(channel => (
-                <option key={String(channel.id)} value={String(channel.id)}>
-                  {channel.name}
-                </option>
-              ))}
-          </Select>
+          {activeChannels.length > 0 &&
+          activeChannels.length <= SEGMENTED_CHANNEL_LIMIT ? (
+            <SegmentedControl
+              label={translateKey('r10c:sales.counterSale.steps.channel')}
+              options={activeChannels.map(channel => ({
+                key: String(channel.id),
+                label: channel.name,
+              }))}
+              value={channelId ?? ''}
+              onChange={setChannel}
+            />
+          ) : (
+            <>
+              <label htmlFor="counter-sale-channel">
+                {translateKey('r10c:sales.counterSale.steps.channel')}
+              </label>
+              <Select
+                id="counter-sale-channel"
+                value={channelId ?? ''}
+                onChange={event => setChannel(event.target.value)}
+                disabled={channels.isLoading}
+              >
+                <option value="">—</option>
+                {activeChannels.map(channel => (
+                  <option key={String(channel.id)} value={String(channel.id)}>
+                    {channel.name}
+                  </option>
+                ))}
+              </Select>
+            </>
+          )}
         </Stack>
       )}
 
@@ -531,6 +624,13 @@ export function CounterSaleWizard({
 
       {activeStep === 'summary' && (
         <Stack>
+          <Text>
+            {translateKey('r10c:sales.counterSale.steps.channel')}:{' '}
+            {
+              activeChannels.find(channel => String(channel.id) === channelId)
+                ?.name
+            }
+          </Text>
           {lines.map(line => (
             <Text key={line.key}>
               {line.quantity} × {line.name} —{' '}

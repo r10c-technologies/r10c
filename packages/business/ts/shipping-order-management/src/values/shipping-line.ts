@@ -23,6 +23,7 @@ export class ShippingLine {
 
   // #region accessors
   @accessor({
+    references: { entity: 'product-configuration-management:product-offering' },
     type: 'string',
     labelKey: 'entity:shipping-order.fields.line.offeringId',
     required: true,

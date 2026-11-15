@@ -67,6 +67,7 @@ export class Reservation implements Entity {
   // member of these entities that can name one of their records — a search
   // source refuses a label member that is not sortable, at module load.
   @accessor({
+    references: { entity: 'product-configuration-management:product-offering' },
     type: 'string',
     labelKey: 'entity:reservation.fields.offeringId',
     required: true,

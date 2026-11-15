@@ -12,3 +12,11 @@
  */
 export const SETTLEMENT_SERVICE_URL =
   process.env.SETTLEMENT_SERVICE_URL ?? 'http://localhost:3107';
+
+/**
+ * Where marketplace-service listens: the owner of the published-vendor
+ * projection the record search reads to find a vendor's records by the
+ * vendor's name (#552). The same variable the catalog shell reads.
+ */
+export const MARKETPLACE_SERVICE_URL =
+  process.env.MARKETPLACE_SERVICE_URL ?? 'http://localhost:3100';

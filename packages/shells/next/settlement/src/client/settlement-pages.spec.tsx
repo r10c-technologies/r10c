@@ -66,6 +66,8 @@ const push = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
   useParams: () => ({ slug }),
+  // A record page reads `?prefill.<member>=` since entifix 0.21.0.
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const makeAgreement = () => {

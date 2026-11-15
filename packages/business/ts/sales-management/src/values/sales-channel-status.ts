@@ -1,3 +1,5 @@
+import type { EnumTone } from '@entifix/core';
+
 /**
  * Whether a channel may take a sale right now.
  *
@@ -9,6 +11,14 @@
 export const SalesChannelStatuses = ['active', 'inactive'] as const;
 
 export type SalesChannelStatus = (typeof SalesChannelStatuses)[number];
+
+/**
+ * A status read at a glance: a channel that sells succeeds, and an inactive
+ * one is neutral. A value with no tone reads neutral.
+ */
+export const SalesChannelStatusTones = {
+  active: 'success',
+} as const satisfies Readonly<Partial<Record<SalesChannelStatus, EnumTone>>>;
 
 /** Narrow an unknown value to a status. */
 export const isSalesChannelStatus = (

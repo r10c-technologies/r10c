@@ -26,7 +26,7 @@ const SCREENS = [
   {
     screen: 'operaciones-stock-items',
     path: '/es/stock/stock-item',
-    ready: { record: 'product-offering-1' },
+    ready: { record: 'Taza de cerámica' },
   },
   {
     screen: 'asistentes-product-wizard',
@@ -41,7 +41,7 @@ const SCREENS = [
   {
     screen: 'operaciones-shipment-worklist',
     path: '/es/fulfilment/shipping-order',
-    ready: { record: 'order-awaiting-1' },
+    ready: { record: 'shipping-order-awaiting-1' },
   },
   {
     screen: 'shipment-detail',
@@ -51,7 +51,7 @@ const SCREENS = [
   {
     screen: 'till',
     path: '/es/sales/counter-sale',
-    ready: { role: 'combobox', name: 'Canal' },
+    ready: { role: 'radiogroup', name: 'Canal' },
   },
   {
     screen: 'account',

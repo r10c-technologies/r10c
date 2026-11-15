@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
+import { StockItem } from '../entities/stock-item';
 import type { StockMovement } from '../entities/stock-movement';
 import {
   type HoldOutcome,
@@ -8,8 +9,19 @@ import {
   type StockLedger,
 } from '../ports/stock-ledger';
 
+/**
+ * One offering's counters. `available` is stored and moved with the others,
+ * as the Mongo ledger stores it, rather than derived on read — so the
+ * contract's `available === onHand − reserved` holds this ledger to it too.
+ */
+interface Counter {
+  onHand: number;
+  reserved: number;
+  available: number;
+}
+
 interface Shelf {
-  readonly counters: Map<string, { onHand: number; reserved: number }>;
+  readonly counters: Map<string, Counter>;
   readonly holds: Map<string, { reservation: Reservation; status: string }>;
 }
 
@@ -33,7 +45,7 @@ export const makeInMemoryStockLedger = (): StockLedger => {
   const counterOf = (shelf: Shelf, offeringId: string) => {
     let counter = shelf.counters.get(offeringId);
     if (counter === undefined) {
-      counter = { onHand: 0, reserved: 0 };
+      counter = { onHand: 0, reserved: 0, available: 0 };
       shelf.counters.set(offeringId, counter);
     }
     return counter;
@@ -53,13 +65,16 @@ export const makeInMemoryStockLedger = (): StockLedger => {
     held.status = to;
     const counter = counterOf(shelf, held.reservation.offeringId);
     counter.reserved -= held.reservation.quantity;
+    // A sale leaves the shelf and the hold at once, so what is free stays.
     if (to === 'converted') counter.onHand -= held.reservation.quantity;
+    else counter.available += held.reservation.quantity;
     return 'transitioned' as const;
   };
 
   const move = (organizationId: string, movement: StockMovement) => {
-    counterOf(shelfOf(organizationId), movement.offeringId).onHand +=
-      movement.quantity;
+    const counter = counterOf(shelfOf(organizationId), movement.offeringId);
+    counter.onHand += movement.quantity;
+    counter.available += movement.quantity;
   };
 
   return {
@@ -78,7 +93,7 @@ export const makeInMemoryStockLedger = (): StockLedger => {
         }
         const shelf = shelfOf(organizationId);
         const counter = counterOf(shelf, reservation.offeringId);
-        const available = counter.onHand - counter.reserved;
+        const { available } = counter;
         if (available < reservation.quantity) {
           return Effect.fail(
             new InsufficientStock({
@@ -89,6 +104,7 @@ export const makeInMemoryStockLedger = (): StockLedger => {
           );
         }
         counter.reserved += reservation.quantity;
+        counter.available -= reservation.quantity;
         shelf.holds.set(reservation.id as string, {
           reservation,
           status: 'held',
@@ -134,6 +150,13 @@ export const makeInMemoryStockLedger = (): StockLedger => {
           }
         }
         return { released, failed: [] };
+      }),
+    item: (organizationId, offeringId) =>
+      Effect.sync(() => {
+        const counter = shelves.get(organizationId)?.counters.get(offeringId);
+        return counter === undefined
+          ? undefined
+          : Object.assign(new StockItem(offeringId), counter);
       }),
   };
 };

@@ -90,16 +90,14 @@ describe('the settlement surfaces', () => {
     );
   });
 
-  it('names every record by a member that can actually name one', () => {
-    // `defineRecordSearchSource` refuses a label member that is not
-    // simultaneously a string, filterable and sortable, at module load. Until
-    // `vendorId` gained `sortable: true`, no settlement entity had one.
+  it('searches every vendor record through its vendor', () => {
+    // The member holding the vendor's id, matched `=in=` against the vendors
+    // whose names the term found (#552).
     for (const surface of [
       AGREEMENT_SURFACE,
       COMMISSION_ENTRY_SURFACE,
       VENDOR_PAYOUT_SURFACE,
     ]) {
-      expect(surface.labelProperty).toBe('vendorId');
       expect(surface.searchProperty).toBe('vendorId');
     }
   });
@@ -131,10 +129,9 @@ describe('the settlement surfaces', () => {
         entityKey: 'agreement',
         screenType: 'master',
         basePath: '/settlement/agreement',
-        icon: '⚖',
+        icon: '⊜',
         navLabelKey: 'r10c:settlement.nav.agreements',
         searchProperty: 'vendorId',
-        labelProperty: 'vendorId',
       }),
     ).toThrow('pluralKey');
   });

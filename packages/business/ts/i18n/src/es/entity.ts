@@ -357,8 +357,8 @@ export const entity = {
     fields: {
       id: 'ID',
       buyerId: 'ID de comprador',
-      vendorId: 'ID de vendedor',
-      groupId: 'ID de la compra',
+      vendorId: 'Vendedor',
+      groupId: 'Compra',
       paymentMethod: 'Pago',
       status: 'Estado',
       items: 'Líneas',
@@ -478,7 +478,7 @@ export const entity = {
     plural: 'Acuerdos',
     fields: {
       id: 'ID',
-      vendorId: 'ID de vendedor',
+      vendorId: 'Vendedor',
       commissionBasisPoints: 'Comisión (puntos básicos)',
       channelCommissionBasisPoints: 'Comisión por canal (puntos básicos)',
       effectiveFrom: 'Vigente desde',
@@ -499,12 +499,12 @@ export const entity = {
       collectedBy: 'Cobrado por',
       id: 'ID',
       orderId: 'ID de pedido',
-      vendorId: 'ID de vendedor',
+      vendorId: 'Vendedor',
       saleAmount: 'Importe de la venta',
       commissionAmount: 'Importe de comisión',
       currency: 'Moneda',
       occurredAt: 'Fecha de la venta',
-      runId: 'ID de liquidación',
+      runId: 'Corte de liquidación',
       kind: 'Tipo',
     },
     values: {
@@ -553,8 +553,8 @@ export const entity = {
     plural: 'Pagos a vendedores',
     fields: {
       id: 'ID',
-      runId: 'ID de liquidación',
-      vendorId: 'ID de vendedor',
+      runId: 'Corte de liquidación',
+      vendorId: 'Vendedor',
       amount: 'Importe',
       currency: 'Moneda',
     },
@@ -569,7 +569,7 @@ export const entity = {
     fields: {
       id: 'ID',
       name: 'Nombre',
-      specificationId: 'ID de especificación',
+      specificationId: 'Especificación',
       status: 'Estado',
       statusChangedAt: 'Último cambio de estado',
     },
@@ -599,7 +599,7 @@ export const entity = {
     plural: 'Precios de oferta',
     fields: {
       id: 'ID',
-      offeringId: 'ID de oferta',
+      offeringId: 'Producto',
       amount: 'Importe',
       currency: 'Moneda',
     },
@@ -675,9 +675,10 @@ export const entity = {
     plural: 'Existencias',
     fields: {
       id: 'ID',
-      offeringId: 'ID de oferta',
+      offeringId: 'Producto',
       onHand: 'En almacén',
       reserved: 'Reservado',
+      available: 'Disponible',
     },
   },
   'stock-movement': {
@@ -691,7 +692,7 @@ export const entity = {
     plural: 'Movimientos de existencias',
     fields: {
       id: 'ID',
-      offeringId: 'ID de oferta',
+      offeringId: 'Producto',
       quantity: 'Cantidad',
       reason: 'Motivo',
     },
@@ -716,7 +717,7 @@ export const entity = {
     plural: 'Reservas',
     fields: {
       id: 'ID',
-      offeringId: 'ID de oferta',
+      offeringId: 'Producto',
       quantity: 'Cantidad',
       status: 'Estado',
       expiresAt: 'Vence el',
@@ -748,7 +749,7 @@ export const entity = {
       currency: 'Moneda',
       lines: 'Líneas',
       line: {
-        offeringId: 'ID de la oferta',
+        offeringId: 'Producto',
         quantity: 'Cantidad',
       },
       status: 'Estado',

@@ -59,15 +59,12 @@ export interface SettlementSurface<TEntity extends Entity = Entity> {
   /** Shell-namespaced nav copy. `app:` keys are lint-restricted to `apps/`. */
   readonly navLabelKey: string;
   /**
-   * ⚠️ **`vendorId` on all four, and it took a metadata change to be able to say
-   * so.** `defineRecordSearchSource` refuses a label member that is not
-   * simultaneously a string, filterable **and** sortable, at module load. Every
-   * string member across these entities was filterable and not sortable, so
-   * until `vendorId` gained `sortable: true` no settlement entity could name one
-   * of its own records at all.
+   * `vendorId` on the three a vendor is named on: the palette searches the
+   * vendor's name in the published-vendor projection and lists the records
+   * that refer to the matches, under that name (#552). No label member of its
+   * own — the reference labels.
    */
   readonly searchProperty: string;
-  readonly labelProperty: string;
   readonly sublabelProperty?: string;
 }
 
@@ -122,10 +119,9 @@ export const AGREEMENT_SURFACE = settlementSurface(Agreement, {
   entityKey: 'agreement',
   screenType: 'master',
   basePath: '/settlement/agreement',
-  icon: '⚖',
+  icon: '⊜',
   navLabelKey: 'r10c:settlement.nav.agreements',
   searchProperty: 'vendorId',
-  labelProperty: 'vendorId',
 });
 
 export const COMMISSION_ENTRY_SURFACE = settlementSurface(CommissionEntry, {
@@ -135,7 +131,6 @@ export const COMMISSION_ENTRY_SURFACE = settlementSurface(CommissionEntry, {
   icon: '≡',
   navLabelKey: 'r10c:settlement.nav.entries',
   searchProperty: 'vendorId',
-  labelProperty: 'vendorId',
   sublabelProperty: 'currency',
 });
 
@@ -143,7 +138,7 @@ export const SETTLEMENT_RUN_SURFACE = settlementSurface(SettlementRun, {
   entityKey: 'settlement-run',
   screenType: 'operation',
   basePath: '/settlement/settlement-run',
-  icon: '⏱',
+  icon: '◷',
   navLabelKey: 'r10c:settlement.nav.runs',
   // ⚠️ A run has **no** string member at all — a period, a period and a status.
   // `searchProperty` is declared for the surface's shape and this surface is
@@ -151,7 +146,6 @@ export const SETTLEMENT_RUN_SURFACE = settlementSurface(SettlementRun, {
   // nameable should contribute no search source rather than a source that names
   // its records by a date.
   searchProperty: 'status',
-  labelProperty: 'status',
 });
 
 export const VENDOR_PAYOUT_SURFACE = settlementSurface(VendorPayout, {
@@ -161,7 +155,6 @@ export const VENDOR_PAYOUT_SURFACE = settlementSurface(VendorPayout, {
   icon: '◧',
   navLabelKey: 'r10c:settlement.nav.payouts',
   searchProperty: 'vendorId',
-  labelProperty: 'vendorId',
   sublabelProperty: 'currency',
 });
 

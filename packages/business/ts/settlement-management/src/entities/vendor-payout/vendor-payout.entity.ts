@@ -61,6 +61,7 @@ export class VendorPayout implements Entity {
   }
 
   @accessor({
+    references: { entity: 'settlement-management:settlement-run' },
     type: 'string',
     labelKey: 'entity:vendor-payout.fields.runId',
     required: true,
@@ -82,6 +83,7 @@ export class VendorPayout implements Entity {
    * statement listing every vendor's payout for one run reads by vendor.
    */
   @accessor({
+    references: { entity: 'marketplace-vendor:published-vendor' },
     type: 'string',
     labelKey: 'entity:vendor-payout.fields.vendorId',
     required: true,

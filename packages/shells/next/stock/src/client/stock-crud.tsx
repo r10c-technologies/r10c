@@ -3,6 +3,11 @@
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud } from '@entifix/next-shell';
 import {
+  EntityColumn,
+  StatusTag,
+  useTranslateKey,
+} from '@entifix/react-controls';
+import {
   Reservation,
   StockItem,
   StockMovement,
@@ -41,6 +46,25 @@ import { useStockAdapters } from './stock-context';
  *
  * The write surface is the movement below.
  */
+/**
+ * What a position can still sell, and a zero that stands out.
+ *
+ * A vendor reads this list to answer "what am I out of?" (b0-14). A zero
+ * row looking like every other row hides the answer, so `available <= 0`
+ * renders as a danger tag **with words**, never colour alone (ADR 0075). A
+ * number member takes no `enumTones`, so the column is overridden here.
+ */
+export function AvailableCell({ item }: { item: StockItem }) {
+  const translateKey = useTranslateKey();
+  return item.available <= 0 ? (
+    <StatusTag tone="danger">
+      {translateKey('r10c:stock.item.outOfStock')}
+    </StatusTag>
+  ) : (
+    <>{item.available}</>
+  );
+}
+
 export const stockItemCrud: EntityCrud<StockItem> = makeEntityCrud(StockItem, {
   useAdapters: useStockAdapters,
   basePath: STOCK_ITEM_SURFACE.basePath,
@@ -52,6 +76,16 @@ export const stockItemCrud: EntityCrud<StockItem> = makeEntityCrud(StockItem, {
   // and the metadata is what says so.
   hiddenFields: ['id'],
   metadata: 'metadata',
+  // The list opens on what is running out (#555): the zero rows the danger
+  // tag below marks come first, so "what am I out of?" is answered before a
+  // scroll. A header click replaces it like any other sort.
+  initialSorting: { 0: { property: 'available', type: 'asc' } },
+  columns: (
+    <EntityColumn<StockItem>
+      field="available"
+      render={item => <AvailableCell item={item} />}
+    />
+  ),
 });
 
 /**

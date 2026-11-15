@@ -120,6 +120,7 @@ const adapters = (): MarketplaceAdminAdapters => ({
     EntityRepositoryTag,
     repositories.product,
   ),
+  publishedVendorRest: Context.make(EntityRepositoryTag, repositories.product),
   productOfferingPriceWriter: settledWriter(
     Context.make(EntityRepositoryTag, repositories.product),
   ),

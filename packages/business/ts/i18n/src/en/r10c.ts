@@ -256,10 +256,14 @@ export const r10c: EsR10c = {
       movements: 'Movement ledger',
       reservations: 'Reservations',
     },
+    item: {
+      outOfStock: 'Nothing available to sell',
+    },
   },
   order: {
     nav: {
       orders: 'Orders',
+      received: 'Received orders',
     },
   },
   fulfilment: {
@@ -272,9 +276,12 @@ export const r10c: EsR10c = {
     nav: {
       settlement: 'Settlement',
       agreements: 'Agreements',
+      agreements_vendor: 'My agreement',
       entries: 'Commission entries',
+      entries_vendor: 'My commissions',
       runs: 'Settlement runs',
       payouts: 'Vendor payouts',
+      payouts_vendor: 'My payouts',
     },
     agreement: {
       channelRatesHint:

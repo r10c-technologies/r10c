@@ -1,3 +1,5 @@
+import type { EnumTone } from '@entifix/core';
+
 /**
  * Where one vendor's order is in its life.
  *
@@ -32,6 +34,20 @@ export const OrderStatuses = [
 ] as const;
 
 export type OrderStatus = (typeof OrderStatuses)[number];
+
+/**
+ * A status read at a glance: an order waiting on something warns, a closed one
+ * reads as done or as undone, and one moving along is information. A value with no tone reads neutral.
+ */
+export const OrderStatusTones = {
+  pending: 'warning',
+  paid: 'info',
+  confirmed: 'info',
+  cancelling: 'warning',
+  dispatched: 'info',
+  fulfilled: 'success',
+  cancelled: 'danger',
+} as const satisfies Readonly<Partial<Record<OrderStatus, EnumTone>>>;
 
 /** Narrow an unknown value to an order status. */
 export const isOrderStatus = (value: unknown): value is OrderStatus =>

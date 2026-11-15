@@ -6,7 +6,11 @@ import {
 } from '@r10c/business-ts-sales-vocabulary';
 
 import { OrderItem } from '../../values/order-item';
-import { type OrderStatus, OrderStatuses } from '../../values/order-status';
+import {
+  type OrderStatus,
+  OrderStatuses,
+  OrderStatusTones,
+} from '../../values/order-status';
 import type { RelatedChannel } from '../../values/related-channel';
 
 /**
@@ -67,7 +71,9 @@ export class ProductOrder implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ labelKey: 'entity:product-order.fields.id' })
+  // `filterable` because a reference names this record by `id=in=(…)`
+  // (entifix 0030): member metadata is the server-side query allowlist.
+  @accessor({ labelKey: 'entity:product-order.fields.id', filterable: true })
   get id(): EntityId {
     return this.#id;
   }
@@ -89,10 +95,15 @@ export class ProductOrder implements Entity {
    * or a loyalty scheme — is a backfill, not a lookup
    * ([ADR 0024](../../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
    */
+  //
+  // A reference, because that is what it holds: the buyer's party id, from
+  // another store. Declared, it is never taken for the order's name — an
+  // order names itself, noun and short id, until ADR 0076's number (#552).
   @accessor({
     type: 'string',
     labelKey: 'entity:product-order.fields.buyerId',
     filterable: true,
+    references: { entity: 'party-management:individual' },
   })
   get buyerId(): string | undefined {
     return this.#buyerId;
@@ -107,6 +118,7 @@ export class ProductOrder implements Entity {
    * read to their own organization here.
    */
   @accessor({
+    references: { entity: 'marketplace-vendor:published-vendor' },
     type: 'string',
     labelKey: 'entity:product-order.fields.vendorId',
     required: true,
@@ -126,6 +138,7 @@ export class ProductOrder implements Entity {
    * order is read and moved on its own.
    */
   @accessor({
+    references: { entity: 'order-management:checkout-group' },
     type: 'string',
     labelKey: 'entity:product-order.fields.groupId',
     required: true,
@@ -197,6 +210,7 @@ export class ProductOrder implements Entity {
     type: 'enum',
     labelKey: 'entity:product-order.fields.status',
     enumValues: OrderStatuses,
+    enumTones: OrderStatusTones,
     enumLabelKey: 'entity:product-order.values.status',
     required: true,
     filterable: true,

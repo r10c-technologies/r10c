@@ -2,9 +2,13 @@ import {
   defineRecordSearchSource,
   type RecordSearchSource,
 } from '@entifix/next-shell/server';
+import { ProductOffering } from '@r10c/business-ts-product-configuration-management';
 
 import { STOCK_SURFACES, type StockSurface } from '../stock-surfaces';
-import { STOCK_SERVICE_URL } from './service-urls';
+import {
+  MARKETPLACE_ADMIN_SERVICE_URL,
+  STOCK_SERVICE_URL,
+} from './service-urls';
 
 /**
  * The stock records, as sources the palette can search (ADR 0040).
@@ -15,20 +19,21 @@ import { STOCK_SERVICE_URL } from './service-urls';
  * `basePath` the screens are generated at, so a result cannot route to a page
  * this host does not serve.
  *
- * ⚠️ Every source searches and labels by `offeringId`, which is not a style
- * choice: `defineRecordSearchSource` refuses a label member that is not
- * sortable, filterable and a string, **at module load** — and every other
- * member of these three entities is a number or an enum. Searching stock means
- * searching by the offering it belongs to, which is also how a vendor thinks
- * about it.
+ * Each is searched **through the offering** it is for (#552): the term is
+ * matched against the offering's name at marketplace-admin-service, and the
+ * positions, movements and holds referring to the matches are listed under
+ * that name — a vendor types "taza", never an id.
  */
 const searchSourceFor = (surface: StockSurface): RecordSearchSource =>
   defineRecordSearchSource({
     entityConstructor: surface.entityConstructor,
     baseUrl: STOCK_SERVICE_URL,
     searchProperty: surface.searchProperty,
-    labelProperty: surface.labelProperty,
     sublabelProperty: surface.sublabelProperty,
+    reference: {
+      entityConstructor: ProductOffering,
+      baseUrl: MARKETPLACE_ADMIN_SERVICE_URL,
+    },
     labelKey: surface.entityPluralKey,
     href: id => `${surface.basePath}/${id}`,
   });

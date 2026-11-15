@@ -56,14 +56,12 @@ export interface StockSurface<TEntity extends Entity = Entity> {
   /** Shell-namespaced nav copy. `app:` keys are lint-restricted to `apps/`. */
   readonly navLabelKey: string;
   /**
-   * ⚠️ **`offeringId` on all three**, and not by preference:
-   * `defineRecordSearchSource` refuses a label member that is not sortable,
-   * filterable **and** a string, at module load. Every other member of these
-   * entities is a number or an enum, so this is the only one that can name one
-   * of their records.
+   * `offeringId` on all three: a vendor knows a position, a movement or a hold
+   * by the product it is for, so the palette searches the offering's name at
+   * its owner and lists the records that refer to the matches, under that
+   * name (#552). No label member of its own — the reference labels.
    */
   readonly searchProperty: string;
-  readonly labelProperty: string;
   readonly sublabelProperty?: string;
 }
 
@@ -116,7 +114,6 @@ export const STOCK_ITEM_SURFACE = stockSurface(StockItem, {
   icon: '▤',
   navLabelKey: 'r10c:stock.nav.items',
   searchProperty: 'offeringId',
-  labelProperty: 'offeringId',
 });
 
 export const STOCK_MOVEMENT_SURFACE = stockSurface(StockMovement, {
@@ -125,7 +122,6 @@ export const STOCK_MOVEMENT_SURFACE = stockSurface(StockMovement, {
   icon: '⇅',
   navLabelKey: 'r10c:stock.nav.movements',
   searchProperty: 'offeringId',
-  labelProperty: 'offeringId',
   sublabelProperty: 'reason',
 });
 
@@ -135,7 +131,6 @@ export const RESERVATION_SURFACE = stockSurface(Reservation, {
   icon: '⧗',
   navLabelKey: 'r10c:stock.nav.reservations',
   searchProperty: 'offeringId',
-  labelProperty: 'offeringId',
   sublabelProperty: 'status',
 });
 

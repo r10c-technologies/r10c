@@ -276,10 +276,15 @@ export const r10c = {
       movements: 'Libro de movimientos',
       reservations: 'Reservas',
     },
+    item: {
+      outOfStock: 'Sin existencias disponibles',
+    },
   },
   order: {
     nav: {
+      // El grupo y su destino: el encabezado no se repite en el elemento.
       orders: 'Pedidos',
+      received: 'Pedidos recibidos',
     },
   },
   fulfilment: {
@@ -297,9 +302,12 @@ export const r10c = {
       // encabezado de cada grada sale de `nav.screenType`.
       settlement: 'Liquidaciones',
       agreements: 'Acuerdos',
+      agreements_vendor: 'Mi acuerdo',
       entries: 'Apuntes de comisión',
-      runs: 'Liquidaciones',
+      entries_vendor: 'Mis comisiones',
+      runs: 'Cortes de liquidación',
       payouts: 'Pagos a vendedores',
+      payouts_vendor: 'Mis pagos',
     },
     agreement: {
       channelRatesHint:

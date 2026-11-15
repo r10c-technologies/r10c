@@ -1,8 +1,13 @@
-@import 'tailwindcss';
+/* `source(none)`: Tailwind scans exactly the `@source` lines below. Its
+   automatic detection walks the whole app directory, `.next` and its dev log
+   included, which is a build input nobody chose. */
+@import 'tailwindcss' source(none);
 @import '@entifix/style/tokens.css';
 /* App-owned brand palettes (no shared presets — this storefront has its own). */
 @import './themes.css';
 
+/* This app's own source. */
+@source '..';
 /* Class detection for the entifix UI package, installed from the registry: its
    classes exist only in its built `dist`. */
 @source '../../node_modules/@entifix/react-controls/dist';

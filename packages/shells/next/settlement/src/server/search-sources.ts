@@ -2,6 +2,7 @@ import {
   defineRecordSearchSource,
   type RecordSearchSource,
 } from '@entifix/next-shell/server';
+import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 
 import {
   AGREEMENT_SURFACE,
@@ -9,7 +10,10 @@ import {
   type SettlementSurface,
   VENDOR_PAYOUT_SURFACE,
 } from '../settlement-surfaces';
-import { SETTLEMENT_SERVICE_URL } from './service-urls';
+import {
+  MARKETPLACE_SERVICE_URL,
+  SETTLEMENT_SERVICE_URL,
+} from './service-urls';
 
 /**
  * The settlement records, as sources the palette can search (ADR 0040).
@@ -20,14 +24,11 @@ import { SETTLEMENT_SERVICE_URL } from './service-urls';
  * `basePath` the screens are generated at, so a result cannot route to a page
  * this host does not serve.
  *
- * ⚠️ **Every source searches and labels by `vendorId`**, and until this change
- * none of them could. `defineRecordSearchSource` refuses a label member that is
- * not sortable, filterable and a string, **at module load** — and every string
- * member across these entities was filterable and not sortable, so the
- * declaration below would have thrown as the module loaded, taking the whole
- * back office with it. `vendorId` gained `sortable: true` for this and for the
- * scope predicate, which want the same member for the same reason: it is what
- * identifies whose record this is.
+ * Each is searched **through the vendor** it belongs to (#552): the term is
+ * matched against the vendor's display name in marketplace-service's
+ * published-vendor projection, and the agreements, ledger lines and payouts
+ * referring to the matches are listed under that name. `vendorId` is also the
+ * scope predicate's member, so the records a vendor finds are their own.
  *
  * ⚠️ **`SettlementRun` contributes no source, deliberately.** It has no string
  * member at all — a period, a period and a status — so there is nothing to name
@@ -46,8 +47,11 @@ const searchSourceFor = (surface: SettlementSurface): RecordSearchSource =>
     entityConstructor: surface.entityConstructor,
     baseUrl: SETTLEMENT_SERVICE_URL,
     searchProperty: surface.searchProperty,
-    labelProperty: surface.labelProperty,
     sublabelProperty: surface.sublabelProperty,
+    reference: {
+      entityConstructor: PublishedVendor,
+      baseUrl: MARKETPLACE_SERVICE_URL,
+    },
     labelKey: surface.entityPluralKey,
     href: id => `${surface.basePath}/${id}`,
   });

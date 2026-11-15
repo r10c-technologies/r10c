@@ -5,13 +5,15 @@ import {
   DEFAULT_BREAKER_DIALS,
   OutboxTag,
 } from '@entifix/transactions';
-import { Effect, Layer } from 'effect';
+import { Duration, Effect, Layer, Logger, References } from 'effect';
 import { SqlClient } from 'effect/sql';
 import { describe, expect, it } from 'vitest';
 
 import type { ForcedState, ParticipantDials } from './participant-dials.js';
 import {
   interpreterOptions,
+  journalRetention,
+  logJournalPurge,
   participantGuardsLayer,
   runnerPort,
   SqlOutboxLayer,
@@ -109,5 +111,33 @@ describe('the workflow outbox', () => {
 
     expect(typeof outbox.enqueue).toBe('function');
     expect(fake.executions[0]?.sql).toContain('CREATE TABLE IF NOT EXISTS');
+  });
+});
+
+describe('the journal’s retention', () => {
+  it('is the row, in milliseconds, and logs each pass through the shell', () => {
+    const retention = journalRetention(2_592_000_000);
+
+    expect(retention.journalRetention).toEqual(Duration.millis(2_592_000_000));
+    expect(retention.onPurge).toBe(logJournalPurge);
+  });
+
+  it('logs a pass that purged quietly, and one that failed as an error', async () => {
+    const levels: string[] = [];
+    const capture = Logger.make(({ logLevel, message }) => {
+      levels.push(`${logLevel}:${String((message as unknown[])[0])}`);
+    });
+
+    await Effect.runPromise(
+      Effect.all([
+        logJournalPurge({ _tag: 'purged', flows: 3 }),
+        logJournalPurge({ _tag: 'purgeFailed', failure: new Error('down') }),
+      ]).pipe(
+        Effect.provide(Logger.layer([capture])),
+        Effect.provideService(References.MinimumLogLevel, 'All'),
+      ),
+    );
+
+    expect(levels).toEqual(['Debug:purged', 'Error:purgeFailed']);
   });
 });

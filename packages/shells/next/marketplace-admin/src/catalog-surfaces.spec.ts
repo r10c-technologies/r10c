@@ -1,4 +1,5 @@
 import { accessor, type Entity, entity } from '@entifix/core';
+import { ProductOffering } from '@r10c/business-ts-product-configuration-management';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -65,14 +66,17 @@ describe('the catalog surfaces', () => {
   });
 
   /**
-   * ⚠️ A label member that is not sortable, filterable **and** a string makes
-   * `defineRecordSearchSource` throw at module load, which fails the app at
-   * boot rather than one render. The price entity has exactly one member that
-   * qualifies, so this is pinned where someone changing it will see why.
+   * A price is found and named through the offering it prices: the term is
+   * matched against the offering's name, and the prices referring to the
+   * matches are listed under it (#552). No label member of its own.
    */
-  it('names a price by the one member of it that can be searched', () => {
-    expect(PRODUCT_OFFERING_PRICE_SURFACE.labelProperty).toBe('offeringId');
+  it('searches a price through the offering it prices', () => {
     expect(PRODUCT_OFFERING_PRICE_SURFACE.searchProperty).toBe('offeringId');
+    expect(PRODUCT_OFFERING_PRICE_SURFACE.labelProperty).toBeUndefined();
+    expect(PRODUCT_OFFERING_PRICE_SURFACE.reference).toEqual({
+      entityConstructor: ProductOffering,
+      service: 'marketplace-admin',
+    });
   });
 
   it('carries r10c-namespaced nav copy', () => {

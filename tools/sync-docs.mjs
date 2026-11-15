@@ -237,9 +237,13 @@ const adrTriggers = async () => {
   const { adrs, ADR_AREAS } = await import(p('tools/docs/src/corpus.ts'));
   const records = adrs();
 
-  return ADR_AREAS.map(area => {
+  // A superseded record is kept for its reasoning alone, and its successor's
+  // line already names the symptom. So it is routed to from one compact line
+  // rather than a full trigger each — every byte here is paid on every turn.
+  const superseded = records.filter(record => record.status === 'Superseded');
+  const areas = ADR_AREAS.map(area => {
     const rows = records
-      .filter(record => record.area === area)
+      .filter(record => record.area === area && record.status !== 'Superseded')
       .map(record => {
         const mark =
           record.status === 'Accepted' ? '' : `_(${record.status})_ `;
@@ -250,7 +254,16 @@ const adrTriggers = async () => {
       });
 
     return [`**${AREA_HEADINGS[area]}**`, '', ...rows].join('\n');
-  }).join('\n\n');
+  });
+
+  if (superseded.length === 0) return areas.join('\n\n');
+
+  const links = superseded
+    .map(record => `[${record.id}](docs/adr/${record.file})`)
+    .join(', ');
+  return [...areas, `**Superseded**, for their reasoning only: ${links}.`].join(
+    '\n\n',
+  );
 };
 
 /* ------------------------------------------------------------------ driver */

@@ -17,6 +17,7 @@ import {
 } from '@r10c/business-ts-catalog-reference';
 import { Configuration } from '@r10c/business-ts-configuration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   ProductOffering,
@@ -528,6 +529,24 @@ const sellHandlers = [
  * Two draft offerings, one priced and one not: the pair a bulk publish needs
  * to show it reports each row on its own.
  */
+/** The offerings the other seeds reference by id, with their names. */
+export const OFFERING_NAMES = [
+  ['product-offering-1', 'Taza de cerámica'],
+  ['product-offering-2', 'Jarra de barro'],
+  ['product-offering-3', 'Plato de pared'],
+  ['product-offering-4', 'Cuenco pintado'],
+] as const;
+
+/**
+ * The sellers' names, from marketplace-service's projection: what every
+ * `vendorId` on a back-office list reads as (ADR 0061).
+ */
+export const VENDOR_NAME = 'Cerámica Demo';
+const publishedVendors = entityBackendHandlers(PublishedVendor, {
+  baseUrl: `${REFERENCE_SERVICE_URL}/published-vendor`,
+  seed: [{ id: 'e2e-organization', displayName: VENDOR_NAME }],
+});
+
 const offerings = entityBackendHandlers(ProductOffering, {
   baseUrl: `${SERVICE_URL}/product-offering`,
   seed: [
@@ -543,6 +562,14 @@ const offerings = entityBackendHandlers(ProductOffering, {
       specificationId: 'product-1',
       status: 'draft',
     },
+    // The offerings stock, shipments and the till point at, so every list
+    // that holds an `offeringId` names it (entifix 0030).
+    ...OFFERING_NAMES.map(([id, name]) => ({
+      id,
+      name,
+      specificationId: 'product-1',
+      status: 'published',
+    })),
   ],
 });
 
@@ -581,6 +608,12 @@ const bulkPublishHandlers = [
 
 /** The mock channel store, for reseeding or for breaking on purpose. */
 export const salesChannelBackend = salesChannels.backend;
+
+/** The mock settlement stores, for emptying or reseeding. */
+export const agreementBackend = agreements.backend;
+export const commissionEntryBackend = commissionEntries.backend;
+export const settlementRunBackend = settlementRuns.backend;
+export const vendorPayoutBackend = vendorPayouts.backend;
 
 /** The mock stock store, for reseeding or for breaking on purpose. */
 export const stockItemBackend = stockItems.backend;
@@ -840,6 +873,7 @@ const base = defineEntifixE2eTest({
     ...stockMetadataHandlers,
     ...salesMetadataHandlers,
     ...publishedOfferings.handlers,
+    ...publishedVendors.handlers,
     ...offerings.handlers,
     ...offeringMetadataHandlers,
     ...bulkPublishHandlers,

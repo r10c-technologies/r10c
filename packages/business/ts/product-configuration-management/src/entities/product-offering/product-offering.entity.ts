@@ -4,6 +4,7 @@ import { accessor, entity } from '@entifix/core';
 import {
   type OfferingStatus,
   OfferingStatuses,
+  OfferingStatusTones,
 } from '../../values/offering-status';
 
 /**
@@ -27,6 +28,7 @@ import {
  * Tenant plane, `catalog` store.
  */
 @entity({
+  labelMember: 'name',
   domain: 'product-configuration-management',
   key: 'product-offering',
   labelKey: 'entity:product-offering.label',
@@ -53,6 +55,9 @@ export class ProductOffering implements Entity {
     type: 'id',
     label: 'ID',
     labelKey: 'entity:product-offering.fields.id',
+    // `filterable` because a reference names this record by `id=in=(…)`
+    // (entifix 0030): member metadata is the server-side query allowlist.
+    filterable: true,
   })
   get id(): EntityId {
     return this.#id;
@@ -93,6 +98,9 @@ export class ProductOffering implements Entity {
    * dangling, which is why publishing checks it rather than assuming it.
    */
   @accessor({
+    references: {
+      entity: 'product-configuration-management:product-specification',
+    },
     type: 'string',
     labelKey: 'entity:product-offering.fields.specificationId',
     required: true,
@@ -120,6 +128,7 @@ export class ProductOffering implements Entity {
     type: 'enum',
     labelKey: 'entity:product-offering.fields.status',
     enumValues: OfferingStatuses,
+    enumTones: OfferingStatusTones,
     enumLabelKey: 'entity:product-offering.values.status',
     filterable: true,
   })

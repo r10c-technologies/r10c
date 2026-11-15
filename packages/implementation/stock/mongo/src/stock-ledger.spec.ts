@@ -92,6 +92,7 @@ const item = (offeringId: string, onHand: number, reserved = 0) => ({
   offeringId,
   onHand,
   reserved,
+  available: onHand - reserved,
 });
 
 const aHold = (id: string, quantity: number) =>
@@ -197,6 +198,23 @@ describe('ending a hold', () => {
       ],
     });
 
+  it('moves what is available in the same update as every counter (#555)', async () => {
+    const fake = makeFakeMongoDb();
+    const { run } = world({ org: fake });
+    const receipt = Object.assign(new StockMovement('o-1', 10, 'receipt'), {
+      id: 'm-1',
+    });
+
+    await run(ledger => ledger.record('org', receipt));
+    await run(ledger => ledger.take('org', aHold('h-1', 4), undefined));
+    await run(ledger => ledger.take('org', aHold('h-2', 2), undefined));
+    await run(ledger => ledger.end('org', 'h-1', 'converted'));
+    await run(ledger => ledger.end('org', 'h-2', 'released'));
+
+    const counter = counterOf(fake) as Record<string, number>;
+    expect(counter).toMatchObject({ onHand: 6, reserved: 0, available: 6 });
+  });
+
   it('releases a hold back to what is free', async () => {
     const fake = seeded();
     const { run } = world({ org: fake });
@@ -205,7 +223,11 @@ describe('ending a hold', () => {
     const again = await run(ledger => ledger.end('org', 'r-1', 'released'));
 
     expect([released, again]).toEqual(['transitioned', 'not-held']);
-    expect(counterOf(fake)).toMatchObject({ onHand: 10, reserved: 0 });
+    expect(counterOf(fake)).toMatchObject({
+      onHand: 10,
+      reserved: 0,
+      available: 10,
+    });
   });
 
   it('converts a hold into a sale, which leaves the shelf and the ledger says so', async () => {
@@ -214,7 +236,11 @@ describe('ending a hold', () => {
 
     await run(ledger => ledger.end('org', 'r-1', 'converted'));
 
-    expect(counterOf(fake)).toMatchObject({ onHand: 7, reserved: 0 });
+    expect(counterOf(fake)).toMatchObject({
+      onHand: 7,
+      reserved: 0,
+      available: 7,
+    });
     expect(fake.read(MOVEMENT_COLLECTION)[0]).toMatchObject({
       quantity: -3,
       reason: 'sale',
@@ -472,17 +498,17 @@ describe('announcing a change', () => {
       {
         version: 1,
         audience: [{ kind: 'organization', id: 'org' }],
-        data: expect.objectContaining({ onHand: 5, reserved: 0 }),
+        data: expect.objectContaining({ onHand: 5, reserved: 0, available: 5 }),
       },
       {
         version: 2,
         audience: [{ kind: 'organization', id: 'org' }],
-        data: expect.objectContaining({ onHand: 5, reserved: 2 }),
+        data: expect.objectContaining({ onHand: 5, reserved: 2, available: 3 }),
       },
       {
         version: 3,
         audience: [{ kind: 'organization', id: 'org' }],
-        data: expect.objectContaining({ onHand: 3, reserved: 0 }),
+        data: expect.objectContaining({ onHand: 3, reserved: 0, available: 3 }),
       },
     ]);
   });

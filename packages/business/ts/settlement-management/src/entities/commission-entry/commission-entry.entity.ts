@@ -114,6 +114,7 @@ export class CommissionEntry implements Entity {
    * member here is a number, a date or an opaque id.
    */
   @accessor({
+    references: { entity: 'marketplace-vendor:published-vendor' },
     type: 'string',
     labelKey: 'entity:commission-entry.fields.vendorId',
     required: true,
@@ -216,6 +217,7 @@ export class CommissionEntry implements Entity {
    * Optional rather than nullable, and filterable so "unpaid" is expressible.
    */
   @accessor({
+    references: { entity: 'settlement-management:settlement-run' },
     type: 'string',
     labelKey: 'entity:commission-entry.fields.runId',
     filterable: true,

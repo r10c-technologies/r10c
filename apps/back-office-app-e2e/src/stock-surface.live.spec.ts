@@ -32,37 +32,59 @@ import {
 
 const VENDOR = 'alan@example.com';
 
-/** Seeded by stock-service: a lone receipt of ten, and nothing has held any. */
-const SEEDED = { offeringId: 'product-offering-1', onHand: 10 };
+/**
+ * Seeded by stock-service: `product-offering-9`, a lone receipt of 66, and
+ * nothing has held any. A list names it by its offering (#552), so the row is
+ * found by that name: the seed calls offering *n* `<family> <k> — oferta`.
+ */
+const SEEDED = {
+  offeringId: 'product-offering-9',
+  name: 'Bearing 1 — oferta',
+  onHand: 66,
+};
 
 /**
- * A *different* seeded offering for the write journey below.
+ * A *different* seeded offering for the write journey below,
+ * `product-offering-8`.
  *
  * The read journey asserts an exact seeded total, so nothing may move
- * `product-offering-1` or the next run reads a number one receipt out of date.
- * Both sit on the list's first page, so neither needs a filter to be reached.
+ * `product-offering-9` or the next run reads a number one receipt out of date.
  */
-const WRITEABLE = 'product-offering-9';
+const WRITEABLE = {
+  offeringId: 'product-offering-8',
+  name: 'Gasket 1 — oferta',
+};
+
+type Page = import('@playwright/test').Page;
 
 /**
- * A row named by its **cell**, not by substring.
+ * The stock list, ordered by the offering it is for, descending.
  *
- * ⚠️ `hasText: 'product-offering-1'` also matches `product-offering-10` through
- * `-19`, which is a strict-mode violation live and silently the wrong row on a
- * store holding fewer of them.
+ * ⚠️ The list opens on what is running out (#555), which puts a seeded total
+ * wherever its availability falls, often past the first page. Sorted by
+ * `Producto` — the offering id — descending, `product-offering-9` and `-8`
+ * are the first two rows. Ascending would open on the `e2e-*` offerings
+ * stock-service's live suite leaves behind, which sort before `product-…`.
  */
-const rowFor = (page: import('@playwright/test').Page, offeringId: string) =>
+const openByOffering = async (page: Page) => {
+  await page.goto('/stock/stock-item');
+  const header = page.getByRole('columnheader', { name: /^Producto/ });
+  await header.getByRole('button').click();
+  await expect(header).toHaveAttribute('aria-sort', 'ascending');
+  await header.getByRole('button').click();
+  await expect(header).toHaveAttribute('aria-sort', 'descending');
+};
+
+/** A row named by its offering's **cell**, not by substring. */
+const rowFor = (page: Page, name: string) =>
   page
     .getByRole('row')
-    .filter({ has: page.getByRole('cell', { name: offeringId, exact: true }) });
+    .filter({ has: page.getByRole('cell', { name, exact: true }) });
 
 /** What the list currently says this offering holds. */
-const onHandOf = async (
-  page: import('@playwright/test').Page,
-  offeringId: string,
-): Promise<number> => {
-  const cells = rowFor(page, offeringId).getByRole('cell');
-  // id, offeringId, onHand, reserved, actions — the column order the entity's
+const onHandOf = async (page: Page, name: string): Promise<number> => {
+  const cells = rowFor(page, name).getByRole('cell');
+  // id, offering, onHand, reserved, available — the column order the entity's
   // own accessor metadata produces.
   return Number(await cells.nth(2).innerText());
 };
@@ -72,7 +94,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 test('shows a vendor their stock under Operaciones', async ({ page }) => {
-  await page.goto('/stock/stock-item');
+  await openByOffering(page);
 
   const operations = page.getByRole('group', { name: 'Operaciones' });
   await expect(operations).toBeVisible();
@@ -85,15 +107,15 @@ test('shows a vendor their stock under Operaciones', async ({ page }) => {
 
   // A named row with the total its ledger implies — the assertion that would
   // pass against an empty store if it said "some row exists" instead.
-  await expect(rowFor(page, SEEDED.offeringId)).toBeVisible();
-  expect(await onHandOf(page, SEEDED.offeringId)).toBe(SEEDED.onHand);
+  await expect(rowFor(page, SEEDED.name)).toBeVisible();
+  expect(await onHandOf(page, SEEDED.name)).toBe(SEEDED.onHand);
 });
 
 test('will not let a vendor type a quantity', async ({ page }) => {
-  await page.goto('/stock/stock-item');
-  await rowFor(page, SEEDED.offeringId).getByRole('link').first().click();
+  await openByOffering(page);
+  await rowFor(page, SEEDED.name).getByRole('link').first().click();
 
-  await expect(page.getByText(SEEDED.offeringId)).toBeVisible();
+  await expect(page.getByText(SEEDED.name).first()).toBeVisible();
 
   // The real `$metadata`, from the real service, filtered by the real
   // principal: `stock-item` answers `["read"]` because no role holds
@@ -112,19 +134,19 @@ test('records a receipt and moves the total by exactly that much', async ({
   // absolute figure is one receipt out of date the second time this runs — and
   // a fresh offering lands on a later page of a list that ignores a `rsql`
   // query parameter, so the row was simply not on screen.
-  await page.goto('/stock/stock-item');
-  const before = await onHandOf(page, WRITEABLE);
+  await openByOffering(page);
+  const before = await onHandOf(page, WRITEABLE.name);
 
   await page.goto('/stock/stock-movement/new');
-  await page.getByLabel('ID de oferta').fill(WRITEABLE);
+  await page.getByLabel('Producto', { exact: true }).fill(WRITEABLE.offeringId);
   await page.getByLabel('Cantidad').fill('7');
   await page.getByLabel('Motivo').selectOption('receipt');
   await page.getByRole('button', { name: 'Guardar' }).click();
 
   // The movement is the only write in this domain, and the fold follows it —
   // by `$inc` over the ledger, never by a save of the item.
-  await page.goto('/stock/stock-item');
-  await expect.poll(() => onHandOf(page, WRITEABLE)).toBe(before + 7);
+  await openByOffering(page);
+  await expect.poll(() => onHandOf(page, WRITEABLE.name)).toBe(before + 7);
 });
 
 test('addresses a stock record as an operation in the workspace', async ({
@@ -132,15 +154,21 @@ test('addresses a stock record as an operation in the workspace', async ({
 }) => {
   await page.goto('/stock/stock-item');
 
+  // Each sidebar item folds its actions into one menu (entifix 0.20.0).
   await page
-    .getByRole('link', {
-      name: 'Abrir Existencias en almacén en el espacio de trabajo',
-    })
+    .getByRole('button', { name: 'Opciones de Existencias en almacén' })
+    .click();
+  await page
+    .getByRole('menuitem', { name: 'Abrir en el espacio de trabajo' })
     .click();
 
   await expect(page).toHaveURL(/tab=operation%3Astock-item/);
   await expect(
     page.getByRole('columnheader', { name: 'En almacén' }),
   ).toBeVisible();
-  await expect(rowFor(page, SEEDED.offeringId)).toBeVisible();
+  // The tab opens on the list's own opening sort (#555): the seed holds sold-out
+  // positions, so the first row is one, and says so in words.
+  await expect(
+    page.locator('tbody tr').first().locator('[data-tone="danger"]'),
+  ).toHaveText('Sin existencias disponibles');
 });

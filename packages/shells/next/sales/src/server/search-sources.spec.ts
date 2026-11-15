@@ -29,12 +29,15 @@ describe('SALES_SEARCH_SOURCES', () => {
   it('routes a hit to the page this host actually serves', () => {
     const source = SALES_SEARCH_SOURCES[0];
 
-    expect(source?.url('Mostrador', 5)).toContain('/api/sales-channel?');
+    expect(source?.url('Mostrador', 5, 'es')).toContain('/api/sales-channel?');
     expect(
-      source?.read({
-        meta: { type: 'entityPage', entity: 'sales-channel' },
-        data: { items: [{ id: 'channel-1' }], total: 1 },
-      })?.items[0]?.href,
+      source?.read(
+        {
+          meta: { type: 'entityPage', entity: 'sales-channel' },
+          data: { items: [{ id: 'channel-1' }], total: 1 },
+        },
+        'es',
+      )?.items[0]?.href,
     ).toBe('/sales/sales-channel/channel-1');
   });
 
@@ -43,7 +46,9 @@ describe('SALES_SEARCH_SOURCES', () => {
     // group asks for a route that does not exist while a fixture stubbing the
     // same wrong address cannot see it.
     expect(
-      SALES_SEARCH_SOURCES[0]?.url('anything', 1).startsWith(SALES_SERVICE_URL),
+      SALES_SEARCH_SOURCES[0]
+        ?.url('anything', 1, 'es')
+        .startsWith(SALES_SERVICE_URL),
     ).toBe(true);
   });
 });

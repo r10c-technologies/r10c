@@ -30,11 +30,10 @@ describe('the fulfilment surfaces', () => {
     expect(SHIPPING_ORDER_SURFACE.basePath).toBe('/fulfilment/shipping-order');
   });
 
-  // A search source refuses a label member that is not sortable, filterable
-  // and a string, at module load; `orderId` is the one that qualifies.
-  it('names a shipment by the order it carries', () => {
+  // Matched against the order it carries; named as itself, noun and short id,
+  // until ADR 0076's order number names it (#552).
+  it('searches a shipment by the order it carries', () => {
     expect(SHIPPING_ORDER_SURFACE.searchProperty).toBe('orderId');
-    expect(SHIPPING_ORDER_SURFACE.labelProperty).toBe('orderId');
   });
 
   it('carries shell-namespaced nav copy', () => {
@@ -72,10 +71,9 @@ describe('fulfilmentSurface', () => {
       fulfilmentSurface(Unnamed, {
         entityKey: 'shipping-order',
         basePath: '/fulfilment/shipping-order',
-        icon: '📦',
+        icon: '⊡',
         navLabelKey: 'r10c:fulfilment.nav.shipments',
         searchProperty: 'orderId',
-        labelProperty: 'orderId',
       }),
     ).toThrow(/pluralKey/);
   });

@@ -12,6 +12,7 @@ import { getRequestLocale, getServerT } from '@entifix/next-i18n/server';
 import { readThemeCookies } from '@entifix/next-shell/server';
 import { cookies } from 'next/headers';
 
+import { navPrincipal } from '../lib/nav-principal';
 import { workspaceScope } from '../lib/workspace-scope';
 import { fontVariables } from './fonts';
 import { Providers } from './providers';
@@ -44,6 +45,9 @@ export default async function RootLayout({
   // page because the pending-write set spans the whole authenticated area — a
   // create happens on a plain catalog route, not in the workspace.
   const scope = await workspaceScope();
+  // Copy only: a vendor's settlement lists are worded for them (#559). Read
+  // from unverified claims, exactly as the sidebar reads it (ADR 0015).
+  const { partyRole } = await navPrincipal();
   // The reader's own theme and density, read with the request so the page is
   // rendered in them: no paint in the wrong palette, and no attribute that
   // changes after load (#530).
@@ -76,6 +80,7 @@ export default async function RootLayout({
         <Providers
           locale={locale}
           scope={scope}
+          partyRole={partyRole}
           initialTheme={theme}
           initialDensity={density}
         >

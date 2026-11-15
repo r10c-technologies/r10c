@@ -57,6 +57,8 @@ let slug = 'new';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
   useParams: () => ({ slug }),
+  // A record page reads `?prefill.<member>=` since entifix 0.21.0.
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const makeItem = () => {
@@ -186,7 +188,7 @@ describe('the single views', () => {
   it('offers the movement form its three authored members and hides the id', async () => {
     renderPage(<StockMovementSingleViewClientPage />);
 
-    expect(await screen.findByLabelText('ID de oferta')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Producto')).toBeInTheDocument();
     expect(screen.getByLabelText('Cantidad')).toBeInTheDocument();
     expect(screen.getByLabelText('Motivo')).toBeInTheDocument();
     expect(screen.queryByLabelText('ID')).not.toBeInTheDocument();

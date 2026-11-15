@@ -31,6 +31,8 @@ let slug = 'new';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
   useParams: () => ({ slug }),
+  // A record page reads `?prefill.<member>=` since entifix 0.21.0.
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const aShipment = (id: string, status: ShippingStatus) =>

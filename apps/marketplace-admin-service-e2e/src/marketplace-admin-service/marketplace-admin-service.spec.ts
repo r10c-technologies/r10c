@@ -128,7 +128,10 @@ describe('the RSQL query protocol', () => {
   // filter or sort on any field in the collection.
   it.each([
     ['an unknown member', `rsql=${encodeURIComponent('nope==1')}`],
-    ['a member that is not filterable', `rsql=${encodeURIComponent('id==1')}`],
+    [
+      'a member that is not filterable',
+      `rsql=${encodeURIComponent('media==x')}`,
+    ],
     ['an unknown sort member', 'sort=nope'],
   ])('rejects %s with a 400', async (_label, query) => {
     const res = await list(query);

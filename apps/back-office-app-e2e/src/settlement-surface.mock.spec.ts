@@ -1,3 +1,5 @@
+import { seedSession } from '@entifix/testing-e2e/playwright';
+
 import { expect, record, test } from './support/fixtures';
 
 /**
@@ -18,6 +20,11 @@ import { expect, record, test } from './support/fixtures';
  * ledger line, a run and a payout are each produced by a process. A regression
  * here would file a payout under a heading that says a person wrote it.
  */
+/**
+ * The suite's session is a vendor's, so the sidebar speaks to them (#559):
+ * "Mi acuerdo", "Mis comisiones", "Mis pagos". The run item has no vendor
+ * variant and keeps its plain name.
+ */
 test('files agreements under Definiciones and the statement under Operaciones', async ({
   page,
 }) => {
@@ -26,31 +33,55 @@ test('files agreements under Definiciones and the statement under Operaciones', 
   await expect(
     page
       .getByRole('group', { name: 'Definiciones' })
-      .getByRole('link', { name: 'Acuerdos', exact: true }),
+      .getByRole('link', { name: 'Mi acuerdo', exact: true }),
   ).toBeVisible();
 
   const operations = page.getByRole('group', { name: 'Operaciones' });
   await expect(
-    operations.getByRole('link', { name: 'Apuntes de comisión', exact: true }),
+    operations.getByRole('link', { name: 'Mis comisiones', exact: true }),
   ).toBeVisible();
   await expect(
-    operations.getByRole('link', { name: 'Liquidaciones', exact: true }),
+    operations.getByRole('link', {
+      name: 'Cortes de liquidación',
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
-    operations.getByRole('link', { name: 'Pagos a vendedores', exact: true }),
+    operations.getByRole('link', { name: 'Mis pagos', exact: true }),
   ).toBeVisible();
 });
 
-test('lists the vendor’s agreement', async ({ page }) => {
+test('lists the vendor’s agreement under their own words', async ({ page }) => {
   await page.goto('/settlement/agreement');
 
-  // `exact`, because the id column renders `agreement-e2e-organization` and the
-  // vendor id is a substring of it. `hiddenFields` hides a member from the
-  // *form*, never from the table.
+  // Every row a vendor is served is theirs, so the list is titled for them
+  // and carries no column repeating their own name (#559).
   await expect(
-    page.getByRole('cell', { name: 'e2e-organization', exact: true }),
+    page.getByRole('heading', { level: 1, name: 'Mi acuerdo' }),
   ).toBeVisible();
   await expect(page.getByRole('cell', { name: '800' })).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toHaveCount(0);
+});
+
+test('reads a vendor’s payouts as theirs, on the page and in its tab', async ({
+  page,
+}) => {
+  await page.goto('/settlement/vendor-payout');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Mis pagos' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toHaveCount(0);
+
+  // The tab is captioned from the same table the page's heading reads.
+  await page.goto('/workspace?tab=operation%3Avendor-payout');
+  await expect(page.getByRole('tab', { name: /Mis pagos/ })).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toHaveCount(0);
 });
 
 /**
@@ -131,4 +162,36 @@ test('round-trips both tiers through the workspace', async ({ page }) => {
   await expect(page).toHaveURL(
     /tab=operation%3Avendor-payout%3Avendor-payout-1/,
   );
+});
+
+test('an operator reads the same items in the operator’s words', async ({
+  context,
+  page,
+}) => {
+  // Re-seeded on the same context, so the mocks stay installed: the access
+  // cookie is replaced with an operator's.
+  await seedSession(context, {
+    roles: ['admin'],
+    partyRole: 'operator',
+    entitlements: ['settlement-management'],
+  });
+  await page.goto('/settlement/agreement');
+
+  const operations = page.getByRole('group', { name: 'Operaciones' });
+  await expect(
+    operations.getByRole('link', { name: 'Pagos a vendedores', exact: true }),
+  ).toBeVisible();
+
+  // Reading across vendors, the operator gets the column, and the vendor
+  // reads as its name from the published-vendor projection, never as the
+  // organization id the agreement holds (#552, #559).
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Acuerdos' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('cell', { name: 'Cerámica Demo', exact: true }),
+  ).toBeVisible();
 });

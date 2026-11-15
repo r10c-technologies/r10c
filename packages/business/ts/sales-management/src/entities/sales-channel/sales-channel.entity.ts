@@ -8,6 +8,7 @@ import {
 import {
   type SalesChannelStatus,
   SalesChannelStatuses,
+  SalesChannelStatusTones,
 } from '../../values/sales-channel-status';
 
 /**
@@ -40,6 +41,7 @@ import {
  * price and vendor rather than pointing at them.
  */
 @entity({
+  labelMember: 'name',
   domain: 'sales-management',
   key: 'sales-channel',
   labelKey: 'entity:sales-channel.label',
@@ -116,6 +118,7 @@ export class SalesChannel implements Entity {
     type: 'enum',
     labelKey: 'entity:sales-channel.fields.status',
     enumValues: SalesChannelStatuses,
+    enumTones: SalesChannelStatusTones,
     enumLabelKey: 'entity:sales-channel.values.status',
     required: true,
     filterable: true,

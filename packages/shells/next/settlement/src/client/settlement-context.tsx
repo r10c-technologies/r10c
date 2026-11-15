@@ -4,6 +4,7 @@ import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
 import { createClientAdapters } from './adapters/create-client-adapters';
 import type { SettlementAdapters } from './client-types';
+import { SettlementReaderProvider } from './settlement-reader';
 
 const SettlementContext = createContext<SettlementAdapters | undefined>(
   undefined,
@@ -13,6 +14,12 @@ export interface SettlementProviderProps {
   children: ReactNode;
   /** Overrides the real REST adapters — the seam an e2e mock profile uses. */
   adapters?: SettlementAdapters;
+  /**
+   * The reader's party role, from the session's unverified claims: a vendor
+   * reads their own statement under their own words (#559). Copy only — it
+   * grants nothing (ADR 0015).
+   */
+  partyRole?: string;
 }
 
 /**
@@ -26,12 +33,15 @@ export interface SettlementProviderProps {
 export function SettlementProvider({
   children,
   adapters,
+  partyRole,
 }: SettlementProviderProps) {
   const value = useMemo(() => adapters ?? createClientAdapters(), [adapters]);
 
   return (
     <SettlementContext.Provider value={value}>
-      {children}
+      <SettlementReaderProvider partyRole={partyRole}>
+        {children}
+      </SettlementReaderProvider>
     </SettlementContext.Provider>
   );
 }

@@ -15,6 +15,10 @@ import {
   InMemoryCircuitBreakerLayer,
 } from '@entifix/transactions/engine';
 import type { InterpreterOptions } from '@entifix/workflow';
+import type {
+  JournalPurgeOutcome,
+  JournalRetention,
+} from '@entifix/workflow/postgres';
 import { SocketRunnerFlowEngineLayer } from '@entifix/workflow/socket-runner';
 import {
   flowCatalog,
@@ -24,7 +28,7 @@ import {
   type FleetConfiguration,
   fleetOutboxLayer,
 } from '@r10c/shells-effect-service';
-import { Effect, Layer, Redacted } from 'effect';
+import { Duration, Effect, Layer, Redacted } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { SqlClient } from 'effect/sql';
 
@@ -120,6 +124,29 @@ export const interpreterOptions = (
 });
 
 /**
+ * What one journal purge pass did, logged at this slice's shell (ADR 0064):
+ * a pass that purged is `Debug`, as every quiet mechanism pass is, and one
+ * that failed is an `Error` — a journal that stops being purged keeps
+ * personal data past its period, and nothing else would say so.
+ */
+export const logJournalPurge = (
+  outcome: JournalPurgeOutcome,
+): Effect.Effect<void> =>
+  outcome._tag === 'purgeFailed'
+    ? Effect.logError('purgeFailed', outcome.failure)
+    : logMechanismOutcome(outcome);
+
+/**
+ * How long a finished flow keeps its journal: the `flow.journalRetention`
+ * row, in milliseconds, and the shell's logger told about every pass. Only a
+ * flow that has ended is ever purged, and its status row stays.
+ */
+export const journalRetention = (retentionMs: number): JournalRetention => ({
+  journalRetention: Duration.millis(retentionMs),
+  onPurge: logJournalPurge,
+});
+
+/**
  * The durable flow engine over the `workflow` store (ADR 0066), as one runner
  * among the replicas: its journal and shard locks in Postgres, each
  * participant behind a breaker and a bulkhead of its own (ADR 0067), its
@@ -140,6 +167,7 @@ export const workflowComposition = (
     const url = yield* store.in('workflow').getString('url');
     const host = yield* store.in('workflow').getString('runnerHost');
     const concurrency = yield* store.in('flow').getNumber('concurrency');
+    const retentionMs = yield* store.in('flow').getNumber('journalRetention');
     const dials = yield* readAllParticipantDials(store, flowParticipants());
     const announcing = yield* fleetOutboxLayer(configuration, WORKFLOW_SOURCE);
 
@@ -169,10 +197,16 @@ export const workflowComposition = (
     );
 
     return Layer.mergeAll(
-      SocketRunnerFlowEngineLayer(interpreterOptions(dials, concurrency), {
-        host,
-        port: runnerPort(runner.servicePort, runner.replica),
-      }),
+      SocketRunnerFlowEngineLayer(
+        {
+          ...interpreterOptions(dials, concurrency),
+          ...journalRetention(retentionMs),
+        },
+        {
+          host,
+          port: runnerPort(runner.servicePort, runner.replica),
+        },
+      ),
       // Every replica relays: the outbox's claim keeps them apart.
       Layer.effectDiscard(
         startSqlOutboxRelay({

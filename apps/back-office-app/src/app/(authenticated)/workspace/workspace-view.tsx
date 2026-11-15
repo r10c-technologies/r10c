@@ -2,8 +2,9 @@
 
 import { WorkspaceShell } from '@entifix/next-shell';
 import { Alert, EmptyState, Menu, useT } from '@entifix/react-controls';
+import { useMemo } from 'react';
 
-import { workspaceRegistry } from './workspace-registry';
+import { workspaceRegistryFor } from './workspace-registry';
 
 /**
  * The marketplace-admin tab workspace, wired to the catalog registry.
@@ -14,14 +15,22 @@ import { workspaceRegistry } from './workspace-registry';
  * `scope` is resolved by the server page from the session; it keys the persisted
  * tabs and drafts so two accounts on one browser profile never share them.
  */
-export function WorkspaceView({ scope }: { scope: string }) {
+export function WorkspaceView({
+  scope,
+  partyRole,
+}: {
+  scope: string;
+  /** Who is reading, for the tab captions only (#559, ADR 0015). */
+  partyRole?: string;
+}) {
   const t = useT('app');
   const shellT = useT('shell');
+  const registry = useMemo(() => workspaceRegistryFor(partyRole), [partyRole]);
 
   return (
     <WorkspaceShell
       scope={scope}
-      registry={workspaceRegistry}
+      registry={registry}
       actions={
         <Menu>
           <Menu.Trigger>◍ {t('admin.menu.trigger')} ▾</Menu.Trigger>

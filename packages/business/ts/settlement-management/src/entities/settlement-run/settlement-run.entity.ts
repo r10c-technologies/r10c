@@ -4,6 +4,7 @@ import { accessor, entity } from '@entifix/core';
 import {
   type SettlementRunStatus,
   SettlementRunStatuses,
+  SettlementRunStatusTones,
 } from '../../values/settlement-run-status';
 
 /**
@@ -47,7 +48,9 @@ export class SettlementRun implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ labelKey: 'entity:settlement-run.fields.id' })
+  // `filterable` because a reference names this record by `id=in=(…)`
+  // (entifix 0030): member metadata is the server-side query allowlist.
+  @accessor({ labelKey: 'entity:settlement-run.fields.id', filterable: true })
   get id(): EntityId {
     return this.#id;
   }
@@ -85,6 +88,7 @@ export class SettlementRun implements Entity {
     type: 'enum',
     labelKey: 'entity:settlement-run.fields.status',
     enumValues: SettlementRunStatuses,
+    enumTones: SettlementRunStatusTones,
     enumLabelKey: 'entity:settlement-run.values.status',
     required: true,
     filterable: true,

@@ -17,6 +17,7 @@ import {
 } from '../settlement-surfaces';
 import { AgreementSingleViewClientPage } from './agreement-single-view';
 import { useSettlementAdapters } from './settlement-context';
+import { useSettlementListView } from './settlement-reader';
 
 /**
  * The three generated screens.
@@ -36,6 +37,8 @@ export const commissionEntryCrud: EntityCrud<CommissionEntry> = makeEntityCrud(
     repository: 'commissionEntryRest',
     hiddenFields: ['id'],
     metadata: 'metadata',
+    useListView: () =>
+      useSettlementListView(COMMISSION_ENTRY_SURFACE.entityKey),
   },
 );
 
@@ -60,6 +63,7 @@ export const vendorPayoutCrud: EntityCrud<VendorPayout> = makeEntityCrud(
     repository: 'vendorPayoutRest',
     hiddenFields: ['id'],
     metadata: 'metadata',
+    useListView: () => useSettlementListView(VENDOR_PAYOUT_SURFACE.entityKey),
   },
 );
 
@@ -84,6 +88,7 @@ const generatedAgreementCrud = makeEntityCrud(Agreement, {
   // which stops a save writing `NaN` over it.
   hiddenFields: ['id', 'channelCommissionBasisPoints'],
   metadata: 'metadata',
+  useListView: () => useSettlementListView(AGREEMENT_SURFACE.entityKey),
 });
 
 export const agreementCrud: EntityCrud<Agreement> = {

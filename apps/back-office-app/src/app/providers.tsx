@@ -7,6 +7,7 @@ import type { Locale } from '@entifix/core';
 import {
   ANONYMOUS_WORKSPACE_SCOPE,
   PendingFlowsProvider,
+  ReferenceLabelsHost,
 } from '@entifix/next-shell';
 import {
   type Density,
@@ -46,6 +47,7 @@ import { StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
 
+import { REFERENCE_LABELS } from '../lib/reference-labels';
 import {
   DEFAULT_DENSITY,
   DEFAULT_THEME,
@@ -106,10 +108,12 @@ function PushedEntities() {
 function ThemedProviders({
   children,
   scope,
+  partyRole,
   initialTheme,
   initialDensity,
 }: PropsWithChildren<{
   scope: string;
+  partyRole: string | undefined;
   initialTheme: string;
   initialDensity: Density | undefined;
 }>) {
@@ -158,17 +162,27 @@ function ThemedProviders({
                   settlement-service — so they are provided beside the
                   catalog's rather than through it. One composition root per
                   backend, and nesting them is only how React contexts stack. */}
-                  <SystemManagementProvider>
-                    <StockProvider>
-                      <OrderProvider>
-                        <FulfilmentProvider>
-                          <SalesProvider>
-                            <SettlementProvider>{children}</SettlementProvider>
-                          </SalesProvider>
-                        </FulfilmentProvider>
-                      </OrderProvider>
-                    </StockProvider>
-                  </SystemManagementProvider>
+                  {/* Every list names its references through the target
+                  shell's own adapter, listed once here (entifix 0030). */}
+                  <ReferenceLabelsHost registrations={REFERENCE_LABELS}>
+                    <SystemManagementProvider>
+                      <StockProvider>
+                        <OrderProvider>
+                          <FulfilmentProvider>
+                            <SalesProvider scope={scope}>
+                              <SettlementProvider
+                                {...(partyRole === undefined
+                                  ? {}
+                                  : { partyRole })}
+                              >
+                                {children}
+                              </SettlementProvider>
+                            </SalesProvider>
+                          </FulfilmentProvider>
+                        </OrderProvider>
+                      </StockProvider>
+                    </SystemManagementProvider>
+                  </ReferenceLabelsHost>
                 </PendingFlowsProvider>
               </MarketplaceAdminAdaptersProvider>
               <ToastRegion />
@@ -183,12 +197,15 @@ function ThemedProviders({
 export function Providers({
   locale,
   scope,
+  partyRole,
   initialTheme,
   initialDensity,
   children,
 }: PropsWithChildren<{
   locale: Locale;
   scope: string;
+  /** Who is reading, for copy only — never a decision (ADR 0015, #559). */
+  partyRole: string | undefined;
   initialTheme: string;
   initialDensity: Density | undefined;
 }>) {
@@ -196,6 +213,7 @@ export function Providers({
     <I18nProvider locale={locale}>
       <ThemedProviders
         scope={scope}
+        partyRole={partyRole}
         initialTheme={initialTheme}
         initialDensity={initialDensity}
       >

@@ -57,13 +57,11 @@ test('lists the seeded positions with the totals the ledger implies', async ({
 }) => {
   await page.goto('/stock/stock-item');
 
-  // Named by its **cell**, not by substring: `hasText: 'product-offering-1'`
-  // also matches `product-offering-10` and every id it prefixes, which is a
-  // strict-mode violation against the real seed's forty rows and silently the
-  // wrong row against this fixture's four.
+  // Named by its **cell**, and by the offering's name: the position holds the
+  // id, and the list reads the name through the host's registry (#552).
   const row = page.getByRole('row').filter({
     has: page.getByRole('cell', {
-      name: 'product-offering-1',
+      name: 'Taza de cerámica',
       exact: true,
     }),
   });
@@ -88,9 +86,7 @@ test('offers no way to edit a quantity, because the service says so', async ({
   // The values are shown — a stock screen that hid the quantities would have
   // nothing left to show. They are *values*, though, not inputs.
   // Inside the record's own values: the breadcrumb names it too since 0.20.0.
-  await expect(
-    page.locator('dl').getByText('product-offering-1'),
-  ).toBeVisible();
+  await expect(page.locator('dl').getByText('Taza de cerámica')).toBeVisible();
   await expect(page.getByText('10', { exact: true }).first()).toBeVisible();
 
   // ⚠️ **The assertion this surface exists to hold.** `onHand` and `reserved`
@@ -119,7 +115,7 @@ test('records a movement, which is the only write in the domain', async ({
 
   // A signed quantity and a reason, both real inputs: `stock-movement` is the
   // one entity here whose descriptor answers `["read","write"]`.
-  await expect(page.getByLabel('ID de oferta')).toBeVisible();
+  await expect(page.getByLabel('Producto', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Cantidad')).toBeVisible();
   await expect(page.getByLabel('Motivo')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guardar' })).toBeVisible();
@@ -144,7 +140,7 @@ test('addresses a stock tab as an operation, not a master', async ({
   // A record tab under the same kind, which is where the draft address has to
   // agree with the tab address or the autosave detaches silently.
   await page.goto('/workspace?tab=operation%3Astock-item%3Astock-item-1');
-  await expect(page.getByText('product-offering-1').first()).toBeVisible();
+  await expect(page.getByText('Taza de cerámica').first()).toBeVisible();
 });
 
 test('opens the stock list from the sidebar in the workspace', async ({
@@ -164,4 +160,41 @@ test('opens the stock list from the sidebar in the workspace', async ({
   // same surface, so this is the round trip that used to fail silently when the
   // two were written out by hand.
   await expect(page).toHaveURL(/tab=operation%3Astock-item/);
+});
+
+test('says what is available, and makes nothing to sell stand out', async ({
+  page,
+}) => {
+  await page.goto('/stock/stock-item');
+
+  await expect(
+    page.getByRole('columnheader', { name: 'Disponible' }),
+  ).toBeVisible();
+  // 17 on hand with 2 held leaves 15 to sell.
+  const held = page.getByRole('row').filter({
+    has: page.getByRole('cell', { name: 'Plato de pared', exact: true }),
+  });
+  await expect(held).toContainText('15');
+  // The empty shelf says so in words, not only with a colour (ADR 0075).
+  const empty = page.getByRole('row').filter({
+    has: page.getByRole('cell', { name: 'Cuenco pintado', exact: true }),
+  });
+  await expect(empty).toContainText('Sin existencias disponibles');
+});
+
+test('opens on what is running out, the empty shelf first (#555)', async ({
+  page,
+}) => {
+  await page.goto('/stock/stock-item');
+
+  // The seed holds the zero last; the list asks for `available` ascending,
+  // so it is the first row the vendor reads, and the header says so.
+  const first = page.locator('tbody tr').first();
+  await expect(first).toContainText('Cuenco pintado');
+  await expect(first.locator('[data-tone="danger"]')).toHaveText(
+    'Sin existencias disponibles',
+  );
+  await expect(
+    page.getByRole('columnheader', { name: 'Disponible' }),
+  ).toHaveAttribute('aria-sort', 'ascending');
 });

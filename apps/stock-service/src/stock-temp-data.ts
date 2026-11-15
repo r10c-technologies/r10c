@@ -57,6 +57,7 @@ export interface StockItemRecord {
   offeringId: string;
   onHand: number;
   reserved: number;
+  available: number;
 }
 
 /**
@@ -145,15 +146,20 @@ export const stockMovementTempData: readonly StockMovementRecord[] =
 export const stockItemTempDataFor = (
   vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
 ): readonly StockItemRecord[] =>
-  Array.from({ length: stockedOf(vendor) }, (_, index) => ({
-    id: `${vendor.idPrefix}stock-item-${index + 1}`,
-    offeringId: offeringId(vendor, index),
-    onHand: movementsFor(index).reduce(
+  Array.from({ length: stockedOf(vendor) }, (_, index) => {
+    const onHand = movementsFor(index).reduce(
       (total, movement) => total + movement.quantity,
       0,
-    ),
-    reserved: 0,
-  }));
+    );
+    // Nothing is held at seed time, so all of it is free to sell.
+    return {
+      id: `${vendor.idPrefix}stock-item-${index + 1}`,
+      offeringId: offeringId(vendor, index),
+      onHand,
+      reserved: 0,
+      available: onHand,
+    };
+  });
 
 /** The demo vendor's stock positions. */
 export const stockItemTempData: readonly StockItemRecord[] =

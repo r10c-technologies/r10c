@@ -15,6 +15,7 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
+import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import {
   ProductOffering,
   ProductOfferingPrice,
@@ -79,6 +80,17 @@ const productCategoryRest = createRestRepositoryContext(
 );
 const productBrandRest = createRestRepositoryContext(
   ProductBrand,
+  REFERENCE_SERVICE,
+);
+/**
+ * The sellers' names, read from marketplace-service's `published-vendor`
+ * projection (ADR 0061) through the same `/api/marketplace` proxy as the
+ * vocabulary. Read-only and public: it is what turns a `vendorId` into a name
+ * on every back-office list, for an operator and a vendor alike, without the
+ * control-plane `Organization` read ADR 0007 withholds from a vendor.
+ */
+const publishedVendorRest = createRestRepositoryContext(
+  PublishedVendor,
   REFERENCE_SERVICE,
 );
 const productRest = createRestRepositoryContext(
@@ -179,6 +191,7 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productRest,
     productOfferingRest,
     productOfferingPriceRest,
+    publishedVendorRest,
     referenceMetadata,
     catalogMetadata,
     productBrandUseCases,

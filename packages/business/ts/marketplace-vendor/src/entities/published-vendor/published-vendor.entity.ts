@@ -19,6 +19,7 @@ import { accessor, entity } from '@entifix/core';
  * Platform plane, `published-vendor` store.
  */
 @entity({
+  labelMember: 'displayName',
   domain: 'marketplace-vendor',
   key: 'published-vendor',
   labelKey: 'entity:published-vendor.label',
@@ -48,6 +49,9 @@ export class PublishedVendor implements Entity {
   @accessor({
     type: 'id',
     labelKey: 'entity:published-vendor.fields.id',
+    // `filterable` because a reference names this record by `id=in=(…)`
+    // (entifix 0030): member metadata is the server-side query allowlist.
+    filterable: true,
   })
   get id(): EntityId {
     return this.#id;
@@ -73,12 +77,17 @@ export class PublishedVendor implements Entity {
     this.#vendorId = value;
   }
 
-  /** What the seller line and the seller facet render. Sorted for the facet. */
+  /**
+   * What the seller line and the seller facet render. Sorted for the facet,
+   * and filterable because the back office's record search finds a vendor's
+   * agreement, ledger and payouts by this name (`displayName=like=`, #552).
+   */
   @accessor({
     type: 'string',
     labelKey: 'entity:published-vendor.fields.displayName',
     required: true,
     sortable: true,
+    filterable: true,
   })
   get displayName(): string {
     return this.#displayName;
