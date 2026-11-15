@@ -34,8 +34,13 @@ const brand = (id: string, name: string) => {
   return one;
 };
 
-const category = (id: string, code: string, name: string) => {
-  const one = new ProductCategory(code, name);
+const category = (
+  id: string,
+  code: string,
+  name: string,
+  english: string = name,
+) => {
+  const one = new ProductCategory(code, { es: name, en: english });
   one.id = id;
   return one;
 };
@@ -48,8 +53,8 @@ const retired = <T extends { status: string }>(one: T): T => {
 
 const BRANDS_WITH_RETIRED = [...BRANDS, retired(brand('brand-old', 'Olden'))];
 const CATEGORIES = [
-  category('category-tableware', 'vajilla', 'Vajilla'),
-  category('category-lighting', 'iluminacion', 'Iluminación'),
+  category('category-tableware', 'vajilla', 'Vajilla', 'Dishes'),
+  category('category-lighting', 'iluminacion', 'Iluminación', 'Lighting'),
 ];
 const CATEGORIES_WITH_RETIRED = [
   ...CATEGORIES,
@@ -72,9 +77,9 @@ const run = <A>(
 
 describe('loadCategories', () => {
   it('returns every category sorted by name, in one bounded read', async () => {
-    const { result, load } = run(loadCategories(), CATEGORIES);
+    const { result, load } = run(loadCategories('es'), CATEGORIES);
 
-    expect((await result).items.map(item => item.name)).toEqual([
+    expect((await result).items.map(item => item.name.es)).toEqual([
       'Iluminación',
       'Vajilla',
     ]);
@@ -82,11 +87,26 @@ describe('loadCategories', () => {
       expect.objectContaining({ pageSize: VOCABULARY_PAGE_SIZE }),
     );
   });
+
+  /** #573: a localized name sorts one locale at a time, the reader's. */
+  it('sorts by the name in the reader’s locale', async () => {
+    const { result, load } = run(loadCategories('en'), CATEGORIES);
+
+    expect((await result).items.map(item => item.name.en)).toEqual([
+      'Dishes',
+      'Lighting',
+    ]);
+    expect(load).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sorting: [{ 0: { property: 'name.en', type: 'asc' } }],
+      }),
+    );
+  });
 });
 
 describe('the retired vocabulary (#327)', () => {
   it('leaves a retired category out of the nav', async () => {
-    const { result } = run(loadCategories(), CATEGORIES_WITH_RETIRED);
+    const { result } = run(loadCategories('es'), CATEGORIES_WITH_RETIRED);
 
     expect((await result).items.map(item => item.code)).not.toContain(
       'antiguo',
@@ -108,8 +128,10 @@ describe('the retired vocabulary (#327)', () => {
       (await run(getBrand('brand-old'), BRANDS_WITH_RETIRED).result)?.name,
     ).toBe('Olden');
     expect(
-      (await run(getCategory('category-old'), CATEGORIES_WITH_RETIRED).result)
-        ?.name,
+      (
+        await run(getCategory('category-old', 'es'), CATEGORIES_WITH_RETIRED)
+          .result
+      )?.name.es,
     ).toBe('Antiguo');
     expect(
       (await run(loadBrands(), BRANDS_WITH_RETIRED).result).items,
@@ -157,20 +179,21 @@ describe('getBrand and getCategory', () => {
       'Aurora',
     );
     expect(
-      (await run(getCategory('category-lighting'), CATEGORIES).result)?.name,
+      (await run(getCategory('category-lighting', 'es'), CATEGORIES).result)
+        ?.name.es,
     ).toBe('Iluminación');
   });
 
   it('answer undefined for an id whose target is gone', async () => {
     expect(await run(getBrand('brand-gone'), BRANDS).result).toBeUndefined();
     expect(
-      await run(getCategory('category-gone'), CATEGORIES).result,
+      await run(getCategory('category-gone', 'es'), CATEGORIES).result,
     ).toBeUndefined();
   });
 
   it('short-circuit an unclassified offering without reading', async () => {
     const brandRead = run(getBrand(undefined), BRANDS);
-    const categoryRead = run(getCategory(undefined), CATEGORIES);
+    const categoryRead = run(getCategory(undefined, 'es'), CATEGORIES);
 
     expect(await brandRead.result).toBeUndefined();
     expect(await categoryRead.result).toBeUndefined();
@@ -193,7 +216,7 @@ describe('the category tree (ADR 0062)', () => {
   ];
 
   it('puts only the roots in the nav', async () => {
-    const { result } = run(loadCategoryRoots(), TREE);
+    const { result } = run(loadCategoryRoots('es'), TREE);
 
     expect((await result).map(item => item.id).sort()).toEqual([
       'category-lighting',
@@ -202,7 +225,10 @@ describe('the category tree (ADR 0062)', () => {
   });
 
   it('lists a category with every active category under it', async () => {
-    const { result } = run(loadCategorySubtree('category-lighting'), TREE);
+    const { result } = run(
+      loadCategorySubtree('category-lighting', 'es'),
+      TREE,
+    );
 
     expect((await result).sort()).toEqual([
       'category-desk',
@@ -212,7 +238,7 @@ describe('the category tree (ADR 0062)', () => {
   });
 
   it('trails a category back to its root, root first', async () => {
-    const { result } = run(loadCategoryTrail('category-lamp'), TREE);
+    const { result } = run(loadCategoryTrail('category-lamp', 'es'), TREE);
 
     expect((await result).map(item => item.id)).toEqual([
       'category-lighting',
@@ -222,7 +248,7 @@ describe('the category tree (ADR 0062)', () => {
   });
 
   it('still trails through a retired category an offering names', async () => {
-    const { result } = run(loadCategoryTrail('category-old'), TREE);
+    const { result } = run(loadCategoryTrail('category-old', 'es'), TREE);
 
     expect((await result).map(item => item.id)).toEqual([
       'category-lighting',
@@ -231,21 +257,24 @@ describe('the category tree (ADR 0062)', () => {
   });
 
   it('has no trail for an unclassified offering or an unknown id', async () => {
-    const unclassified = run(loadCategoryTrail(undefined), TREE);
+    const unclassified = run(loadCategoryTrail(undefined, 'es'), TREE);
     expect(await unclassified.result).toEqual([]);
     expect(unclassified.load).not.toHaveBeenCalled();
 
-    expect(await run(loadCategoryTrail('category-gone'), TREE).result).toEqual(
-      [],
-    );
+    expect(
+      await run(loadCategoryTrail('category-gone', 'es'), TREE).result,
+    ).toEqual([]);
   });
 
   it('offers a category’s active children, and none for a leaf', async () => {
-    const { result } = run(loadCategoryChildren('category-lighting'), TREE);
+    const { result } = run(
+      loadCategoryChildren('category-lighting', 'es'),
+      TREE,
+    );
     expect((await result).map(item => item.id)).toEqual(['category-desk']);
 
     expect(
-      await run(loadCategoryChildren('category-lamp'), TREE).result,
+      await run(loadCategoryChildren('category-lamp', 'es'), TREE).result,
     ).toEqual([]);
   });
 });

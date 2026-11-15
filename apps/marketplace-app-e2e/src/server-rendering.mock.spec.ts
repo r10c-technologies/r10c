@@ -64,7 +64,7 @@ test.describe('server rendering', () => {
     // is what this page used to do, and it read as a brand only because the
     // fixtures were named to look like one.
     expect(html).toContain('Aurora');
-    expect(html).toContain('Lighting');
+    expect(html).toContain('Iluminación');
     // And the price, from the same snapshot. Stored in **minor units** and
     // rendered by `Intl` for the page's locale — so `1999` GTQ reads
     // `19,99 GTQ` in Spanish, comma and all. Asserting the dotted form here

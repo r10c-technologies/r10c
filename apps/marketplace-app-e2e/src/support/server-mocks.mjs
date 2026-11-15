@@ -47,6 +47,14 @@ import { register } from 'node:module';
 register('./ts-loader.mjs', import.meta.url);
 
 /**
+ * The fleet's locales, declared before any handler parses a query: a
+ * category's name is localized (#573), and the storefront sorts it as
+ * `name.<locale>`, which entifix refuses for a locale this process never
+ * declared. marketplace-service declares them the same way.
+ */
+await import('@r10c/business-ts-i18n/locales');
+
+/**
  * The shared catalog fixtures (`@r10c/testing-catalog-fixtures`), read as the
  * JSON they are rather than through the package's TypeScript entry: this file
  * runs in plain Node, before anything could transpile it. Storybook and the

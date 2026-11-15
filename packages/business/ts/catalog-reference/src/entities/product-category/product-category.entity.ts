@@ -1,4 +1,4 @@
-import type { Entity, EntityId } from '@entifix/core';
+import type { Entity, EntityId, LocalizedText } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 
 import {
@@ -18,14 +18,14 @@ export class ProductCategory implements Entity {
   //#region properties
   #id?: EntityId;
   #code: string;
-  #name: string;
-  #description?: string;
+  #name: LocalizedText;
+  #description?: LocalizedText;
   #status: ReferenceStatus = DEFAULT_REFERENCE_STATUS;
   #parentId?: string;
   //#endregion
 
   //#region constructors
-  constructor(code = '', name = '') {
+  constructor(code = '', name: LocalizedText = {}) {
     this.#code = code;
     this.#name = name;
   }
@@ -64,33 +64,41 @@ export class ProductCategory implements Entity {
     this.#code = value;
   }
 
-  // Declared for the same reason as `ProductBrand.name`: a specification holds
-  // `categoryId` as a bare id into this store, so choosing a category by name is
-  // a `like` query on this member, and the flag is also the server-side RSQL
-  // allowlist marketplace-service checks before it will answer one.
+  // Written per locale (#573): a category's name reaches the storefront's nav,
+  // crumbs, facets and titles, and one plain string is wrong for half the
+  // buyers. Declared filterable and sortable for the same reason as
+  // `ProductBrand.name` — a specification holds `categoryId` as a bare id into
+  // this store, so choosing a category by name is a `like` query — but a
+  // localized member is queried one locale at a time, as `name.<locale>`, and
+  // the bare `name` is refused (entifix ADR 0005).
   @accessor({
-    type: 'string',
+    type: 'localized',
     label: 'Name',
     labelKey: 'entity:product-category.fields.name',
     required: true,
     filterable: true,
+    sortable: true,
   })
-  get name(): string {
+  get name(): LocalizedText {
     return this.#name;
   }
-  set name(value: string) {
+  set name(value: LocalizedText) {
     this.#name = value;
   }
 
+  // Per locale for the same reason as `name` (#572), and never queried: no
+  // read filters or sorts on it.
   @accessor({
-    type: 'string',
+    type: 'localized',
     label: 'Description',
     labelKey: 'entity:product-category.fields.description',
+    filterable: false,
+    sortable: false,
   })
-  get description(): string | undefined {
+  get description(): LocalizedText | undefined {
     return this.#description;
   }
-  set description(value: string | undefined) {
+  set description(value: LocalizedText | undefined) {
     this.#description = value;
   }
 

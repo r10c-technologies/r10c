@@ -9,7 +9,11 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
-import { ProductCategory } from '@r10c/business-ts-catalog-reference';
+import {
+  categoryDescription,
+  categoryName,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { loadCategoryRoots } from '@r10c/implementation-catalog-reference-next';
 import {
@@ -86,26 +90,29 @@ async function CategoryTiles({ locale }: { readonly locale: Locale }) {
   'use cache';
   cacheLife(CATALOG_CACHE);
 
-  const roots = await runRead(ProductCategory, loadCategoryRoots(), []);
+  const roots = await runRead(ProductCategory, loadCategoryRoots(locale), []);
   if (roots.length === 0) return null;
 
   return (
     <Grid min="12rem" gap="s" as="ul" className="list-none p-0">
-      {roots.map(category => (
-        <li key={category.code}>
-          <a
-            href={localeHref(locale, storePaths.category(category.code))}
-            className="flex h-full flex-col gap-3xs rounded-xl border border-border bg-surface-elevated p-s focus-ring hover:border-primary"
-          >
-            <Text weight="semibold">{category.name}</Text>
-            {category.description ? (
-              <Text muted className="line-clamp-2">
-                {category.description}
-              </Text>
-            ) : null}
-          </a>
-        </li>
-      ))}
+      {roots.map(category => {
+        const description = categoryDescription(category, locale);
+        return (
+          <li key={category.code}>
+            <a
+              href={localeHref(locale, storePaths.category(category.code))}
+              className="flex h-full flex-col gap-3xs rounded-xl border border-border bg-surface-elevated p-s focus-ring hover:border-primary"
+            >
+              <Text weight="semibold">{categoryName(category, locale)}</Text>
+              {description ? (
+                <Text muted className="line-clamp-2">
+                  {description}
+                </Text>
+              ) : null}
+            </a>
+          </li>
+        );
+      })}
     </Grid>
   );
 }

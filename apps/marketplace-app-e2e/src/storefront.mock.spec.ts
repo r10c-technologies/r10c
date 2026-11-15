@@ -44,10 +44,12 @@ test.describe('browsing the catalog', () => {
     await page.goto('/es');
 
     const tiles = page.getByRole('region', { name: 'Categorías' });
-    await expect(tiles.getByRole('link', { name: /Lighting/ })).toBeVisible();
-    await expect(tiles.getByRole('link', { name: /Desk Lamps/ })).toHaveCount(
-      0,
-    );
+    await expect(
+      tiles.getByRole('link', { name: /Iluminación/ }),
+    ).toBeVisible();
+    await expect(
+      tiles.getByRole('link', { name: /Lámparas de escritorio/ }),
+    ).toHaveCount(0);
     await expect(
       page.getByRole('region', { name: 'Lo más nuevo' }).getByRole('article'),
     ).toHaveCount(4);
@@ -70,13 +72,13 @@ test.describe('browsing the catalog', () => {
     await expect(
       page
         .getByRole('navigation', { name: 'Catálogo' })
-        .getByRole('link', { name: 'Lighting' }),
+        .getByRole('link', { name: 'Iluminación' }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Archive' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Archivo' })).toHaveCount(0);
 
     const response = await page.goto('/es/c/archive');
     expect(response?.status()).toBe(404);
-    await expect(page.locator('body')).not.toContainText('Archive');
+    await expect(page.locator('body')).not.toContainText('Archivo');
   });
 
   /** #346: a miss is a real `404`, not the not-found page under a `200`. */
@@ -113,12 +115,12 @@ test.describe('browsing the catalog', () => {
     await expect(
       page
         .getByRole('navigation', { name: 'Catálogo' })
-        .getByRole('link', { name: 'Desk Lamps' }),
+        .getByRole('link', { name: 'Lámparas de escritorio' }),
     ).toHaveCount(0);
     await expect(
       page
         .getByRole('navigation', { name: 'Subcategorías' })
-        .getByRole('link', { name: 'Desk Lamps' }),
+        .getByRole('link', { name: 'Lámparas de escritorio' }),
     ).toBeVisible();
 
     await page.goto('/es/c/desk-lamps');
@@ -137,9 +139,13 @@ test.describe('browsing the catalog', () => {
       'href',
       '/es',
     );
-    await expect(trail.getByRole('link', { name: 'Lighting' })).toBeVisible();
-    await expect(trail.getByRole('link', { name: 'Desk Lamps' })).toBeVisible();
-    await expect(trail.getByText('Task Lights')).toHaveAttribute(
+    await expect(
+      trail.getByRole('link', { name: 'Iluminación' }),
+    ).toBeVisible();
+    await expect(
+      trail.getByRole('link', { name: 'Lámparas de escritorio' }),
+    ).toBeVisible();
+    await expect(trail.getByText('Luces de trabajo')).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -147,6 +153,67 @@ test.describe('browsing the catalog', () => {
     await expect(
       page.getByRole('navigation', { name: 'Subcategorías' }),
     ).toHaveCount(0);
+  });
+
+  /**
+   * #572, #573: a category's name and description are written per locale, and
+   * each page reads its own — in the nav, the trail, the heading, the facet,
+   * the title, the meta description and home's tiles.
+   */
+  test('a category speaks the page’s language', async ({ page }) => {
+    for (const [locale, name, child, description] of [
+      ['es', 'Cocina', 'Iluminación', 'Utensilios y almacenaje para cocinar.'],
+      ['en', 'Kitchen', 'Lighting', 'Tools and storage for cooking.'],
+    ] as const) {
+      await page.goto(`/${locale}/c/kitchen`);
+      await expect(
+        page.getByRole('main').getByRole('heading', { level: 1 }),
+      ).toHaveText(name);
+      await expect(page.getByRole('main')).toContainText(description);
+      await expect(page).toHaveTitle(`${name} · r10c · Marketplace`);
+      await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+        'content',
+        description,
+      );
+      await expect(
+        page
+          .getByRole('navigation', { name: /Catálogo|Catalog/ })
+          .getByRole('link', { name: child }),
+      ).toBeVisible();
+
+      await page.goto(`/${locale}`);
+      await expect(
+        page
+          .getByRole('region', { name: /Categorías|Categories/ })
+          .getByRole('link', { name: new RegExp(name) }),
+      ).toContainText(description);
+    }
+  });
+
+  /** #573: the category facet is ordered by the name in the page's locale. */
+  test('the category facet sorts by the page’s locale', async ({ page }) => {
+    const facet = (locale: 'es' | 'en') =>
+      page
+        .getByRole('complementary', { name: /Filtrar|Filter/ })
+        .getByRole('region', { name: /Categoría|Category/ })
+        .getByRole('link');
+
+    // The two locales disagree at the end: "Textiles del hogar" sorts before
+    // "Vajilla", while "Tableware" sorts before "Textiles".
+    await page.goto('/es/search');
+    await expect(facet('es')).toHaveText([
+      /Cocina/,
+      /Iluminación/,
+      /Textiles del hogar/,
+      /Vajilla/,
+    ]);
+    await page.goto('/en/search');
+    await expect(facet('en')).toHaveText([
+      /Kitchen/,
+      /Lighting/,
+      /Tableware/,
+      /Textiles/,
+    ]);
   });
 
   /** #337: the product page shows the vendor's pictures, thumbnails linked. */
@@ -167,7 +234,9 @@ test.describe('browsing the catalog', () => {
       gallery.getByRole('link', { name: 'Imagen siguiente' }).first(),
     ).toHaveAttribute('href', /^#/);
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
-    await expect(trail.getByRole('link', { name: 'Lighting' })).toBeVisible();
+    await expect(
+      trail.getByRole('link', { name: 'Iluminación' }),
+    ).toBeVisible();
     await expect(trail.getByText('Cobalto Arc Lamp')).toHaveAttribute(
       'aria-current',
       'page',
@@ -186,7 +255,7 @@ test.describe('browsing the catalog', () => {
     const details = page.getByRole('definition');
     await expect(details).toContainText([
       'Cobalto',
-      'Lighting',
+      'Iluminación',
       'COB-ARC-01',
       'Cobalto Studio',
     ]);
@@ -230,7 +299,7 @@ test.describe('browsing the catalog', () => {
   test('a listing is canonical without its filters', async ({ page }) => {
     await page.goto('/es/c/lighting?sort=newest&page=2');
 
-    await expect(page).toHaveTitle('Lighting · r10c · Marketplace');
+    await expect(page).toHaveTitle('Iluminación · r10c · Marketplace');
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       'href',
       'http://localhost:3000/es/c/lighting',

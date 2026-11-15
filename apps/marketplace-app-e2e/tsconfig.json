@@ -36,6 +36,9 @@
       "path": "../../packages/business/ts/marketplace-catalog"
     },
     {
+      "path": "../../packages/business/ts/i18n"
+    },
+    {
       "path": "../../packages/business/ts/catalog-reference"
     }
   ]

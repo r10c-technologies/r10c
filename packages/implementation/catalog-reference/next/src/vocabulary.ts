@@ -7,6 +7,7 @@ import {
   type EntityLoadRequest,
   type EntityPage,
   type EntitySorting,
+  type Locale,
 } from '@entifix/core';
 import {
   CATEGORY_KEYS,
@@ -59,10 +60,28 @@ const load = <TEntity extends Entity>(
     return yield* repository.load<TEntity>(request);
   });
 
-/** Both vocabularies list by name. */
-const byName = <TEntity extends ProductBrand | ProductCategory>(): Array<
-  EntitySorting<TEntity>
-> => [{ 0: { property: 'name', type: 'asc' } }];
+/** Brands list by name. */
+const brandsByName = (): Array<EntitySorting<ProductBrand>> => [
+  { 0: { property: 'name', type: 'asc' } },
+];
+
+/**
+ * Categories list by name **in the reader's locale** (#573). A category's
+ * name is `localized`, and entifix refuses a sort on the bare member: it is
+ * sorted one locale at a time, as `name.<locale>`, which is also the order a
+ * Spanish reader expects. `EntitySorting` types a member key, not a locale
+ * path, hence the one cast — the same one entifix's own link picker makes.
+ */
+const categoriesByName = (
+  locale: Locale,
+): Array<EntitySorting<ProductCategory>> => [
+  {
+    0: {
+      property: `name.${locale}` as keyof ProductCategory,
+      type: 'asc',
+    },
+  },
+];
 
 /**
  * Only what is still offered for classification.
@@ -81,11 +100,16 @@ const ACTIVE: EntityFilter<ProductCategory> = {
   value: 'active',
 };
 
-/** Every active category, for the nav strip. Reads `ProductCategory`. */
-export const loadCategories = (): VocabularyRead<EntityPage<ProductCategory>> =>
+/**
+ * Every active category, for the nav strip, ordered by its name in `locale`.
+ * Reads `ProductCategory`.
+ */
+export const loadCategories = (
+  locale: Locale,
+): VocabularyRead<EntityPage<ProductCategory>> =>
   load<ProductCategory>({
     filtering: [ACTIVE],
-    sorting: byName(),
+    sorting: categoriesByName(locale),
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
@@ -94,8 +118,10 @@ export const loadCategories = (): VocabularyRead<EntityPage<ProductCategory>> =>
  * (ADR 0062). A child's offerings are reached through its root, because a
  * category page lists its whole subtree. Reads `ProductCategory`.
  */
-export const loadCategoryRoots = (): VocabularyRead<ProductCategory[]> =>
-  loadCategories().pipe(
+export const loadCategoryRoots = (
+  locale: Locale,
+): VocabularyRead<ProductCategory[]> =>
+  loadCategories(locale).pipe(
     Effect.map(page =>
       page.items.filter(
         category => category.parentId === undefined || category.parentId === '',
@@ -109,13 +135,20 @@ export const loadCategoryRoots = (): VocabularyRead<ProductCategory[]> =>
  * rather than a recursive query, because the vocabulary is small and bounded.
  * Reads `ProductCategory`.
  */
-export const loadCategorySubtree = (id: string): VocabularyRead<string[]> =>
-  loadCategories().pipe(Effect.map(page => categorySubtree(page.items, id)));
+export const loadCategorySubtree = (
+  id: string,
+  locale: Locale,
+): VocabularyRead<string[]> =>
+  loadCategories(locale).pipe(
+    Effect.map(page => categorySubtree(page.items, id)),
+  );
 
 /** Every category, retired ones included, for naming what an offering points at. */
-const loadEveryCategory = (): VocabularyRead<EntityPage<ProductCategory>> =>
+const loadEveryCategory = (
+  locale: Locale,
+): VocabularyRead<EntityPage<ProductCategory>> =>
   load<ProductCategory>({
-    sorting: byName(),
+    sorting: categoriesByName(locale),
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
@@ -129,10 +162,11 @@ const loadEveryCategory = (): VocabularyRead<EntityPage<ProductCategory>> =>
  */
 export const loadCategoryTrail = (
   id: string | undefined,
+  locale: Locale,
 ): VocabularyRead<ProductCategory[]> =>
   id === undefined
     ? Effect.succeed([])
-    : loadEveryCategory().pipe(
+    : loadEveryCategory(locale).pipe(
         Effect.map(page => {
           const self = page.items.find(item => CATEGORY_KEYS.idOf(item) === id);
           return self === undefined
@@ -147,8 +181,9 @@ export const loadCategoryTrail = (
  */
 export const loadCategoryChildren = (
   id: string,
+  locale: Locale,
 ): VocabularyRead<ProductCategory[]> =>
-  loadCategories().pipe(
+  loadCategories(locale).pipe(
     Effect.map(page =>
       page.items.filter(item => CATEGORY_KEYS.parentOf(item) === id),
     ),
@@ -160,7 +195,7 @@ export const loadCategoryChildren = (
  */
 export const loadBrands = (): VocabularyRead<EntityPage<ProductBrand>> =>
   load<ProductBrand>({
-    sorting: byName(),
+    sorting: brandsByName(),
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
@@ -203,10 +238,11 @@ export const getBrand = (
 /** A category by id. Same shape and same caveats as {@link getBrand}. Reads `ProductCategory`. */
 export const getCategory = (
   id: string | undefined,
+  locale: Locale,
 ): VocabularyRead<ProductCategory | undefined> =>
   id === undefined
     ? Effect.succeed(undefined)
-    : loadEveryCategory().pipe(
+    : loadEveryCategory(locale).pipe(
         Effect.map(page =>
           page.items.find(category => String(category.id) === id),
         ),

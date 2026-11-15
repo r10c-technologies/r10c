@@ -48,17 +48,21 @@ const BRAND_NAMES = [
   'Wonka',
   'Cyberdyne',
 ];
+/**
+ * The Spanish half of each base name: every live journey reads `/es`, and a
+ * category's name is written per locale (#573).
+ */
 const CATEGORY_NAMES = [
-  'Electronics',
-  'Clothing',
-  'Home & Kitchen',
-  'Books',
-  'Sports & Outdoors',
-  'Beauty & Personal Care',
-  'Toys & Games',
-  'Automotive',
-  'Health & Wellness',
-  'Pet Supplies',
+  'Electrónica',
+  'Ropa',
+  'Hogar y cocina',
+  'Libros',
+  'Deportes y aire libre',
+  'Belleza y cuidado personal',
+  'Juguetes y juegos',
+  'Automotriz',
+  'Salud y bienestar',
+  'Mascotas',
 ];
 
 /**
@@ -103,7 +107,9 @@ const offeringAt = (index: number): SeededOffering => {
     name: `${cycled(FAMILIES, index)} — oferta`,
     code: `P-${String(number).padStart(4, '0')}`,
     categoryCode: `PC-${String(categoryNumber).padStart(3, '0')}`,
-    categoryName: cycled(CATEGORY_NAMES, categoryNumber - 1),
+    categoryName: `${cycled(CATEGORY_NAMES, categoryNumber - 1)} ${
+      Math.floor((categoryNumber - 1) / CATEGORY_NAMES.length) + 1
+    }`,
     categoryNumber,
     brandName: cycled(BRAND_NAMES, brandNumber - 1),
     amount: 1999 + index * 500,

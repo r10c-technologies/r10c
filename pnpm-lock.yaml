@@ -674,6 +674,9 @@ importers:
       '@r10c/business-ts-configuration':
         specifier: workspace:*
         version: link:../../packages/business/ts/configuration
+      '@r10c/business-ts-i18n':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/i18n
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../packages/business/ts/marketplace-catalog
@@ -1180,6 +1183,9 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../packages/business/ts/catalog-reference
+      '@r10c/business-ts-i18n':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/i18n
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../packages/business/ts/marketplace-catalog
@@ -3002,6 +3008,9 @@ importers:
       '@r10c/business-ts-common':
         specifier: workspace:*
         version: link:../../../business/ts/common
+      '@r10c/business-ts-i18n':
+        specifier: workspace:*
+        version: link:../../../business/ts/i18n
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23

@@ -8,6 +8,7 @@ import {
   Text,
 } from '@entifix/react-controls/primitives';
 import {
+  categoryName,
   categorySubtree,
   ProductBrand,
   ProductCategory,
@@ -99,7 +100,11 @@ export async function OfferingListing({
   const controls = getServerTFor(locale, 'controls');
 
   const [categories, brands, vendors] = await Promise.all([
-    runRead(ProductCategory, loadCategories(), emptyPage<ProductCategory>()),
+    runRead(
+      ProductCategory,
+      loadCategories(locale),
+      emptyPage<ProductCategory>(),
+    ),
     runRead(ProductBrand, loadBrands(), emptyPage<ProductBrand>()),
     runRead(PublishedVendor, loadVendors(), []),
   ]);
@@ -158,7 +163,7 @@ export async function OfferingListing({
         ? {
             category: roots.map(category => ({
               id: String(category.id),
-              name: category.name,
+              name: categoryName(category, locale),
             })),
           }
         : {}),

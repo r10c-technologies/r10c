@@ -86,7 +86,10 @@ const makeBrand = () => {
 };
 
 const makeCategory = () => {
-  const category = new ProductCategory('C-1', 'Herramientas');
+  const category = new ProductCategory('C-1', {
+    es: 'Herramientas',
+    en: 'Tools',
+  });
   category.id = 'c-1';
   return category;
 };

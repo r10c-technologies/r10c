@@ -1,8 +1,9 @@
 import type { EntityRepository } from '@entifix/business';
 import type { Entity } from '@entifix/core';
-import type {
-  ProductBrand,
-  ProductCategory,
+import {
+  categoryName,
+  type ProductBrand,
+  type ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import type { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import {
@@ -30,7 +31,10 @@ const active = <T extends { status?: string }>(items: readonly T[]) =>
 const choices = {
   category: everything<ProductCategory>(fixtures.categories)
     .filter(category => category.status === 'active' && !category.parentId)
-    .map(category => ({ id: String(category.id), name: category.name })),
+    .map(category => ({
+      id: String(category.id),
+      name: categoryName(category, 'es'),
+    })),
   brand: active(everything<ProductBrand>(fixtures.brands)).map(brand => ({
     id: String(brand.id),
     name: brand.name,

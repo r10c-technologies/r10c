@@ -1,4 +1,5 @@
 import { EntityRepositoryFactoryTag } from '@entifix/business';
+import { parseLoadRequestParams, serializeSort } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   ProductBrand,
@@ -17,7 +18,7 @@ const brand = (id: string, status: 'active' | 'retired' = 'active') =>
   Object.assign(new ProductBrand(id), { id, status });
 
 const category = (id: string, parentId?: string) =>
-  Object.assign(new ProductCategory(id, id), {
+  Object.assign(new ProductCategory(id, { es: id, en: id }), {
     id,
     status: 'active' as const,
     ...(parentId === undefined ? {} : { parentId }),
@@ -62,6 +63,47 @@ describe('the vocabulary declarations', () => {
     expect(
       productCategoryApi.options.useCases.map(verb => verb.useCase.key),
     ).toEqual(['retire', 'restore']);
+  });
+});
+
+/**
+ * #573: a category's name is localized, and entifix answers a locale path only
+ * for a locale the process declared. Importing the declarations declares the
+ * fleet's, so the service accepts `name.es` — without it, it knows only `en`.
+ */
+describe('a localized category name', () => {
+  it('is filtered and sorted one locale at a time, in either of the fleet’s', () => {
+    for (const locale of ['es', 'en']) {
+      const request = parseLoadRequestParams(
+        ProductCategory,
+        new URLSearchParams({
+          rsql: `name.${locale}=like=caf`,
+          sort: serializeSort<ProductCategory>([
+            {
+              0: {
+                property: `name.${locale}` as keyof ProductCategory,
+                type: 'asc',
+              },
+            },
+          ]),
+        }),
+      );
+
+      expect(JSON.stringify(request)).toContain(`name.${locale}`);
+    }
+  });
+
+  it('refuses the bare member', () => {
+    expect(() =>
+      parseLoadRequestParams(
+        ProductCategory,
+        new URLSearchParams({
+          sort: serializeSort<ProductCategory>([
+            { 0: { property: 'name', type: 'asc' } },
+          ]),
+        }),
+      ),
+    ).toThrow();
   });
 });
 
@@ -118,7 +160,7 @@ describe('saving a category', () => {
 
     expect(await run(prepare(category('orphan', 'ghost')))).toMatchObject({
       _tag: 'Failure',
-      failure: { _tag: 'CategoryParentMissing', name: 'orphan' },
+      failure: { _tag: 'CategoryParentMissing', categoryCode: 'orphan' },
     });
   });
 });

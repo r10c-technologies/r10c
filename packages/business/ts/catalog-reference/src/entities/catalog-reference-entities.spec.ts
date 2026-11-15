@@ -3,6 +3,7 @@ import {
   type Entity,
   type EntityConstructor,
   serializeEntity,
+  validateRecords,
 } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
@@ -78,18 +79,21 @@ describe('ProductBrand', () => {
 
 describe('ProductCategory', () => {
   it('round-trips every accessor through its setter', () => {
-    const category = new ProductCategory('CAT', 'Category');
+    const category = new ProductCategory('CAT', {
+      es: 'Category',
+      en: 'Category',
+    });
     category.id = 'c-1';
     category.code = 'OTHER';
-    category.name = 'Renamed';
-    category.description = 'A category';
+    category.name = { es: 'Renombrada', en: 'Renamed' };
+    category.description = { es: 'Una categoría', en: 'A category' };
     category.parentId = 'c-0';
 
     expect(serializeEntity(ProductCategory, category)).toEqual({
       id: 'c-1',
       code: 'OTHER',
-      name: 'Renamed',
-      description: 'A category',
+      name: { es: 'Renombrada', en: 'Renamed' },
+      description: { es: 'Una categoría', en: 'A category' },
       status: 'active',
       parentId: 'c-0',
     });
@@ -122,6 +126,59 @@ describe('ProductCategory', () => {
 
     expect(name?.filterable).toBe(true);
   });
+
+  /**
+   * #572, #573: both are written per locale, so neither reaches a Spanish page
+   * in English. `name` stays queryable — one locale at a time — and
+   * `description` is never queried.
+   */
+  it('declares `name` and `description` localized, and only `name` queryable', () => {
+    const columns = describeEntityColumns(ProductCategory);
+    const name = columns.find(column => column.name === 'name');
+    const description = columns.find(column => column.name === 'description');
+
+    expect([name?.type, name?.filterable, name?.sortable]).toEqual([
+      'localized',
+      true,
+      true,
+    ]);
+    expect([
+      description?.type,
+      description?.filterable,
+      description?.sortable,
+    ]).toEqual(['localized', false, false]);
+  });
+
+  /** All-or-nothing (entifix ADR 0005): a text in one locale only is refused. */
+  it('refuses a description written in one locale only', () => {
+    const record = {
+      id: 'c-1',
+      code: 'CAT',
+      name: { es: 'Tazas', en: 'Mugs' },
+      status: 'active',
+    };
+    const options = { locales: ['es', 'en'] };
+
+    expect(
+      validateRecords(
+        ProductCategory,
+        [
+          {
+            ...record,
+            description: { es: 'Tazas y vasos', en: 'Mugs and cups' },
+          },
+        ],
+        options,
+      ).problems,
+    ).toEqual([]);
+    expect(
+      validateRecords(
+        ProductCategory,
+        [{ ...record, description: { es: 'Tazas y vasos' } }],
+        options,
+      ).problems.map(problem => problem.path),
+    ).toEqual([expect.stringContaining('description')]);
+  });
 });
 
 /**
@@ -144,7 +201,9 @@ describe('the reference lifecycle', () => {
    */
   it('starts both entities active', () => {
     expect(new ProductBrand('Acme').status).toBe('active');
-    expect(new ProductCategory('CAT', 'Category').status).toBe('active');
+    expect(
+      new ProductCategory('CAT', { es: 'Category', en: 'Category' }).status,
+    ).toBe('active');
   });
 
   /**
@@ -166,7 +225,10 @@ describe('the reference lifecycle', () => {
 
   it('round-trips a retired state through the setter', () => {
     const brand = new ProductBrand('Acme');
-    const category = new ProductCategory('CAT', 'Category');
+    const category = new ProductCategory('CAT', {
+      es: 'Category',
+      en: 'Category',
+    });
 
     brand.status = 'retired';
     category.status = 'retired';

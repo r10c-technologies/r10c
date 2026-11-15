@@ -45,6 +45,7 @@
     "@entifix/core": "catalog:",
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-common": "workspace:*",
+    "@r10c/business-ts-i18n": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.7"
   },
