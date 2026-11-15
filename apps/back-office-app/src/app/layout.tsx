@@ -10,8 +10,13 @@ import '@r10c/i18n-catalog';
 
 import { getRequestLocale, getServerT } from '@entifix/next-i18n/server';
 import { readThemeCookies } from '@entifix/next-shell/server';
+import {
+  permissionForStockSurface,
+  STOCK_ITEM_SURFACE,
+} from '@r10c/shells-next-stock';
 import { cookies } from 'next/headers';
 
+import { isNavItemVisible } from '../lib/nav';
 import { navPrincipal } from '../lib/nav-principal';
 import { workspaceScope } from '../lib/workspace-scope';
 import { fontVariables } from './fonts';
@@ -47,7 +52,20 @@ export default async function RootLayout({
   const scope = await workspaceScope();
   // Copy only: a vendor's settlement lists are worded for them (#559). Read
   // from unverified claims, exactly as the sidebar reads it (ADR 0015).
-  const { partyRole } = await navPrincipal();
+  const principal = await navPrincipal();
+  const { partyRole } = principal;
+  // Which other slices' regions a page may compose for this reader (#564):
+  // the sidebar's own two ceilings, so a region is shown exactly when its list
+  // is. Presentation only — the stock service still decides access.
+  const reader = {
+    stockReadable: isNavItemVisible(
+      {
+        permission: permissionForStockSurface(STOCK_ITEM_SURFACE),
+        entitled: true,
+      },
+      principal,
+    ),
+  };
   // The reader's own theme and density, read with the request so the page is
   // rendered in them: no paint in the wrong palette, and no attribute that
   // changes after load (#530).
@@ -81,6 +99,7 @@ export default async function RootLayout({
           locale={locale}
           scope={scope}
           partyRole={partyRole}
+          reader={reader}
           initialTheme={theme}
           initialDensity={density}
         >

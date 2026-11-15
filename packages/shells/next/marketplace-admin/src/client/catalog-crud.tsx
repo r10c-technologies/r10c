@@ -3,7 +3,11 @@
 import { type EntityRepositoryTag, loadUCFactory } from '@entifix/business';
 import type { FilterGroup } from '@entifix/core';
 import { descendantsOf, hierarchyOf } from '@entifix/core';
-import { makeEntityCrud, useLocaleHref } from '@entifix/next-shell';
+import {
+  type EntityCrudRelated,
+  makeEntityCrud,
+  useLocaleHref,
+} from '@entifix/next-shell';
 import {
   ButtonLink,
   EntityTableToolbar,
@@ -19,6 +23,7 @@ import {
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
+import type { ReactNode } from 'react';
 
 import {
   PRODUCT_BRAND_SURFACE,
@@ -28,7 +33,12 @@ import {
   PRODUCT_SURFACE,
 } from '../catalog-surfaces';
 import { PRODUCT_SETUP_SURFACE } from '../wizard-surfaces';
+import type { MarketplaceAdminAdapters } from './client-types';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
+import {
+  OFFERING_RELATED_COLUMNS,
+  OfferingImagesRegion,
+} from './offering-regions';
 
 /**
  * The catalog's five CRUD surfaces, declared rather than written.
@@ -210,49 +220,117 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
       searchProperty: 'name',
     },
   ],
-});
-
-export const productOfferingCrud = makeEntityCrud(ProductOffering, {
-  useAdapters: useMarketplaceAdminAdapters,
-  basePath: PRODUCT_OFFERING_SURFACE.basePath,
-  catalogKey: PRODUCT_OFFERING_SURFACE.entityKey,
-  repository: 'productOfferingRest',
-  write: 'productOfferingWriter',
-  // Without these two the form renders `publish`/`unpublish` nowhere: absent
-  // metadata keeps the pre-ADR-0026 behaviour, and a metadata source with no
-  // handler renders buttons that do nothing.
-  metadata: 'catalogMetadata',
-  useCases: 'productOfferingUseCases',
-  // ⚠️ `status` is hidden because it is **not the vendor's to write**. The two
-  // verbs own it, the write path overwrites whatever the form sends
-  // (`preserveOfferingLifecycle`), and asking the operator for it made a required
-  // field out of a value they do not control — measured: a create blocked on
-  // "Status is required" for a member that has a default and is server-owned.
-  // The state stays legible on the list column and through which verb the form
-  // offers; the field itself would be a lie about who decides it.
-  // `statusChangedAt` joins them for the same reason and one more: it is the
-  // moment the rebuild walk re-announces from, so an operator editing it would
-  // silently move an offering's place in the projection's ordering.
-  hiddenFields: ['id', 'status', 'statusChangedAt'],
-  // `specificationId` is a plain `string` into the same store, and the picker
-  // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
-  // `link` and `string`, and `applyEntityLinks` skips a non-`link` descriptor,
-  // so the id stays the truth and the wrapper reconstructs from the draft.
-  //
-  // Both target properties are stated rather than defaulted, for the reason
-  // `ProductSpecification` states its own: a scalar id's accessor cannot name
-  // the target's members, and the default is `'name'` whether or not the target
-  // has one.
-  links: [
-    {
-      field: 'specificationId',
-      entityConstructor: ProductSpecification,
-      repository: 'productRest',
-      labelProperty: 'name',
-      searchProperty: 'name',
-    },
+  /**
+   * The specification's offerings, and the way to offer it (#564): the
+   * region's "New" opens an offering create with this specification already
+   * chosen. The product-setup wizard hands off here, because what it creates
+   * is a specification — the offering is the next step, not one it took.
+   */
+  regions: specification => [
+    <productOfferingCrud.RelatedList
+      key="offerings"
+      labelKey="r10c:marketplaceAdmin.product.regions.offerings"
+      filtering={{
+        operator: 'and',
+        values: [
+          {
+            property: 'specificationId',
+            operator: 'eq',
+            value: String(specification.id),
+          },
+        ],
+      }}
+      prefill={{ specificationId: String(specification.id) }}
+    />,
   ],
 });
+
+/**
+ * What a host adds to the offering's page from **other** slices (ADR 0077 §2):
+ * a related column read through another shell's adapter, and regions another
+ * shell renders. Only the host composes them; this shell never imports
+ * another shell.
+ */
+export interface ProductOfferingCrudWith {
+  readonly related?: readonly EntityCrudRelated<MarketplaceAdminAdapters>[];
+  readonly regions?: (offering: ProductOffering) => readonly ReactNode[];
+}
+
+/**
+ * The offering's screens (#558, #564): its list with a price and a picture per
+ * row, and its page with its pictures and prices under the form — each region
+ * reading and writing through its own service, and only the form autosaving.
+ *
+ * Called with nothing it is this slice's page alone; the back office passes
+ * the stock held of the offering, which lives in another slice.
+ */
+export const productOfferingCrudWith = ({
+  related = [],
+  regions,
+}: ProductOfferingCrudWith = {}) =>
+  makeEntityCrud(ProductOffering, {
+    useAdapters: useMarketplaceAdminAdapters,
+    basePath: PRODUCT_OFFERING_SURFACE.basePath,
+    catalogKey: PRODUCT_OFFERING_SURFACE.entityKey,
+    repository: 'productOfferingRest',
+    write: 'productOfferingWriter',
+    // Without these two the form renders `publish`/`unpublish` nowhere: absent
+    // metadata keeps the pre-ADR-0026 behaviour, and a metadata source with no
+    // handler renders buttons that do nothing.
+    metadata: 'catalogMetadata',
+    useCases: 'productOfferingUseCases',
+    // ⚠️ `status` is hidden because it is **not the vendor's to write**. The two
+    // verbs own it, the write path overwrites whatever the form sends
+    // (`preserveOfferingLifecycle`), and asking the operator for it made a required
+    // field out of a value they do not control — measured: a create blocked on
+    // "Status is required" for a member that has a default and is server-owned.
+    // The state stays legible on the list column and through which verb the form
+    // offers; the field itself would be a lie about who decides it.
+    // `statusChangedAt` joins them for the same reason and one more: it is the
+    // moment the rebuild walk re-announces from, so an operator editing it would
+    // silently move an offering's place in the projection's ordering.
+    hiddenFields: ['id', 'status', 'statusChangedAt'],
+    // `specificationId` is a plain `string` into the same store, and the picker
+    // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
+    // `link` and `string`, and `applyEntityLinks` skips a non-`link` descriptor,
+    // so the id stays the truth and the wrapper reconstructs from the draft.
+    //
+    // Both target properties are stated rather than defaulted, for the reason
+    // `ProductSpecification` states its own: a scalar id's accessor cannot name
+    // the target's members, and the default is `'name'` whether or not the target
+    // has one.
+    links: [
+      {
+        field: 'specificationId',
+        entityConstructor: ProductSpecification,
+        repository: 'productRest',
+        labelProperty: 'name',
+        searchProperty: 'name',
+      },
+    ],
+    related: [...OFFERING_RELATED_COLUMNS, ...related],
+    regions: offering => [
+      <OfferingImagesRegion key="images" offering={offering} />,
+      <productOfferingPriceCrud.RelatedList
+        key="prices"
+        labelKey="r10c:marketplaceAdmin.offering.regions.prices"
+        filtering={{
+          operator: 'and',
+          values: [
+            {
+              property: 'offeringId',
+              operator: 'eq',
+              value: String(offering.id),
+            },
+          ],
+        }}
+        prefill={{ offeringId: String(offering.id) }}
+      />,
+      ...(regions?.(offering) ?? []),
+    ],
+  });
+
+export const productOfferingCrud = productOfferingCrudWith();
 
 export const productOfferingPriceCrud = makeEntityCrud(ProductOfferingPrice, {
   useAdapters: useMarketplaceAdminAdapters,

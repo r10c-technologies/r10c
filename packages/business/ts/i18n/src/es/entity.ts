@@ -589,6 +589,11 @@ export const entity = {
       unpublishConfirm:
         'La oferta dejará de verse en la tienda y se eliminará del catálogo publicado. Tu versión no se borra: puedes volver a publicarla.',
     },
+    related: {
+      price: 'Precio',
+      image: 'Imagen',
+      available: 'Disponible',
+    },
   },
   'product-offering-price': {
     form: {

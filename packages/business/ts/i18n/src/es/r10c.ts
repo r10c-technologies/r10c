@@ -372,6 +372,33 @@ export const r10c = {
      * El asistente de alta de producto. Los nombres de los pasos son de este
      * dominio, no del control — por eso viven acá y no en `controls`.
      */
+    /**
+     * La página de una oferta reúne lo que antes eran tres pantallas (#564):
+     * cada región lee y escribe en su propio servicio.
+     */
+    offering: {
+      regions: {
+        images: 'Imágenes',
+        prices: 'Precios',
+        stock: 'Existencias',
+        movements: 'Movimientos de inventario',
+      },
+      images: {
+        none: 'Esta especificación todavía no tiene imágenes.',
+        edit: 'Editar especificación',
+        shared:
+          'Las imágenes son de la especificación: cambiarlas cambia también las demás ofertas que la usan.',
+        previous: 'Imagen anterior',
+        next: 'Imagen siguiente',
+        position: '{{index}} de {{total}}',
+      },
+    },
+    /** La página de una especificación: sus ofertas, y cómo ofertarla. */
+    product: {
+      regions: {
+        offerings: 'Ofertas de este producto',
+      },
+    },
     wizard: {
       productSetup: {
         title: 'Nuevo producto',

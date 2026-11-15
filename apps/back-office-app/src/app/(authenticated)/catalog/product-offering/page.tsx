@@ -1,9 +1,10 @@
 'use client';
 
-import { ProductOfferingListClientPage } from '@r10c/shells-next-marketplace-admin';
+import { productWorkspaceCrud } from '../../../../lib/product-workspace';
 
+/** The offering list, with a price, a picture and the stock of each (#558). */
 function ProductOfferingCatalogPage() {
-  return <ProductOfferingListClientPage />;
+  return <productWorkspaceCrud.ListPage />;
 }
 
 export default ProductOfferingCatalogPage;

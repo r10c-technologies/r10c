@@ -103,7 +103,11 @@ test('walks the blank path and hands one create off', async ({
   await expect(page.getByText('Café de altura')).toBeVisible();
 
   await page.getByTestId('wizard-next').click();
-  await page.waitForURL(url => url.pathname.endsWith(PRODUCT_LIST));
+  // #564: it lands on the specification it made, not on the list — where
+  // offering it is the next step, with the specification already chosen.
+  await page.waitForURL(url =>
+    url.pathname.endsWith(`${PRODUCT_LIST}/spec-created`),
+  );
 
   // One create, carrying the two steps' drafts merged — and no `code`, which
   // the service draws.

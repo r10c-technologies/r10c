@@ -85,6 +85,15 @@ export const productSeed = [
     // shapes a `link` could take — and nothing joins them now.
     brandId: 'product-brand-1',
     categoryId: 'product-category-1',
+    // What the offering list's thumbnail and the product workspace's gallery
+    // show (#558, #564). Served by the mock below, so no picture is fetched
+    // from anywhere real.
+    media: [
+      {
+        url: 'https://media.example.test/widget.png',
+        alt: 'Un widget azul sobre fondo blanco',
+      },
+    ],
   },
   {
     id: 'product-2',

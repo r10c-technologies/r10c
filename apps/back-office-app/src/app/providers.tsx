@@ -47,6 +47,7 @@ import { StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
 
+import { type Reader, ReaderProvider } from '../lib/reader';
 import { REFERENCE_LABELS } from '../lib/reference-labels';
 import {
   DEFAULT_DENSITY,
@@ -198,6 +199,7 @@ export function Providers({
   locale,
   scope,
   partyRole,
+  reader,
   initialTheme,
   initialDensity,
   children,
@@ -206,19 +208,23 @@ export function Providers({
   scope: string;
   /** Who is reading, for copy only — never a decision (ADR 0015, #559). */
   partyRole: string | undefined;
+  /** Which other slices' regions a page may compose for them (#564). */
+  reader: Reader;
   initialTheme: string;
   initialDensity: Density | undefined;
 }>) {
   return (
     <I18nProvider locale={locale}>
-      <ThemedProviders
-        scope={scope}
-        partyRole={partyRole}
-        initialTheme={initialTheme}
-        initialDensity={initialDensity}
-      >
-        {children}
-      </ThemedProviders>
+      <ReaderProvider reader={reader}>
+        <ThemedProviders
+          scope={scope}
+          partyRole={partyRole}
+          initialTheme={initialTheme}
+          initialDensity={initialDensity}
+        >
+          {children}
+        </ThemedProviders>
+      </ReaderProvider>
     </I18nProvider>
   );
 }

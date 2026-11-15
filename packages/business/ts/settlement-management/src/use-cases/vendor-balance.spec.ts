@@ -1,9 +1,9 @@
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { SettlementLedgerTag } from '../ports/settlement-ports';
-import type { PayoutEntry } from '../values/commission';
-import { EMPTY_BALANCE, vendorBalance } from './vendor-balance';
+import { SettlementLedgerTag } from '../ports/settlement-ports.js';
+import type { PayoutEntry } from '../values/commission.js';
+import { EMPTY_BALANCE, vendorBalance } from './vendor-balance.js';
 
 const over = (lines: readonly PayoutEntry[]) => {
   const asked: string[] = [];

@@ -50,6 +50,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/business/ts/product-configuration-management"
+    },
+    {
       "path": "../../packages/utils/ts/fleet"
     },
     {

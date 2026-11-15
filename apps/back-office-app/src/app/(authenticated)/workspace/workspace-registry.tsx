@@ -7,6 +7,7 @@ import {
   entityTabKind,
   type EntityTabScreens,
   TabRegistry,
+  useTabEntityNav,
   wizardTabKind,
 } from '@entifix/next-shell';
 import { UserDetailPage, UsersPage } from '@r10c/shells-next-auth';
@@ -14,6 +15,7 @@ import { FULFILMENT_CRUDS } from '@r10c/shells-next-fulfilment';
 import {
   MARKETPLACE_ADMIN_CRUDS,
   PRODUCT_SETUP_SURFACE,
+  PRODUCT_SURFACE,
   ProductSetupWizard,
 } from '@r10c/shells-next-marketplace-admin';
 import { ORDER_CRUDS } from '@r10c/shells-next-order';
@@ -30,7 +32,34 @@ import {
 import { STOCK_CRUDS } from '@r10c/shells-next-stock';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
 
+import { productWorkspaceCrud } from '../../../lib/product-workspace';
 import { EntityEditorTab } from './entity-tab';
+
+/**
+ * The catalog's screens, with the offering's replaced by the product
+ * workspace the host composes (#564): `master:product-offering:<id>` opens the
+ * same page its route does, stock regions and all.
+ */
+const CATALOG_CRUDS = MARKETPLACE_ADMIN_CRUDS.map(crud =>
+  crud.entityKey === productWorkspaceCrud.entityKey
+    ? productWorkspaceCrud
+    : crud,
+);
+
+/**
+ * The product-setup wizard as a tab: it creates a specification, so it opens
+ * that specification's own tab when it is done — where the next step, offering
+ * it, starts with it already chosen (#564).
+ */
+function ProductSetupTab({ step }: { readonly step: string | undefined }) {
+  const nav = useTabEntityNav('master');
+  return (
+    <ProductSetupWizard
+      {...(step === undefined ? {} : { step })}
+      onFinished={({ id }) => nav.toEntity(PRODUCT_SURFACE.entityKey, id)}
+    />
+  );
+}
 
 /**
  * The generated screens of one shell, as the two halves a tab kind needs.
@@ -116,7 +145,7 @@ const masterScreens = (partyRole: string | undefined): EntityTabScreens => {
   // everything else that domain holds is produced, so splitting it anywhere but
   // at the shell would put a run under a heading that says a person wrote it.
   const derived = screensFor('master', partyRole, [
-    ...MARKETPLACE_ADMIN_CRUDS,
+    ...CATALOG_CRUDS,
     ...SALES_CRUDS,
     ...SETTLEMENT_MASTER_CRUDS,
   ]);
@@ -164,7 +193,7 @@ const masterScreens = (partyRole: string | undefined): EntityTabScreens => {
 const wizardKind = wizardTabKind({
   [PRODUCT_SETUP_SURFACE.key]: {
     titleKey: PRODUCT_SETUP_SURFACE.navLabelKey,
-    render: step => <ProductSetupWizard step={step} />,
+    render: step => <ProductSetupTab step={step} />,
   },
   // The till, addressed `wizard:counter-sale[:<step>]`. It is an Asistente for
   // the taxonomy's own reason — guided, multi-step, and it ends — and it owns no

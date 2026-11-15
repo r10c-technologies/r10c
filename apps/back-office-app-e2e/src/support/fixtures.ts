@@ -26,6 +26,7 @@ import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   ProductOffering,
+  ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
@@ -578,6 +579,38 @@ const offerings = entityBackendHandlers(ProductOffering, {
   ],
 });
 
+/** A 1×1 transparent PNG, for every seeded picture. */
+const PIXEL = Uint8Array.from(
+  atob(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  ),
+  character => character.charCodeAt(0),
+);
+const mediaHandlers = [
+  http.get('https://media.example.test/*', () =>
+    HttpResponse.arrayBuffer(PIXEL.buffer, {
+      headers: { 'content-type': 'image/png' },
+    }),
+  ),
+];
+
+/**
+ * The offerings' prices, beside them in the catalog slice: one priced
+ * offering, so the offering list's price column has a value and a `—` (#558).
+ */
+export const OFFERING_PRICE_URL = `${SERVICE_URL}/product-offering-price`;
+const offeringPrices = entityBackendHandlers(ProductOfferingPrice, {
+  baseUrl: OFFERING_PRICE_URL,
+  seed: [
+    {
+      id: 'price-1',
+      offeringId: 'product-offering-1',
+      amount: 4500,
+      currency: 'GTQ',
+    },
+  ],
+});
+
 /**
  * The offering screen's affordance document, with the verbs the entity really
  * declares — `publish` and `unpublish`, on a record and over a selection — so
@@ -622,6 +655,7 @@ export const vendorPayoutBackend = vendorPayouts.backend;
 
 /** The mock stock store, for reseeding or for breaking on purpose. */
 export const stockItemBackend = stockItems.backend;
+export const offeringPriceBackend = offeringPrices.backend;
 export const stockMovementBackend = stockMovements.backend;
 
 /** The mock catalog, for reseeding or for breaking on purpose. */
@@ -880,6 +914,8 @@ const base = defineEntifixE2eTest({
     ...publishedOfferings.handlers,
     ...publishedVendors.handlers,
     ...offerings.handlers,
+    ...offeringPrices.handlers,
+    ...mediaHandlers,
     ...offeringMetadataHandlers,
     ...bulkPublishHandlers,
     ...sellHandlers,
