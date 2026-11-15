@@ -46,10 +46,13 @@ describe('SETTLEMENT_SEARCH_SOURCES', () => {
       candidate => candidate.key === key,
     );
 
-    const href = source?.read({
-      meta: { type: 'entityPage', entity: key },
-      data: { items: [{ id: 'x-1' }], total: 1 },
-    })?.items[0]?.href;
+    const href = source?.read(
+      {
+        meta: { type: 'entityPage', entity: key },
+        data: { items: [{ id: 'x-1' }], total: 1 },
+      },
+      'es',
+    )?.items[0]?.href;
 
     expect(href).toBe(expected);
   });
@@ -59,7 +62,9 @@ describe('SETTLEMENT_SEARCH_SOURCES', () => {
     // unlike the browser's adapters, which go through the host's same-origin
     // proxy because that is what carries the session cookie.
     for (const source of SETTLEMENT_SEARCH_SOURCES) {
-      expect(source.url('x', 5).startsWith(SETTLEMENT_SERVICE_URL)).toBe(true);
+      expect(source.url('x', 5, 'es').startsWith(SETTLEMENT_SERVICE_URL)).toBe(
+        true,
+      );
     }
   });
 });

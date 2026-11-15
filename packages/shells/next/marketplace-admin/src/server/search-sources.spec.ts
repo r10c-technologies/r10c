@@ -44,14 +44,17 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
       candidate => candidate.key === key,
     );
 
-    expect(source?.url('acme', 5)).toContain(`/api/${key}?`);
+    expect(source?.url('acme', 5, 'es')).toContain(`/api/${key}?`);
     // One option is enough to prove the href builder; the mapping itself is
     // covered where it lives.
     expect(
-      source?.read({
-        meta: { type: 'entityPage', entity: key },
-        data: { items: [{ id: 'x-1' }], total: 1 },
-      })?.items[0]?.href,
+      source?.read(
+        {
+          meta: { type: 'entityPage', entity: key },
+          data: { items: [{ id: 'x-1' }], total: 1 },
+        },
+        'es',
+      )?.items[0]?.href,
     ).toBe(expected);
   });
 
@@ -61,10 +64,10 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
 
     // Two services since ADR 0022, which is also why the tenant-plane three can
     // answer `409` for a caller the other two serve happily.
-    expect(specification?.url('acme', 5)).toContain('localhost:3101');
-    expect(offering?.url('acme', 5)).toContain('localhost:3101');
-    expect(price?.url('acme', 5)).toContain('localhost:3101');
-    expect(brand?.url('acme', 5)).toContain('localhost:3100');
-    expect(category?.url('acme', 5)).toContain('localhost:3100');
+    expect(specification?.url('acme', 5, 'es')).toContain('localhost:3101');
+    expect(offering?.url('acme', 5, 'es')).toContain('localhost:3101');
+    expect(price?.url('acme', 5, 'es')).toContain('localhost:3101');
+    expect(brand?.url('acme', 5, 'es')).toContain('localhost:3100');
+    expect(category?.url('acme', 5, 'es')).toContain('localhost:3100');
   });
 });

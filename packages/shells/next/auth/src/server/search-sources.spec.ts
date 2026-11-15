@@ -19,7 +19,7 @@ describe('AUTH_SEARCH_SOURCES', () => {
   });
 
   it('searches auth-service by display name, sorted by it', () => {
-    const url = AUTH_SEARCH_SOURCES[0]?.url('ada', 5) ?? '';
+    const url = AUTH_SEARCH_SOURCES[0]?.url('ada', 5, 'es') ?? '';
     const params = new URL(url).searchParams;
 
     expect(url).toContain('localhost:3102/api/user-identity');
@@ -30,13 +30,16 @@ describe('AUTH_SEARCH_SOURCES', () => {
 
   it('routes a result to the user page this host serves', () => {
     const [option] =
-      AUTH_SEARCH_SOURCES[0]?.read({
-        meta: { type: 'entityPage', entity: 'user-identity' },
-        data: {
-          items: [{ id: 'u-1', displayName: 'Ada', role: 'admin' }],
-          total: 1,
+      AUTH_SEARCH_SOURCES[0]?.read(
+        {
+          meta: { type: 'entityPage', entity: 'user-identity' },
+          data: {
+            items: [{ id: 'u-1', displayName: 'Ada', role: 'admin' }],
+            total: 1,
+          },
         },
-      })?.items ?? [];
+        'es',
+      )?.items ?? [];
 
     expect(option).toMatchObject({
       id: 'u-1',

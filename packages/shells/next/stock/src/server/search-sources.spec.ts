@@ -40,12 +40,17 @@ describe('STOCK_SEARCH_SOURCES', () => {
       candidate => candidate.key === key,
     );
 
-    expect(source?.url('product-offering-1', 5)).toContain(`/api/${key}?`);
+    expect(source?.url('product-offering-1', 5, 'es')).toContain(
+      `/api/${key}?`,
+    );
     expect(
-      source?.read({
-        meta: { type: 'entityPage', entity: key },
-        data: { items: [{ id: 'x-1' }], total: 1 },
-      })?.items[0]?.href,
+      source?.read(
+        {
+          meta: { type: 'entityPage', entity: key },
+          data: { items: [{ id: 'x-1' }], total: 1 },
+        },
+        'es',
+      )?.items[0]?.href,
     ).toBe(expected);
   });
 
@@ -54,9 +59,9 @@ describe('STOCK_SEARCH_SOURCES', () => {
     // brand pages once requested routes that no longer existed while the e2e
     // fixture, stubbing the same wrong address, could not see it.
     for (const source of STOCK_SEARCH_SOURCES) {
-      expect(source.url('anything', 1).startsWith(STOCK_SERVICE_URL)).toBe(
-        true,
-      );
+      expect(
+        source.url('anything', 1, 'es').startsWith(STOCK_SERVICE_URL),
+      ).toBe(true);
     }
   });
 });

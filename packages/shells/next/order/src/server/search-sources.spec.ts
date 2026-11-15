@@ -29,12 +29,17 @@ describe('ORDER_SEARCH_SOURCES', () => {
   it('routes a result to a page this host serves', () => {
     const source = ORDER_SEARCH_SOURCES[0];
 
-    expect(source?.url('party-user-2', 5)).toContain('/api/product-order?');
+    expect(source?.url('party-user-2', 5, 'es')).toContain(
+      '/api/product-order?',
+    );
     expect(
-      source?.read({
-        meta: { type: 'entityPage', entity: 'product-order' },
-        data: { items: [{ id: 'ord-1' }], total: 1 },
-      })?.items[0]?.href,
+      source?.read(
+        {
+          meta: { type: 'entityPage', entity: 'product-order' },
+          data: { items: [{ id: 'ord-1' }], total: 1 },
+        },
+        'es',
+      )?.items[0]?.href,
     ).toBe('/order/product-order/ord-1');
   });
 
@@ -43,9 +48,9 @@ describe('ORDER_SEARCH_SOURCES', () => {
     // brand pages once requested routes that no longer existed while the e2e
     // fixture, stubbing the same wrong address, could not see it.
     for (const source of ORDER_SEARCH_SOURCES) {
-      expect(source.url('anything', 1).startsWith(ORDER_SERVICE_URL)).toBe(
-        true,
-      );
+      expect(
+        source.url('anything', 1, 'es').startsWith(ORDER_SERVICE_URL),
+      ).toBe(true);
     }
   });
 });

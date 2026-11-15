@@ -22,20 +22,23 @@ describe('FULFILMENT_SEARCH_SOURCES', () => {
   it('routes a result to a page this host serves', () => {
     const source = FULFILMENT_SEARCH_SOURCES[0];
 
-    expect(source?.url('order-1', 5)).toContain('/api/shipping-order?');
+    expect(source?.url('order-1', 5, 'es')).toContain('/api/shipping-order?');
     expect(
-      source?.read({
-        meta: { type: 'entityPage', entity: 'shipping-order' },
-        data: { items: [{ id: 'so-1' }], total: 1 },
-      })?.items[0]?.href,
+      source?.read(
+        {
+          meta: { type: 'entityPage', entity: 'shipping-order' },
+          data: { items: [{ id: 'so-1' }], total: 1 },
+        },
+        'es',
+      )?.items[0]?.href,
     ).toBe('/fulfilment/shipping-order/so-1');
   });
 
   it('fans out to fulfilment-service', () => {
     for (const source of FULFILMENT_SEARCH_SOURCES) {
-      expect(source.url('anything', 1).startsWith(FULFILMENT_SERVICE_URL)).toBe(
-        true,
-      );
+      expect(
+        source.url('anything', 1, 'es').startsWith(FULFILMENT_SERVICE_URL),
+      ).toBe(true);
     }
   });
 });
