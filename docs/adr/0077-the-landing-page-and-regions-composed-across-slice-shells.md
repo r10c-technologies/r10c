@@ -14,7 +14,7 @@ where the offering, its price, its stock, its images and its publication are
 read together rather than across four screens.
 
 entifix 0030
-([a reference names its target through the owner's read port](https://github.com/r10c-technologies/entifix/blob/v0.22.1/docs/adr/0030-a-reference-names-its-target-through-the-owners-read-port.md))
+([a reference names its target through the owner's read port](https://github.com/r10c-technologies/entifix/blob/v0.22.2/docs/adr/0030-a-reference-names-its-target-through-the-owners-read-port.md))
 decides that a record page composes **related regions** — lists of the records
 that refer to it, each read through its own adapter — and that this is not
 master-detail ([ADR 0038](0038-master-detail-the-rows-a-record-owns.md)): the
@@ -48,7 +48,7 @@ the home is about the person's day; neither is a destination in a domain.
 Every tile on it is a **link into an Operaciones list or record**, filtered to
 what the tile counts. The home writes nothing: a verb belongs on the screen the
 tile leads to, where the record's own legal states decide it
-([entifix 0029](https://github.com/r10c-technologies/entifix/blob/v0.22.1/docs/adr/0029-a-verb-declares-the-states-it-is-legal-from.md)).
+([entifix 0029](https://github.com/r10c-technologies/entifix/blob/v0.22.2/docs/adr/0029-a-verb-declares-the-states-it-is-legal-from.md)).
 A tile whose source fails says so in its own place and leaves the others
 standing (entifix 0028's states, per tile).
 

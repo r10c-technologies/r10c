@@ -5,13 +5,13 @@ import { ORDER_SERVICE_URL } from './service-urls';
 
 /**
  * The declarations are validated against live entity metadata the moment this
- * module loads, so the import itself is most of the test: dropping `sortable`
- * from `ProductOrder.buyerId` fails *here*, loudly, rather than in a palette
- * that quietly reports a group it could not reach.
+ * module loads, so the import itself is most of the test: dropping
+ * `filterable` from `ProductOrder.buyerId` fails *here*, loudly, rather than
+ * in a palette that quietly reports a group it could not reach.
  *
- * That guard is not hypothetical. `buyerId` is the only member of `ProductOrder`
- * a source can name a record by — `status` is an enum, `placedAt` a date, and
- * `items` a collection `describeEntityColumns` refuses to make queryable at all.
+ * An order is matched by its buyer and named by nothing it holds: a buyer's id
+ * is not what a person calls an order, so a result names itself — the noun and
+ * a short id — until ADR 0076's order number gives it a name (#552).
  */
 describe('ORDER_SEARCH_SOURCES', () => {
   it('declares the one searchable order record', () => {
@@ -41,6 +41,27 @@ describe('ORDER_SEARCH_SOURCES', () => {
         'es',
       )?.items[0]?.href,
     ).toBe('/order/product-order/ord-1');
+  });
+
+  it('names a result itself, never by the buyer’s id', () => {
+    const option = ORDER_SEARCH_SOURCES[0]?.read(
+      {
+        meta: { type: 'entityPage', entity: 'product-order' },
+        data: {
+          items: [
+            {
+              id: '8a564966-0000-4000-8000-000000000000',
+              buyerId: 'party-user-2',
+            },
+          ],
+          total: 1,
+        },
+      },
+      'es',
+    )?.items[0];
+
+    expect(option).toMatchObject({ unnamed: true });
+    expect(option?.label).not.toContain('party-user-2');
   });
 
   it('fans out to order-service, not to a catalog backend', () => {

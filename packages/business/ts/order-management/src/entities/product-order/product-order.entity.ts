@@ -95,10 +95,15 @@ export class ProductOrder implements Entity {
    * or a loyalty scheme — is a backfill, not a lookup
    * ([ADR 0024](../../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
    */
+  //
+  // A reference, because that is what it holds: the buyer's party id, from
+  // another store. Declared, it is never taken for the order's name — an
+  // order names itself, noun and short id, until ADR 0076's number (#552).
   @accessor({
     type: 'string',
     labelKey: 'entity:product-order.fields.buyerId',
     filterable: true,
+    references: { entity: 'party-management:individual' },
   })
   get buyerId(): string | undefined {
     return this.#buyerId;
