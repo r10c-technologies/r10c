@@ -7,6 +7,7 @@
 - Revised: 2026-10-29 — the tracker and the single-step engine's only use went ahead of wave 4: the specification create is a unit of work (#463)
 - Revised: 2026-11-04 — built (#486, #487, #490): checkout and cancellation run on the engine, started by `POST /api/flow/<recipe>` answering `202`; the saga runner, its `saga` store, its resume sweep, `GET /api/saga/:id` and `saga-contracts` are deleted, `FlowStarterTag` lives in `flow-contracts`, and `postFlow` replaced `postSaga`
 - Revised: 2026-11-04 — the delivery flow (#488) adopted entifix 0.16.0's grammar: a wait declares its outcomes, a step is guarded on them, a timeout answers an outcome or strands the flow (`flow.stranded`), and a correlated signal finds its wait by the shipment alone
+- Revised: 2026-11-15 — a finished flow's journal is purged after `flow.journalRetention` (thirty days, a config row), adopted with entifix 0.22.0; its status row stays (#552)
 
 ## Context
 
@@ -74,6 +75,13 @@ drawn from a Mongo `$inc` counter rather than the Redis sequence.
 
 - One durability story: a flow is its journal, and the record ADR 0055 resumed
   from is gone with the runner.
+- A journal is kept only as long as its flow needs it. It holds every start and
+  step input, personal data among them, so once a flow has ended — completed,
+  failed, stranded, compensated or interrupted — its journal is purged after
+  the `transaction-service / flow / journalRetention` row (thirty days); a flow
+  still running is never touched, and its status row stays, so an ended flow
+  is never restarted. The engine refuses to boot without the row, and the
+  transaction shell logs a failed purge pass as an error (ADR 0064).
 - The engine is `@stability unstable`; containment in `@entifix/workflow`, the
   chaos suite and journal replay are what make that acceptable.
 - **Supersedes** [ADR 0039](0039-multi-step-sagas-are-orchestrated.md),

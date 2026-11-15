@@ -6,7 +6,11 @@ import {
 } from '@r10c/business-ts-sales-vocabulary';
 
 import { OrderItem } from '../../values/order-item';
-import { type OrderStatus, OrderStatuses } from '../../values/order-status';
+import {
+  type OrderStatus,
+  OrderStatuses,
+  OrderStatusTones,
+} from '../../values/order-status';
 import type { RelatedChannel } from '../../values/related-channel';
 
 /**
@@ -201,6 +205,7 @@ export class ProductOrder implements Entity {
     type: 'enum',
     labelKey: 'entity:product-order.fields.status',
     enumValues: OrderStatuses,
+    enumTones: OrderStatusTones,
     enumLabelKey: 'entity:product-order.values.status',
     required: true,
     filterable: true,

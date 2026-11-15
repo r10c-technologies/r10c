@@ -4,6 +4,7 @@ import { accessor, entity } from '@entifix/core';
 import {
   type OfferingStatus,
   OfferingStatuses,
+  OfferingStatusTones,
 } from '../../values/offering-status';
 
 /**
@@ -127,6 +128,7 @@ export class ProductOffering implements Entity {
     type: 'enum',
     labelKey: 'entity:product-offering.fields.status',
     enumValues: OfferingStatuses,
+    enumTones: OfferingStatusTones,
     enumLabelKey: 'entity:product-offering.values.status',
     filterable: true,
   })

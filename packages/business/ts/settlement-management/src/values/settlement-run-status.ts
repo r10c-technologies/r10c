@@ -1,3 +1,5 @@
+import type { EnumTone } from '@entifix/core';
+
 /**
  * Where a settlement run is in its life.
  *
@@ -14,6 +16,16 @@ export const SettlementRunStatuses = [
 ] as const;
 
 export type SettlementRunStatus = (typeof SettlementRunStatuses)[number];
+
+/**
+ * A status read at a glance: a calculated run is information until it is
+ * paid, and a cancelled one reads as undone. A value with no tone reads neutral.
+ */
+export const SettlementRunStatusTones = {
+  calculated: 'info',
+  paid: 'success',
+  cancelled: 'danger',
+} as const satisfies Readonly<Partial<Record<SettlementRunStatus, EnumTone>>>;
 
 /** Narrow an unknown value to a settlement run status. */
 export const isSettlementRunStatus = (

@@ -4,6 +4,7 @@ import { accessor, entity } from '@entifix/core';
 import {
   type SettlementRunStatus,
   SettlementRunStatuses,
+  SettlementRunStatusTones,
 } from '../../values/settlement-run-status';
 
 /**
@@ -87,6 +88,7 @@ export class SettlementRun implements Entity {
     type: 'enum',
     labelKey: 'entity:settlement-run.fields.status',
     enumValues: SettlementRunStatuses,
+    enumTones: SettlementRunStatusTones,
     enumLabelKey: 'entity:settlement-run.values.status',
     required: true,
     filterable: true,

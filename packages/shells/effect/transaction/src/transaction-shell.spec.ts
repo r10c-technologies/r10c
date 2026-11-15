@@ -45,7 +45,7 @@ const CONFIGURATION = fleetConfigurationOf({
     url: 'postgres://postgres:postgres@127.0.0.1:1/workflow',
     runnerHost: '127.0.0.1',
   }),
-  flow: configurationRows({ concurrency: 4 }),
+  flow: configurationRows({ concurrency: 4, journalRetention: 2_592_000_000 }),
   delivery: configurationRows({
     awaitDeliveryTimeout: 1_209_600_000,
     awaitReturnTimeout: 2_592_000_000,

@@ -70,6 +70,9 @@ describe('the seed', () => {
     });
     expect(value('workflow', 'runnerHost')?.value).toBe('127.0.0.1');
     expect(value('flow', 'concurrency')?.value).toBe('4');
+    expect(value('flow', 'journalRetention')?.value).toBe(
+      String(30 * 24 * 60 * 60 * 1000),
+    );
     expect(value('outbox', 'maxAttempts')?.value).toBe('5');
   });
 });

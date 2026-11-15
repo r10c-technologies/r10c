@@ -8,6 +8,7 @@ import {
 import {
   type SalesChannelStatus,
   SalesChannelStatuses,
+  SalesChannelStatusTones,
 } from '../../values/sales-channel-status';
 
 /**
@@ -117,6 +118,7 @@ export class SalesChannel implements Entity {
     type: 'enum',
     labelKey: 'entity:sales-channel.fields.status',
     enumValues: SalesChannelStatuses,
+    enumTones: SalesChannelStatusTones,
     enumLabelKey: 'entity:sales-channel.values.status',
     required: true,
     filterable: true,

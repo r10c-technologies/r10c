@@ -9,6 +9,7 @@ import { ShippingLine } from '../../values/shipping-line';
 import {
   type ShippingStatus,
   ShippingStatuses,
+  ShippingStatusTones,
 } from '../../values/shipping-status';
 
 /**
@@ -167,6 +168,7 @@ export class ShippingOrder implements Entity {
     type: 'enum',
     labelKey: 'entity:shipping-order.fields.status',
     enumValues: ShippingStatuses,
+    enumTones: ShippingStatusTones,
     enumLabelKey: 'entity:shipping-order.values.status',
     required: true,
     filterable: true,

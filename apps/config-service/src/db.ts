@@ -705,6 +705,16 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'concurrency',
     value: '4',
   },
+  // How long a finished flow keeps its journal, in milliseconds: thirty days.
+  // The journal holds every flow's start and step inputs, personal data
+  // among them, so it is purged once a flow has ended this long; a flow
+  // still running is never touched, and its status row stays (#238).
+  {
+    service: 'transaction-service',
+    group_name: 'flow',
+    key: 'journalRetention',
+    value: String(30 * 24 * 60 * 60 * 1000),
+  },
   // How long a delivery flow waits, in milliseconds (ADR 0070): fourteen days
   // for the courier's report — none in the window is handled as a refusal —
   // and thirty for a refused parcel to come back, after which the flow strands
