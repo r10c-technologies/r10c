@@ -76,8 +76,8 @@ describe('orderSurface', () => {
       orderSurface(Unnamed, {
         entityKey: 'product-order',
         basePath: '/order/product-order',
-        icon: '🧾',
-        navLabelKey: 'r10c:order.nav.orders',
+        icon: '≣',
+        navLabelKey: 'r10c:order.nav.received',
         searchProperty: 'buyerId',
         labelProperty: 'buyerId',
       }),

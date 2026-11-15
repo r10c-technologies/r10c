@@ -109,8 +109,8 @@ export const orderSurface = <TEntity extends Entity>(
 export const PRODUCT_ORDER_SURFACE = orderSurface(ProductOrder, {
   entityKey: 'product-order',
   basePath: '/order/product-order',
-  icon: '🧾',
-  navLabelKey: 'r10c:order.nav.orders',
+  icon: '≣',
+  navLabelKey: 'r10c:order.nav.received',
   // The only member that can name an order to a human. `buyerId` is
   // `filterable` **and** `sortable` on the entity, which is what a search source
   // requires of a label member — it validates that at module load, so a

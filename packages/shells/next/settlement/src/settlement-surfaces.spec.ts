@@ -131,7 +131,7 @@ describe('the settlement surfaces', () => {
         entityKey: 'agreement',
         screenType: 'master',
         basePath: '/settlement/agreement',
-        icon: '⚖',
+        icon: '⊜',
         navLabelKey: 'r10c:settlement.nav.agreements',
         searchProperty: 'vendorId',
         labelProperty: 'vendorId',

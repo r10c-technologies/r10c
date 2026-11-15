@@ -279,7 +279,9 @@ export const r10c = {
   },
   order: {
     nav: {
+      // El grupo y su destino: el encabezado no se repite en el elemento.
       orders: 'Pedidos',
+      received: 'Pedidos recibidos',
     },
   },
   fulfilment: {
@@ -298,7 +300,7 @@ export const r10c = {
       settlement: 'Liquidaciones',
       agreements: 'Acuerdos',
       entries: 'Apuntes de comisión',
-      runs: 'Liquidaciones',
+      runs: 'Cortes de liquidación',
       payouts: 'Pagos a vendedores',
     },
     agreement: {

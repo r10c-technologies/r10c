@@ -11,7 +11,11 @@ import { expect, test } from './support/fixtures';
  * which is the point — a crumb is not a grant.
  */
 const SCREENS = [
-  { path: '/order/product-order', label: 'Pedidos', inSidebar: false },
+  {
+    path: '/order/product-order',
+    label: 'Pedidos recibidos',
+    inSidebar: false,
+  },
   {
     path: '/stock/stock-item',
     label: 'Existencias en almacén',

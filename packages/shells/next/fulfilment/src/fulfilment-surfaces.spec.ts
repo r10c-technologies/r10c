@@ -72,7 +72,7 @@ describe('fulfilmentSurface', () => {
       fulfilmentSurface(Unnamed, {
         entityKey: 'shipping-order',
         basePath: '/fulfilment/shipping-order',
-        icon: '📦',
+        icon: '⊡',
         navLabelKey: 'r10c:fulfilment.nav.shipments',
         searchProperty: 'orderId',
         labelProperty: 'orderId',

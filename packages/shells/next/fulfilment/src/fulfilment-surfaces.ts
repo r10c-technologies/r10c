@@ -75,7 +75,7 @@ export const fulfilmentSurface = <TEntity extends Entity>(
 export const SHIPPING_ORDER_SURFACE = fulfilmentSurface(ShippingOrder, {
   entityKey: 'shipping-order',
   basePath: '/fulfilment/shipping-order',
-  icon: '📦',
+  icon: '⊡',
   navLabelKey: 'r10c:fulfilment.nav.shipments',
   // The only string member that names a shipment to a person: the order it
   // carries. A search source refuses a label member that is not sortable,

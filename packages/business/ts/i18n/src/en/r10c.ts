@@ -260,6 +260,7 @@ export const r10c: EsR10c = {
   order: {
     nav: {
       orders: 'Orders',
+      received: 'Received orders',
     },
   },
   fulfilment: {

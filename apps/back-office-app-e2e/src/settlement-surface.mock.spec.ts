@@ -34,7 +34,10 @@ test('files agreements under Definiciones and the statement under Operaciones', 
     operations.getByRole('link', { name: 'Apuntes de comisión', exact: true }),
   ).toBeVisible();
   await expect(
-    operations.getByRole('link', { name: 'Liquidaciones', exact: true }),
+    operations.getByRole('link', {
+      name: 'Cortes de liquidación',
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
     operations.getByRole('link', { name: 'Pagos a vendedores', exact: true }),

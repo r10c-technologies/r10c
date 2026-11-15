@@ -154,6 +154,27 @@ export const sidebarNav = (
     })),
   }));
 
+/**
+ * The items whose name, translated, is their own section's heading.
+ *
+ * An item named like the group it sits in tells the reader nothing about where
+ * it goes (b0-18). A section heading is repeated across tiers on purpose
+ * (ADR 0041), so only an item against its own section is compared.
+ */
+export const itemsNamedLikeTheirSection = (
+  nav: readonly GuardedNavSection[],
+  translate: (key: string) => string,
+): string[] =>
+  nav.flatMap(section =>
+    section.title === undefined
+      ? []
+      : section.items
+          .filter(
+            item => translate(item.label) === translate(section.title ?? ''),
+          )
+          .map(item => item.label),
+  );
+
 const segmentsOf = (href: string): string[] =>
   href
     .split(/[?#]/)[0]

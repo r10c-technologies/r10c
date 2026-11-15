@@ -1,5 +1,8 @@
+import { r10cCatalogs } from '@r10c/business-ts-i18n';
+
 import {
   isNavItemVisible,
+  itemsNamedLikeTheirSection,
   NAV,
   navBreadcrumbLabels,
   visibleNav,
@@ -115,5 +118,50 @@ describe('navBreadcrumbLabels', () => {
     expect(labels['stock']).toBe('r10c:stock.nav.stock');
     expect(labels['fulfilment']).toBe('r10c:fulfilment.nav.title');
     expect(labels['order']).toBe('r10c:order.nav.orders');
+  });
+});
+
+describe('Sidebar item names', () => {
+  /** A catalog key resolved against r10c's own copy, in one locale. */
+  const translateIn =
+    (locale: 'es' | 'en') =>
+    (key: string): string => {
+      const [namespace, path] = key.split(':') as [string, string];
+      const catalog = (
+        r10cCatalogs[locale] as unknown as Record<string, unknown>
+      )[namespace];
+      const value = path
+        .split('.')
+        .reduce<unknown>(
+          (node, segment) =>
+            (node as Record<string, unknown> | undefined)?.[segment],
+          catalog,
+        );
+      return typeof value === 'string' ? value : key;
+    };
+
+  it.each(['es', 'en'] as const)(
+    'never repeats its own section heading (%s)',
+    locale => {
+      // "Liquidaciones" under "Liquidaciones" told the reader nothing about
+      // where the item goes (b0-18). A section that spans two tiers keeps its
+      // name in both (ADR 0041); an item inside it needs one of its own.
+      const repeats = itemsNamedLikeTheirSection(NAV, translateIn(locale));
+      expect(repeats).toEqual([]);
+    },
+  );
+
+  it('catches a planted item named like its section', () => {
+    expect(
+      itemsNamedLikeTheirSection(
+        [
+          {
+            title: 'x:runs',
+            items: [{ label: 'x:runs', href: '/runs', permission: 'a:b:read' }],
+          },
+        ],
+        key => key,
+      ),
+    ).toEqual(['x:runs']);
   });
 });

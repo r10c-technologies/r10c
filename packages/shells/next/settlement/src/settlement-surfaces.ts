@@ -122,7 +122,7 @@ export const AGREEMENT_SURFACE = settlementSurface(Agreement, {
   entityKey: 'agreement',
   screenType: 'master',
   basePath: '/settlement/agreement',
-  icon: '⚖',
+  icon: '⊜',
   navLabelKey: 'r10c:settlement.nav.agreements',
   searchProperty: 'vendorId',
   labelProperty: 'vendorId',
@@ -143,7 +143,7 @@ export const SETTLEMENT_RUN_SURFACE = settlementSurface(SettlementRun, {
   entityKey: 'settlement-run',
   screenType: 'operation',
   basePath: '/settlement/settlement-run',
-  icon: '⏱',
+  icon: '◷',
   navLabelKey: 'r10c:settlement.nav.runs',
   // ⚠️ A run has **no** string member at all — a period, a period and a status.
   // `searchProperty` is declared for the surface's shape and this surface is
