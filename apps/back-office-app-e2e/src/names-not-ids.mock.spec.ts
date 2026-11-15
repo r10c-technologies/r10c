@@ -1,3 +1,5 @@
+import { seedSession } from '@entifix/testing-e2e/playwright';
+
 import {
   expect,
   OFFERING_NAMES,
@@ -66,6 +68,7 @@ for (const path of LISTS) {
 }
 
 test('names a stock item by its offering, and a vendor by its name', async ({
+  context,
   page,
 }) => {
   await page.goto('/es/stock/stock-item');
@@ -73,6 +76,14 @@ test('names a stock item by its offering, and a vendor by its name', async ({
     page.getByRole('cell', { name: OFFERING_NAMES[0][1], exact: true }).first(),
   ).toBeVisible();
 
+  // An operator's agreements carry the vendor column; a vendor's do not, since
+  // every row is theirs (#559). Re-seeded on the same context, so the mocks
+  // stay installed.
+  await seedSession(context, {
+    roles: ['admin'],
+    partyRole: 'operator',
+    entitlements: ['settlement-management'],
+  });
   await page.goto('/es/settlement/agreement');
   await expect(
     page.getByRole('cell', { name: VENDOR_NAME, exact: true }).first(),
