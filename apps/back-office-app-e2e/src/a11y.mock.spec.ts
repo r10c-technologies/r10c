@@ -51,7 +51,7 @@ const SCREENS = [
   {
     screen: 'till',
     path: '/es/sales/counter-sale',
-    ready: { role: 'combobox', name: 'Canal' },
+    ready: { role: 'radiogroup', name: 'Canal' },
   },
   {
     screen: 'account',

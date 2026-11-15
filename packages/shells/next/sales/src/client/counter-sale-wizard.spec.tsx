@@ -22,6 +22,7 @@ import {
   COUNTER_SALE_WIZARD,
   CounterSaleWizard,
   currencyOf,
+  lastChannelKey,
   readLines,
 } from './counter-sale-wizard.js';
 import { SalesProvider } from './sales-context.js';
@@ -44,11 +45,39 @@ const settledWriter = (
 /** The transports the shell really composes, so metadata reads behave as in production. */
 const real = createClientAdapters();
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/sales/counter-sale',
-  useSearchParams: () => new URLSearchParams(),
-}));
+/**
+ * The address, as a tiny store the router writes and the search params read.
+ *
+ * A no-op router was enough while every move went through `goTo`. The till now
+ * also moves by writing the address — a sole channel opens it on the lines, and
+ * the follower turns that push into the move — so the address has to answer
+ * what was pushed, or the spec would assert a till the browser never shows.
+ */
+const address = vi.hoisted(() => {
+  let params = new URLSearchParams();
+  const listeners = new Set<() => void>();
+  return {
+    read: () => params,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    go: (url: string) => {
+      params = new URLSearchParams(url.split('?')[1] ?? '');
+      for (const listener of listeners) listener();
+    },
+  };
+});
+
+vi.mock('next/navigation', async () => {
+  const { useSyncExternalStore } = await import('react');
+  return {
+    useRouter: () => ({ push: address.go, replace: address.go }),
+    usePathname: () => '/sales/counter-sale',
+    useSearchParams: () =>
+      useSyncExternalStore(address.subscribe, address.read),
+  };
+});
 
 const activeChannel = () => {
   const channel = new SalesChannel('Mostrador principal', 'counter');
@@ -63,6 +92,31 @@ const retiredChannel = () => {
   return channel;
 };
 
+const phoneChannel = () => {
+  const channel = new SalesChannel('Pedidos por teléfono', 'phone');
+  channel.id = 'sales-channel-phone';
+  return channel;
+};
+
+/** Six active channels: more than a row of buttons offers, so a select. */
+const manyChannels = (): SalesChannel[] => [
+  activeChannel(),
+  phoneChannel(),
+  ...[1, 2, 3, 4].map(n => {
+    const channel = new SalesChannel(`Sucursal ${n}`, 'counter');
+    channel.id = `sales-channel-branch-${n}`;
+    return channel;
+  }),
+  retiredChannel(),
+];
+
+/** A counter and a phone line, and a retired kiosk: a row of buttons. */
+const twoChannels = (): SalesChannel[] => [
+  activeChannel(),
+  phoneChannel(),
+  retiredChannel(),
+];
+
 const publishedOffering = () => {
   const offering = new PublishedOffering();
   offering.id = 'published-1';
@@ -75,21 +129,17 @@ const publishedOffering = () => {
   return offering;
 };
 
-const adapters = (): SalesAdapters => ({
+const adapters = (
+  channels: () => SalesChannel[] = twoChannels,
+): SalesAdapters => ({
   salesChannelRest: Context.make(
     EntityRepositoryTag,
-    makeInMemoryEntityRepository([
-      activeChannel(),
-      retiredChannel(),
-    ] as Entity[]),
+    makeInMemoryEntityRepository(channels() as Entity[]),
   ),
   salesChannelWriter: settledWriter(
     Context.make(
       EntityRepositoryTag,
-      makeInMemoryEntityRepository([
-        activeChannel(),
-        retiredChannel(),
-      ] as Entity[]),
+      makeInMemoryEntityRepository(channels() as Entity[]),
     ),
   ),
   publishedOfferingRest: Context.make(
@@ -106,16 +156,29 @@ const adapters = (): SalesAdapters => ({
 /** The till's pending flows: what a `202` hands off to, and settles from. */
 let flows: PendingFlowStore;
 
-const renderTill = (props: { step?: string; onFinished?: () => void } = {}) =>
+const renderTill = ({
+  channels,
+  scope,
+  ...props
+}: {
+  step?: string;
+  onFinished?: () => void;
+  channels?: () => SalesChannel[];
+  scope?: string;
+} = {}) =>
   render(
     <EntifixQueryProvider>
       <PendingFlowStoreProvider store={flows}>
-        <SalesProvider adapters={adapters()}>
+        <SalesProvider adapters={adapters(channels)} scope={scope}>
           <CounterSaleWizard {...props} />
         </SalesProvider>
       </PendingFlowStoreProvider>
     </EntifixQueryProvider>,
   );
+
+/** The channel step as a row of buttons, once the channels have loaded. */
+const channelChoice = async (name: string) =>
+  screen.findByRole('radio', { name });
 
 /** The service accepted the sale: a checkout is running under `flowId`. */
 const accepted = (flowId = 'flow-1') => ({
@@ -141,13 +204,7 @@ const settle = async (
 
 /** Walks the flow to the summary, leaving one line of two units on it. */
 const ringUp = async (user: ReturnType<typeof userEvent.setup>) => {
-  await waitFor(() =>
-    expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
-  );
-  await user.selectOptions(
-    screen.getByRole('combobox', { name: 'Canal' }),
-    'sales-channel-counter',
-  );
+  await user.click(await channelChoice('Mostrador principal'));
   await user.click(screen.getByRole('button', { name: /Continuar/i }));
 
   await waitFor(() =>
@@ -176,6 +233,11 @@ beforeEach(() => {
   // carry the first one's lines and the assertion would pass or fail on
   // ordering. Clearing the *store*, not `localStorage`, is what resets it.
   useDraftsState.setState({ drafts: {} });
+  // The remembered channel lives in the preference store, which falls back to
+  // `localStorage` without a provider; one test's sale must not preselect the
+  // next one's channel.
+  localStorage.clear();
+  address.go('/sales/counter-sale');
   flows = makePendingFlowStore();
   vi.spyOn(useDraftsState.persist, 'rehydrate').mockResolvedValue(undefined);
 });
@@ -209,21 +271,31 @@ describe('the till', () => {
   it('offers only channels that can take a sale', async () => {
     renderTill();
 
+    // A retired channel stays readable and the route refuses it, so offering it
+    // here would be offering a dead end.
+    expect(await channelChoice('Mostrador principal')).toBeInTheDocument();
+    expect(
+      screen.getByRole('radio', { name: 'Pedidos por teléfono' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('radio', { name: 'Kiosco cerrado' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers more than five channels as a select, retired ones left out', async () => {
+    renderTill({ channels: manyChannels });
+
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
     );
-    // A retired channel stays readable and the route refuses it, so offering it
-    // here would be offering a dead end.
+    expect(screen.getAllByRole('option')).toHaveLength(7);
     expect(
       screen.queryByRole('option', { name: 'Kiosco cerrado' }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('option', { name: 'Mostrador principal' }),
-    ).toBeInTheDocument();
   });
 
   it('will not advance past the channel until one is picked', async () => {
-    renderTill();
+    renderTill({ channels: manyChannels });
 
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
@@ -388,26 +460,21 @@ describe('walking the till', () => {
     const user = userEvent.setup();
     renderTill();
 
-    await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
-    );
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Canal' }),
-      'sales-channel-counter',
-    );
+    await user.click(await channelChoice('Pedidos por teléfono'));
     await user.click(screen.getByRole('button', { name: /Continuar/i }));
     await screen.findByRole('combobox', { name: 'Producto' });
 
     await user.click(screen.getByRole('button', { name: /Atrás/i }));
 
-    expect(await screen.findByRole('combobox', { name: 'Canal' })).toHaveValue(
-      'sales-channel-counter',
+    expect(await channelChoice('Pedidos por teléfono')).toHaveAttribute(
+      'aria-checked',
+      'true',
     );
   });
 
   it('blocks again when the channel is cleared', async () => {
     const user = userEvent.setup();
-    renderTill();
+    renderTill({ channels: manyChannels });
 
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
@@ -429,13 +496,7 @@ describe('walking the till', () => {
 
 describe('the lines step', () => {
   const reachLines = async (user: ReturnType<typeof userEvent.setup>) => {
-    await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
-    );
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Canal' }),
-      'sales-channel-counter',
-    );
+    await user.click(await channelChoice('Mostrador principal'));
     await user.click(screen.getByRole('button', { name: /Continuar/i }));
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Producto' })).toBeEnabled(),
@@ -506,13 +567,7 @@ describe('charging', () => {
     const user = userEvent.setup();
     renderTill();
 
-    await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
-    );
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Canal' }),
-      'sales-channel-counter',
-    );
+    await user.click(await channelChoice('Mostrador principal'));
     await user.click(screen.getByRole('button', { name: /Continuar/i }));
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Producto' })).toBeEnabled(),
@@ -562,9 +617,106 @@ describe('charging', () => {
     );
 
     expect(onFinished).toHaveBeenCalled();
+    expect(await channelChoice('Mostrador principal')).toBeVisible();
+  });
+});
+
+describe('choosing the channel for the seller', () => {
+  it('opens on the lines when the vendor sells through one channel', async () => {
+    renderTill({ channels: () => [activeChannel(), retiredChannel()] });
+
     expect(
-      await screen.findByRole('combobox', { name: 'Canal' }),
+      await screen.findByRole('combobox', { name: 'Producto' }),
     ).toBeVisible();
+    expect(screen.queryByRole('radio')).toBeNull();
+  });
+
+  it('still reaches the channel step with Back, showing the one it chose', async () => {
+    const user = userEvent.setup();
+    renderTill({ channels: () => [activeChannel()] });
+    await screen.findByRole('combobox', { name: 'Producto' });
+
+    await user.click(screen.getByRole('button', { name: /Atrás/i }));
+
+    expect(await channelChoice('Mostrador principal')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+  });
+
+  it('names the channel on the summary, so a skipped answer is seen', async () => {
+    const user = userEvent.setup();
+    renderTill();
+
+    await ringUp(user);
+
+    expect(screen.getByText(/Canal: Mostrador principal/)).toBeVisible();
+  });
+
+  it('preselects the channel this scope last sold through', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(accepted()));
+    const user = userEvent.setup();
+    const first = renderTill({ scope: 'user-2:demo-organization' });
+    await user.click(await channelChoice('Pedidos por teléfono'));
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Producto' })).toBeEnabled(),
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Producto' }),
+      'product-offering-1',
+    );
+    await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    await user.click(screen.getByRole('button', { name: /Finalizar/i }));
+    await waitFor(() =>
+      expect(flows.list().map(flow => flow.flowId)).toContain('flow-1'),
+    );
+    first.unmount();
+    useDraftsState.setState({ drafts: {} });
+
+    renderTill({ scope: 'user-2:demo-organization' });
+
+    await waitFor(async () =>
+      expect(await channelChoice('Pedidos por teléfono')).toHaveAttribute(
+        'aria-checked',
+        'true',
+      ),
+    );
+  });
+
+  it('remembers nothing for another scope, or without one', async () => {
+    localStorage.setItem(
+      'entifix-ui:sales.counter-sale.last-channel:user-2:demo-organization',
+      JSON.stringify('sales-channel-phone'),
+    );
+    renderTill({ scope: 'user-9:other-organization' });
+
+    expect(await channelChoice('Mostrador principal')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    expect(lastChannelKey(undefined)).toBeUndefined();
+  });
+
+  it('leaves the step to the seller when no channel can take a sale', async () => {
+    renderTill({ channels: () => [retiredChannel()] });
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
+    );
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /Continuar/i })).toBeDisabled();
+  });
+
+  it('preselects nothing in a select it has no memory for', async () => {
+    renderTill({ channels: manyChannels });
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Canal' })).toBeEnabled(),
+    );
+    expect(screen.getByRole('combobox', { name: 'Canal' })).toHaveValue('');
   });
 });
 

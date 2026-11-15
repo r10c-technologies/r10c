@@ -162,7 +162,7 @@ function ThemedProviders({
                     <StockProvider>
                       <OrderProvider>
                         <FulfilmentProvider>
-                          <SalesProvider>
+                          <SalesProvider scope={scope}>
                             <SettlementProvider>{children}</SettlementProvider>
                           </SalesProvider>
                         </FulfilmentProvider>
