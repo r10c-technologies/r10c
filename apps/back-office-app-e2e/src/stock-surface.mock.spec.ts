@@ -181,3 +181,20 @@ test('says what is available, and makes nothing to sell stand out', async ({
   });
   await expect(empty).toContainText('Sin existencias disponibles');
 });
+
+test('opens on what is running out, the empty shelf first (#555)', async ({
+  page,
+}) => {
+  await page.goto('/stock/stock-item');
+
+  // The seed holds the zero last; the list asks for `available` ascending,
+  // so it is the first row the vendor reads, and the header says so.
+  const first = page.locator('tbody tr').first();
+  await expect(first).toContainText('Cuenco pintado');
+  await expect(first.locator('[data-tone="danger"]')).toHaveText(
+    'Sin existencias disponibles',
+  );
+  await expect(
+    page.getByRole('columnheader', { name: 'Disponible' }),
+  ).toHaveAttribute('aria-sort', 'ascending');
+});

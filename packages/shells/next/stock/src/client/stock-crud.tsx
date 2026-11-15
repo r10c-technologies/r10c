@@ -76,6 +76,10 @@ export const stockItemCrud: EntityCrud<StockItem> = makeEntityCrud(StockItem, {
   // and the metadata is what says so.
   hiddenFields: ['id'],
   metadata: 'metadata',
+  // The list opens on what is running out (#555): the zero rows the danger
+  // tag below marks come first, so "what am I out of?" is answered before a
+  // scroll. A header click replaces it like any other sort.
+  initialSorting: { 0: { property: 'available', type: 'asc' } },
   columns: (
     <EntityColumn<StockItem>
       field="available"
