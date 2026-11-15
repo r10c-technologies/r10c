@@ -569,6 +569,8 @@ describe('The business map matches the entities that exist', () => {
     'CharacteristicValue', // SID: named by ADR 0014, not built
     'PricingLogicAlgorithm', // SID: named for future pricing, not built
     'Crossing', // ADR 0012 (Proposed): the audited cross-tenant record
+    'BuyerContact', // ADR 0076 (Proposed): declared by #576, which drops this
+    'DeliveryDestination', // ADR 0076 (Proposed): likewise #576
     'VendorCategory', // a concept in the capability map, not an entity
     'Product', // SID: the instance a buyer owns. Our catalog record is
     // `ProductSpecification`; ADR 0022 renamed the entity for

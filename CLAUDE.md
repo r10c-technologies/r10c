@@ -121,13 +121,9 @@ single deep doc. Its reasoning is one link away in the decision index below.
 
 ## Decision index
 
-Every architectural decision in this repo is an ADR, and the line beside each one
-names the **symptom** that should send you into it — not its subject. Read the
-record before designing in its area; a decision re-derived from scratch is how
-two answers end up on file.
-
-The lines are generated from each record's own `- Area:` and `- Read when:`
-header, so they cannot drift from the ADR they point at. Add a decision by
+Every decision is an ADR, and its line names the **symptom** that should send
+you into it, generated from the record's `- Area:` and `- Read when:` headers so
+it cannot drift. Read the record before designing in its area. Add one by
 writing the record with both headers, then `node tools/sync-docs.mjs`.
 
 <!-- docs:begin adr-triggers -->
@@ -159,6 +155,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0062](docs/adr/0062-categories-form-a-tree.md) **Categories form a tree** — read when adding a category level, rendering breadcrumbs or category navigation, or retiring a category — any depth up to five, an offering may sit in any node, a category page lists its whole subtree, and a category with active children cannot be retired.
 - [0069](docs/adr/0069-a-checkout-group-of-per-vendor-orders.md) **A checkout group of per-vendor orders, and a capture allocated per order** — read when a basket spans vendors, a vendor acts on their part of a sale, or a refund is partial — a checkout writes one group and one order per vendor, and one capture is allocated per order.
 - [0070](docs/adr/0070-fulfilment-and-cash-on-delivery.md) **Fulfilment and cash on delivery, and one composed checkout per channel** — read when an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout.
+- [0076](docs/adr/0076-delivery-destination-buyer-contact-and-the-way-back.md) _(Proposed)_ **Delivery destination, buyer contact, order numbers, and the buyer's way back to an order** — read when storing a buyer's address or contact, numbering an order, or letting a buyer find an order again — personal data lives on the group and the shipment only, and a number never authorizes.
 
 **Entities and the framework**
 
@@ -177,7 +174,6 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0040](docs/adr/0040-the-record-search-aggregator.md) **The record search aggregator fans out per request and ranks nothing** — read when searching records across services — no client-side index, ever, and a source's search member is validated at module load.
 - [0041](docs/adr/0041-the-sidebar-renders-the-taxonomy.md) **The sidebar renders the taxonomy, and a shell may ask about the viewport** — read when rendering navigation — type › domain › destination, and auto-collapse must never write the stored preference.
 - [0042](docs/adr/0042-the-workspace-address-is-the-taxonomy-serialized.md) **The workspace address is the taxonomy serialized** — read when addressing a workspace tab — `master:<key>[:<id>]` is one grammar, and both version constants bump when it changes.
-- [0043](docs/adr/0043-the-optimistic-mutation-contract.md) _(Superseded)_ **The optimistic mutation contract, and reconciliation is a re-query** — read when only for its reasoning — superseded by ADR 0073.
 - [0044](docs/adr/0044-the-command-palette.md) **The command palette owns no index, and its depth is a page stack** — read when adding anything to the command palette — the sources filter and the control renders, and matching is accent-folded because the default locale is Spanish.
 - [0045](docs/adr/0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md) **The wizard: a step graph, a draft above the forms, and a submit that hands off** — read when building a multi-step screen — the step graph is data, Back pops a history stack, and a validation gate belongs to a step.
 - [0051](docs/adr/0051-the-storefront-reads-the-projection.md) **The storefront reads the projection** — read when the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read still renders and logs, but says it failed.
@@ -190,12 +186,9 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0029](docs/adr/0029-the-event-envelope-and-a-routed-bus.md) **The event envelope, and a bus that routes** — read when publishing or subscribing to a bus message — `meta` describes the message and `data` the occurrence, and the dedup key is `event.id`.
 - [0030](docs/adr/0030-failure-retry-and-quarantine-on-the-bus.md) **Failure, retry and quarantine on the bus** — read when a handler fails or a payload cannot be parsed — three failure classes, `work` versus `broadcast`, and `x-delivery-limit` is immutable once the queue exists.
 - [0036](docs/adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md) **The reactive stream is server-sent, same-origin, and scoped per connection** — read when pushing anything to a browser — SSE and not a socket, because Next cannot upgrade a route handler and every consumer reads one way; where the stream lives is ADR 0072's.
-- [0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md) _(Superseded)_ **Multi-step sagas are orchestrated, per flow, from a declarative definition** — read when only for its reasoning — superseded by ADR 0066.
 - [0048](docs/adr/0048-announcing-a-publication.md) **Announcing a publication, and a shared contract to announce it with** — read when emitting or consuming a publication — the projector orders on `publishedAt`, and every apply writes a per-offering stamp because a delete has nothing to be ordered by.
 - [0050](docs/adr/0050-rebuilding-the-published-catalog-from-tenant-storage.md) **Rebuilding the published catalog from tenant storage** — read when the storefront is empty after a reset, or a publication was lost — the rebuild walk re-emits from tenant storage and must never stamp `now`.
-- [0052](docs/adr/0052-the-checkout-saga.md) _(Superseded)_ **The checkout saga: a definition that is data, and a compensation that is told what it undid** — read when only for its reasoning — superseded by ADR 0066.
 - [0054](docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md) **Capture is the pivot, and the bus carries what follows** — read when money has to be taken inside a flow, or a saga step fails after the point of no return — capture is a dispatched step and never a subscription, and a post-pivot failure rolls forward or strands, never back.
-- [0055](docs/adr/0055-a-coordinator-resumes-from-its-own-record.md) _(Superseded)_ **A coordinator resumes from its own record, and a dispatch needs no outbox** — read when only for its reasoning — superseded by ADR 0066.
 - [0065](docs/adr/0065-use-case-resolution-and-the-routing-slip.md) **Use-case resolution and the routing slip in r10c: who declares fragments, where the catalog lives, what CI enumerates** — read when adding a step to a flow, a variant to a use case, or a narrowing to a read — a domain declares its own fragments, and CI enumerates every combination a recipe can produce.
 - [0066](docs/adr/0066-flows-run-on-a-durable-workflow-engine.md) **Flows run on a durable workflow engine, and the saga runner, the tracker and the single-step engine go** — read when a flow spans slices, has to survive its coordinator dying, or answers `202` — flows run on Effect Workflow over Postgres, and the saga runner and tracker are deleted, not kept beside it.
 - [0067](docs/adr/0067-a-breaker-and-bulkhead-per-participant.md) **A circuit breaker and a bulkhead per participant** — read when a participant is down and its callers pile up, or a consumer quarantines during an outage — one breaker and bulkhead per participant per process, every dial a config row.
@@ -227,6 +220,8 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0064](docs/adr/0064-failures-reach-the-slice-shell.md) **Failures travel typed to the slice shell, answer one problem body, and are logged only there** — read when adding a refusal, a status mapping, an error body or a log call, or about to write `Effect.retry` in a consumer — `code` is the `errors` key, business and implementation never log, and the slice shell decides status, retry and logging.
 - [0071](docs/adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) **Http cells hold descriptors, and the slice shell builds the API** — read when adding a route, a verb or a guard, or an `http` cell reaches for `effect/http` — a cell declares, the slice shell serves, and `exposedAPIs` is checked.
 - [0074](docs/adr/0074-change-validation-and-the-cache-it-may-trust.md) **Change Validation, and what may trust the cache it carries** — read when a CI job is slow because it rebuilds what another job built, adding a job or a check to `change_validation.yml`, a check passed without running, the Actions cache is near its 10 GB, or about to restore `.nx/cache` between runners — a restored `.nx/cache` is ignored by Nx 24, and a repository-wide check must never read from the cache.
+
+**Superseded**, for their reasoning only: [0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md), [0043](docs/adr/0043-the-optimistic-mutation-contract.md), [0052](docs/adr/0052-the-checkout-saga.md), [0055](docs/adr/0055-a-coordinator-resumes-from-its-own-record.md).
 
 <!-- docs:end adr-triggers -->
 
