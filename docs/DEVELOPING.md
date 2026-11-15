@@ -183,6 +183,34 @@ needs) or omits `dom` now fails where it is, instead of building green with zero
 `@entifix/style` needs no rebuild at all: it has no build target, its CSS
 subpaths are consumed straight from `src`.
 
+### A dev server that reloads itself
+
+Batch 0 measured the back office under `next dev` loading **147 times in 12
+seconds** in a headless browser, with no source edit between loads (#553).
+It was seen once more on 2026-11-15 (99 loads), on the first signed-in load
+after a fleet start, and not again in two cold starts and eight probes since —
+so treat it as intermittent, not fixed. What was measured about it:
+
+- Next 16 writes every browser console line to `.next/dev/logs/next-development.log`
+  (`experimental.mcpServer` defaults to on). Appending to that file while a page
+  is open triggers **no** rebuild, and the file is gitignored, which Tailwind's
+  detection honours — so the log is not shown to be the trigger.
+- Restarting `next dev` ended the loop each time it appeared.
+
+**The rule that came out of it: Tailwind scans exactly what an app states.**
+Both apps import `tailwindcss` with `source(none)` and list every source on an
+`@source` line — the app's own `src` (`@source '..'`), each shell it mounts and
+the entifix `dist` it renders. Automatic detection walks the whole app
+directory, `.next` included, which makes a build input of whatever lands there.
+`@r10c/docs-check` fails a `global.css` without `source(none)`, without its own
+source, or missing a shell the app's `package.json` depends on.
+
+**The guard.** `pnpm nx run @r10c/source:dev-reload-check` signs in as Alan
+through the hosted login, opens `/es/home` on the running fleet and fails unless
+the page loads exactly once in 12 seconds. Run it before a live pass against
+`next dev`; if it fails, restart the app's `dev` and record what was running in
+#553.
+
 ### Working on entifix from r10c
 
 entifix is installed from the registry, so `watch-libs` never sees it. To change

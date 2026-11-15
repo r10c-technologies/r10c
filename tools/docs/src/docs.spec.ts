@@ -1985,3 +1985,61 @@ describe('The component-audit skill cites only checks that exist', () => {
     ).toBe(1);
   }, 60_000);
 });
+
+/**
+ * Tailwind scans what an app states, and every shell the app mounts is stated.
+ *
+ * `source(none)` turns Tailwind's automatic detection off. That detection walks
+ * the whole app directory, which made a build input of whatever lands there —
+ * `.next` and the dev log Next writes on every page load among it — and kept
+ * shells looking covered while no line named them (#553). With it off, a shell
+ * missing from the `@source` list ships class names that match no rule, which
+ * fails silently; so the list is checked against the app's own dependencies.
+ */
+describe('Tailwind scans exactly what each app states', () => {
+  const APPS = ['back-office-app', 'marketplace-app'] as const;
+
+  /** What is wrong with one app's stylesheet, given the shells it depends on. */
+  const tailwindSourceProblems = (
+    css: string,
+    shells: readonly string[],
+  ): string[] => {
+    const problems: string[] = [];
+    if (!/@import\s+'tailwindcss'\s+source\(none\);/.test(css)) {
+      problems.push('does not import tailwindcss with source(none)');
+    }
+    if (!/^@source\s+'\.\.';/m.test(css)) {
+      problems.push("does not state its own source with @source '..'");
+    }
+    for (const shell of shells) {
+      if (!css.includes(`packages/shells/next/${shell}/src'`)) {
+        problems.push(`mounts shells-next-${shell} but never @sources it`);
+      }
+    }
+    return problems;
+  };
+
+  it.each(APPS)('%s states its sources, every shell included', app => {
+    const css = read(`apps/${app}/src/app/global.css`);
+    const manifest = JSON.parse(read(`apps/${app}/package.json`)) as {
+      dependencies?: Record<string, string>;
+    };
+    const shells = Object.keys(manifest.dependencies ?? {})
+      .filter(name => name.startsWith('@r10c/shells-next-'))
+      .map(name => name.slice('@r10c/shells-next-'.length));
+
+    expect(shells.length).toBeGreaterThan(0);
+    expect(tailwindSourceProblems(css, shells)).toEqual([]);
+  });
+
+  it('fails a stylesheet that detects, or that forgets a shell', () => {
+    expect(
+      tailwindSourceProblems("@import 'tailwindcss';\n@source '..';\n", [
+        'stock',
+      ]),
+    ).toEqual([
+      'does not import tailwindcss with source(none)',
+      'mounts shells-next-stock but never @sources it',
+    ]);
+  });
+});
