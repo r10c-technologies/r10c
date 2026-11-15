@@ -19,6 +19,7 @@ import { accessor, entity } from '@entifix/core';
  * Platform plane, `published-vendor` store.
  */
 @entity({
+  labelMember: 'displayName',
   domain: 'marketplace-vendor',
   key: 'published-vendor',
   labelKey: 'entity:published-vendor.label',
@@ -48,6 +49,9 @@ export class PublishedVendor implements Entity {
   @accessor({
     type: 'id',
     labelKey: 'entity:published-vendor.fields.id',
+    // `filterable` because a reference names this record by `id=in=(…)`
+    // (entifix 0030): member metadata is the server-side query allowlist.
+    filterable: true,
   })
   get id(): EntityId {
     return this.#id;

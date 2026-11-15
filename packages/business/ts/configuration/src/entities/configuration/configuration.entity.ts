@@ -22,6 +22,7 @@ import { accessor, entity } from '@entifix/core';
  * query the workspace makes.
  */
 @entity({
+  labelMember: 'key',
   domain: 'config',
   key: 'configuration',
   labelKey: 'entity:configuration.label',

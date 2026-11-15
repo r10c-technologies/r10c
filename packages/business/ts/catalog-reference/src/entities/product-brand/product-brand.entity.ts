@@ -8,6 +8,7 @@ import {
 } from '../../values/reference-status';
 
 @entity({
+  labelMember: 'name',
   domain: 'catalog-reference',
   key: 'product-brand',
   labelKey: 'entity:product-brand.label',
@@ -37,6 +38,9 @@ export class ProductBrand implements Entity {
     type: 'id',
     label: 'ID',
     labelKey: 'entity:product-brand.fields.id',
+    // `filterable` because a reference names this record by `id=in=(…)`
+    // (entifix 0030): member metadata is the server-side query allowlist.
+    filterable: true,
   })
   get id(): EntityId {
     return this.#id;

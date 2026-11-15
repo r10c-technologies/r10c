@@ -322,8 +322,8 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       buyerId: 'Buyer ID',
-      vendorId: 'Vendor ID',
-      groupId: 'Checkout ID',
+      vendorId: 'Vendor',
+      groupId: 'Checkout',
       paymentMethod: 'Payment',
       status: 'Status',
       items: 'Lines',
@@ -441,7 +441,7 @@ export const entity: EsEntity = {
     plural: 'Agreements',
     fields: {
       id: 'ID',
-      vendorId: 'Vendor ID',
+      vendorId: 'Vendor',
       commissionBasisPoints: 'Commission (basis points)',
       channelCommissionBasisPoints: 'Commission per channel (basis points)',
       effectiveFrom: 'Effective from',
@@ -458,12 +458,12 @@ export const entity: EsEntity = {
       collectedBy: 'Collected by',
       id: 'ID',
       orderId: 'Order ID',
-      vendorId: 'Vendor ID',
+      vendorId: 'Vendor',
       saleAmount: 'Sale amount',
       commissionAmount: 'Commission amount',
       currency: 'Currency',
       occurredAt: 'Sale date',
-      runId: 'Settlement run ID',
+      runId: 'Settlement run',
       kind: 'Kind',
     },
     values: {
@@ -508,8 +508,8 @@ export const entity: EsEntity = {
     plural: 'Vendor payouts',
     fields: {
       id: 'ID',
-      runId: 'Settlement run ID',
-      vendorId: 'Vendor ID',
+      runId: 'Settlement run',
+      vendorId: 'Vendor',
       amount: 'Amount',
       currency: 'Currency',
     },
@@ -524,7 +524,7 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       name: 'Name',
-      specificationId: 'Specification ID',
+      specificationId: 'Specification',
       status: 'Status',
       statusChangedAt: 'Last status change',
     },
@@ -554,7 +554,7 @@ export const entity: EsEntity = {
     plural: 'Offering prices',
     fields: {
       id: 'ID',
-      offeringId: 'Offering ID',
+      offeringId: 'Product',
       amount: 'Amount',
       currency: 'Currency',
     },
@@ -630,7 +630,7 @@ export const entity: EsEntity = {
     plural: 'Stock items',
     fields: {
       id: 'ID',
-      offeringId: 'Offering ID',
+      offeringId: 'Product',
       onHand: 'On hand',
       reserved: 'Reserved',
     },
@@ -646,7 +646,7 @@ export const entity: EsEntity = {
     plural: 'Stock movements',
     fields: {
       id: 'ID',
-      offeringId: 'Offering ID',
+      offeringId: 'Product',
       quantity: 'Quantity',
       reason: 'Reason',
     },
@@ -671,7 +671,7 @@ export const entity: EsEntity = {
     plural: 'Reservations',
     fields: {
       id: 'ID',
-      offeringId: 'Offering ID',
+      offeringId: 'Product',
       quantity: 'Quantity',
       status: 'Status',
       expiresAt: 'Expires at',
@@ -703,7 +703,7 @@ export const entity: EsEntity = {
       currency: 'Currency',
       lines: 'Lines',
       line: {
-        offeringId: 'Offering ID',
+        offeringId: 'Product',
         quantity: 'Quantity',
       },
       status: 'Status',

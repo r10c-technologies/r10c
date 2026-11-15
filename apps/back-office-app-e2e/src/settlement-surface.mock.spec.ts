@@ -47,11 +47,10 @@ test('files agreements under Definiciones and the statement under Operaciones', 
 test('lists the vendor’s agreement', async ({ page }) => {
   await page.goto('/settlement/agreement');
 
-  // `exact`, because the id column renders `agreement-e2e-organization` and the
-  // vendor id is a substring of it. `hiddenFields` hides a member from the
-  // *form*, never from the table.
+  // The vendor reads as its name from the published-vendor projection, never
+  // as the organization id the agreement holds (#552).
   await expect(
-    page.getByRole('cell', { name: 'e2e-organization', exact: true }),
+    page.getByRole('cell', { name: 'Cerámica Demo', exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('cell', { name: '800' })).toBeVisible();
 });

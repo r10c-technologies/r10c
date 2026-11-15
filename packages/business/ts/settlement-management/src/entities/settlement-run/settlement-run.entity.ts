@@ -47,7 +47,9 @@ export class SettlementRun implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ labelKey: 'entity:settlement-run.fields.id' })
+  // `filterable` because a reference names this record by `id=in=(…)`
+  // (entifix 0030): member metadata is the server-side query allowlist.
+  @accessor({ labelKey: 'entity:settlement-run.fields.id', filterable: true })
   get id(): EntityId {
     return this.#id;
   }

@@ -40,6 +40,7 @@ import {
  * price and vendor rather than pointing at them.
  */
 @entity({
+  labelMember: 'name',
   domain: 'sales-management',
   key: 'sales-channel',
   labelKey: 'entity:sales-channel.label',

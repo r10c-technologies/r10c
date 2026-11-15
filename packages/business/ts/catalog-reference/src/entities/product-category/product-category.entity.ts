@@ -8,6 +8,7 @@ import {
 } from '../../values/reference-status';
 
 @entity({
+  labelMember: 'name',
   domain: 'catalog-reference',
   key: 'product-category',
   labelKey: 'entity:product-category.label',

@@ -1,6 +1,8 @@
 'use client';
 
 import type { ScreenType } from '@entifix/authz';
+import type { Entity } from '@entifix/core';
+import type { EntityCrud } from '@entifix/next-shell';
 import {
   entityTabKind,
   type EntityTabScreens,
@@ -47,7 +49,19 @@ import { EntityEditorTab } from './entity-tab';
  */
 const screensFor = (
   type: ScreenType,
-  cruds: ReadonlyArray<(typeof MARKETPLACE_ADMIN_CRUDS)[number]>,
+  // Only the members a tab reads. A whole `EntityCrud<Entity>` would not do:
+  // since entifix 0.21.0 a crud's `RelatedList` is typed by its own entity,
+  // which makes `EntityCrud<T>` invariant, so no concrete crud is one.
+  cruds: ReadonlyArray<
+    Pick<
+      EntityCrud<Entity>,
+      | 'entityKey'
+      | 'entityLabelKey'
+      | 'entityPluralKey'
+      | 'ListPage'
+      | 'SingleViewPage'
+    >
+  >,
 ): EntityTabScreens => ({
   lists: Object.fromEntries(
     cruds.map(crud => [

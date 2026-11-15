@@ -27,6 +27,7 @@ import { accessor, entity } from '@entifix/core';
  * the coupling the decomposition exists to prevent.
  */
 @entity({
+  labelMember: 'offeringId',
   domain: 'stock-management',
   key: 'stock-item',
   labelKey: 'entity:stock-item.label',
@@ -67,6 +68,7 @@ export class StockItem implements Entity {
   // member of these entities that can name one of their records — a search
   // source refuses a label member that is not sortable, at module load.
   @accessor({
+    references: { entity: 'product-configuration-management:product-offering' },
     type: 'string',
     labelKey: 'entity:stock-item.fields.offeringId',
     required: true,

@@ -65,6 +65,7 @@ export class ProductOfferingPrice implements Entity {
    * only member of this entity that can name one of its records at all.
    */
   @accessor({
+    references: { entity: 'product-configuration-management:product-offering' },
     type: 'string',
     labelKey: 'entity:product-offering-price.fields.offeringId',
     required: true,

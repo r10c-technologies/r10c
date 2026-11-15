@@ -44,6 +44,7 @@ const adapters: MarketplaceAdminAdapters = {
   productOfferingRest: repository(),
   productOfferingWriter: settledWriter(repository()),
   productOfferingPriceRest: repository(),
+  publishedVendorRest: repository(),
   productOfferingPriceWriter: settledWriter(repository()),
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,

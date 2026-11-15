@@ -1,9 +1,8 @@
 'use client';
 
 import { type EntityRepositoryTag, loadUCFactory } from '@entifix/business';
-import type { Entity, FilterGroup } from '@entifix/core';
+import type { FilterGroup } from '@entifix/core';
 import { descendantsOf, hierarchyOf } from '@entifix/core';
-import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud, useLocaleHref } from '@entifix/next-shell';
 import {
   ButtonLink,
@@ -296,16 +295,15 @@ export const ProductOfferingPriceSingleViewClientPage =
  * that used to restate all three keys and both page components by hand, once per
  * map, and silently served nothing for a key it had missed.
  *
- * `EntityCrud<Entity>` erases the three concrete entity types. The factory
- * cannot preserve one type parameter per surface across a heterogeneous list,
- * and nothing downstream needs it — the registry renders components and titles
- * tabs; it never touches an instance. `AnyEntityLinkSourceConfig` erases for the
- * same reason one layer down.
+ * Each keeps its concrete entity type: since entifix 0.21.0 a crud's
+ * `RelatedList` is typed by its own entity, so `EntityCrud<T>` is invariant and
+ * erasing to `EntityCrud<Entity>` would not type. A consumer that walks the list
+ * reads only the members every crud shares.
  */
-export const MARKETPLACE_ADMIN_CRUDS: readonly EntityCrud<Entity>[] = [
+export const MARKETPLACE_ADMIN_CRUDS = [
   productCrud,
   productOfferingCrud,
   productOfferingPriceCrud,
   productBrandCrud,
   productCategoryCrud,
-] as readonly EntityCrud<Entity>[];
+] as const;

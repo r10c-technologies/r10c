@@ -67,7 +67,9 @@ export class ProductOrder implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ labelKey: 'entity:product-order.fields.id' })
+  // `filterable` because a reference names this record by `id=in=(…)`
+  // (entifix 0030): member metadata is the server-side query allowlist.
+  @accessor({ labelKey: 'entity:product-order.fields.id', filterable: true })
   get id(): EntityId {
     return this.#id;
   }
@@ -107,6 +109,7 @@ export class ProductOrder implements Entity {
    * read to their own organization here.
    */
   @accessor({
+    references: { entity: 'marketplace-vendor:published-vendor' },
     type: 'string',
     labelKey: 'entity:product-order.fields.vendorId',
     required: true,
@@ -126,6 +129,7 @@ export class ProductOrder implements Entity {
    * order is read and moved on its own.
    */
   @accessor({
+    references: { entity: 'order-management:checkout-group' },
     type: 'string',
     labelKey: 'entity:product-order.fields.groupId',
     required: true,

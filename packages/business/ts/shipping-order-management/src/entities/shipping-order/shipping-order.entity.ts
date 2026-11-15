@@ -27,6 +27,7 @@ import {
  * ([ADR 0070](../../../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
  */
 @entity({
+  labelMember: 'orderId',
   domain: 'shipping-order-management',
   key: 'shipping-order',
   labelKey: 'entity:shipping-order.label',
@@ -64,6 +65,7 @@ export class ShippingOrder implements Entity {
 
   /** The vendor order this ships. An id, never a link: the order lives in the platform plane. */
   @accessor({
+    references: { entity: 'order-management:product-order' },
     type: 'string',
     labelKey: 'entity:shipping-order.fields.orderId',
     required: true,
@@ -78,6 +80,7 @@ export class ShippingOrder implements Entity {
 
   /** The checkout group the order belongs to. */
   @accessor({
+    references: { entity: 'order-management:checkout-group' },
     type: 'string',
     labelKey: 'entity:shipping-order.fields.groupId',
     filterable: true,

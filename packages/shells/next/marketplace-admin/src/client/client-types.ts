@@ -17,6 +17,8 @@ export interface MarketplaceAdminAdapters {
   productRest: Context<EntityRepositoryTag>;
   productOfferingRest: Context<EntityRepositoryTag>;
   productOfferingPriceRest: Context<EntityRepositoryTag>;
+  /** The sellers' names, from marketplace-service's projection. Read-only. */
+  publishedVendorRest: Context<EntityRepositoryTag>;
   /** The reference vocabulary's served affordances, through `/api/marketplace`. */
   referenceMetadata: EntityMetadataSource;
   /** The catalog service's served affordances, through `/api/admin`. */

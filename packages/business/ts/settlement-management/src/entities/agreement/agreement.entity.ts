@@ -93,6 +93,7 @@ export class Agreement implements Entity {
    * simultaneously a string, filterable **and** sortable.
    */
   @accessor({
+    references: { entity: 'marketplace-vendor:published-vendor' },
     type: 'string',
     labelKey: 'entity:agreement.fields.vendorId',
     required: true,

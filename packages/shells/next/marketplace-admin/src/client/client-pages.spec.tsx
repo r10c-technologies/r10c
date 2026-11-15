@@ -1,6 +1,7 @@
 import { EntityRepositoryTag } from '@entifix/business';
 import { type EntityWriter, settled } from '@entifix/core';
 import { type Entity, Unavailable } from '@entifix/core';
+import { ReferenceLabelsHost } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
@@ -57,6 +58,8 @@ let slug = 'new';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
   useParams: () => ({ slug }),
+  // A record page reads `?prefill.<member>=` since entifix 0.21.0.
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const makeBrand = (id: string, name: string) => {
@@ -108,6 +111,7 @@ const adapters = (): MarketplaceAdminAdapters => ({
     EntityRepositoryTag,
     repositories.product,
   ),
+  publishedVendorRest: Context.make(EntityRepositoryTag, repositories.product),
   productOfferingPriceWriter: settledWriter(
     Context.make(EntityRepositoryTag, repositories.product),
   ),
@@ -118,12 +122,27 @@ const adapters = (): MarketplaceAdminAdapters => ({
   productOfferingUseCases: real.productOfferingUseCases,
 });
 
+/**
+ * A list names a reference through the host's registry since entifix 0.21.0
+ * (entifix 0030), so the page is mounted under one, as the back office mounts
+ * it — registering the spec's own vocabulary repositories.
+ */
 const renderPage = (page: ReactElement) =>
   render(
     <EntifixQueryProvider>
-      <MarketplaceAdminAdaptersProvider adapters={adapters()}>
-        {page}
-      </MarketplaceAdminAdaptersProvider>
+      <ReferenceLabelsHost
+        registrations={[
+          [ProductBrand, Context.make(EntityRepositoryTag, repositories.brand)],
+          [
+            ProductCategory,
+            Context.make(EntityRepositoryTag, repositories.category),
+          ],
+        ]}
+      >
+        <MarketplaceAdminAdaptersProvider adapters={adapters()}>
+          {page}
+        </MarketplaceAdminAdaptersProvider>
+      </ReferenceLabelsHost>
     </EntifixQueryProvider>,
   );
 

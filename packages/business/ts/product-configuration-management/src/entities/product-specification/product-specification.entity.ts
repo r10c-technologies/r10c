@@ -25,6 +25,7 @@ import {
  * Tenant plane, `catalog` store.
  */
 @entity({
+  labelMember: 'name',
   domain: 'product-configuration-management',
   key: 'product-specification',
   labelKey: 'entity:product-specification.label',
@@ -56,6 +57,9 @@ export class ProductSpecification implements Entity {
     type: 'id',
     label: 'ID',
     labelKey: 'entity:product-specification.fields.id',
+    // `filterable` because a reference names this record by `id=in=(…)`
+    // (entifix 0030): member metadata is the server-side query allowlist.
+    filterable: true,
   })
   get id(): EntityId {
     return this.#id;
@@ -149,6 +153,7 @@ export class ProductSpecification implements Entity {
    * own list screen.
    */
   @accessor({
+    references: { entity: 'catalog-reference:product-brand' },
     type: 'string',
     labelKey: 'entity:product-specification.fields.brand',
     filterable: true,
@@ -161,6 +166,7 @@ export class ProductSpecification implements Entity {
   }
 
   @accessor({
+    references: { entity: 'catalog-reference:product-category' },
     type: 'string',
     labelKey: 'entity:product-specification.fields.category',
     filterable: true,
