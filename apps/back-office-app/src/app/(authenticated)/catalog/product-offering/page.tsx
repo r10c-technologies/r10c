@@ -1,10 +1,10 @@
 'use client';
 
-import { productWorkspaceCrud } from '../../../../lib/product-workspace';
+import { ProductWorkspaceListPage } from '../../../../lib/product-workspace';
 
 /** The offering list, with a price, a picture and the stock of each (#558). */
 function ProductOfferingCatalogPage() {
-  return <productWorkspaceCrud.ListPage />;
+  return <ProductWorkspaceListPage />;
 }
 
 export default ProductOfferingCatalogPage;

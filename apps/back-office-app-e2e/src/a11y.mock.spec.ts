@@ -47,11 +47,11 @@ const SCREENS = [
   {
     screen: 'operaciones-shipment-worklist',
     path: '/es/fulfilment/shipping-order',
-    ready: { record: 'shipping-order-awaiting-1' },
+    ready: { record: /ord-a1/ },
   },
   {
     screen: 'shipment-detail',
-    path: '/es/fulfilment/shipping-order/shipping-order-dispatched-1',
+    path: '/es/fulfilment/shipping-order/ship-d1',
     ready: { role: 'button', name: 'Registrar entrega' },
   },
   {

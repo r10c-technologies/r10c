@@ -234,9 +234,7 @@ describe('the single-record pages', () => {
 
       renderPage(page);
 
-      await waitFor(() =>
-        expect(nameInput()).toHaveValue(name),
-      );
+      await waitFor(() => expect(nameInput()).toHaveValue(name));
     },
   );
 
@@ -247,9 +245,7 @@ describe('the single-record pages', () => {
     async (_label, page) => {
       renderPage(page);
 
-      await waitFor(() =>
-        expect(nameInput()).toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).toHaveValue(''));
       expect(
         screen.queryByRole('button', { name: 'Eliminar' }),
       ).not.toBeInTheDocument();
@@ -262,9 +258,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(nameInput()).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
 
       await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
@@ -278,9 +272,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(nameInput()).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
 
       await user.click(screen.getByRole('button', { name: 'Eliminar' }));
       // Delete asks first since entifix 0.20.0; the verb inside the dialog acts.
@@ -302,9 +294,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(nameInput()).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
       repositories.product.failNext(
         new Unavailable({ dependency: 'unreachable' }),
       );
@@ -330,9 +320,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(nameInput()).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
       repositories.product.failNext(
         new Unavailable({ dependency: 'unreachable' }),
       );

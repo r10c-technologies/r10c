@@ -50,9 +50,6 @@
   ],
   "references": [
     {
-      "path": "../../packages/business/ts/product-configuration-management"
-    },
-    {
       "path": "../../packages/utils/ts/fleet"
     },
     {
@@ -81,6 +78,12 @@
     },
     {
       "path": "../../packages/shells/next/i18n-catalog"
+    },
+    {
+      "path": "../../packages/business/ts/stock-management"
+    },
+    {
+      "path": "../../packages/business/ts/product-configuration-management"
     },
     {
       "path": "../../packages/business/ts/i18n"

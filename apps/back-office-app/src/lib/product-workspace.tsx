@@ -1,8 +1,13 @@
 'use client';
 
 import type { ProductOffering } from '@r10c/business-ts-product-configuration-management';
+import { StockItem } from '@r10c/business-ts-stock-management';
 import { productOfferingCrudWith } from '@r10c/shells-next-marketplace-admin';
-import { stockItemCrud, stockMovementCrud } from '@r10c/shells-next-stock';
+import {
+  stockItemCrud,
+  stockMovementCrud,
+  useStockAdapters,
+} from '@r10c/shells-next-stock';
 
 import { useReader } from './reader';
 
@@ -51,6 +56,11 @@ function OfferingStockRegions({
   );
 }
 
+/** The offering's page regions this host adds: the stock slice's. */
+const regions = (offering: ProductOffering) => [
+  <OfferingStockRegions key="stock" offering={offering} />,
+];
+
 /**
  * One product workspace (#564): the offering, its status and verbs, its
  * pictures and prices from the catalog slice, and its stock from the stock
@@ -59,7 +69,34 @@ function OfferingStockRegions({
  * `master:product-offering:<id>` tab both render it.
  */
 export const productWorkspaceCrud = productOfferingCrudWith({
-  regions: offering => [
-    <OfferingStockRegions key="stock" offering={offering} />,
+  related: [
+    {
+      key: 'available',
+      labelKey: 'entity:product-offering.related.available',
+      target: StockItem as never,
+      // The stock shell's own adapter, read under the reader's session: a
+      // shell never builds another's (ADR 0077 §2), so the host hands it over.
+      repository: { useRepository: () => useStockAdapters().stockItemRest },
+      match: 'offeringId',
+      member: 'available',
+    },
   ],
+  regions,
 });
+
+/**
+ * The same screens for a reader who may not see stock: no "Disponible"
+ * column, and so no read the stock service would refuse (#558). A column is
+ * fixed when a crud is built, which is why the reader picks between two.
+ */
+const productWorkspaceCrudWithoutStock = productOfferingCrudWith({ regions });
+
+/** The offering list, with the stock column only for a reader who may see it. */
+export function ProductWorkspaceListPage() {
+  const { stockReadable } = useReader();
+  return stockReadable ? (
+    <productWorkspaceCrud.ListPage />
+  ) : (
+    <productWorkspaceCrudWithoutStock.ListPage />
+  );
+}

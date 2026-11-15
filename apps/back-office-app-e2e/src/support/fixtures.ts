@@ -326,14 +326,21 @@ const cancelHandlers = [
   }),
 ];
 
-/** A shipment awaiting dispatch — the one the dispatch journey hands over. */
-export const AWAITING_SHIPMENT_ID = 'shipping-order-awaiting-1';
+/**
+ * A shipment awaiting dispatch — the one the dispatch journey hands over.
+ *
+ * The ids, and their orders', are short and distinct because a shipment has no
+ * name of its own: since entifix 0.22.3 its row opens by its order, named by
+ * noun and short id (#594) — the first eight characters of a longer one — and
+ * four ids sharing a prefix would all read as the same shipment.
+ */
+export const AWAITING_SHIPMENT_ID = 'ship-a1';
 /** A second shipment awaiting dispatch, for a selection of two. */
-export const AWAITING_SHIPMENT_2_ID = 'shipping-order-awaiting-2';
+export const AWAITING_SHIPMENT_2_ID = 'ship-a2';
 /** A shipment already on its way, which the worklist must not open on. */
-export const DISPATCHED_SHIPMENT_ID = 'shipping-order-dispatched-1';
+export const DISPATCHED_SHIPMENT_ID = 'ship-d1';
 /** A parcel the buyer refused, which only a return moves on from. */
-export const REFUSED_SHIPMENT_ID = 'shipping-order-refused-1';
+export const REFUSED_SHIPMENT_ID = 'ship-r1';
 
 const shipment = (id: string, orderId: string, status: string) => ({
   id,
@@ -349,10 +356,10 @@ const shipment = (id: string, orderId: string, status: string) => ({
 
 /** The shipments a seeded vendor holds: two awaiting, one out, one refused. */
 export const shipmentSeed = () => [
-  shipment(AWAITING_SHIPMENT_ID, 'order-awaiting-1', 'awaiting-dispatch'),
-  shipment(AWAITING_SHIPMENT_2_ID, 'order-awaiting-2', 'awaiting-dispatch'),
-  shipment(DISPATCHED_SHIPMENT_ID, 'order-dispatched-1', 'dispatched'),
-  shipment(REFUSED_SHIPMENT_ID, 'order-refused-1', 'refused'),
+  shipment(AWAITING_SHIPMENT_ID, 'ord-a1', 'awaiting-dispatch'),
+  shipment(AWAITING_SHIPMENT_2_ID, 'ord-a2', 'awaiting-dispatch'),
+  shipment(DISPATCHED_SHIPMENT_ID, 'ord-d1', 'dispatched'),
+  shipment(REFUSED_SHIPMENT_ID, 'ord-r1', 'refused'),
 ];
 
 const shippingOrders = entityBackendHandlers(ShippingOrder, {

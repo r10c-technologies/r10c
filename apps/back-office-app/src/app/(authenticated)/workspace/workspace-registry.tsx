@@ -32,7 +32,10 @@ import {
 import { STOCK_CRUDS } from '@r10c/shells-next-stock';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
 
-import { productWorkspaceCrud } from '../../../lib/product-workspace';
+import {
+  productWorkspaceCrud,
+  ProductWorkspaceListPage,
+} from '../../../lib/product-workspace';
 import { EntityEditorTab } from './entity-tab';
 
 /**
@@ -42,7 +45,7 @@ import { EntityEditorTab } from './entity-tab';
  */
 const CATALOG_CRUDS = MARKETPLACE_ADMIN_CRUDS.map(crud =>
   crud.entityKey === productWorkspaceCrud.entityKey
-    ? productWorkspaceCrud
+    ? { ...productWorkspaceCrud, ListPage: ProductWorkspaceListPage }
     : crud,
 );
 
