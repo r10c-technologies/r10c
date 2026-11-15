@@ -45,12 +45,12 @@ for (const { path, tone } of TAGGED) {
 
 test('tags an order’s status and not how it was paid', async ({ page }) => {
   await page.goto('/es/order/product-order');
-  const rows = page.locator('tbody tr');
-  await expect(rows.first()).toBeVisible();
+  // The skeleton's rows are `tbody tr` too, so the rows are counted only once
+  // a tag says the page holds records.
+  const tags = page.locator('tbody [data-tone]');
+  await expect(tags.first()).toBeVisible();
 
-  await expect(page.locator('tbody [data-tone]')).toHaveCount(
-    await rows.count(),
-  );
+  await expect(tags).toHaveCount(await page.locator('tbody tr').count());
 });
 
 const SETTLEMENT_LISTS = [
