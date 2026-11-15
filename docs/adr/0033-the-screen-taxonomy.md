@@ -30,6 +30,11 @@
   (entifix 0.17.0): the user's own filter chosen for them, shown in the panel
   and clearable, and checked against the entity's `filterable` allowlist when
   the screen is generated — not a restriction, which is `baseFiltering`'s job.
+- Revised: 2026-11-15 by
+  [ADR 0077](0077-the-landing-page-and-regions-composed-across-slice-shells.md)
+  — the back office's home is a second section outside the taxonomy, with
+  `Cuenta`'s escape hatch and the Consultas shape: read-only, no verbs, every
+  tile a link into an Operaciones screen.
 
 ## Context
 
