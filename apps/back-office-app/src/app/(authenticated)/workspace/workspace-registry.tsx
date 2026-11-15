@@ -25,6 +25,7 @@ import {
 import {
   SETTLEMENT_MASTER_CRUDS,
   SETTLEMENT_OPERATION_CRUDS,
+  settlementListView,
 } from '@r10c/shells-next-settlement';
 import { STOCK_CRUDS } from '@r10c/shells-next-stock';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
@@ -49,6 +50,7 @@ import { EntityEditorTab } from './entity-tab';
  */
 const screensFor = (
   type: ScreenType,
+  partyRole: string | undefined,
   // Only the members a tab reads. A whole `EntityCrud<Entity>` would not do:
   // since entifix 0.21.0 a crud's `RelatedList` is typed by its own entity,
   // which makes `EntityCrud<T>` invariant, so no concrete crud is one.
@@ -67,9 +69,13 @@ const screensFor = (
     cruds.map(crud => [
       crud.entityKey,
       {
-        // The entity's own `@entity({ pluralKey })`, so a tab caption cannot
-        // drift from the heading of the table inside it.
-        titleKey: crud.entityPluralKey,
+        // What the page inside titles itself for this reader: the entity's
+        // own `@entity({ pluralKey })`, unless the shell words the list for
+        // who is reading it (#559). The same table the page's `useListView`
+        // reads, so a tab caption cannot drift from the heading under it.
+        titleKey:
+          settlementListView(crud.entityKey, partyRole).titleKey ??
+          crud.entityPluralKey,
         render: () => <crud.ListPage />,
       },
     ]),
@@ -100,7 +106,7 @@ const screensFor = (
  * record tab at all, because there is no single-configuration page to open. An
  * entity that *can* be derived is not a line here.
  */
-const masterScreens = (): EntityTabScreens => {
+const masterScreens = (partyRole: string | undefined): EntityTabScreens => {
   // Definiciones, and the sales channels join it: a vendor names their counter
   // and every order placed through it then references that record, which is
   // exactly the test ADR 0033 applies.
@@ -109,7 +115,7 @@ const masterScreens = (): EntityTabScreens => {
   // arrives as two exports rather than one. An agreement is authored and
   // everything else that domain holds is produced, so splitting it anywhere but
   // at the shell would put a run under a heading that says a person wrote it.
-  const derived = screensFor('master', [
+  const derived = screensFor('master', partyRole, [
     ...MARKETPLACE_ADMIN_CRUDS,
     ...SALES_CRUDS,
     ...SETTLEMENT_MASTER_CRUDS,
@@ -178,24 +184,30 @@ const wizardKind = wizardTabKind({
  * the same parser over different descriptor lists, because the list and the
  * record are the same screen with and without an id whatever produced the
  * record (ADR 0042).
+ *
+ * Built per reader rather than once: a tab is captioned outside React, and a
+ * vendor's settlement tab says "Mis pagos" where an operator's says "Pagos a
+ * vendedores" (#559). The party role is copy only — it grants nothing
+ * (ADR 0015).
  */
-export const workspaceRegistry = new TabRegistry()
-  .register(entityTabKind('master', masterScreens()))
-  // Operaciones: stock, orders, shipments and the settlement ledger, whose
-  // records a *process* made — a movement upserts the item, the checkout flow
-  // writes the hold, the receipt and the shipment (ADR 0033). One registration over both lists, because a tab kind is the
-  // *tier* rather than the shell that contributed to it: two `entityTabKind`
-  // calls for one `operation:` grammar would be two registrations racing for
-  // the same prefix.
-  .register(
-    entityTabKind(
-      'operation',
-      screensFor('operation', [
-        ...STOCK_CRUDS,
-        ...ORDER_CRUDS,
-        ...FULFILMENT_CRUDS,
-        ...SETTLEMENT_OPERATION_CRUDS,
-      ]),
-    ),
-  )
-  .register(wizardKind);
+export const workspaceRegistryFor = (partyRole: string | undefined) =>
+  new TabRegistry()
+    .register(entityTabKind('master', masterScreens(partyRole)))
+    // Operaciones: stock, orders, shipments and the settlement ledger, whose
+    // records a *process* made — a movement upserts the item, the checkout flow
+    // writes the hold, the receipt and the shipment (ADR 0033). One registration over both lists, because a tab kind is the
+    // *tier* rather than the shell that contributed to it: two `entityTabKind`
+    // calls for one `operation:` grammar would be two registrations racing for
+    // the same prefix.
+    .register(
+      entityTabKind(
+        'operation',
+        screensFor('operation', partyRole, [
+          ...STOCK_CRUDS,
+          ...ORDER_CRUDS,
+          ...FULFILMENT_CRUDS,
+          ...SETTLEMENT_OPERATION_CRUDS,
+        ]),
+      ),
+    )
+    .register(wizardKind);

@@ -6,4 +6,5 @@ export * from './client/client-types';
 export * from './client/reference-labels';
 export * from './client/settlement-context';
 export * from './client/settlement-crud';
+export { settlementListView } from './client/settlement-reader';
 export * from './settlement-surfaces';

@@ -1,4 +1,4 @@
-import { workspaceRegistry } from '../src/app/(authenticated)/workspace/workspace-registry';
+import { workspaceRegistryFor } from '../src/app/(authenticated)/workspace/workspace-registry';
 import { NAV } from '../src/lib/nav';
 
 /**
@@ -24,6 +24,36 @@ describe('the nav and the workspace registry agree', () => {
 
   it.each(addresses)('resolves %s', address => {
     // Captions are catalog keys here; echoing the key back is enough to resolve.
-    expect(workspaceRegistry.resolve(address, key => key)).not.toBeNull();
+    expect(
+      workspaceRegistryFor(undefined).resolve(address, key => key),
+    ).not.toBeNull();
+  });
+});
+
+/**
+ * A tab says what the page inside it says (#559). The page's heading comes
+ * from the shell's `useListView`, the caption from the same table through the
+ * registry, so a vendor's payouts tab is "Mis pagos" — and an operator's, and
+ * every list the shell does not word, keeps the entity's own plural.
+ */
+describe('a settlement tab is captioned for whoever reads it', () => {
+  const caption = (partyRole: string | undefined, address: string) =>
+    workspaceRegistryFor(partyRole).resolve(address, key => key)?.title;
+
+  it.each([
+    ['operation:vendor-payout', 'r10c:settlement.nav.payouts_vendor'],
+    ['operation:commission-entry', 'r10c:settlement.nav.entries_vendor'],
+    ['master:agreement', 'r10c:settlement.nav.agreements_vendor'],
+  ])('words %s for a vendor', (address, key) => {
+    expect(caption('vendor', address)).toBe(key);
+  });
+
+  it('keeps the plural for an operator, and for a list nobody re-words', () => {
+    expect(caption(undefined, 'operation:vendor-payout')).toBe(
+      'entity:vendor-payout.plural',
+    );
+    expect(caption('vendor', 'operation:settlement-run')).toBe(
+      'entity:settlement-run.plural',
+    );
   });
 });

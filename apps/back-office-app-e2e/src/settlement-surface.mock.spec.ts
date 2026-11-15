@@ -51,15 +51,37 @@ test('files agreements under Definiciones and the statement under Operaciones', 
   ).toBeVisible();
 });
 
-test('lists the vendor’s agreement', async ({ page }) => {
+test('lists the vendor’s agreement under their own words', async ({ page }) => {
   await page.goto('/settlement/agreement');
 
-  // The vendor reads as its name from the published-vendor projection, never
-  // as the organization id the agreement holds (#552).
+  // Every row a vendor is served is theirs, so the list is titled for them
+  // and carries no column repeating their own name (#559).
   await expect(
-    page.getByRole('cell', { name: 'Cerámica Demo', exact: true }),
+    page.getByRole('heading', { level: 1, name: 'Mi acuerdo' }),
   ).toBeVisible();
   await expect(page.getByRole('cell', { name: '800' })).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toHaveCount(0);
+});
+
+test('reads a vendor’s payouts as theirs, on the page and in its tab', async ({
+  page,
+}) => {
+  await page.goto('/settlement/vendor-payout');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Mis pagos' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toHaveCount(0);
+
+  // The tab is captioned from the same table the page's heading reads.
+  await page.goto('/workspace?tab=operation%3Avendor-payout');
+  await expect(page.getByRole('tab', { name: /Mis pagos/ })).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toHaveCount(0);
 });
 
 /**
@@ -158,5 +180,18 @@ test('an operator reads the same items in the operator’s words', async ({
   const operations = page.getByRole('group', { name: 'Operaciones' });
   await expect(
     operations.getByRole('link', { name: 'Pagos a vendedores', exact: true }),
+  ).toBeVisible();
+
+  // Reading across vendors, the operator gets the column, and the vendor
+  // reads as its name from the published-vendor projection, never as the
+  // organization id the agreement holds (#552, #559).
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Acuerdos' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Vendedor' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('cell', { name: 'Cerámica Demo', exact: true }),
   ).toBeVisible();
 });

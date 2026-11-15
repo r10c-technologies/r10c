@@ -108,10 +108,12 @@ function PushedEntities() {
 function ThemedProviders({
   children,
   scope,
+  partyRole,
   initialTheme,
   initialDensity,
 }: PropsWithChildren<{
   scope: string;
+  partyRole: string | undefined;
   initialTheme: string;
   initialDensity: Density | undefined;
 }>) {
@@ -168,7 +170,11 @@ function ThemedProviders({
                         <OrderProvider>
                           <FulfilmentProvider>
                             <SalesProvider scope={scope}>
-                              <SettlementProvider>
+                              <SettlementProvider
+                                {...(partyRole === undefined
+                                  ? {}
+                                  : { partyRole })}
+                              >
                                 {children}
                               </SettlementProvider>
                             </SalesProvider>
@@ -191,12 +197,15 @@ function ThemedProviders({
 export function Providers({
   locale,
   scope,
+  partyRole,
   initialTheme,
   initialDensity,
   children,
 }: PropsWithChildren<{
   locale: Locale;
   scope: string;
+  /** Who is reading, for copy only — never a decision (ADR 0015, #559). */
+  partyRole: string | undefined;
   initialTheme: string;
   initialDensity: Density | undefined;
 }>) {
@@ -204,6 +213,7 @@ export function Providers({
     <I18nProvider locale={locale}>
       <ThemedProviders
         scope={scope}
+        partyRole={partyRole}
         initialTheme={initialTheme}
         initialDensity={initialDensity}
       >
