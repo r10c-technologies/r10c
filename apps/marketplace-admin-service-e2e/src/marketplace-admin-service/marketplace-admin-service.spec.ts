@@ -130,7 +130,7 @@ describe('the RSQL query protocol', () => {
     ['an unknown member', `rsql=${encodeURIComponent('nope==1')}`],
     [
       'a member that is not filterable',
-      `rsql=${encodeURIComponent('description==x')}`,
+      `rsql=${encodeURIComponent('media==x')}`,
     ],
     ['an unknown sort member', 'sort=nope'],
   ])('rejects %s with a 400', async (_label, query) => {

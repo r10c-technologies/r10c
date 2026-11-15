@@ -9,7 +9,14 @@ describe('stockItemChangedEvent', () => {
   it('is the item’s change at its ledger version, for its organization alone', () => {
     const event = stockItemChangedEvent(
       'org-1',
-      { id: 'item-1', offeringId: 'off-1', onHand: 5, reserved: 2, version: 7 },
+      {
+        id: 'item-1',
+        offeringId: 'off-1',
+        onHand: 5,
+        reserved: 2,
+        available: 3,
+        version: 7,
+      },
       'stock',
     );
 
