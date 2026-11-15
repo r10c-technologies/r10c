@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { Reservation } from '../entities/reservation';
+import type { StockItem } from '../entities/stock-item';
 import { StockMovement } from '../entities/stock-movement';
 import type { StockLedger } from '../ports/stock-ledger';
 import type { MovementReason } from '../values/movement-reason';
@@ -41,8 +42,11 @@ const movement = (
  * {@link CONTRACT_ORGANIZATIONS}.
  *
  * Deliberately not asserted: two concurrent takes on the last unit producing
- * one winner. That is the conditional write against a real server, and a run
- * in one process cannot interleave them (ADR 0063).
+ * one winner, or a parallel burst leaving `available` equal to `onHand −
+ * reserved`. Both are the conditional write against a real server, and a run
+ * in one process cannot interleave them — the fake driver's transactions are
+ * atomic, not isolated (ADR 0063). `stock-service-e2e`'s
+ * `concurrency.live.spec.ts` proves both against the lab.
  */
 export const describeStockLedgerContract = (
   name: string,
@@ -183,6 +187,70 @@ export const describeStockLedgerContract = (
       expect(released).toEqual({ released: 2, failed: [] });
       expect(freed._tag).toBe('held');
       expect(stillHeld).toBe('transitioned');
+    });
+
+    it('reads an item as it stands, and nothing before its first movement', async () => {
+      const ledger = await make();
+      const before = await run(ledger.item('org-a', 'o-1'));
+      await run(ledger.record('org-a', movement('m-1', 5)));
+      await run(ledger.take('org-a', hold('r-1', 2), undefined));
+
+      expect(before).toBeUndefined();
+      expect(await run(ledger.item('org-a', 'o-1'))).toMatchObject({
+        offeringId: 'o-1',
+        onHand: 5,
+        reserved: 2,
+        available: 3,
+      });
+      expect(await run(ledger.item('org-b', 'o-1'))).toBeUndefined();
+    });
+
+    it('keeps what is free equal to what is on hand less what is held, through every move (#555)', async () => {
+      const ledger = await make();
+      const free = async () => {
+        const { available, onHand, reserved } = (await run(
+          ledger.item('org-a', 'o-1'),
+        )) as StockItem;
+        return [available, onHand - reserved];
+      };
+      const seen: unknown[][] = [];
+
+      // Every kind of move the port makes, interleaved, the invariant read
+      // after each: a receipt, holds, a sale, a release, a restoration, an
+      // expiry. Each is applied by the ledger, never computed by the caller
+      // and written back.
+      await run(ledger.record('org-a', movement('m-0', 20)));
+      seen.push(await free());
+      for (const n of [1, 2, 3, 4, 5, 6]) {
+        await run(ledger.take('org-a', hold(`r-${n}`, 2), undefined));
+        seen.push(await free());
+      }
+      await run(ledger.record('org-a', movement('m-1', 5)));
+      seen.push(await free());
+      await run(ledger.end('org-a', 'r-1', 'converted'));
+      seen.push(await free());
+      await run(ledger.end('org-a', 'r-2', 'released'));
+      seen.push(await free());
+      await run(
+        ledger.restore('org-a', movement('m-2', 1, 'cancellation'), 'c-1'),
+      );
+      seen.push(await free());
+      await run(
+        ledger.take(
+          'org-a',
+          hold('r-7', 3, new Date(Date.now() - 60_000)),
+          undefined,
+        ),
+      );
+      await run(ledger.releaseExpired());
+      seen.push(await free());
+
+      for (const [stored, derived] of seen) expect(stored).toBe(derived);
+      expect(await run(ledger.item('org-a', 'o-1'))).toMatchObject({
+        onHand: 24,
+        reserved: 8,
+        available: 16,
+      });
     });
 
     it("keeps one organization's shelf out of another's", async () => {

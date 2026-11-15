@@ -2,6 +2,7 @@ import { Failure, type Invalid, type StoreFailure } from '@entifix/core';
 import { Context, type Effect, Schema } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
+import type { StockItem } from '../entities/stock-item';
 import type { StockMovement } from '../entities/stock-movement';
 
 /** How taking a hold went: a new hold, or the one a repeated command took. */
@@ -86,6 +87,16 @@ export interface StockLedger {
    * walk goes on; the slice shell logs what was reported (ADR 0064).
    */
   readonly releaseExpired: () => Effect.Effect<ExpirySweep, StockStoreFailure>;
+  /**
+   * One offering's item as it stands — its counters and what is free —
+   * `undefined` before its first movement. A read and nothing more: what is
+   * free here may already have moved by the time a caller acts on it, and only
+   * {@link StockLedger.take} decides a hold.
+   */
+  readonly item: (
+    organizationId: string,
+    offeringId: string,
+  ) => Effect.Effect<StockItem | undefined, StockStoreFailure>;
 }
 
 /** What one pass over the expired holds did. */

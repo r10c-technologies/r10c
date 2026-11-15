@@ -182,3 +182,51 @@ describe('a receipt racing a hold', () => {
     expect(onHand).toBe(5 + BURST / 2);
   });
 });
+
+describe('every counter move at once', () => {
+  it('keeps what is free equal to what is on hand less what is held (#555)', async () => {
+    // `available` is stored, moved by the same `$inc` as whichever counter a
+    // write moves. Receipts, holds, releases and sales racing on one item are
+    // what would expose a write that moved one and not the other.
+    const offeringId = freshOffering('available');
+    await recordMovement(offeringId, BURST, 'receipt');
+
+    // `Promise.all` keeps its order: the first half answers are the holds.
+    const answers = await Promise.all([
+      ...Array.from({ length: BURST / 2 }, () => takeHold(offeringId, 1)),
+      ...Array.from({ length: BURST / 2 }, () =>
+        recordMovement(offeringId, 1, 'receipt'),
+      ),
+    ]);
+    expect(answers.map(answer => answer.status)).toEqual(
+      Array.from({ length: BURST }, () => 200),
+    );
+    const ids = answers
+      .slice(0, BURST / 2)
+      .map(answer => answer.data.data.id as string);
+
+    await Promise.all(
+      ids.map((id, index) =>
+        index % 2 === 0
+          ? service.client.delete(`/api/reservation/${id}`, {
+              headers: crossingHeaders(),
+            })
+          : service.client.post(
+              `/api/reservation/${id}/conversion`,
+              {},
+              { headers: crossingHeaders() },
+            ),
+      ),
+    );
+
+    const [item] = await itemsFor(offeringId);
+    expect(item['available']).toBe(
+      (item['onHand'] as number) - (item['reserved'] as number),
+    );
+    expect(item).toMatchObject({
+      onHand: BURST + BURST / 2 - BURST / 4,
+      reserved: 0,
+      available: BURST + BURST / 2 - BURST / 4,
+    });
+  });
+});

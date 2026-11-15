@@ -511,6 +511,17 @@ export const MongoStockLedgerLayer = Layer.effect(
           }
           return { released, failed } as ExpirySweep;
         }),
+
+      item: (organizationId, offeringId) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          const found = yield* Effect.tryPromise({
+            try: () =>
+              db.collection(STOCK_ITEM_COLLECTION).findOne({ offeringId }),
+            catch: storeUnavailable,
+          });
+          return found === null ? undefined : yield* revive(StockItem, found);
+        }),
     };
   }),
 );
