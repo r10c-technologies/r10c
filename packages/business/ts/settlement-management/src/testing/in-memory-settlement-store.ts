@@ -4,10 +4,11 @@ import type { Agreement } from '../entities/agreement';
 import type { FoldOutcome, SaleHalf } from '../ports/settlement-ports';
 import {
   type CollectedBy,
+  payoutFor,
   reversalOf,
   type VendorCommission,
 } from '../values/commission';
-import type { SettlementPorts } from './settlement-store.contract';
+import type { PayoutView, SettlementPorts } from './settlement-store.contract';
 
 interface Join {
   commissions?: readonly VendorCommission[];
@@ -43,6 +44,7 @@ export const makeInMemorySettlementStore = (
   const joins = new Map<string, Join>();
   const claims = new Set<string>();
   const ledger: Line[] = [];
+  const payouts: PayoutView[] = [];
 
   const linesFor = (
     orderId: string,
@@ -162,24 +164,44 @@ export const makeInMemorySettlementStore = (
           }),
         ),
       ),
+    ledger: {
+      unsettledFor: vendorId =>
+        Effect.sync(() =>
+          ledger.filter(
+            line => line.vendorId === vendorId && line.runId === undefined,
+          ),
+        ),
+    },
+    payouts: () => Effect.sync(() => payouts.slice()),
     runs: {
       settleOnce: () =>
-        Effect.sync(() => {
+        Effect.gen(function* () {
           const unsettled = ledger
             .filter(line => line.runId === undefined)
             .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
           const oldest = unsettled[0];
-          if (oldest === undefined) return { kind: 'idle' };
+          if (oldest === undefined) return { kind: 'idle' } as const;
           const runId = globalThis.crypto.randomUUID();
           for (const line of unsettled) line.runId = runId;
+          const vendors = unsettled
+            .map(line => line.vendorId)
+            .filter((vendorId, index, all) => all.indexOf(vendorId) === index);
+          for (const vendorId of vendors) {
+            const [first, ...rest] = unsettled.filter(
+              line => line.vendorId === vendorId,
+            );
+            // Never undefined: the vendor was listed from these lines.
+            const owed = yield* payoutFor(vendorId, [first as Line, ...rest]);
+            payouts.push({ vendorId, ...owed });
+          }
           return {
             kind: 'calculated',
             runId,
             periodStart: oldest.occurredAt,
             periodEnd: new Date().toISOString(),
-            payouts: new Set(unsettled.map(line => line.vendorId)).size,
+            payouts: vendors.length,
             entries: unsettled.length,
-          };
+          } as const;
         }),
     },
   };

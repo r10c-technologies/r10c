@@ -1,8 +1,9 @@
-import { entityApi } from '@entifix/service-shell';
+import { endpointGroup, entityApi } from '@entifix/service-shell';
 import {
   agreementApi,
   commissionEntryApi,
   settlementRunApi,
+  vendorBalanceEndpoints,
   vendorPayoutApi,
 } from '@r10c/implementation-settlement-management-http';
 import {
@@ -27,6 +28,7 @@ export const endpoints = [
   entityApi(commissionEntryApi),
   entityApi(vendorPayoutApi),
   entityApi(settlementRunApi),
+  endpointGroup('vendor-balance', ...vendorBalanceEndpoints),
 ] as const;
 
 /** How this slice's endpoints answer and log a failure (ADR 0064). */

@@ -3547,6 +3547,9 @@ importers:
 
   packages/implementation/settlement-management/http:
     dependencies:
+      '@entifix/authz':
+        specifier: 'catalog:'
+        version: 0.22.2(effect@4.0.7)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.22.2(effect@4.0.7)

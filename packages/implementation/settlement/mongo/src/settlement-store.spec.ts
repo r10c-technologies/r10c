@@ -5,6 +5,8 @@ import {
   type SaleHalf,
   type SaleJoin,
   SaleJoinTag,
+  type SettlementLedger,
+  SettlementLedgerTag,
   type SettlementRunStore,
   SettlementRunStoreTag,
 } from '@r10c/business-ts-settlement-management';
@@ -34,6 +36,7 @@ const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
     use: (ports: {
       join: SaleJoin;
       runs: SettlementRunStore;
+      ledger: SettlementLedger;
     }) => Effect.Effect<A, E>,
   ) =>
     cell.run(
@@ -41,6 +44,7 @@ const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
         return yield* use({
           join: yield* SaleJoinTag,
           runs: yield* SettlementRunStoreTag,
+          ledger: yield* SettlementLedgerTag,
         });
       }),
     );
@@ -99,6 +103,14 @@ describeSettlementStoreContract('the Mongo store', async () => {
           saleAmount: entry['saleAmount'] as number,
           commissionAmount: entry['commissionAmount'] as number,
           collectedBy: entry['collectedBy'] as string,
+        })),
+      ),
+    payouts: () =>
+      Effect.sync(() =>
+        subject.fake.read(VENDOR_PAYOUT_COLLECTION).map(payout => ({
+          vendorId: payout['vendorId'] as string,
+          amount: payout['amount'] as number,
+          currency: payout['currency'] as string,
         })),
       ),
   };

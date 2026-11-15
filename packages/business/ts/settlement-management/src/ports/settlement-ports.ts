@@ -3,7 +3,11 @@ import { Context, type Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
 import type { MixedCurrencies } from '../failures/settlement-failures';
-import type { CollectedBy, VendorCommission } from '../values/commission';
+import type {
+  CollectedBy,
+  PayoutEntry,
+  VendorCommission,
+} from '../values/commission';
 
 /**
  * One half of a sale, as one message contributes it. The sale itself is
@@ -96,3 +100,18 @@ export class SettlementRunStoreTag extends Context.Service<
   SettlementRunStoreTag,
   SettlementRunStore
 >()('SettlementRunStoreTag') {}
+
+/**
+ * The ledger as a vendor's balance reads it (#562): their lines no run has
+ * claimed yet — exactly the lines the next run would fold into their payout.
+ */
+export interface SettlementLedger {
+  readonly unsettledFor: (
+    vendorId: string,
+  ) => Effect.Effect<readonly PayoutEntry[], StoreFault>;
+}
+
+export class SettlementLedgerTag extends Context.Service<
+  SettlementLedgerTag,
+  SettlementLedger
+>()('SettlementLedgerTag') {}

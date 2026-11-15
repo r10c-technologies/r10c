@@ -168,7 +168,9 @@ record about a vendor, the same character as `Entitlement` and nothing like a
 public catalog ([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md) §8).
 
 It serves the vendor's terms and their statement: `GET|POST|PUT /api/agreement`,
-and read-only `commission-entry`, `settlement-run` and `vendor-payout`.
+read-only `commission-entry`, `settlement-run` and `vendor-payout`, and `GET
+/api/vendor-balance` — what the next run will pay the caller, `payoutFor` over
+their unsettled lines, so it cannot disagree with the payout it predicts.
 
 ⚠️ **Every read is narrowed to the caller.** An operator reads across vendors; a
 vendor reads their own agreement, their own ledger lines and their own payouts;

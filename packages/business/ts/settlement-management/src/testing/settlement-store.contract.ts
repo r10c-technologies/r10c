@@ -5,8 +5,11 @@ import { Agreement } from '../entities/agreement';
 import type {
   SaleHalf,
   SaleJoin,
+  SettlementLedger,
   SettlementRunStore,
 } from '../ports/settlement-ports';
+import { SettlementLedgerTag } from '../ports/settlement-ports';
+import { vendorBalance } from '../use-cases/vendor-balance';
 
 /** One commission line as the contract reads it back. */
 export interface LedgerView {
@@ -18,14 +21,24 @@ export interface LedgerView {
   readonly collectedBy: string;
 }
 
+/** One payout as the contract reads it back. */
+export interface PayoutView {
+  readonly vendorId: string;
+  readonly amount: number;
+  readonly currency: string;
+}
+
 /**
- * The two ports one settlement store serves, over one ledger — and, for the
- * contract alone, a read of the ledger lines the folds wrote.
+ * The three ports one settlement store serves, over one ledger — and, for the
+ * contract alone, reads of the ledger lines the folds wrote and of the payouts
+ * the runs wrote.
  */
 export interface SettlementPorts {
   readonly join: SaleJoin;
   readonly runs: SettlementRunStore;
+  readonly ledger: SettlementLedger;
   readonly entries: () => Effect.Effect<readonly LedgerView[]>;
+  readonly payouts: () => Effect.Effect<readonly PayoutView[]>;
 }
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
@@ -242,6 +255,80 @@ export const describeSettlementStoreContract = (
       expect(await run(ports.entries())).toEqual([
         expect.objectContaining({ kind: 'sale', collectedBy: 'vendor' }),
       ]);
+    });
+
+    /**
+     * #562: a vendor's balance is what the next run will pay them — the same
+     * fold over the same lines, so the two cannot disagree. Asserted over a
+     * sale, a reversal of an earlier settled sale, and a cash-on-delivery line
+     * the vendor already holds.
+     */
+    it('balances a vendor at exactly the payout the next run writes', async () => {
+      const ports = await make();
+      const balanceOf = (vendorId: string) =>
+        run(
+          vendorBalance({ partyRole: 'vendor', organizationId: vendorId }).pipe(
+            Effect.provideService(SettlementLedgerTag, ports.ledger),
+          ),
+        );
+      await contribute(ports, 'ord-1', sale);
+      await contribute(ports, 'ord-1', paid);
+      await run(ports.runs.settleOnce());
+      // After that run: ord-1 reversed, a new card sale, a COD collection.
+      await contribute(ports, 'ord-1', cancelled);
+      await contribute(ports, 'ord-1', refunded);
+      await contribute(ports, 'ord-2', saleOf('v-1', 200, 24));
+      await contribute(ports, 'ord-2', paidFor(200));
+      await contribute(ports, 'ord-3', saleOf('v-1', 100, 12, 'cod'));
+      await contribute(ports, 'ord-3', paidFor(100, 'vendor'));
+
+      const balance = await balanceOf('v-1');
+      await run(ports.runs.settleOnce());
+      const paidOut = (await run(ports.payouts())).at(-1);
+
+      // -(100-12) for the reversal, +(200-24) for the sale, -12 for the COD cut.
+      expect(balance).toEqual({
+        amount: 76,
+        currency: 'GTQ',
+        unsettledEntries: 3,
+      });
+      expect(paidOut).toEqual({ vendorId: 'v-1', amount: 76, currency: 'GTQ' });
+      expect(await balanceOf('v-1')).toEqual({
+        amount: 0,
+        unsettledEntries: 0,
+      });
+    });
+
+    it('balances nobody but the vendor asking', async () => {
+      const ports = await make();
+      await contribute(ports, 'ord-1', sale);
+      await contribute(ports, 'ord-1', paid);
+      const balanceAs = (reader: {
+        partyRole?: string;
+        organizationId?: string;
+      }) =>
+        run(
+          vendorBalance(reader).pipe(
+            Effect.provideService(SettlementLedgerTag, ports.ledger),
+          ),
+        );
+
+      expect(
+        await balanceAs({ partyRole: 'vendor', organizationId: 'v-2' }),
+      ).toEqual({
+        amount: 0,
+        unsettledEntries: 0,
+      });
+      for (const reader of [
+        { partyRole: 'operator', organizationId: 'v-1' },
+        { partyRole: 'vendor' },
+        { partyRole: 'buyer', organizationId: 'v-1' },
+      ]) {
+        expect(await balanceAs(reader)).toEqual({
+          amount: 0,
+          unsettledEntries: 0,
+        });
+      }
     });
 
     it('voids a cash-on-delivery order cancelled before its cash was collected', async () => {

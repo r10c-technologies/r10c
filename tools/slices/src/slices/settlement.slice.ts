@@ -76,6 +76,7 @@ export const settlementSlice: SliceDeclaration = {
     'GET /api/vendor-payout',
     'GET /api/vendor-payout/:id',
     'GET /api/vendor-payout/$metadata',
+    'GET /api/vendor-balance',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],

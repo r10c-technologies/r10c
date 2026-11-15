@@ -19,6 +19,7 @@ import {
   reversalOf,
   type RunOutcome,
   SaleJoinTag,
+  SettlementLedgerTag,
   SettlementRun,
   SettlementRunStoreTag,
   type VendorCommission,
@@ -122,7 +123,8 @@ const entryDocuments = (
   });
 
 /**
- * The commission join and the settlement run over the `settlement` store.
+ * The commission join, the settlement run and the vendor's balance read over
+ * the `settlement` store.
  *
  * Each message's half lands on the order's join record in one unit with the
  * message's claim; whichever completes a pair writes its entries there too.
@@ -384,6 +386,29 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
       });
 
     return Layer.mergeAll(
+      // A vendor's balance (#562): the lines the next run would claim for
+      // them, over the `vendor_1` index. Outside any unit — a read that takes
+      // no claim and writes nothing.
+      Layer.succeed(SettlementLedgerTag, {
+        unsettledFor: vendorId =>
+          promise(() =>
+            db
+              .collection<LedgerLine>(COMMISSION_ENTRY_COLLECTION)
+              .find(
+                { vendorId, runId: { $exists: false } },
+                {
+                  projection: {
+                    _id: 0,
+                    saleAmount: 1,
+                    commissionAmount: 1,
+                    currency: 1,
+                    collectedBy: 1,
+                  },
+                },
+              )
+              .toArray(),
+          ),
+      }),
       Layer.succeed(SaleJoinTag, {
         agreementsFor,
         contribute: (claim, orderId, half) =>
