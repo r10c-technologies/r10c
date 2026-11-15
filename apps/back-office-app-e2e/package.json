@@ -26,6 +26,7 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-configuration": "workspace:*",
+    "@r10c/business-ts-i18n": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@r10c/business-ts-order-management": "workspace:*",

@@ -1,3 +1,8 @@
+// The fleet's locales, declared before a handler parses a query: a category's
+// name is localized (#573), and the picker queries it as `name.<locale>`,
+// which entifix refuses for a locale this process never declared.
+import '@r10c/business-ts-i18n/locales';
+
 import { describeEntityUseCases, problemOf } from '@entifix/core';
 import {
   configurationHandler,
