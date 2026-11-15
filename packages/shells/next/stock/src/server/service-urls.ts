@@ -12,3 +12,11 @@
  */
 export const STOCK_SERVICE_URL =
   process.env.STOCK_SERVICE_URL ?? 'http://localhost:3108';
+
+/**
+ * Where marketplace-admin-service listens: the owner of the offerings a stock
+ * record refers to, which the record search reads to find one by its product's
+ * name (#552). The same variable the catalog shell reads.
+ */
+export const MARKETPLACE_ADMIN_SERVICE_URL =
+  process.env.MARKETPLACE_ADMIN_SERVICE_URL ?? 'http://localhost:3101';

@@ -1,18 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
 import { SETTLEMENT_SEARCH_SOURCES } from './search-sources';
-import { SETTLEMENT_SERVICE_URL } from './service-urls';
+import {
+  MARKETPLACE_SERVICE_URL,
+  SETTLEMENT_SERVICE_URL,
+} from './service-urls';
 
 /**
  * The declarations are validated against live entity metadata the moment this
- * module loads, so the import itself is most of the test: dropping `sortable`
- * from `Agreement.vendorId` fails *here*, loudly, rather than in a palette that
- * quietly reports a group it could not reach.
+ * module loads, so the import itself is most of the test: dropping the
+ * `references` declaration from `Agreement.vendorId` fails *here*, loudly,
+ * rather than in a palette that quietly reports a group it could not reach.
  *
- * That guard did fire for this domain. `vendorId` is the only member of any of
- * these entities that a source can name a record by — everything else is a
- * number, a date or an opaque id — and it was filterable and not sortable until
- * this change, which means this file could not have been written at all.
+ * Every source is searched through the vendor it belongs to (#552): the term
+ * is matched against the vendor's display name in marketplace-service's
+ * published-vendor projection, and the records referring to the matches are
+ * read here and named after them.
  */
 describe('SETTLEMENT_SEARCH_SOURCES', () => {
   /**
@@ -41,30 +44,46 @@ describe('SETTLEMENT_SEARCH_SOURCES', () => {
     ['agreement', '/settlement/agreement/x-1'],
     ['commission-entry', '/settlement/commission-entry/x-1'],
     ['vendor-payout', '/settlement/vendor-payout/x-1'],
-  ])('routes a %s result to a page this host serves', (key, expected) => {
+  ])('names a %s result after its vendor, and routes it here', (key, href) => {
     const source = SETTLEMENT_SEARCH_SOURCES.find(
       candidate => candidate.key === key,
     );
 
-    const href = source?.read(
+    const option = source?.read(
       {
         meta: { type: 'entityPage', entity: key },
-        data: { items: [{ id: 'x-1' }], total: 1 },
+        data: { items: [{ id: 'x-1', vendorId: 'org-1' }], total: 1 },
       },
       'es',
-    )?.items[0]?.href;
+      new Map([['org-1', 'Cerámica Demo']]),
+    )?.items[0];
 
-    expect(href).toBe(expected);
+    expect(option).toMatchObject({ label: 'Cerámica Demo', href });
   });
 
-  it('fans out to settlement-service, not to the app’s proxy', () => {
-    // ADR 0040's fan-out runs server-side, so it dials the service directly —
+  it('matches the vendor’s name at marketplace-service, then reads here', () => {
+    // ADR 0040's fan-out runs server-side, so it dials both services directly —
     // unlike the browser's adapters, which go through the host's same-origin
     // proxy because that is what carries the session cookie.
     for (const source of SETTLEMENT_SEARCH_SOURCES) {
-      expect(source.url('x', 5, 'es').startsWith(SETTLEMENT_SERVICE_URL)).toBe(
-        true,
-      );
+      expect(
+        source.through
+          ?.url('ceramica', 5, 'es')
+          .startsWith(`${MARKETPLACE_SERVICE_URL}/api/published-vendor?`),
+      ).toBe(true);
+      expect(
+        source.through
+          ?.urlFor(['org-1'], 5)
+          .startsWith(`${SETTLEMENT_SERVICE_URL}/api/${source.key}?`),
+      ).toBe(true);
     }
+  });
+});
+
+describe('MARKETPLACE_SERVICE_URL', () => {
+  it('defaults to the port the fleet convention allocates', () => {
+    expect(MARKETPLACE_SERVICE_URL).toBe(
+      process.env.MARKETPLACE_SERVICE_URL ?? 'http://localhost:3100',
+    );
   });
 });

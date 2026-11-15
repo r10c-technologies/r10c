@@ -52,14 +52,12 @@ export interface OrderSurface<TEntity extends Entity = Entity> {
   /** Shell-namespaced nav copy. `app:` keys are lint-restricted to `apps/`. */
   readonly navLabelKey: string;
   /**
-   * ⚠️ **`offeringId` on all three**, and not by preference:
-   * `defineRecordSearchSource` refuses a label member that is not sortable,
-   * filterable **and** a string, at module load. Every other member of these
-   * entities is a number or an enum, so this is the only one that can name one
-   * of their records.
+   * What the palette matches a term against. An order is not named by it: a
+   * buyer's id is not what a person calls an order, so a result names itself
+   * as the entity's noun and a short id ("Pedido 8a564966") until ADR 0076's
+   * order number gives it a name (#552).
    */
   readonly searchProperty: string;
-  readonly labelProperty: string;
   readonly sublabelProperty?: string;
 }
 
@@ -111,12 +109,7 @@ export const PRODUCT_ORDER_SURFACE = orderSurface(ProductOrder, {
   basePath: '/order/product-order',
   icon: '≣',
   navLabelKey: 'r10c:order.nav.received',
-  // The only member that can name an order to a human. `buyerId` is
-  // `filterable` **and** `sortable` on the entity, which is what a search source
-  // requires of a label member — it validates that at module load, so a
-  // non-sortable choice here fails the process rather than the query.
   searchProperty: 'buyerId',
-  labelProperty: 'buyerId',
   sublabelProperty: 'status',
 });
 

@@ -36,14 +36,12 @@ describe('the order surfaces', () => {
   });
 
   /**
-   * ⚠️ A label member that is not sortable, filterable **and** a string makes
-   * `defineRecordSearchSource` throw at module load, which fails the app at boot
-   * rather than one render. `status` is an enum and `placedAt` a date, so
-   * `buyerId` is the only member of `ProductOrder` that qualifies.
+   * The palette matches a term against `buyerId`. No label member: a buyer's
+   * id is not what a person calls an order, so a result names itself, noun and
+   * short id, until ADR 0076's order number names it (#552).
    */
-  it('names an order by the one member of it that can be searched', () => {
+  it('searches an order by its buyer, and lets the record name itself', () => {
     expect(PRODUCT_ORDER_SURFACE.searchProperty).toBe('buyerId');
-    expect(PRODUCT_ORDER_SURFACE.labelProperty).toBe('buyerId');
   });
 
   it('carries shell-namespaced nav copy', () => {
@@ -79,7 +77,6 @@ describe('orderSurface', () => {
         icon: '≣',
         navLabelKey: 'r10c:order.nav.received',
         searchProperty: 'buyerId',
-        labelProperty: 'buyerId',
       }),
     ).toThrow(/pluralKey/);
   });

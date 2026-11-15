@@ -50,8 +50,18 @@ const searchSourceFor = (surface: CatalogSurface): RecordSearchSource =>
     entityConstructor: surface.entityConstructor,
     baseUrl: SERVICE_URLS[surface.service],
     searchProperty: surface.searchProperty,
-    labelProperty: surface.labelProperty,
     sublabelProperty: surface.sublabelProperty,
+    ...(surface.labelProperty === undefined
+      ? {}
+      : { labelProperty: surface.labelProperty }),
+    ...(surface.reference === undefined
+      ? {}
+      : {
+          reference: {
+            entityConstructor: surface.reference.entityConstructor,
+            baseUrl: SERVICE_URLS[surface.reference.service],
+          },
+        }),
     labelKey: surface.entityPluralKey,
     href: id => `${surface.basePath}/${id}`,
   });

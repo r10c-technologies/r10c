@@ -19,7 +19,6 @@ const searchSourceFor = (surface: FulfilmentSurface): RecordSearchSource =>
     entityConstructor: surface.entityConstructor,
     baseUrl: FULFILMENT_SERVICE_URL,
     searchProperty: surface.searchProperty,
-    labelProperty: surface.labelProperty,
     sublabelProperty: surface.sublabelProperty,
     labelKey: surface.entityPluralKey,
     href: id => `${surface.basePath}/${id}`,

@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import { STOCK_SEARCH_SOURCES } from './search-sources';
-import { STOCK_SERVICE_URL } from './service-urls';
+import {
+  MARKETPLACE_ADMIN_SERVICE_URL,
+  STOCK_SERVICE_URL,
+} from './service-urls';
 
 /**
  * The declarations are validated against live entity metadata the moment this
- * module loads, so the import itself is most of the test: dropping `sortable`
- * from `StockItem.offeringId` fails *here*, loudly, rather than in a palette
- * that quietly reports a group it could not reach.
+ * module loads, so the import itself is most of the test: dropping the
+ * `references` declaration from `StockItem.offeringId` fails *here*, loudly,
+ * rather than in a palette that quietly reports a group it could not reach.
  *
- * That guard is not hypothetical for this domain. `offeringId` is the only
- * member of any of these three entities that a source can name a record by —
- * everything else is a number or an enum — and it was made sortable for
- * exactly this.
+ * Every source is searched through the offering it is for (#552): the term is
+ * matched against the offering's name at marketplace-admin-service, and the
+ * stock records referring to the matches are read and named after them.
  */
 describe('STOCK_SEARCH_SOURCES', () => {
   it('declares the three searchable stock records, in order', () => {
@@ -35,32 +37,36 @@ describe('STOCK_SEARCH_SOURCES', () => {
     ['stock-item', '/stock/stock-item/x-1'],
     ['stock-movement', '/stock/stock-movement/x-1'],
     ['reservation', '/stock/reservation/x-1'],
-  ])('routes a %s result to a page this host serves', (key, expected) => {
-    const source = STOCK_SEARCH_SOURCES.find(
-      candidate => candidate.key === key,
-    );
+  ])(
+    'names a %s result after its offering, and routes it here',
+    (key, href) => {
+      const source = STOCK_SEARCH_SOURCES.find(
+        candidate => candidate.key === key,
+      );
 
-    expect(source?.url('product-offering-1', 5, 'es')).toContain(
-      `/api/${key}?`,
-    );
-    expect(
-      source?.read(
+      const option = source?.read(
         {
           meta: { type: 'entityPage', entity: key },
-          data: { items: [{ id: 'x-1' }], total: 1 },
+          data: { items: [{ id: 'x-1', offeringId: 'o-1' }], total: 1 },
         },
         'es',
-      )?.items[0]?.href,
-    ).toBe(expected);
-  });
+        new Map([['o-1', 'Taza de cerámica']]),
+      )?.items[0];
+      expect(option).toMatchObject({ label: 'Taza de cerámica', href });
+    },
+  );
 
-  it('fans out to stock-service, not to a catalog backend', () => {
-    // Three backends now, and pointing a source at the wrong one is how the
-    // brand pages once requested routes that no longer existed while the e2e
-    // fixture, stubbing the same wrong address, could not see it.
+  it('matches the offering’s name at its owner, then reads the stock here', () => {
     for (const source of STOCK_SEARCH_SOURCES) {
+      const through = source.through;
+      expect(through?.url('taza', 5, 'es')).toMatch(
+        new RegExp(`^${MARKETPLACE_ADMIN_SERVICE_URL}/api/product-offering\\?`),
+      );
+      expect(through?.url('taza', 5, 'es')).toContain('taza');
       expect(
-        source.url('anything', 1, 'es').startsWith(STOCK_SERVICE_URL),
+        through
+          ?.urlFor(['o-1', 'o-2'], 5)
+          .startsWith(`${STOCK_SERVICE_URL}/api/${source.key}?`),
       ).toBe(true);
     }
   });
@@ -73,6 +79,14 @@ describe('STOCK_SERVICE_URL', () => {
     // one ends up pointing at a port nothing listens on.
     expect(STOCK_SERVICE_URL).toBe(
       process.env.STOCK_SERVICE_URL ?? 'http://localhost:3108',
+    );
+  });
+});
+
+describe('MARKETPLACE_ADMIN_SERVICE_URL', () => {
+  it('defaults to the port the fleet convention allocates', () => {
+    expect(MARKETPLACE_ADMIN_SERVICE_URL).toBe(
+      process.env.MARKETPLACE_ADMIN_SERVICE_URL ?? 'http://localhost:3101',
     );
   });
 });

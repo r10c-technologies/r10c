@@ -66,7 +66,14 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
     // answer `409` for a caller the other two serve happily.
     expect(specification?.url('acme', 5, 'es')).toContain('localhost:3101');
     expect(offering?.url('acme', 5, 'es')).toContain('localhost:3101');
-    expect(price?.url('acme', 5, 'es')).toContain('localhost:3101');
+    // A price is found through its offering's name, at the same tenant
+    // service, then read by the offerings that matched (#552).
+    expect(price?.through?.url('taza', 5, 'es')).toContain(
+      'localhost:3101/api/product-offering?',
+    );
+    expect(price?.through?.urlFor(['o-1'], 5)).toContain(
+      'localhost:3101/api/product-offering-price?',
+    );
     expect(brand?.url('acme', 5, 'es')).toContain('localhost:3100');
     expect(category?.url('acme', 5, 'es')).toContain('localhost:3100');
   });

@@ -15,19 +15,14 @@ import { ORDER_SERVICE_URL } from './service-urls';
  * `basePath` the screens are generated at, so a result cannot route to a page
  * this host does not serve.
  *
- * ⚠️ Every source searches and labels by `offeringId`, which is not a style
- * choice: `defineRecordSearchSource` refuses a label member that is not
- * sortable, filterable and a string, **at module load** — and every other
- * member here is a number or an enum. Searching orders means
- * searching by the offering it belongs to, which is also how a vendor thinks
- * about it.
+ * No label member: a result names itself, the entity's noun and a short id,
+ * because nothing an order holds is what a person calls it (#552).
  */
 const searchSourceFor = (surface: OrderSurface): RecordSearchSource =>
   defineRecordSearchSource({
     entityConstructor: surface.entityConstructor,
     baseUrl: ORDER_SERVICE_URL,
     searchProperty: surface.searchProperty,
-    labelProperty: surface.labelProperty,
     sublabelProperty: surface.sublabelProperty,
     labelKey: surface.entityPluralKey,
     href: id => `${surface.basePath}/${id}`,

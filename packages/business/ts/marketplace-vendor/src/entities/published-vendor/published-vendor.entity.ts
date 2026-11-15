@@ -77,12 +77,17 @@ export class PublishedVendor implements Entity {
     this.#vendorId = value;
   }
 
-  /** What the seller line and the seller facet render. Sorted for the facet. */
+  /**
+   * What the seller line and the seller facet render. Sorted for the facet,
+   * and filterable because the back office's record search finds a vendor's
+   * agreement, ledger and payouts by this name (`displayName=like=`, #552).
+   */
   @accessor({
     type: 'string',
     labelKey: 'entity:published-vendor.fields.displayName',
     required: true,
     sortable: true,
+    filterable: true,
   })
   get displayName(): string {
     return this.#displayName;

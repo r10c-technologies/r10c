@@ -43,16 +43,13 @@ describe('the stock surfaces', () => {
   });
 
   /**
-   * ⚠️ A label member that is not sortable, filterable **and** a string makes
-   * `defineRecordSearchSource` throw at module load, which fails the app at
-   * boot rather than one render. Every other member of these three entities is
-   * a number or an enum, so `offeringId` is the only one that qualifies — and
-   * it only qualifies because it was made `sortable` for this.
+   * Every stock record is searched through the offering it is for: the member
+   * holding that offering's id, matched `=in=` against the offerings whose
+   * names the term found (#552).
    */
-  it('names every stock record by the one member of it that can be searched', () => {
+  it('searches every stock record through its offering', () => {
     for (const surface of STOCK_SURFACES) {
       expect(surface.searchProperty).toBe('offeringId');
-      expect(surface.labelProperty).toBe('offeringId');
     }
   });
 
@@ -89,7 +86,6 @@ describe('stockSurface', () => {
         icon: '▤',
         navLabelKey: 'r10c:stock.nav.items',
         searchProperty: 'offeringId',
-        labelProperty: 'offeringId',
       }),
     ).toThrow(/pluralKey/);
   });

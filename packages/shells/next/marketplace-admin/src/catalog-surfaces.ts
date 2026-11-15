@@ -70,8 +70,20 @@ export interface CatalogSurface<TEntity extends Entity = Entity> {
   readonly entitled?: boolean;
   readonly service: CatalogService;
   readonly searchProperty: string;
-  readonly labelProperty: string;
+  /** What a result is called; absent when {@link reference} names it. */
+  readonly labelProperty?: string;
   readonly sublabelProperty?: string;
+  /**
+   * The record a result is found and named through, when a person knows it by
+   * another record's name: a price by its offering's (#552). The term is
+   * matched against the target's label at the service that owns it.
+   */
+  readonly reference?: {
+    // Any entity: the target is typed by nothing on the surface.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    readonly entityConstructor: EntityConstructor<any>;
+    readonly service: CatalogService;
+  };
 }
 
 /** The `read` permission guarding a surface, derived from its entity. */
@@ -162,14 +174,14 @@ export const PRODUCT_OFFERING_PRICE_SURFACE = catalogSurface(
     navLabelKey: 'r10c:marketplaceAdmin.nav.offeringPrices',
     entitled: true,
     service: 'marketplace-admin',
-    // ⚠️ `offeringId`, not `amount` or `currency`, and not by preference:
-    // `defineRecordSearchSource` refuses a label member that is not sortable,
-    // filterable **and** a string, at module load. `amount` is a number and
-    // `currency` is not sortable, so this is the only member of this entity
-    // that can name one of its own records.
+    // Found and named through the offering it prices: a vendor types the
+    // product's name, never its id (#552).
     searchProperty: 'offeringId',
-    labelProperty: 'offeringId',
     sublabelProperty: 'currency',
+    reference: {
+      entityConstructor: ProductOffering,
+      service: 'marketplace-admin',
+    },
   },
 );
 

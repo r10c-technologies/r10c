@@ -33,6 +33,9 @@
       "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/marketplace-vendor/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/i18n/tsconfig.lib.json"
     }
   ]
