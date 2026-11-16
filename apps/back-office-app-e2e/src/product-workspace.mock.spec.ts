@@ -7,6 +7,7 @@ import {
   stockItemBackend,
   test,
 } from './support/fixtures';
+import { stockItemSeed } from './support/stock-seed';
 
 /**
  * One product workspace (#564): an offering's form with its status and verbs,
@@ -20,6 +21,13 @@ const region = (page: import('@playwright/test').Page, name: string) =>
   page.getByRole('region', { name });
 
 test.describe('the product workspace', () => {
+  // A movement below writes through to the worker's shared stock store, which
+  // every later spec in this worker reads. Put the seeded positions back, so
+  // a stock list read afterwards still sees 10 on hand, not 15.
+  test.afterEach(() => {
+    stockItemBackend.seed(stockItemSeed.map(row => ({ ...row })));
+  });
+
   test('shows the offering with its pictures, prices and stock', async ({
     page,
   }) => {
