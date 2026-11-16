@@ -31,7 +31,11 @@ import { MAX_QUANTITY } from '../cart/cart-state';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
-import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import {
+  loadCardNames,
+  OfferingGrid,
+  OfferingGridSkeleton,
+} from '../catalog/offering-grid';
 import { readProduct } from '../catalog/product-read';
 import { storePaths } from '../routing/paths';
 import { storefrontOrigin } from '../seo/page-metadata';
@@ -72,15 +76,27 @@ async function RelatedOfferings({
 
   if (related.length === 0) return null;
 
+  // Rendered inside `ProductContent`'s cache, whose explicit lifetime wins
+  // over anything decided here — a failed read is kept as long as the page,
+  // as the page's own seller line already is.
+  const names = await loadCardNames(related);
+
+  // A named region, so the strip is a landmark a screen-reader user can jump
+  // to past the buy box.
   return (
-    <Stack gap="s">
-      <HeadingTwo>{t('storefront.product.related')}</HeadingTwo>
-      <OfferingGrid
-        locale={locale}
-        offerings={related}
-        emptyLabel={t('storefront.category.empty')}
-      />
-    </Stack>
+    <section aria-labelledby="related-heading">
+      <Stack gap="s">
+        <HeadingTwo id="related-heading">
+          {t('storefront.product.related')}
+        </HeadingTwo>
+        <OfferingGrid
+          locale={locale}
+          offerings={related}
+          names={names}
+          emptyLabel={t('storefront.category.empty')}
+        />
+      </Stack>
+    </section>
   );
 }
 

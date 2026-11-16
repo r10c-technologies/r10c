@@ -23,6 +23,7 @@ const meta = {
   args: {
     title: 'Aurora Desk Lamp',
     brand: 'Aurora',
+    seller: 'Vendido por Casa Solano',
     description: 'Warm dimmable LED with a brushed aluminium arm.',
     price: { amount: 1999, currency: 'GTQ', locale: 'es-GT' },
     availability: { label: 'Disponible', available: true },
@@ -70,7 +71,7 @@ export const NoMedia: Story = { args: { media: undefined } };
 
 /** No brand and no description: nothing is left where they would be. */
 export const NoBrand: Story = {
-  args: { brand: undefined, description: undefined },
+  args: { brand: undefined, seller: undefined, description: undefined },
 };
 
 export const OutOfStock: Story = {
@@ -92,7 +93,12 @@ export const InAGrid: Story = {
     <Grid min="14rem" gap="l">
       <ProductCard {...args} />
       <ProductCard {...args} media={undefined} />
-      <ProductCard {...args} brand={undefined} description={undefined} />
+      <ProductCard
+        {...args}
+        brand={undefined}
+        seller={undefined}
+        description={undefined}
+      />
       <ProductCard
         {...args}
         {...LongTitle.args}

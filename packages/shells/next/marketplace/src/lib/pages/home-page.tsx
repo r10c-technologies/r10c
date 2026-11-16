@@ -26,7 +26,11 @@ import { Suspense } from 'react';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { emptyPage, runRead, runReadOutcome } from '../catalog/catalog-reads';
 import { CatalogUnavailable } from '../catalog/catalog-unavailable';
-import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import {
+  loadCardNames,
+  OfferingGrid,
+  OfferingGridSkeleton,
+} from '../catalog/offering-grid';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -63,8 +67,10 @@ async function OfferingStrip({
     loadOfferings({ ...query, pageSize: STRIP_SIZE }),
     emptyPage<PublishedOffering>(),
   );
-  // A failure is kept for seconds, not the catalog's minutes (#533).
-  if (failed) cacheLife('seconds');
+  const names = await loadCardNames(page.items);
+  // A failure is kept for seconds, not the catalog's minutes (#533), and a
+  // strip whose cards lost their seller lines is a failure too (#567).
+  if (failed || names.failed) cacheLife('seconds');
   else cacheLife(CATALOG_CACHE);
 
   if (failed) {
@@ -80,6 +86,7 @@ async function OfferingStrip({
     <OfferingGrid
       locale={locale}
       offerings={page.items}
+      names={names}
       emptyLabel={t('storefront.category.empty')}
     />
   );

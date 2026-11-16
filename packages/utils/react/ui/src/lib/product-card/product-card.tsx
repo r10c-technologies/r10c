@@ -53,6 +53,12 @@ export interface ProductCardProps {
   readonly title: string;
   readonly price: ProductCardPrice;
   readonly brand?: ReactNode;
+  /**
+   * Who sells it, already worded ("Vendido por …"). Two vendors can offer the
+   * same product under the same name, and without this line their cards read
+   * as one card drawn twice.
+   */
+  readonly seller?: ReactNode;
   readonly description?: ReactNode;
   /** The first picture. Absent, the box keeps its size and shows the title's initial. */
   readonly media?: ProductCardMedia;
@@ -108,6 +114,7 @@ export function ProductCard({
   title,
   price,
   brand,
+  seller,
   description,
   media,
   unitPrice,
@@ -141,6 +148,11 @@ export function ProductCard({
             {title}
           </HeadingThree>
           {brand === undefined ? null : <Text muted>{brand}</Text>}
+          {seller === undefined ? null : (
+            <Text muted data-testid="card-seller">
+              {seller}
+            </Text>
+          )}
           {rating === undefined ? null : <div>{rating}</div>}
           {description === undefined ? null : (
             <Text muted lineClamp={2}>

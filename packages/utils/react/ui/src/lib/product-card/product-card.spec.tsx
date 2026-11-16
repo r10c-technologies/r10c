@@ -29,6 +29,7 @@ describe('ProductCard', () => {
         title="Aurora Desk Lamp"
         price={PRICE}
         brand="Aurora"
+        seller="Vendido por Casa Solano"
         description="Warm dimmable LED."
         media={MEDIA}
         unitPrice="Q2.00 / unidad"
@@ -42,6 +43,7 @@ describe('ProductCard', () => {
 
     for (const text of [
       'Aurora',
+      'Vendido por Casa Solano',
       'Warm dimmable LED.',
       'Q2.00 / unidad',
       'Nuevo',
@@ -69,6 +71,8 @@ describe('ProductCard', () => {
     expect(placeholder).toHaveTextContent('T');
     expect(screen.queryByRole('link')).toBeNull();
     expect(container.querySelectorAll('p')).toHaveLength(1);
+    // An absent seller draws nothing, not an empty line (#567).
+    expect(screen.queryByTestId('card-seller')).toBeNull();
   });
 
   it('formats the price in minor units, and tags availability in words', () => {

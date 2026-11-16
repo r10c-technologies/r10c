@@ -100,10 +100,57 @@ const CONFIGURATION = {
   uri: [{ key: 'marketplace-service-domain', value: SERVICE_URL }],
 };
 
+/**
+ * Offerings only these journeys need, kept out of the shared fixtures so no
+ * Storybook story or count elsewhere moves (#567):
+ *
+ * - **One product, two sellers.** Two vendors offer "Lino Napkin Set" under
+ *   the same name, and only the seller line tells their cards apart.
+ * - **A seller whose name cannot be read.** `SELLER_DOWN_VENDOR` answers 503
+ *   below, so a grid naming it shows every card without a seller line.
+ *
+ * All three are old, uncategorized and out of stock, so no home strip or
+ * category count picks them up.
+ */
+const SELLER_DOWN_VENDOR = 'e2e-vendor-down';
+
+const journeyOffering = (offeringId, vendorId, name, amount) => ({
+  id: offeringId,
+  offeringId,
+  vendorId,
+  name,
+  amount,
+  currency: 'GTQ',
+  availableHint: false,
+  publishedAt: '2025-01-01T00:00:00.000Z',
+  code: offeringId.toUpperCase(),
+});
+
+const JOURNEY_OFFERINGS = [
+  journeyOffering(
+    'offering-lino-napkins-demo',
+    'demo-organization',
+    'Lino Napkin Set',
+    4500,
+  ),
+  journeyOffering(
+    'offering-lino-napkins-solano',
+    'vendor-casa-solano',
+    'Lino Napkin Set',
+    4200,
+  ),
+  journeyOffering(
+    'offering-eclipse-runner',
+    SELLER_DOWN_VENDOR,
+    'Eclipse Table Runner',
+    9900,
+  ),
+];
+
 const collections = [
   entityBackendHandlers(PublishedOffering, {
     baseUrl: `${SERVICE_URL}/published-offering`,
-    seed: offerings,
+    seed: [...offerings, ...JOURNEY_OFFERINGS],
   }),
   entityBackendHandlers(ProductBrand, {
     baseUrl: `${SERVICE_URL}/product-brand`,
@@ -356,8 +403,18 @@ const unavailableHandler = http.get(
       : undefined,
 );
 
+/** A vendor read naming `SELLER_DOWN_VENDOR` reaches a backend that is down. */
+const sellerDownHandler = http.get(
+  `${SERVICE_URL}/published-vendor`,
+  ({ request }) =>
+    decodeURIComponent(new URL(request.url).search).includes(SELLER_DOWN_VENDOR)
+      ? new HttpResponse(null, { status: 503 })
+      : undefined,
+);
+
 setupServer(
   unavailableHandler,
+  sellerDownHandler,
   buyerCancelHandler,
   buyerReceiptHandler,
   configurationHandler(CONFIG_URL, CONFIGURATION),

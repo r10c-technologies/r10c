@@ -6,6 +6,8 @@ import { offeringCard, type OfferingCardContext } from './offering-card.js';
 const context: OfferingCardContext = {
   locale: 'es',
   brandName: id => (id === 'brand-1' ? 'Aurora' : undefined),
+  sellerName: id => (id === 'vendor-1' ? 'Casa Solano' : undefined),
+  soldBy: seller => `Vendido por ${seller}`,
   labels: { available: 'Disponible', unavailable: 'Agotado' },
 };
 
@@ -36,6 +38,7 @@ describe('offeringCard', () => {
       title: 'Lámpara Arco',
       price: { amount: 45000, currency: 'GTQ', locale: 'es' },
       brand: 'Aurora',
+      seller: 'Vendido por Casa Solano',
       description: 'Luz cálida',
       // The first picture only: the rest belong to the product page.
       media: { url: 'https://img.example/1.jpg', alt: 'De frente' },
@@ -61,5 +64,19 @@ describe('offeringCard', () => {
     );
 
     expect(card.brand).toBeUndefined();
+  });
+
+  it('names the seller through the projection, and draws no line for one it does not know', () => {
+    // Two vendors can sell the same product under the same name; the seller
+    // line is what tells their cards apart (#567).
+    expect(offeringCard(offering(), context).seller).toBe(
+      'Vendido por Casa Solano',
+    );
+
+    const unknown = new PublishedOffering('offering-2', 'vendor-404', 'Arco');
+    unknown.currency = 'GTQ';
+
+    // An absent line is honest; a raw vendor id is not (ADR 0061).
+    expect(offeringCard(unknown, context).seller).toBeUndefined();
   });
 });

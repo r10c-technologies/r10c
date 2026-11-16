@@ -261,6 +261,47 @@ test.describe('browsing the catalog', () => {
     ]);
   });
 
+  test('every card names its seller, so one product from two sellers reads as two', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=lino');
+
+    const cards = page.getByRole('article', { name: 'Lino Napkin Set' });
+    await expect(cards).toHaveCount(2);
+    const sellers = await cards.getByTestId('card-seller').allTextContents();
+    expect([...sellers].sort()).toEqual([
+      'Vendido por Casa Solano',
+      'Vendido por Demo Vendor',
+    ]);
+  });
+
+  test('a card whose seller cannot be read still renders, without a seller line', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=eclipse');
+
+    const card = page.getByRole('article', { name: 'Eclipse Table Runner' });
+    await expect(card).toBeVisible();
+    await expect(card.getByTestId('card-seller')).toHaveCount(0);
+  });
+
+  test('the related strip names each seller, and never the product in view', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-terra-ceramic-mug');
+
+    const related = page.getByRole('region', {
+      name: 'También te puede interesar',
+    });
+    const cards = related.getByRole('article');
+    await expect(cards.first()).toBeVisible();
+    await expect(
+      related.locator('a[href$="/p/offering-terra-ceramic-mug"]'),
+    ).toHaveCount(0);
+    const count = await cards.count();
+    await expect(related.getByTestId('card-seller')).toHaveCount(count);
+  });
+
   /** #347: a title, a canonical, every locale as an alternate, and JSON-LD. */
   test('a product page states its metadata', async ({ page }) => {
     await page.goto('/es/p/offering-cobalto-arc-lamp');

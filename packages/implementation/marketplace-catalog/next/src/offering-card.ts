@@ -5,7 +5,13 @@ import type { ProductCardProps } from '@r10c/utils-react-ui';
 /** The roles an offering fills. The call to action is the page's to choose. */
 export type OfferingCardRoles = Pick<
   ProductCardProps,
-  'title' | 'price' | 'brand' | 'description' | 'media' | 'availability'
+  | 'title'
+  | 'price'
+  | 'brand'
+  | 'seller'
+  | 'description'
+  | 'media'
+  | 'availability'
 >;
 
 export interface OfferingCardContext {
@@ -16,6 +22,15 @@ export interface OfferingCardContext {
    * and hands this over.
    */
   readonly brandName: (brandId: string) => string | undefined;
+  /**
+   * A seller's display name by its vendor id. It is the `published-vendor`
+   * projection's (ADR 0061), read once for the whole grid like the brands.
+   * A miss is `undefined`, and the card then draws no seller line: an absent
+   * line is honest, a raw id is not.
+   */
+  readonly sellerName: (vendorId: string) => string | undefined;
+  /** "Sold by {{seller}}", already translated. */
+  readonly soldBy: (seller: string) => string;
   /** The availability copy, already translated. */
   readonly labels: {
     readonly available: string;
@@ -33,19 +48,23 @@ export interface OfferingCardContext {
  */
 export const offeringCard = (
   offering: PublishedOffering,
-  { locale, brandName, labels }: OfferingCardContext,
-): OfferingCardRoles => ({
-  title: offering.name,
-  // Minor units, as the snapshot carries them; the card's `Money` formats it.
-  price: { amount: offering.amount, currency: offering.currency, locale },
-  brand:
-    offering.brandId === undefined ? undefined : brandName(offering.brandId),
-  description: offering.description,
-  // The first picture is the card's; the rest are the product page's gallery.
-  media: offering.media?.[0],
-  // A hint, and the name says so: published data is eventually consistent on
-  // purpose, and the checkout reservation is the truth (ADR 0009).
-  availability: offering.availableHint
-    ? { label: labels.available, available: true }
-    : { label: labels.unavailable, available: false },
-});
+  { locale, brandName, sellerName, soldBy, labels }: OfferingCardContext,
+): OfferingCardRoles => {
+  const seller = sellerName(offering.vendorId);
+  return {
+    title: offering.name,
+    // Minor units, as the snapshot carries them; the card's `Money` formats it.
+    price: { amount: offering.amount, currency: offering.currency, locale },
+    brand:
+      offering.brandId === undefined ? undefined : brandName(offering.brandId),
+    seller: seller === undefined ? undefined : soldBy(seller),
+    description: offering.description,
+    // The first picture is the card's; the rest are the product page's gallery.
+    media: offering.media?.[0],
+    // A hint, and the name says so: published data is eventually consistent on
+    // purpose, and the checkout reservation is the truth (ADR 0009).
+    availability: offering.availableHint
+      ? { label: labels.available, available: true }
+      : { label: labels.unavailable, available: false },
+  };
+};

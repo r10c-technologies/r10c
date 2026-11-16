@@ -39,7 +39,7 @@ import { cacheLife } from 'next/cache';
 import { CATALOG_CACHE } from './catalog-cache';
 import { emptyPage, runRead, runReadOutcome } from './catalog-reads';
 import { CatalogUnavailable } from './catalog-unavailable';
-import { OfferingGrid } from './offering-grid';
+import { loadCardNames, OfferingGrid } from './offering-grid';
 
 /** Each order's label in the `storefront.listing.sorts` catalog. */
 const SORT_LABEL = {
@@ -142,10 +142,15 @@ export async function OfferingListing({
     ),
   ]);
 
+  // The brands and sellers its cards name, read once for the page (#567).
+  const names = await loadCardNames(result.items);
+
   // One `cacheLife` per invocation, chosen by the outcome: a failure is kept
   // for seconds rather than the catalog's minutes, so Retry asks the backend
-  // again, and a page built with no fleet does not prerender it (#533).
-  if (failed) cacheLife('seconds');
+  // again, and a page built with no fleet does not prerender it (#533). A
+  // failed name read counts too: the cards render without seller lines, and
+  // that render must not outlive the outage.
+  if (failed || names.failed) cacheLife('seconds');
   else cacheLife(CATALOG_CACHE);
 
   const roots = categories.items.filter(category => !category.parentId);
@@ -259,6 +264,7 @@ export async function OfferingListing({
           <OfferingGrid
             locale={locale}
             offerings={result.items}
+            names={names}
             emptyLabel={emptyLabel}
           />
         )}
