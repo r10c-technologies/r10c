@@ -4,6 +4,7 @@ import { Text } from '@entifix/react-controls/primitives';
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 
+import { countInWords, type CountLabels } from './cart-count';
 import { CART_COOKIE, cartCount, parseCart } from './cart-state';
 
 /**
@@ -25,6 +26,14 @@ export interface CartBadgeProps {
   /** Already locale-prefixed — this component has no route param to read. */
   readonly href: string;
   readonly label: string;
+  /** The page's locale, for choosing the count's plural form. */
+  readonly locale: string;
+  /**
+   * The count in words, "`COUNT_MARK` artículo(s)", one per plural
+   * form, already translated (#574). The number alone said neither "items"
+   * nor that it was a count; this is the hidden text that does.
+   */
+  readonly countLabels: CountLabels;
 }
 
 /**
@@ -58,8 +67,16 @@ function serverCount() {
   return 0;
 }
 
-export function CartBadge({ href, label }: CartBadgeProps) {
+export function CartBadge({
+  href,
+  label,
+  locale,
+  countLabels,
+}: CartBadgeProps) {
   const count = useSyncExternalStore(subscribe, readCount, serverCount);
+  // In parentheses, with its own leading space: a browser may or may not put
+  // a space before a visually hidden span, so a comma could be read after one.
+  const spoken = ` (${countInWords(count, locale, countLabels)})`;
 
   return (
     <Link
@@ -70,12 +87,20 @@ export function CartBadge({ href, label }: CartBadgeProps) {
       <Text muted>
         {label}
         {count > 0 ? (
-          <span
-            className="ml-2xs rounded-md bg-accent/15 px-2xs py-3xs text-step-xs font-medium text-accent"
-            data-testid="cart-count"
-          >
-            {count}
-          </span>
+          <>
+            {/* The chip is the eye's; the hidden words are the ear's, so the
+                link is named "Carrito (1 artículo)" rather than "Carrito 1".
+                Primary on its own content: a pair the palette gate already
+                holds to contrast, unlike the tinted accent it replaces. */}
+            <span
+              aria-hidden="true"
+              className="ml-2xs rounded-md bg-primary px-2xs py-3xs text-step-xs font-medium text-primary-content"
+              data-testid="cart-count"
+            >
+              {count}
+            </span>
+            <span className="sr-only">{spoken}</span>
+          </>
         ) : null}
       </Text>
     </Link>

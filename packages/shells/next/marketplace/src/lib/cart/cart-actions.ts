@@ -14,6 +14,7 @@ import {
   withAdded,
   withQuantity,
 } from './cart-state';
+import { safeReturn, withAddedNotice } from './return-to';
 
 /**
  * Cart mutations, as Server Actions.
@@ -69,7 +70,14 @@ async function writeCart(lines: readonly CartLine[]) {
 
 /**
  * Adds the units asked for (one, unless the form says otherwise), then sends
- * the visitor to the cart.
+ * the visitor back to the listing the card was on, or to the cart.
+ *
+ * A card's form carries `returnTo`, the listing's own address (#574): building
+ * a basket from a search is then one add after another rather than a trip to
+ * the cart and back per item. The listing says what happened in a status
+ * region (`AddedNotice`). An address that is not a path on this storefront is
+ * ignored rather than followed (`safeReturn`), and the product page's buy box
+ * sends none, so it still lands on the cart, the expected next step there.
  *
  * The redirect is not a flourish, it is the feedback. The header badge is a
  * client island that reads the cookie when it *mounts*, and a Server Action
@@ -93,8 +101,13 @@ export async function addToCart(formData: FormData) {
   );
 
   // `redirect` throws to unwind the action, so it must come after the write.
-  if (locale)
-    redirect(cartWith(locale, formData, { kind: 'added', offeringId }));
+  if (!locale) return;
+  const back = safeReturn(formData.get('returnTo'), locale);
+  redirect(
+    back === undefined
+      ? cartWith(locale, formData, { kind: 'added', offeringId })
+      : withAddedNotice(back, offeringId),
+  );
 }
 
 export async function removeFromCart(formData: FormData) {

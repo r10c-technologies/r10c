@@ -23,6 +23,7 @@ import {
 import { cacheLife } from 'next/cache';
 import { Suspense } from 'react';
 
+import { AddedNotice } from '../cart/added-notice';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { emptyPage, runRead, runReadOutcome } from '../catalog/catalog-reads';
 import { CatalogUnavailable } from '../catalog/catalog-unavailable';
@@ -88,6 +89,7 @@ async function OfferingStrip({
       layout="strip"
       offerings={page.items}
       names={names}
+      returnTo={localeHref(locale, storePaths.home())}
       emptyLabel={t('storefront.category.empty')}
     />
   );
@@ -125,11 +127,30 @@ async function CategoryTiles({ locale }: { readonly locale: Locale }) {
   );
 }
 
-export function HomePage({ locale }: { readonly locale: Locale }) {
+export function HomePage({
+  locale,
+  searchParams,
+}: {
+  readonly locale: Locale;
+  /**
+   * The request's query, as the route's unawaited promise: only the notice
+   * reads it, inside its own hole, so the rest of home stays prerendered.
+   */
+  readonly searchParams?: Promise<
+    Readonly<Record<string, string | string[] | undefined>>
+  >;
+}) {
   const t = getServerTFor(locale, 'r10c');
 
   return (
-    <StoreShell locale={locale}>
+    <StoreShell
+      locale={locale}
+      notice={
+        searchParams === undefined ? undefined : (
+          <AddedNotice locale={locale} query={searchParams} />
+        )
+      }
+    >
       <Stack gap="xl">
         <Stack gap="2xs">
           <Overline>{t('storefront.home.overline')}</Overline>

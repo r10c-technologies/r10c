@@ -759,20 +759,51 @@ test.describe('the cart', () => {
     );
   });
 
-  test('a card adds to the cart without opening the product', async ({
+  test('a card adds and keeps the buyer on the listing, and the header says so', async ({
     page,
   }) => {
-    await page.goto('/es');
+    await page.goto('/es/search?q=lino');
     await page
-      .getByRole('region', { name: 'Destacados' })
       .getByRole('article')
       .first()
       .getByRole('button', { name: /^Añadir .+ al carrito$/ })
       .click();
 
-    await page.waitForURL(/\/es\/cart(\?|$)/);
+    // Back on the same listing, query and all (#574), never on the cart.
+    await page.waitForURL(/\/es\/search\?q=lino&added=/);
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Lino Napkin Set' }),
+    ).toContainText('Se añadió Lino Napkin Set al carrito.');
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
+    await expect(
+      page.getByRole('link', { name: 'Carrito, 1 artículo' }),
+    ).toBeVisible();
+
+    await page.getByRole('link', { name: 'Ver carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
     await expect(page.getByTestId('cart-line-price')).toHaveCount(1);
   });
+
+  for (const [what, returnTo] of [
+    ['another origin', 'https://example.com/x'],
+    ['a protocol-relative host', '//example.com'],
+  ] as const) {
+    test(`an add told to return to ${what} lands on the cart instead`, async ({
+      page,
+    }) => {
+      await page.goto('/es/search?q=lino');
+      const card = page.getByRole('article').first();
+      // The field is the buyer's to tamper with; the action must not follow it.
+      await card.locator('input[name="returnTo"]').evaluate((input, value) => {
+        (input as HTMLInputElement).value = value;
+      }, returnTo);
+      await card
+        .getByRole('button', { name: /^Añadir .+ al carrito$/ })
+        .click();
+
+      await page.waitForURL(/\/es\/cart\?added=/);
+    });
+  }
 
   test('a quantity is changed in the cart, and zero removes the line', async ({
     page,
@@ -872,5 +903,59 @@ test.describe('copy that counts', () => {
 
     await page.goto('/en/search?q=Twine');
     await expect(page.getByText('1 product', { exact: true })).toBeVisible();
+  });
+
+  // #574: the badge is named by its count in words, not by a bare number.
+  test('the cart badge counts its items in words, in both locales', async ({
+    page,
+  }) => {
+    const add = async () => {
+      await page.goto('/es/p/offering-terra-ceramic-mug');
+      await page
+        .getByRole('form', { name: 'Comprar' })
+        .getByRole('button', { name: 'Añadir al carrito' })
+        .click();
+      await page.waitForURL(/\/es\/cart(\?|$)/);
+    };
+
+    await add();
+    await page.goto('/es');
+    await expect(
+      page.getByRole('link', { name: 'Carrito, 1 artículo' }),
+    ).toBeVisible();
+    await page.goto('/en');
+    await expect(
+      page.getByRole('link', { name: 'Cart, 1 item' }),
+    ).toBeVisible();
+
+    await add();
+    await page.goto('/es');
+    await expect(
+      page.getByRole('link', { name: 'Carrito, 2 artículos' }),
+    ).toBeVisible();
+    await page.goto('/en');
+    await expect(
+      page.getByRole('link', { name: 'Cart, 2 items' }),
+    ).toBeVisible();
+  });
+});
+
+test.describe('a card add with scripting off', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('stays on the listing and says what it added, from the server', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=lino');
+    await page
+      .getByRole('article')
+      .first()
+      .getByRole('button', { name: /^Añadir .+ al carrito$/ })
+      .click();
+
+    await page.waitForURL(/\/es\/search\?q=lino&added=/);
+    await expect(page.getByTestId('listing-added')).toContainText(
+      'Se añadió Lino Napkin Set al carrito.',
+    );
   });
 });

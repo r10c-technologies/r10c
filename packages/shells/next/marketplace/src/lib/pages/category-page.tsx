@@ -26,6 +26,7 @@ import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
+import { AddedNotice } from '../cart/added-notice';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { runRead } from '../catalog/catalog-reads';
@@ -159,7 +160,10 @@ export async function CategoryPage({
   const state = { ...parseSearch(searchParams), category: [] };
 
   return (
-    <StoreShell locale={locale}>
+    <StoreShell
+      locale={locale}
+      notice={<AddedNotice locale={locale} query={searchParams} />}
+    >
       <Stack gap="m">
         <CategoryHeading locale={locale} category={category} />
 

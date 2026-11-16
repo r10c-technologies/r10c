@@ -162,6 +162,11 @@ export const r10c: EsR10c = {
       empty: 'Nothing matched “{{term}}”.',
     },
     cart: {
+      view: 'View cart',
+      // Not `count_one`/`count_other`: the number is only known in the browser,
+      // so the server translates around a mark, and `count` would pick a form.
+      itemsOne: '{{items}} item',
+      itemsOther: '{{items}} items',
       heading: 'Cart',
       empty: 'Your cart is empty.',
       remove: 'Remove',

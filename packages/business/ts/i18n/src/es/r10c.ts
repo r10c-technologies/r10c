@@ -177,6 +177,12 @@ export const r10c = {
       empty: 'No encontramos nada para «{{term}}».',
     },
     cart: {
+      view: 'Ver carrito',
+      // No `count_one`/`count_other`: el número solo se conoce en el navegador,
+      // así que el servidor traduce alrededor de una marca, y `count` elegiría
+      // una forma.
+      itemsOne: '{{items}} artículo',
+      itemsOther: '{{items}} artículos',
       heading: 'Carrito',
       empty: 'Tu carrito está vacío.',
       remove: 'Quitar',

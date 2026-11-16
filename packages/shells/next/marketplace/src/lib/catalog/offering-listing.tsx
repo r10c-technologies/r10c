@@ -266,6 +266,7 @@ export async function OfferingListing({
             layout="listing"
             offerings={result.items}
             names={names}
+            returnTo={searchHref(href, state, {})}
             emptyLabel={emptyLabel}
           />
         )}

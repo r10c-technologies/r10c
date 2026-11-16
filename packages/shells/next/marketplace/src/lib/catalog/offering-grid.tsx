@@ -80,6 +80,11 @@ export interface OfferingGridProps {
   readonly offerings: readonly PublishedOffering[];
   /** What `loadCardNames` read for these offerings. */
   readonly names: CardNames;
+  /**
+   * The listing's own address, locale-prefixed with its query, where a card's
+   * add sends the buyer back to (#574). Absent, the add lands on the cart.
+   */
+  readonly returnTo?: string;
   readonly emptyLabel: string;
 }
 
@@ -97,6 +102,7 @@ export function OfferingGrid({
   layout,
   offerings,
   names,
+  returnTo,
   emptyLabel,
 }: OfferingGridProps) {
   if (offerings.length === 0) {
@@ -138,6 +144,9 @@ export function OfferingGrid({
                 value={offering.offeringId}
               />
               <input type="hidden" name="locale" value={locale} />
+              {returnTo === undefined ? null : (
+                <input type="hidden" name="returnTo" value={returnTo} />
+              )}
               <SubmitButton
                 variant="primary"
                 size="sm"

@@ -9,6 +9,7 @@ import { NarrowDisclosure } from '@r10c/utils-react-ui';
 import type { ReactNode } from 'react';
 
 import { CartBadge } from '../cart/cart-badge';
+import { COUNT_MARK } from '../cart/cart-count';
 import { storePaths } from '../routing/paths';
 import { StoreLink } from '../routing/store-link';
 
@@ -61,6 +62,11 @@ export function StoreHeader({
           <CartBadge
             href={`/${locale}${storePaths.cart()}`}
             label={t('storefront.cart.heading')}
+            locale={locale}
+            countLabels={{
+              one: t('storefront.cart.itemsOne', { items: COUNT_MARK }),
+              other: t('storefront.cart.itemsOther', { items: COUNT_MARK }),
+            }}
           />
         </Cluster>
 
