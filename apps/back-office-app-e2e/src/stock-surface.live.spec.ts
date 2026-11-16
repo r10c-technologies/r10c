@@ -83,10 +83,15 @@ const rowFor = (page: Page, name: string) =>
 
 /** What the list currently says this offering holds. */
 const onHandOf = async (page: Page, name: string): Promise<number> => {
-  const cells = rowFor(page, name).getByRole('cell');
-  // id, offering, onHand, reserved, available — the column order the entity's
-  // own accessor metadata produces.
-  return Number(await cells.nth(2).innerText());
+  // By its header rather than its position: which columns lead a row is the
+  // table's to decide — since entifix 0.22.3 the record's own id is gone and a
+  // nameless row opens by its noun and short id (#594).
+  const headers = await page
+    .locator('thead:visible th')
+    .evaluateAll(cells => cells.map(cell => (cell.textContent ?? '').trim()));
+  const column = headers.findIndex(header => header.startsWith('En almacén'));
+  const cells = rowFor(page, name).locator('th, td');
+  return Number(await cells.nth(column).innerText());
 };
 
 test.beforeEach(async ({ context }) => {
@@ -137,11 +142,16 @@ test('records a receipt and moves the total by exactly that much', async ({
   await openByOffering(page);
   const before = await onHandOf(page, WRITEABLE.name);
 
-  await page.goto('/stock/stock-movement/new');
-  await page.getByLabel('Producto', { exact: true }).fill(WRITEABLE.offeringId);
+  // Started the way the product workspace starts it (#564): with the offering
+  // already chosen, by the address.
+  await page.goto(
+    `/stock/stock-movement/new?prefill.offeringId=${WRITEABLE.offeringId}`,
+  );
   await page.getByLabel('Cantidad').fill('7');
   await page.getByLabel('Motivo').selectOption('receipt');
   await page.getByRole('button', { name: 'Guardar' }).click();
+  // Back on the ledger once the write answered; leaving earlier aborts it.
+  await page.waitForURL(/\/stock\/stock-movement$/);
 
   // The movement is the only write in this domain, and the fold follows it —
   // by `$inc` over the ledger, never by a save of the item.

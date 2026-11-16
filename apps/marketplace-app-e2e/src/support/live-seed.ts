@@ -107,9 +107,7 @@ const offeringAt = (index: number): SeededOffering => {
     name: `${cycled(FAMILIES, index)} — oferta`,
     code: `P-${String(number).padStart(4, '0')}`,
     categoryCode: `PC-${String(categoryNumber).padStart(3, '0')}`,
-    categoryName: `${cycled(CATEGORY_NAMES, categoryNumber - 1)} ${
-      Math.floor((categoryNumber - 1) / CATEGORY_NAMES.length) + 1
-    }`,
+    categoryName: cycled(CATEGORY_NAMES, categoryNumber - 1),
     categoryNumber,
     brandName: cycled(BRAND_NAMES, brandNumber - 1),
     amount: 1999 + index * 500,
