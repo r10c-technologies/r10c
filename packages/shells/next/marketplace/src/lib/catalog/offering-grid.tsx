@@ -63,8 +63,20 @@ export async function loadCardNames(
   };
 }
 
+/**
+ * How the grid lays its cards out (#569).
+ *
+ * - **`strip`**: a fixed count of cards (home's strips, the related strip) in
+ *   fixed columns, two below `lg` and four from it, so four cards always fill
+ *   whole rows and the last is never an orphan that reads as a failed load.
+ * - **`listing`**: a page of results, as many columns as fit. A full search
+ *   page (24) divides by two, three and four, so it never orphans either.
+ */
+export type OfferingGridLayout = 'strip' | 'listing';
+
 export interface OfferingGridProps {
   readonly locale: Locale;
+  readonly layout: OfferingGridLayout;
   readonly offerings: readonly PublishedOffering[];
   /** What `loadCardNames` read for these offerings. */
   readonly names: CardNames;
@@ -82,6 +94,7 @@ export interface OfferingGridProps {
  */
 export function OfferingGrid({
   locale,
+  layout,
   offerings,
   names,
   emptyLabel,
@@ -93,7 +106,7 @@ export function OfferingGrid({
   const t = getServerTFor(locale, 'r10c');
 
   return (
-    <div className={GRID}>
+    <div className={GRID[layout]}>
       {offerings.map(offering => (
         <ProductCard
           key={offering.offeringId}
@@ -144,12 +157,15 @@ export function OfferingGrid({
 }
 
 /**
- * Two to a row on a phone, where one card per row is a screen per product;
- * from `sm` up, as many as fit at a readable width. A layout and not a density
- * mode: the buyer chooses nothing (ADR 0075).
+ * Two to a row on a phone in both layouts, where one card per row is a screen
+ * per product (#568). A layout and not a density mode: the buyer chooses
+ * nothing (ADR 0075).
  */
-const GRID =
-  'grid grid-cols-2 gap-s sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] sm:gap-l';
+const GRID: Record<OfferingGridLayout, string> = {
+  strip: 'grid grid-cols-2 gap-s sm:gap-l lg:grid-cols-4',
+  listing:
+    'grid grid-cols-2 gap-s sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] sm:gap-l',
+};
 
 /**
  * What a streaming route flushes while the grid is still resolving. Same `Grid`
@@ -157,12 +173,14 @@ const GRID =
  * the offerings arrive.
  */
 export function OfferingGridSkeleton({
+  layout,
   count = 6,
 }: {
+  readonly layout: OfferingGridLayout;
   readonly count?: number;
 }) {
   return (
-    <div className={GRID}>
+    <div className={GRID[layout]}>
       {Array.from({ length: count }, (_, index) => (
         // The card's own container rule, so a narrow placeholder is square
         // exactly where the card that replaces it is.

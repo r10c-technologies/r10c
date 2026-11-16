@@ -124,7 +124,9 @@ async function CategoryHeading({
         <Overline>{t('storefront.category.overline')}</Overline>
         <HeadingOne>{category.name}</HeadingOne>
         {category.description ? (
-          <Text muted>{category.description}</Text>
+          <Text muted className="max-w-(--measure)">
+            {category.description}
+          </Text>
         ) : null}
       </Stack>
 
@@ -161,7 +163,9 @@ export async function CategoryPage({
       <Stack gap="m">
         <CategoryHeading locale={locale} category={category} />
 
-        <Suspense fallback={<OfferingGridSkeleton count={6} />}>
+        <Suspense
+          fallback={<OfferingGridSkeleton layout="listing" count={6} />}
+        >
           <OfferingListing
             locale={locale}
             path={storePaths.category(code)}

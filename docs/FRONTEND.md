@@ -1150,7 +1150,7 @@ whose `<` is escaped because every string in it was authored by a vendor. Its
 reads are React-`cache`d (`readProduct`), so the page and its metadata share
 one request. The shell's own `src` is in the app's
 `global.css` `@source` list: before it was, every class only the shell used —
-the page frame's `max-w-5xl`, the product page's two columns — was silently
+the page frame's `max-w-7xl`, the product page's two columns — was silently
 never generated.
 
 ⚠️ **Nothing from the catalog is generated at build time**, and that is

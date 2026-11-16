@@ -16,7 +16,7 @@
 @source '../../../../packages/utils/react/ui/src';
 /* The storefront shell's own markup: its pages and chrome are workspace source
    too. Without this, every class only the shell uses was never generated — the
-   page's `max-w-5xl` frame and the product page's two columns among them. */
+   page's `max-w-7xl` frame and the product page's two columns among them. */
 @source '../../../../packages/shells/next/marketplace/src';
 
 html {

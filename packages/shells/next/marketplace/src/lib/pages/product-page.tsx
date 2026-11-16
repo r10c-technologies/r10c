@@ -42,6 +42,9 @@ import { storefrontOrigin } from '../seo/page-metadata';
 import { jsonLdScript, productJsonLd } from '../seo/product-json-ld';
 import { StoreShell } from './store-shell';
 
+/** The related strip holds four: whole rows at two and at four columns. */
+const RELATED_SIZE = 4;
+
 /**
  * A product detail page — one published offering, cached on the catalog's
  * lifetime (`CATALOG_CACHE`).
@@ -67,12 +70,14 @@ async function RelatedOfferings({
 
   const page = await runRead(
     PublishedOffering,
-    loadOfferings({ categoryIds: [categoryId], pageSize: 4 }),
+    // One more than the strip holds, so excluding the offering in view still
+    // leaves a whole row of four (#569).
+    loadOfferings({ categoryIds: [categoryId], pageSize: RELATED_SIZE + 1 }),
     emptyPage<PublishedOffering>(),
   );
-  const related = page.items.filter(
-    item => item.offeringId !== excludeOfferingId,
-  );
+  const related = page.items
+    .filter(item => item.offeringId !== excludeOfferingId)
+    .slice(0, RELATED_SIZE);
 
   if (related.length === 0) return null;
 
@@ -91,6 +96,7 @@ async function RelatedOfferings({
         </HeadingTwo>
         <OfferingGrid
           locale={locale}
+          layout="strip"
           offerings={related}
           names={names}
           emptyLabel={t('storefront.category.empty')}
@@ -254,7 +260,9 @@ async function ProductContent({
             </form>
 
             {offering.description ? (
-              <Text muted>{offering.description}</Text>
+              <Text muted className="max-w-(--measure)">
+                {offering.description}
+              </Text>
             ) : null}
 
             <Card>
@@ -343,7 +351,11 @@ async function ProductContent({
           )}
         </div>
 
-        <Suspense fallback={<OfferingGridSkeleton count={3} />}>
+        <Suspense
+          fallback={
+            <OfferingGridSkeleton layout="strip" count={RELATED_SIZE} />
+          }
+        >
           <RelatedOfferings
             locale={locale}
             categoryId={category ? String(category.id) : undefined}

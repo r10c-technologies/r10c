@@ -263,6 +263,7 @@ export async function OfferingListing({
         ) : (
           <OfferingGrid
             locale={locale}
+            layout="listing"
             offerings={result.items}
             names={names}
             emptyLabel={emptyLabel}

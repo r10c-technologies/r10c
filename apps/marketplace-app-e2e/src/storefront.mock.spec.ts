@@ -1,4 +1,5 @@
 import { baseTest as test, expect } from '@entifix/testing-e2e/playwright';
+import type { Locator } from '@playwright/test';
 
 /**
  * The storefront's journeys, walked the way a visitor walks them.
@@ -568,6 +569,64 @@ test.describe('a product card', () => {
       .getByRole('article');
     const third = await cards.nth(2).boundingBox();
     expect(third?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(844);
+  });
+});
+
+/** Every card's top edge, by row: the count of cards in each distinct row. */
+const cardsPerRow = async (strip: Locator) => {
+  const tops = await strip
+    .getByRole('article')
+    .evaluateAll(cards =>
+      cards.map(card => Math.round(card.getBoundingClientRect().top)),
+    );
+  const rows = new Map<number, number>();
+  for (const top of tops) rows.set(top, (rows.get(top) ?? 0) + 1);
+  return [...rows.values()];
+};
+
+test.describe('the storefront at each width', () => {
+  test('desktop uses its width, and a home strip is one whole row', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/es');
+
+    const main = await page.getByRole('main').boundingBox();
+    expect(main?.width ?? 0).toBeGreaterThan(1100);
+    for (const name of ['Lo más nuevo', 'Destacados']) {
+      const strip = page.getByRole('region', { name });
+      await expect(strip.getByRole('article').first()).toBeVisible();
+      expect(await cardsPerRow(strip), name).toEqual([4]);
+    }
+  });
+
+  for (const [width, height] of [
+    [1024, 768],
+    [390, 844],
+  ] as const) {
+    test(`a home strip fills whole rows at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/es');
+
+      const strip = page.getByRole('region', { name: 'Lo más nuevo' });
+      await expect(strip.getByRole('article').first()).toBeVisible();
+      const rows = await cardsPerRow(strip);
+      expect(new Set(rows).size, `rows of ${rows.join(', ')}`).toBe(1);
+    });
+  }
+
+  test('the related strip holds four, and never the product in view', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-terra-ceramic-mug');
+
+    const related = page.getByRole('region', {
+      name: 'También te puede interesar',
+    });
+    await expect(related.getByRole('article')).toHaveCount(4);
+    await expect(
+      related.getByRole('article', { name: 'Terra Ceramic Mug' }),
+    ).toHaveCount(0);
   });
 });
 

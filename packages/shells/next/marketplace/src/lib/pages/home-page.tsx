@@ -85,6 +85,7 @@ async function OfferingStrip({
   return (
     <OfferingGrid
       locale={locale}
+      layout="strip"
       offerings={page.items}
       names={names}
       emptyLabel={t('storefront.category.empty')}
@@ -133,13 +134,17 @@ export function HomePage({ locale }: { readonly locale: Locale }) {
         <Stack gap="2xs">
           <Overline>{t('storefront.home.overline')}</Overline>
           <HeadingOne>{t('storefront.home.heading')}</HeadingOne>
-          <Lead>{t('storefront.home.lead')}</Lead>
+          <Lead className="max-w-(--measure)">{t('storefront.home.lead')}</Lead>
         </Stack>
 
         <section aria-label={t('storefront.home.newest')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.newest')}</HeadingTwo>
-            <Suspense fallback={<OfferingGridSkeleton count={STRIP_SIZE} />}>
+            <Suspense
+              fallback={
+                <OfferingGridSkeleton layout="strip" count={STRIP_SIZE} />
+              }
+            >
               <OfferingStrip
                 locale={locale}
                 query={{ sort: 'publishedAt', direction: 'desc' }}
@@ -151,7 +156,11 @@ export function HomePage({ locale }: { readonly locale: Locale }) {
         <section aria-label={t('storefront.home.featured')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.featured')}</HeadingTwo>
-            <Suspense fallback={<OfferingGridSkeleton count={STRIP_SIZE} />}>
+            <Suspense
+              fallback={
+                <OfferingGridSkeleton layout="strip" count={STRIP_SIZE} />
+              }
+            >
               <OfferingStrip
                 locale={locale}
                 query={{ sort: 'name', availableOnly: true }}

@@ -48,7 +48,7 @@ export function StoreHeader({
       >
         {t('storefront.nav.skipToContent')}
       </a>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-xs px-s py-s sm:px-l">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-xs px-s py-s sm:px-l">
         <Cluster justify="between" gap="s">
           <StoreLink
             locale={locale}

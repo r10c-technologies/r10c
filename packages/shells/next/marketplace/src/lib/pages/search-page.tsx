@@ -40,7 +40,9 @@ export function SearchPage({
             : t('storefront.search.heading')}
         </HeadingOne>
 
-        <Suspense fallback={<OfferingGridSkeleton count={6} />}>
+        <Suspense
+          fallback={<OfferingGridSkeleton layout="listing" count={6} />}
+        >
           <OfferingListing
             locale={locale}
             path={storePaths.search()}

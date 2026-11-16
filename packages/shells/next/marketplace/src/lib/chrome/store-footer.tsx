@@ -11,7 +11,7 @@ export function StoreFooter({ locale }: { readonly locale: Locale }) {
 
   return (
     <footer className="mt-xl border-t border-border">
-      <div className="mx-auto w-full max-w-5xl px-s py-l sm:px-l">
+      <div className="mx-auto w-full max-w-7xl px-s py-l sm:px-l">
         <Cluster justify="between" gap="s">
           <Caption>{t('storefront.footer.note')}</Caption>
           {/* A preference, set once: it sits here rather than in the masthead,
