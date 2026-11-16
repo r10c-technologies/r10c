@@ -9,6 +9,7 @@
   capability map, and the Context paragraph describing a three-entity business is
   marked as of its date.
 - Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — a new domain, `shipping-order-management`, in a new `fulfilment` slice
+- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — tax and ERP leave the out-of-scope list: recording a sale's tax facts is in scope, and accounting, cost control, services and manufacturing are future modules; filing stays out
 
 ## Context
 
@@ -174,3 +175,16 @@ free for TMF637's meaning.
 - The `Product` → `ProductSpecification`/`ProductOffering` entity migration.
 - Fulfillment, tax, returns, search relevance, recommendations.
 - Any CRM/ERP/analytics domain — named in the target, not in the map.
+
+> **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**
+> (Proposed). Two entries above no longer hold as written.
+>
+> - **Tax.** Recording the tax facts of a sale — the seller's and the buyer's
+>   fiscal identity, the breakdown per line, the totals — is in scope, stored on
+>   orders, payments and stock movements once that record is built. Filing a
+>   return stays out, and who issues the fiscal document is that record's open
+>   question.
+> - **ERP.** Accounting, cost control, services and manufacturing are named
+>   future modules, each a slice of its own that joins by subscribing. Their
+>   domain names are still to be chosen, under this record's rule, and each
+>   enters the map when its slice is declared. CRM and analytics stay out.

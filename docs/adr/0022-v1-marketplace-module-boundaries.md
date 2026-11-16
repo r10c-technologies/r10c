@@ -20,6 +20,7 @@
   inventory; slices and deployments are unchanged.
 - Revised: 2026-10-25 — the session-scope resolver moved into the `auth/mongo` cell (#374); the path it names is corrected in place.
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — §5: a checkout writes a group and one order per vendor, not one order with vendor-tagged lines
+- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the v1 inventory stays fixed and what comes after it is named: accounting, cost control, services and manufacturing join as `planned` slices that subscribe, and existing entities gain fiscal members
 
 ## Context
 
@@ -69,6 +70,18 @@ Eleven domains, 28 entities, 12 stores, 9 slices, 6 deployments.
 > `sales-management` domain, the `SalesChannel` entity, the tenant-plane `sales`
 > store and the planned `sales` slice. Deployments are unchanged at six: the new
 > slice is `planned`, which is this record's own mechanism working as intended.
+
+> **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**
+> (Proposed). The v1 inventory stays fixed, and that record names what comes
+> after it: accounting, cost control, services and manufacturing, each a slice
+> with its own domain and store that joins by subscribing. Each is declared
+> `planned` first, with its subscriptions and no deployment — this record's own
+> mechanism again — and the counts above move when a declaration lands, not
+> before. No existing slice gains a route or a store on a module's account.
+>
+> What does change inside the inventory is members, not entities:
+> `Organization`, `ProductOrder`, `OrderItem`, `PaymentAllocation`, `Refund` and
+> `StockMovement` gain the fiscal members of ADR 0078 §6, cut over by a reset.
 
 ### Ownership is recorded before a process exists
 

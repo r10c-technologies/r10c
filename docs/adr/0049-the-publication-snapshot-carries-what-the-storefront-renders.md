@@ -9,6 +9,8 @@
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the announced payload is
   eleven members, not seven, and a publication now has a second precondition.
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — a rejected publication payload is quarantined because its failure is in the business family or `protocol`, not because of its class; the zero-attempt quarantine is unchanged
+- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — "optional is a safety property" is scoped to members a consumer renders; a member a consumer keeps a record from may be required, and a widening is cut over by a reset
+- Revised: 2026-11-16 by [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md) — a specification gains a lifecycle, `lifecycleStatus` in place of a `released` boolean, so the `PUT` that blanks `code` cannot reach a released version; the snapshot gains `specificationId` and `specificationVersion`, both required
 
 ## Context
 
@@ -87,10 +89,38 @@ plain `saveRoute` with **no** `prepare` hook, so only `POST` runs
 constructor's `''`. There is no `preserveSpecificationCode` analogue to
 `preserveOfferingStatus`.
 
+> **Revised 2026-11-16 by [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)**
+> (Proposed). ADR 0079 §1 gives a specification a lifecycle — `lifecycleStatus`,
+> `in-design → active → retired → obsolete`, in place of the `released` boolean
+> `EntitySpecification` carries — and makes `update` and `delete` legal from
+> `in-design` only, by a conditional write in the handler. Publishing requires
+> the offering's pin to be `active` (§2), so the specification a publication
+> reads is frozen and this `PUT` cannot reach it. Until ADR 0079 is built, the
+> paragraph above describes the code as it is.
+
 The second argument is about the widening itself. Every message already sitting
 in a durable queue was written against the seven-member shape. Optional decoding
 is what lets those drain normally instead of turning into poison the moment the
 consumer is redeployed.
+
+> **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**
+> (Proposed). This rule is about members a consumer **renders**, where an
+> absent member means "show less": the four here, and `media` after them. It
+> does not reach a member a consumer keeps a record from. ADR 0078 §3 makes the
+> fiscal members of `order.*` and `payment.*` required, because an order with
+> no tax is not a smaller order but a wrong ledger entry.
+>
+> Neither argument above applies to them. Their sources never legitimately lack
+> them — they are stored at write time, by ADR 0078 §6 — so a required member
+> strands nothing. And messages already in a durable queue are answered by a
+> reset, not by optional decoding: producer and consumers move in one change
+> and the lab is recreated. The zero-attempt quarantine of a payload that
+> cannot be decoded is unchanged.
+>
+> [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)
+> §2 adds `specificationId` and `specificationVersion` to the snapshot, required
+> on the same reasoning: publishing requires the pin to be `active`, so no
+> publication lacks either.
 
 ### ⚠️ An absent member is written as absent, never as `undefined`
 
@@ -231,6 +261,12 @@ the three it gained are exactly the offering codes it had been missing.
   `preserveOfferingStatus`, so a `PUT` cannot blank a member the service owns;
   it is not folded in here because it belongs to the specification's write path
   rather than to the publication's read of it.
+
+  > **Revised 2026-11-16 by [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)**
+  > (Proposed). Once that record is built a publication reads an `active`
+  > version, which no `PUT` can edit. The hook is then owed only for an
+  > `in-design` version.
+
 - ⚠️ **Publishing a _deleted_ offering answers `500`, not `404`.**
   `transitionOffering` reads the offering itself with `repository.get`, which is
   the conflation this record avoided for the specification and did not fix for

@@ -8,6 +8,7 @@
 - Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — `settlement.run.completed` is not published, since nothing subscribes to it
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — settlement joins per order on its payment allocation
 - Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the join is per vendor order, a capture contributes each allocation, a partial refund mirrors its share, and cash a vendor collected on delivery is netted as a debit of the cut; a cash-on-delivery order cancelled uncollected is voided
+- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the rejected widening of `payment.captured` is scoped to its premise: a capture may carry what the checkout flow states into it, and the join stays as built
 
 ## Context
 
@@ -104,6 +105,21 @@ request-path one. The bus already carries the data.
 **Rejected: widening `payment.captured`.** payment-service does not hold the
 lines either. It would have to make the same read first, and the coupling would
 land in a slice that has no reason to know what a vendor is.
+
+> **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**
+> (Proposed). What this paragraph refuses is payment-service **reading** the
+> lines, and that refusal stands. It does not cover a capture that is **told**
+> more. The checkout flow already states `allocations[]` into the capture,
+> composed from the orders it just wrote, and ADR 0078 §2 has it state each
+> allocation's taxable base, tax amount and tax regime the same way.
+> payment-service stores what it was told and announces it: no read into
+> order-service, and still no reason to know what a vendor is.
+>
+> The join in this section is unchanged. A wider capture still carries no lines
+> and no channel type, and the two messages still arrive in either order, so
+> settlement goes on pairing `order.placed` with `payment.captured` on the order
+> id. Until ADR 0078 is built, `payment.captured` carries exactly what this
+> record describes.
 
 ### 2. The order's half is priced on arrival, not at fold time
 
