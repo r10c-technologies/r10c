@@ -115,7 +115,10 @@ test.describe('browsing the published catalog', () => {
     await page.goto('/es');
 
     await expect(
-      page.getByRole('heading', { name: 'Marketplace r10c' }),
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Productos de varios vendedores, en una sola tienda',
+      }),
     ).toBeVisible();
     await expect(
       page.getByRole('region', { name: 'Categorías' }).getByRole('link'),
@@ -147,7 +150,7 @@ test.describe('browsing the published catalog', () => {
       .first();
     const offering = seededByName(await card.getByRole('heading').innerText());
 
-    await card.getByRole('link', { name: 'Ver producto' }).click();
+    await card.getByRole('link').click();
     await page.waitForURL(`**/es/p/${offering.offeringId}`);
 
     await expect(

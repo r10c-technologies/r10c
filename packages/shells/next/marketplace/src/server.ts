@@ -26,6 +26,7 @@ export * from './lib/catalog/money';
 export * from './lib/catalog/offering-grid';
 export * from './lib/chrome/store-footer';
 export * from './lib/chrome/store-header';
+export * from './lib/media/image-hosts';
 
 // Each route's `generateMetadata`, and the origin the layout resolves against.
 export * from './lib/seo/page-metadata';

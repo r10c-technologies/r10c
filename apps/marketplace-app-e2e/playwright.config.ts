@@ -63,18 +63,22 @@ const MOCK_SERVER = `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next
  * server it builds itself.
  */
 /**
- * ⚠️ **The fixtures' pictures are never fetched.** The catalog fixtures name
- * their media on `picsum.photos`, as a vendor names a real host, and the
- * storefront renders them as plain `<img>`s — so the browser, not Next, fetches
- * them, and `page.goto` waits for every one before `load`. When that host
- * stalls, every product page times out and the suite fails on someone else's
- * network. Chromium is told the name does not resolve, so each picture errors
- * at once and `load` fires; a spec asserts the reference a page renders, never
- * the pixels. The flag is Chromium's, so it goes on that project only, and the
- * preset's config is extended rather than overridden — `overrides` merges
- * shallowly, and a `use` passed there would drop the preset's `baseURL`.
+ * ⚠️ **The fixtures' pictures are never fetched from their host by the
+ * browser.** The catalog fixtures name their media on `picsum.photos`, as a
+ * vendor names a real host. A card or gallery picture goes through the
+ * storefront's image optimizer (#571), so the browser asks `/_next/image` and
+ * the Next process fetches the original, which `support/server-mocks.mjs`
+ * answers with one pixel. What is left for the browser to fetch directly — an
+ * `<img>`'s plain `src`, which it only uses without a `srcset` — must never
+ * reach the real host either: when that host stalls, `page.goto` waits on it
+ * before `load` and every product page times out on someone else's network.
+ * Chromium is told the name does not resolve, so such a picture errors at
+ * once; a spec asserts the reference a page renders, never the pixels. The
+ * flag is Chromium's, so it goes on that project only, and the preset's config
+ * is extended rather than overridden — `overrides` merges shallowly, and a
+ * `use` passed there would drop the preset's `baseURL`.
  */
-const UNRESOLVED_MEDIA_HOSTS = ['picsum.photos'];
+const UNRESOLVED_MEDIA_HOSTS = ['picsum.photos', 'media.example.org'];
 
 const config = defineEntifixE2eConfig({
   configFile: __filename,

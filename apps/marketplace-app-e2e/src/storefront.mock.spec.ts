@@ -1,4 +1,5 @@
 import { baseTest as test, expect } from '@entifix/testing-e2e/playwright';
+import type { Locator } from '@playwright/test';
 
 /**
  * The storefront's journeys, walked the way a visitor walks them.
@@ -19,11 +20,31 @@ test.describe('browsing the catalog', () => {
   test('home lists featured products and links to one', async ({ page }) => {
     await page.goto('/es');
 
+    // The h1 is the store's promise, not its name again (#570): the masthead
+    // link already names it.
+    const heading = page.getByRole('heading', { level: 1 });
+    await expect(heading).toHaveText(
+      'Productos de varios vendedores, en una sola tienda',
+    );
     await expect(
-      page.getByRole('heading', { name: 'Marketplace r10c' }),
+      page.getByRole('banner').getByRole('link', { name: 'Marketplace r10c' }),
     ).toBeVisible();
+    await expect(
+      page
+        .getByRole('list', { name: 'Por qué comprar aquí' })
+        .getByRole('listitem'),
+    ).toHaveText([
+      'Compra a varios vendedores en un solo pedido.',
+      'Puedes cancelar desde tu recibo mientras tu pedido no ha salido.',
+    ]);
 
-    await page.getByRole('link', { name: 'Ver producto' }).first().click();
+    // The card is the link: its title, stretched over it (#568).
+    await page
+      .getByRole('region', { name: 'Destacados' })
+      .getByRole('article')
+      .first()
+      .getByRole('link')
+      .click();
 
     // Wait for the navigation, then assert the URL. Every click here is a full
     // server navigation, and `toHaveURL` polls on the 5s *expect* timeout — a
@@ -261,6 +282,47 @@ test.describe('browsing the catalog', () => {
     ]);
   });
 
+  test('every card names its seller, so one product from two sellers reads as two', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=lino');
+
+    const cards = page.getByRole('article', { name: 'Lino Napkin Set' });
+    await expect(cards).toHaveCount(2);
+    const sellers = await cards.getByTestId('card-seller').allTextContents();
+    expect([...sellers].sort()).toEqual([
+      'Vendido por Casa Solano',
+      'Vendido por Demo Vendor',
+    ]);
+  });
+
+  test('a card whose seller cannot be read still renders, without a seller line', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=eclipse');
+
+    const card = page.getByRole('article', { name: 'Eclipse Table Runner' });
+    await expect(card).toBeVisible();
+    await expect(card.getByTestId('card-seller')).toHaveCount(0);
+  });
+
+  test('the related strip names each seller, and never the product in view', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-terra-ceramic-mug');
+
+    const related = page.getByRole('region', {
+      name: 'También te puede interesar',
+    });
+    const cards = related.getByRole('article');
+    await expect(cards.first()).toBeVisible();
+    await expect(
+      related.locator('a[href$="/p/offering-terra-ceramic-mug"]'),
+    ).toHaveCount(0);
+    const count = await cards.count();
+    await expect(related.getByTestId('card-seller')).toHaveCount(count);
+  });
+
   /** #347: a title, a canonical, every locale as an alternate, and JSON-LD. */
   test('a product page states its metadata', async ({ page }) => {
     await page.goto('/es/p/offering-cobalto-arc-lamp');
@@ -328,7 +390,8 @@ test.describe('browsing the catalog', () => {
   // the 25th result by name is on page 2 and reachable by a link.
   test('search pages through the whole catalog', async ({ page }) => {
     await page.goto('/es/search');
-    await expect(page.getByText('36 productos')).toBeVisible();
+    // The 36 shared fixtures and the three this suite's mock adds (#567).
+    await expect(page.getByText('39 productos')).toBeVisible();
     await expect(page.getByText('Solano Reading Light')).toHaveCount(0);
 
     await page
@@ -425,7 +488,7 @@ test.describe('browsing the catalog', () => {
 
   test('the in-stock toggle leaves out what is sold out', async ({ page }) => {
     await page.goto('/es/search');
-    await expect(page.getByText('36 productos')).toBeVisible();
+    await expect(page.getByText('39 productos')).toBeVisible();
 
     await page
       .getByRole('complementary', { name: 'Filtrar' })
@@ -489,6 +552,204 @@ test.describe('browsing the catalog', () => {
  * #533: a read that failed is not a catalog with nothing in it. The mock
  * backend answers this one term with a `503` (`support/server-mocks.mjs`).
  */
+test.describe('a product card', () => {
+  test('is one link and one action: the picture opens the product, the button only adds', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=lino');
+    const card = page.getByRole('article').first();
+
+    // Exactly one link and one button per card reach the keyboard (#568).
+    await expect(card.getByRole('link')).toHaveCount(1);
+    await expect(card.getByRole('button')).toHaveCount(1);
+    await expect(page.getByRole('link', { name: 'Ver producto' })).toHaveCount(
+      0,
+    );
+
+    // A tap on the picture lands on the product: the title's link is
+    // stretched over the whole card, so a click near its top-left corner, on
+    // the media box, is a click on that link.
+    await card.click({ position: { x: 12, y: 12 } });
+    await page.waitForURL(/\/es\/p\/offering-lino-napkins-/);
+  });
+
+  test('on a phone, two cards share the first row, and it starts on the first screen', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/es');
+
+    const cards = page
+      .getByRole('region', { name: 'Lo más nuevo' })
+      .getByRole('article');
+    const [first, second] = await Promise.all([
+      cards.nth(0).boundingBox(),
+      cards.nth(1).boundingBox(),
+    ]);
+    expect(first?.y).toBe(second?.y);
+    expect(first?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(844);
+  });
+});
+
+/** Every card's top edge, by row: the count of cards in each distinct row. */
+const cardsPerRow = async (strip: Locator) => {
+  const tops = await strip
+    .getByRole('article')
+    .evaluateAll(cards =>
+      cards.map(card => Math.round(card.getBoundingClientRect().top)),
+    );
+  const rows = new Map<number, number>();
+  for (const top of tops) rows.set(top, (rows.get(top) ?? 0) + 1);
+  return [...rows.values()];
+};
+
+test.describe('the storefront at each width', () => {
+  test('desktop uses its width, and a home strip is one whole row', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/es');
+
+    const main = await page.getByRole('main').boundingBox();
+    expect(main?.width ?? 0).toBeGreaterThan(1100);
+    for (const name of ['Lo más nuevo', 'Destacados']) {
+      const strip = page.getByRole('region', { name });
+      await expect(strip.getByRole('article').first()).toBeVisible();
+      expect(await cardsPerRow(strip), name).toEqual([4]);
+    }
+  });
+
+  for (const [width, height] of [
+    [1024, 768],
+    [390, 844],
+  ] as const) {
+    test(`a home strip fills whole rows at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/es');
+
+      const strip = page.getByRole('region', { name: 'Lo más nuevo' });
+      await expect(strip.getByRole('article').first()).toBeVisible();
+      const rows = await cardsPerRow(strip);
+      expect(new Set(rows).size, `rows of ${rows.join(', ')}`).toBe(1);
+    });
+  }
+
+  test('the related strip holds four, and never the product in view', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-terra-ceramic-mug');
+
+    const related = page.getByRole('region', {
+      name: 'También te puede interesar',
+    });
+    await expect(related.getByRole('article')).toHaveCount(4);
+    await expect(
+      related.getByRole('article', { name: 'Terra Ceramic Mug' }),
+    ).toHaveCount(0);
+  });
+});
+
+test.describe('product images', () => {
+  test('a card’s picture is offered at the sizes it is shown, through the optimizer', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=aurora');
+
+    const image = page
+      .getByRole('article', { name: 'Aurora Desk Lamp' })
+      .getByRole('img');
+    await expect(image).toHaveAttribute('sizes', /50vw/);
+    await expect(image).toHaveAttribute(
+      'srcset',
+      /\/_next\/image\?url=https%3A%2F%2Fpicsum\.photos%2F.+&w=320&q=75 320w/,
+    );
+  });
+
+  test('a picture on a host the optimizer may not fetch renders as it is', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=eclipse');
+
+    const image = page
+      .getByRole('article', { name: 'Eclipse Table Runner' })
+      .getByRole('img', { name: 'Runner, folded' });
+    await expect(image).toHaveAttribute(
+      'src',
+      'https://media.example.org/runner.jpg',
+    );
+    await expect(image).not.toHaveAttribute('srcset', /./);
+  });
+
+  test('on a phone, no card picture is fetched at more than twice its width', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const asked: number[] = [];
+    page.on('request', request => {
+      const url = new URL(request.url());
+      if (url.pathname === '/_next/image') {
+        asked.push(Number(url.searchParams.get('w')));
+      }
+    });
+    await page.goto('/es');
+    await expect.poll(() => asked.length).toBeGreaterThan(0);
+
+    const shown = await page
+      .getByRole('article')
+      .getByRole('img')
+      .evaluateAll(images => images.map(image => image.clientWidth));
+    // At most twice the widest picture shown, or the narrowest width the
+    // loader is ever asked for (entifix's ladder starts at 320): the point is
+    // a thumbnail-sized fetch, never the vendor's 800px original.
+    const ceiling = Math.max(2 * Math.max(...shown), 320);
+    for (const width of asked) expect(width).toBeLessThanOrEqual(ceiling);
+  });
+
+  test('the gallery fetches its first picture first, and the rest lazily', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-aurora-desk-lamp');
+
+    const images = page
+      .getByRole('region', { name: 'Imágenes del producto' })
+      .getByRole('img');
+    await expect(images.first()).toHaveAttribute('fetchpriority', 'high');
+    await expect(images.first()).toHaveAttribute('srcset', /\/_next\/image/);
+    await expect(images.nth(1)).toHaveAttribute('loading', 'lazy');
+  });
+
+  test('home does not shift as its pictures arrive', async ({ page }) => {
+    await page.setViewportSize({ width: 412, height: 915 });
+    await page.goto('/es');
+    // Every picture on the page has arrived (or failed) before shifts are read.
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Array.from(document.images).every(image => image.complete),
+        ),
+      )
+      .toBe(true);
+
+    const shift = await page.evaluate(
+      () =>
+        new Promise<number>(resolve => {
+          let total = 0;
+          new PerformanceObserver(list => {
+            for (const entry of list.getEntries()) {
+              const shiftEntry = entry as PerformanceEntry & {
+                value: number;
+                hadRecentInput: boolean;
+              };
+              if (!shiftEntry.hadRecentInput) total += shiftEntry.value;
+            }
+          }).observe({ type: 'layout-shift', buffered: true });
+          setTimeout(() => resolve(total), 500);
+        }),
+    );
+    expect(shift.toFixed(3)).toBe('0.000');
+  });
+});
+
 test.describe('a listing whose read failed', () => {
   test('says so, offers a retry, and never says there is nothing', async ({
     page,
@@ -618,20 +879,52 @@ test.describe('the cart', () => {
     );
   });
 
-  test('a card adds to the cart without opening the product', async ({
+  test('a card adds and keeps the buyer on the listing, and the header says so', async ({
     page,
   }) => {
-    await page.goto('/es');
+    await page.goto('/es/search?q=lino');
     await page
-      .getByRole('region', { name: 'Destacados' })
       .getByRole('article')
       .first()
-      .getByRole('button', { name: 'Añadir al carrito' })
+      .getByRole('button', { name: /^Añadir .+ al carrito$/ })
       .click();
 
-    await page.waitForURL(/\/es\/cart(\?|$)/);
+    // Back on the same listing, query and all (#574), never on the cart.
+    await page.waitForURL(/\/es\/search\?q=lino&added=/);
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Lino Napkin Set' }),
+    ).toContainText('Se añadió Lino Napkin Set al carrito.');
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
+    await expect(
+      page.getByRole('link', { name: 'Carrito (1 artículo)' }),
+    ).toBeVisible();
+
+    await page.getByRole('link', { name: 'Ver carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
     await expect(page.getByTestId('cart-line-price')).toHaveCount(1);
   });
+
+  for (const [what, returnTo] of [
+    ['another origin', 'https://example.com/x'],
+    ['a protocol-relative host', '//example.com'],
+  ] as const) {
+    test(`an add told to return to ${what} lands on the cart instead`, async ({
+      page,
+    }) => {
+      await page.goto('/es/search?q=lino');
+      const card = page.getByRole('article').first();
+      // The field is the buyer's to tamper with; the action must not follow it.
+      await card.locator('input[name="returnTo"]').evaluate((input, value) => {
+        (input as HTMLInputElement).value = value;
+      }, returnTo);
+      await card
+        .getByRole('button', { name: /^Añadir .+ al carrito$/ })
+        .click();
+
+      await page.waitForURL(/\/es\/cart\?added=/);
+      await expect(page).toHaveURL(/^http:\/\/localhost:3000\/es\/cart\?/);
+    });
+  }
 
   test('a quantity is changed in the cart, and zero removes the line', async ({
     page,
@@ -731,5 +1024,59 @@ test.describe('copy that counts', () => {
 
     await page.goto('/en/search?q=Twine');
     await expect(page.getByText('1 product', { exact: true })).toBeVisible();
+  });
+
+  // #574: the badge is named by its count in words, not by a bare number.
+  test('the cart badge counts its items in words, in both locales', async ({
+    page,
+  }) => {
+    const add = async () => {
+      await page.goto('/es/p/offering-terra-ceramic-mug');
+      await page
+        .getByRole('form', { name: 'Comprar' })
+        .getByRole('button', { name: 'Añadir al carrito' })
+        .click();
+      await page.waitForURL(/\/es\/cart(\?|$)/);
+    };
+
+    await add();
+    await page.goto('/es');
+    await expect(
+      page.getByRole('link', { name: 'Carrito (1 artículo)' }),
+    ).toBeVisible();
+    await page.goto('/en');
+    await expect(
+      page.getByRole('link', { name: 'Cart (1 item)' }),
+    ).toBeVisible();
+
+    await add();
+    await page.goto('/es');
+    await expect(
+      page.getByRole('link', { name: 'Carrito (2 artículos)' }),
+    ).toBeVisible();
+    await page.goto('/en');
+    await expect(
+      page.getByRole('link', { name: 'Cart (2 items)' }),
+    ).toBeVisible();
+  });
+});
+
+test.describe('a card add with scripting off', () => {
+  /**
+   * The notice is the server's, not a script's: it is in the document the
+   * redirect lands on. Asserted on the response rather than in a script-free
+   * browser, which shows only the fallback of the listing's streamed hole
+   * (see `checkout.mock.spec.ts`).
+   */
+  test('the listing it returns to says what was added, from the server', async ({
+    request,
+  }) => {
+    const response = await request.get(
+      '/es/search?q=lino&added=offering-lino-napkins-demo',
+    );
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain(
+      'Se añadió Lino Napkin Set al carrito.',
+    );
   });
 });

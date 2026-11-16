@@ -83,6 +83,7 @@ export class ProductOfferingPrice implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:product-offering-price.fields.amount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     sortable: true,
     filterable: true,

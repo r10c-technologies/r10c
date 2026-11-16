@@ -1,10 +1,10 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
+  Cluster,
   Grid,
   HeadingOne,
   HeadingTwo,
-  Lead,
   Overline,
   Stack,
   Text,
@@ -23,10 +23,15 @@ import {
 import { cacheLife } from 'next/cache';
 import { Suspense } from 'react';
 
+import { AddedNotice } from '../cart/added-notice';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { emptyPage, runRead, runReadOutcome } from '../catalog/catalog-reads';
 import { CatalogUnavailable } from '../catalog/catalog-unavailable';
-import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import {
+  loadCardNames,
+  OfferingGrid,
+  OfferingGridSkeleton,
+} from '../catalog/offering-grid';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -63,8 +68,10 @@ async function OfferingStrip({
     loadOfferings({ ...query, pageSize: STRIP_SIZE }),
     emptyPage<PublishedOffering>(),
   );
-  // A failure is kept for seconds, not the catalog's minutes (#533).
-  if (failed) cacheLife('seconds');
+  const names = await loadCardNames(page.items);
+  // A failure is kept for seconds, not the catalog's minutes (#533), and a
+  // strip whose cards lost their seller lines is a failure too (#567).
+  if (failed || names.failed) cacheLife('seconds');
   else cacheLife(CATALOG_CACHE);
 
   if (failed) {
@@ -79,7 +86,10 @@ async function OfferingStrip({
   return (
     <OfferingGrid
       locale={locale}
+      layout="strip"
       offerings={page.items}
+      names={names}
+      returnTo={localeHref(locale, storePaths.home())}
       emptyLabel={t('storefront.category.empty')}
     />
   );
@@ -117,22 +127,63 @@ async function CategoryTiles({ locale }: { readonly locale: Locale }) {
   );
 }
 
-export function HomePage({ locale }: { readonly locale: Locale }) {
+export function HomePage({
+  locale,
+  searchParams,
+}: {
+  readonly locale: Locale;
+  /**
+   * The request's query, as the route's unawaited promise: only the notice
+   * reads it, inside its own hole, so the rest of home stays prerendered.
+   */
+  readonly searchParams?: Promise<
+    Readonly<Record<string, string | string[] | undefined>>
+  >;
+}) {
   const t = getServerTFor(locale, 'r10c');
 
   return (
-    <StoreShell locale={locale}>
+    <StoreShell
+      locale={locale}
+      notice={
+        searchParams === undefined ? undefined : (
+          <AddedNotice locale={locale} query={searchParams} />
+        )
+      }
+    >
       <Stack gap="xl">
         <Stack gap="2xs">
           <Overline>{t('storefront.home.overline')}</Overline>
-          <HeadingOne>{t('storefront.home.heading')}</HeadingOne>
-          <Lead>{t('storefront.home.lead')}</Lead>
+          {/* The promise, not the store's name again: the masthead already
+              says that, and a first-time buyer needs a reason (#570). */}
+          <HeadingOne>{t('storefront.home.promise')}</HeadingOne>
+          {/* Only claims true of the product today, as text: the cancel
+              window lives on a receipt, which has no public page to link to.
+              A cluster, so on a phone it folds and the first card stays on
+              the first screen. */}
+          <Cluster
+            as="ul"
+            gap="xs"
+            aria-label={t('storefront.home.claims.label')}
+            className="m-0 list-none p-0"
+          >
+            <li>
+              <Text muted>{t('storefront.home.claims.multiVendor')}</Text>
+            </li>
+            <li>
+              <Text muted>{t('storefront.home.claims.cancel')}</Text>
+            </li>
+          </Cluster>
         </Stack>
 
         <section aria-label={t('storefront.home.newest')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.newest')}</HeadingTwo>
-            <Suspense fallback={<OfferingGridSkeleton count={STRIP_SIZE} />}>
+            <Suspense
+              fallback={
+                <OfferingGridSkeleton layout="strip" count={STRIP_SIZE} />
+              }
+            >
               <OfferingStrip
                 locale={locale}
                 query={{ sort: 'publishedAt', direction: 'desc' }}
@@ -144,7 +195,11 @@ export function HomePage({ locale }: { readonly locale: Locale }) {
         <section aria-label={t('storefront.home.featured')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.featured')}</HeadingTwo>
-            <Suspense fallback={<OfferingGridSkeleton count={STRIP_SIZE} />}>
+            <Suspense
+              fallback={
+                <OfferingGridSkeleton layout="strip" count={STRIP_SIZE} />
+              }
+            >
               <OfferingStrip
                 locale={locale}
                 query={{ sort: 'name', availableOnly: true }}

@@ -3,6 +3,19 @@ import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { CartBadge } from './cart-badge';
+import { COUNT_MARK, countInWords } from './cart-count';
+
+const ES = {
+  one: `${COUNT_MARK} artículo`,
+  other: `${COUNT_MARK} artículos`,
+};
+
+const BADGE = {
+  href: '/es/cart',
+  label: 'Carrito',
+  locale: 'es',
+  countLabels: ES,
+} as const;
 
 function setCartCookie(value: string) {
   document.cookie = `r10c_cart=${value}; path=/`;
@@ -14,7 +27,7 @@ afterEach(() => {
 
 describe('CartBadge', () => {
   it('shows the label alone when the cart is empty', () => {
-    render(<CartBadge href="/es/cart" label="Carrito" />);
+    render(<CartBadge {...BADGE} />);
 
     expect(screen.getByTestId('cart-badge')).toHaveAttribute(
       'href',
@@ -26,7 +39,7 @@ describe('CartBadge', () => {
   it('totals the units in the cookie', () => {
     setCartCookie('AUR-LAMP-01:2,TER-MUG-01:1');
 
-    render(<CartBadge href="/es/cart" label="Carrito" />);
+    render(<CartBadge {...BADGE} />);
 
     expect(screen.getByTestId('cart-count')).toHaveTextContent('3');
   });
@@ -41,7 +54,7 @@ describe('CartBadge', () => {
   it('decodes the cookie before parsing it', () => {
     document.cookie = `r10c_cart=${encodeURIComponent('AUR-LAMP-01:2')}; path=/`;
 
-    render(<CartBadge href="/es/cart" label="Carrito" />);
+    render(<CartBadge {...BADGE} />);
 
     expect(screen.getByTestId('cart-count')).toHaveTextContent('2');
   });
@@ -49,7 +62,7 @@ describe('CartBadge', () => {
   it('ignores an unrelated cookie', () => {
     document.cookie = 'entifix_locale=es; path=/';
 
-    render(<CartBadge href="/es/cart" label="Carrito" />);
+    render(<CartBadge {...BADGE} />);
 
     expect(screen.queryByTestId('cart-count')).not.toBeInTheDocument();
   });
@@ -64,9 +77,33 @@ describe('CartBadge', () => {
   it('renders no count on the server, whatever the cookie says', () => {
     setCartCookie('AUR-LAMP-01:2');
 
-    const html = renderToString(<CartBadge href="/es/cart" label="Carrito" />);
+    const html = renderToString(<CartBadge {...BADGE} />);
 
     expect(html).toContain('Carrito');
     expect(html).not.toContain('cart-count');
+  });
+
+  it('is named by its count in words, while the chip shows the number', () => {
+    setCartCookie('AUR-LAMP-01:1');
+
+    render(<CartBadge {...BADGE} />);
+
+    expect(
+      screen.getByRole('link', { name: /^Carrito ?\(1 artículo\)$/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('cart-count')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+  });
+});
+
+describe('countInWords', () => {
+  it('chooses the plural form the locale uses for the count', () => {
+    expect(countInWords(1, 'es', ES)).toBe('1 artículo');
+    expect(countInWords(3, 'es', ES)).toBe('3 artículos');
+    const EN = { one: `${COUNT_MARK} item`, other: `${COUNT_MARK} items` };
+    expect(countInWords(1, 'en', EN)).toBe('1 item');
+    expect(countInWords(2, 'en', EN)).toBe('2 items');
   });
 });

@@ -22,6 +22,7 @@ export class GroupTotal {
   @accessor({
     type: 'number',
     labelKey: 'entity:checkout-group.fields.total.amount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
   })
   get amount(): number {

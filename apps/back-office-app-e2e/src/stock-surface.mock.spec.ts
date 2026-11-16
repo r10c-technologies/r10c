@@ -1,4 +1,11 @@
-import { expect, test } from './support/fixtures';
+import { expect, stockItemBackend, test } from './support/fixtures';
+import { stockItemSeed } from './support/stock-seed';
+
+// Every spec here reads the seeded positions, from a store the worker shares
+// with every other spec it runs: start each from the seed, whatever ran first.
+test.beforeEach(() => {
+  stockItemBackend.seed(stockItemSeed.map(row => ({ ...row })));
+});
 
 /**
  * The stock surface: the first Operaciones screens in the back office.

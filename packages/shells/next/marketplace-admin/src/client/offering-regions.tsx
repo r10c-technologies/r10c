@@ -7,15 +7,14 @@ import {
   crudContextOf,
   type EntityCrudRelated,
   useLocaleHref,
+  useRegion,
 } from '@entifix/next-shell';
 import {
   ButtonLink,
   MediaGallery,
   MediaImage,
-  Money,
   Stack,
   Text,
-  useLocale,
   useTranslateKey,
 } from '@entifix/react-controls';
 import { useEntityRecord } from '@entifix/react-integration';
@@ -39,19 +38,6 @@ import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
  * in another slice (the stock held of it) is the host's to add, because a
  * shell may not build another shell's adapter (ADR 0077).
  */
-
-/** A price, in money, in the reader's locale. */
-function PriceCell({ price }: { readonly price: ProductOfferingPrice }) {
-  const locale = useLocale();
-  return (
-    <Money
-      amount={price.amount}
-      currency={price.currency}
-      unit="minor"
-      locale={locale}
-    />
-  );
-}
 
 /**
  * The specification's first picture, at thumbnail size and in a reserved box,
@@ -89,9 +75,6 @@ export const OFFERING_RELATED_COLUMNS: readonly EntityCrudRelated<MarketplaceAdm
       repository: 'productOfferingPriceRest',
       match: 'offeringId',
       member: 'amount',
-      render: (match: Entity) => (
-        <PriceCell price={match as ProductOfferingPrice} />
-      ),
     },
     {
       key: 'image',
@@ -123,6 +106,9 @@ export function OfferingImagesRegion({
   const adapters = useMarketplaceAdminAdapters();
   const id = useId();
   const heading = translateKey('r10c:marketplaceAdmin.offering.regions.images');
+  // Listed in the record's section nav beside the related lists, which
+  // register themselves the same way (#597).
+  useRegion(id, heading);
 
   const { entity: specification } = useEntityRecord<
     ProductSpecification,

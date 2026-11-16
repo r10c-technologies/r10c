@@ -1150,8 +1150,19 @@ whose `<` is escaped because every string in it was authored by a vendor. Its
 reads are React-`cache`d (`readProduct`), so the page and its metadata share
 one request. The shell's own `src` is in the app's
 `global.css` `@source` list: before it was, every class only the shell used —
-the page frame's `max-w-5xl`, the product page's two columns — was silently
+the page frame's `max-w-7xl`, the product page's two columns — was silently
 never generated.
+
+**A product picture is fetched at the size it is shown** (#571). Cards and the
+product gallery render entifix's `MediaImage` with a `sizes` for their column
+and a loader that sends the vendor's URL through Next's image optimizer
+(`/_next/image`), which runs inside the storefront. The optimizer fetches only
+from `STOREFRONT_IMAGE_HOSTS`, comma-separated exact hostnames (`picsum.photos`,
+the seed's host, when unset), read by both `next.config.js` and the shell's
+`media/image-hosts.ts` — a spec holds the two to each other. A picture on any
+other host renders as it is, with no `srcset`, so it never disappears. Every
+host on the list is a fetch the storefront makes on a stranger's behalf, which
+is why the list is never a wildcard.
 
 ⚠️ **Nothing from the catalog is generated at build time**, and that is
 deliberate rather than an omission: the content comes from marketplace-service,

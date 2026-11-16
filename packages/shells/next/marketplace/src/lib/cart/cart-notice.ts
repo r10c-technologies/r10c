@@ -18,9 +18,9 @@ export type CartNotice =
       readonly quantity: number;
     };
 
-type Query = Readonly<Record<string, string | string[] | undefined>>;
+type Query = Readonly<Record<string, string | readonly string[] | undefined>>;
 
-const one = (value: string | string[] | undefined) =>
+const one = (value: string | readonly string[] | undefined) =>
   typeof value === 'string' && value.length > 0 ? value : undefined;
 
 /** The query a cart action writes for `notice`. */

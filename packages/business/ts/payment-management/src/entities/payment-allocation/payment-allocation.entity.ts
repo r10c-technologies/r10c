@@ -114,6 +114,7 @@ export class PaymentAllocation implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:payment-allocation.fields.authorized',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     filterable: false,
   })
@@ -128,6 +129,7 @@ export class PaymentAllocation implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:payment-allocation.fields.captured',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     filterable: false,
   })
@@ -142,6 +144,7 @@ export class PaymentAllocation implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:payment-allocation.fields.refunded',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     filterable: false,
   })

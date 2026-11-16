@@ -20,7 +20,9 @@ test.describe('server rendering', () => {
     expect(response.status()).toBe(200);
 
     const html = await response.text();
-    expect(html).toContain('Marketplace r10c');
+    expect(html).toContain(
+      'Productos de varios vendedores, en una sola tienda',
+    );
     expect(html).toContain('Aurora Desk Lamp');
   });
 
@@ -33,12 +35,12 @@ test.describe('server rendering', () => {
     ]);
 
     expect(spanish).toContain('lang="es"');
-    expect(spanish).toContain('Ver producto');
-    expect(spanish).not.toContain('View product');
+    expect(spanish).toContain('Vendido por');
+    expect(spanish).not.toContain('Sold by');
 
     expect(english).toContain('lang="en"');
-    expect(english).toContain('View product');
-    expect(english).not.toContain('Ver producto');
+    expect(english).toContain('Sold by');
+    expect(english).not.toContain('Vendido por');
   });
 
   // A locale segment is a locale or it is nothing. `/de` is not a prefix the

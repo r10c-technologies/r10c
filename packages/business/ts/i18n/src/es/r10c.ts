@@ -98,7 +98,16 @@ export const r10c = {
     home: {
       overline: 'Tienda',
       heading: 'Marketplace r10c',
-      lead: 'Objetos para la casa, elegidos de a poco.',
+      // Lo que el h1 promete, distinto del nombre de la tienda (#570).
+      promise: 'Productos de varios vendedores, en una sola tienda',
+      // Solo lo que hoy es cierto. Lo de entrega y pago contra entrega espera
+      // a que cada vendedor lo diga en su producto (#589).
+      claims: {
+        label: 'Por qué comprar aquí',
+        multiVendor: 'Compra a varios vendedores en un solo pedido.',
+        cancel:
+          'Puedes cancelar desde tu recibo mientras tu pedido no ha salido.',
+      },
       categories: 'Categorías',
       newest: 'Lo más nuevo',
       featured: 'Destacados',
@@ -114,7 +123,9 @@ export const r10c = {
       details: 'Detalles',
       seller: 'Vendedor',
       addToCart: 'Añadir al carrito',
-      view: 'Ver producto',
+      // El botón de la tarjeta: una palabra corta, y un nombre que dice qué añade.
+      add: 'Añadir',
+      addNamed: 'Añadir {{name}} al carrito',
       brand: 'Marca',
       category: 'Categoría',
       reference: 'Referencia',
@@ -175,6 +186,12 @@ export const r10c = {
       empty: 'No encontramos nada para «{{term}}».',
     },
     cart: {
+      view: 'Ver carrito',
+      // No `count_one`/`count_other`: el número solo se conoce en el navegador,
+      // así que el servidor traduce alrededor de una marca, y `count` elegiría
+      // una forma.
+      itemsOne: '{{items}} artículo',
+      itemsOther: '{{items}} artículos',
       heading: 'Carrito',
       empty: 'Tu carrito está vacío.',
       remove: 'Quitar',
@@ -279,12 +296,21 @@ export const r10c = {
     item: {
       outOfStock: 'Sin existencias disponibles',
     },
+    // Las tarjetas del inicio del vendedor (#563): cada una lleva a la lista
+    // filtrada que cuenta.
+    home: {
+      outOfStock: 'Productos agotados',
+    },
   },
   order: {
     nav: {
       // El grupo y su destino: el encabezado no se repite en el elemento.
       orders: 'Pedidos',
       received: 'Pedidos recibidos',
+    },
+    home: {
+      latest: 'Últimos pedidos',
+      none: 'Aún no ha recibido pedidos.',
     },
   },
   fulfilment: {
@@ -293,6 +319,9 @@ export const r10c = {
       // paquetes al mensajero, y que abre en los que esperan despacho.
       title: 'Despacho',
       shipments: 'Envíos',
+    },
+    home: {
+      awaitingDispatch: 'Envíos por despachar',
     },
   },
   settlement: {
@@ -308,6 +337,10 @@ export const r10c = {
       runs: 'Cortes de liquidación',
       payouts: 'Pagos a vendedores',
       payouts_vendor: 'Mis pagos',
+    },
+    home: {
+      // Lo que el próximo corte le pagará: el saldo de #562.
+      balance: 'Su próximo pago',
     },
     agreement: {
       channelRatesHint:

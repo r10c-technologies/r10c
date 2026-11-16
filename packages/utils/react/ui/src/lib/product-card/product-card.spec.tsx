@@ -29,6 +29,7 @@ describe('ProductCard', () => {
         title="Aurora Desk Lamp"
         price={PRICE}
         brand="Aurora"
+        seller="Vendido por Casa Solano"
         description="Warm dimmable LED."
         media={MEDIA}
         unitPrice="Q2.00 / unidad"
@@ -36,12 +37,14 @@ describe('ProductCard', () => {
         chips={<span>LED</span>}
         rating={<span>4,5</span>}
         availability={{ label: 'Disponible', available: true }}
-        cta={<a href="/es/p/1">Ver producto</a>}
+        href="/es/p/1"
+        cta={<button type="button">Añadir</button>}
       />,
     );
 
     for (const text of [
       'Aurora',
+      'Vendido por Casa Solano',
       'Warm dimmable LED.',
       'Q2.00 / unidad',
       'Nuevo',
@@ -55,7 +58,17 @@ describe('ProductCard', () => {
       'src',
       MEDIA.url,
     );
-    expect(screen.getByRole('link', { name: 'Ver producto' })).toBeVisible();
+    // The title is the card's one link, stretched over it (#568), and the
+    // action sits above the stretch so it keeps its own taps.
+    const link = screen.getByRole('link', { name: 'Aurora Desk Lamp' });
+    expect(link).toHaveAttribute('href', '/es/p/1');
+    expect(link).toHaveClass('after:absolute', 'after:inset-0');
+    expect(
+      within(screen.getByRole('heading', { level: 3 })).getByRole('link'),
+    ).toBe(link);
+    expect(
+      screen.getByRole('button', { name: 'Añadir' }).parentElement,
+    ).toHaveClass('relative', 'z-10');
   });
 
   it('leaves out what it is not given, keeping the media box', () => {
@@ -69,6 +82,8 @@ describe('ProductCard', () => {
     expect(placeholder).toHaveTextContent('T');
     expect(screen.queryByRole('link')).toBeNull();
     expect(container.querySelectorAll('p')).toHaveLength(1);
+    // An absent seller draws nothing, not an empty line (#567).
+    expect(screen.queryByTestId('card-seller')).toBeNull();
   });
 
   it('formats the price in minor units, and tags availability in words', () => {

@@ -7,6 +7,7 @@ import {
   stockItemBackend,
   test,
 } from './support/fixtures';
+import { stockItemSeed } from './support/stock-seed';
 
 /**
  * One product workspace (#564): an offering's form with its status and verbs,
@@ -20,6 +21,13 @@ const region = (page: import('@playwright/test').Page, name: string) =>
   page.getByRole('region', { name });
 
 test.describe('the product workspace', () => {
+  // A movement below writes through to the worker's shared stock store, which
+  // every later spec in this worker reads. Put the seeded positions back, so
+  // a stock list read afterwards still sees 10 on hand, not 15.
+  test.afterEach(() => {
+    stockItemBackend.seed(stockItemSeed.map(row => ({ ...row })));
+  });
+
   test('shows the offering with its pictures, prices and stock', async ({
     page,
   }) => {
@@ -31,11 +39,25 @@ test.describe('the product workspace', () => {
         name: 'Un widget azul sobre fondo blanco',
       }),
     ).toBeVisible();
-    await expect(region(page, 'Precios')).toContainText('4500');
+    await expect(region(page, 'Precios')).toContainText(/45,00/);
     await expect(
       record(region(page, 'Existencias'), 'Taza de cerámica'),
     ).toContainText('10');
     await expect(region(page, 'Movimientos de inventario')).toBeVisible();
+  });
+
+  test("lists the pictures in the record's sections, and the link lands on them", async ({
+    page,
+  }) => {
+    await page.goto(OFFERING);
+
+    // The images region is the shell's own, not a related list, and it joins
+    // the section nav beside them (#597).
+    const sections = page.getByRole('navigation', {
+      name: 'Secciones del registro',
+    });
+    await sections.getByRole('link', { name: 'Imágenes' }).click();
+    await expect(region(page, 'Imágenes')).toBeInViewport();
   });
 
   test('leads to the specification to change its pictures', async ({
@@ -112,7 +134,7 @@ test.describe('the product workspace', () => {
 
     await page.goto(OFFERING);
 
-    await expect(region(page, 'Precios')).toContainText('4500');
+    await expect(region(page, 'Precios')).toContainText(/45,00/);
     await expect(region(page, 'Existencias')).toHaveCount(0);
     expect(stockReads).toEqual([]);
   });
@@ -135,7 +157,7 @@ test.describe('the product workspace', () => {
       '/es/workspace?tab=master%3Aproduct-offering%3Aproduct-offering-1',
     );
 
-    await expect(region(page, 'Precios')).toContainText('4500');
+    await expect(region(page, 'Precios')).toContainText(/45,00/);
     await expect(region(page, 'Existencias')).toBeVisible();
   });
 });

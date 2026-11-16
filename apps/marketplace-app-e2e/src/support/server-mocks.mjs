@@ -100,10 +100,65 @@ const CONFIGURATION = {
   uri: [{ key: 'marketplace-service-domain', value: SERVICE_URL }],
 };
 
+/**
+ * Offerings only these journeys need, kept out of the shared fixtures so no
+ * Storybook story or count elsewhere moves (#567):
+ *
+ * - **One product, two sellers.** Two vendors offer "Lino Napkin Set" under
+ *   the same name, and only the seller line tells their cards apart.
+ * - **A seller whose name cannot be read.** `SELLER_DOWN_VENDOR` answers 503
+ *   below, so a grid naming it shows every card without a seller line. Its
+ *   one offering's picture is on a host the image optimizer may not fetch.
+ *
+ * All three are old, uncategorized and out of stock, so no home strip or
+ * category count picks them up.
+ */
+const SELLER_DOWN_VENDOR = 'e2e-vendor-down';
+/** A media host not on `STOREFRONT_IMAGE_HOSTS`; the browser is told it does not resolve. */
+const OUTSIDE_MEDIA_HOST = 'https://media.example.org';
+
+const journeyOffering = (offeringId, vendorId, name, amount) => ({
+  id: offeringId,
+  offeringId,
+  vendorId,
+  name,
+  amount,
+  currency: 'GTQ',
+  availableHint: false,
+  publishedAt: '2025-01-01T00:00:00.000Z',
+  code: offeringId.toUpperCase(),
+});
+
+const JOURNEY_OFFERINGS = [
+  journeyOffering(
+    'offering-lino-napkins-demo',
+    'demo-organization',
+    'Lino Napkin Set',
+    4500,
+  ),
+  journeyOffering(
+    'offering-lino-napkins-solano',
+    'vendor-casa-solano',
+    'Lino Napkin Set',
+    4200,
+  ),
+  {
+    ...journeyOffering(
+      'offering-eclipse-runner',
+      SELLER_DOWN_VENDOR,
+      'Eclipse Table Runner',
+      9900,
+    ),
+    // On a host the optimizer is not allowed to fetch from, so its picture
+    // renders as it is, with no `srcset` (#571).
+    media: [{ url: `${OUTSIDE_MEDIA_HOST}/runner.jpg`, alt: 'Runner, folded' }],
+  },
+];
+
 const collections = [
   entityBackendHandlers(PublishedOffering, {
     baseUrl: `${SERVICE_URL}/published-offering`,
-    seed: offerings,
+    seed: [...offerings, ...JOURNEY_OFFERINGS],
   }),
   entityBackendHandlers(ProductBrand, {
     baseUrl: `${SERVICE_URL}/product-brand`,
@@ -356,8 +411,39 @@ const unavailableHandler = http.get(
       : undefined,
 );
 
+/** A vendor read naming `SELLER_DOWN_VENDOR` reaches a backend that is down. */
+const sellerDownHandler = http.get(
+  `${SERVICE_URL}/published-vendor`,
+  ({ request }) =>
+    decodeURIComponent(new URL(request.url).search).includes(SELLER_DOWN_VENDOR)
+      ? new HttpResponse(null, { status: 503 })
+      : undefined,
+);
+
+/**
+ * The seed's pictures, as the image optimizer fetches them (#571). The
+ * browser never asks picsum for anything any more — it asks the storefront's
+ * `/_next/image` — so the fetch happens here, in the Next process, and an
+ * unhandled one would leave this hermetic profile for the real host. Every
+ * picture is the same one grey pixel.
+ */
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/58BAwAI/AL+XJ/PNgAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+const pictureHandler = http.get(
+  'https://picsum.photos/*',
+  () =>
+    new HttpResponse(PIXEL, {
+      headers: { 'content-type': 'image/png' },
+    }),
+);
+
 setupServer(
   unavailableHandler,
+  pictureHandler,
+  sellerDownHandler,
   buyerCancelHandler,
   buyerReceiptHandler,
   configurationHandler(CONFIG_URL, CONFIGURATION),

@@ -7,6 +7,7 @@ import {
 } from '@r10c/implementation-marketplace-catalog-next';
 import { Suspense } from 'react';
 
+import { AddedNotice } from '../cart/added-notice';
 import { OfferingGridSkeleton } from '../catalog/offering-grid';
 import { OfferingListing } from '../catalog/offering-listing';
 import { storePaths } from '../routing/paths';
@@ -32,7 +33,11 @@ export function SearchPage({
   const term = state.q[0]?.trim();
 
   return (
-    <StoreShell locale={locale} searchTerm={term}>
+    <StoreShell
+      locale={locale}
+      searchTerm={term}
+      notice={<AddedNotice locale={locale} query={searchParams} />}
+    >
       <Stack gap="l">
         <HeadingOne>
           {term
@@ -40,7 +45,9 @@ export function SearchPage({
             : t('storefront.search.heading')}
         </HeadingOne>
 
-        <Suspense fallback={<OfferingGridSkeleton count={6} />}>
+        <Suspense
+          fallback={<OfferingGridSkeleton layout="listing" count={6} />}
+        >
           <OfferingListing
             locale={locale}
             path={storePaths.search()}

@@ -3,6 +3,7 @@ import type { Entity } from '@entifix/core';
 import { Grid } from '@entifix/react-controls/primitives';
 import type { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import type { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { offeringCard } from '@r10c/implementation-marketplace-catalog-next';
 import { catalogFixtures } from '@r10c/testing-catalog-fixtures';
 import { ProductCard } from '@r10c/utils-react-ui';
@@ -26,19 +27,24 @@ const brandName = new Map(
   ]),
 );
 
+const sellerName = new Map(
+  everything<PublishedVendor>(fixtures.vendors).map(vendor => [
+    vendor.vendorId,
+    vendor.displayName,
+  ]),
+);
+
 function OfferingTile({ offering }: { readonly offering: PublishedOffering }) {
   return (
     <ProductCard
       {...offeringCard(offering, {
         locale: 'es',
         brandName: id => brandName.get(id),
+        sellerName: id => sellerName.get(id),
+        soldBy: seller => `Vendido por ${seller}`,
         labels: { available: 'Disponible', unavailable: 'Agotado' },
       })}
-      cta={
-        <a className="text-primary underline" href={`#${offering.offeringId}`}>
-          Ver producto
-        </a>
-      }
+      href={`#${offering.offeringId}`}
     />
   );
 }

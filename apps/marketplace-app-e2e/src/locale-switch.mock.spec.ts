@@ -12,10 +12,10 @@ import { baseTest as test, expect } from '@entifix/testing-e2e/playwright';
 test.describe('switching locale', () => {
   test('serves the storefront in the negotiated language', async ({ page }) => {
     await page.goto('/es');
-    await expect(page.getByText('Ver producto').first()).toBeVisible();
+    await expect(page.getByText(/^Vendido por /).first()).toBeVisible();
 
     await page.goto('/en');
-    await expect(page.getByText('View product').first()).toBeVisible();
+    await expect(page.getByText(/^Sold by /).first()).toBeVisible();
   });
 
   // Nothing pins `entifix_locale` here, so an unprefixed path falls through to

@@ -16,11 +16,18 @@ import { StoreHeader } from '../chrome/store-header';
 export function StoreShell({
   locale,
   searchTerm,
+  notice,
   children,
 }: {
   readonly locale: Locale;
   /** What the header's search box shows: the term a search page answers. */
   readonly searchTerm?: string;
+  /**
+   * A notice that reads the request, such as `AddedNotice`, put above the
+   * page in its own `Suspense` hole so the rest stays prerendered. Optional:
+   * a page cached as a whole (the product page) has no request to read.
+   */
+  readonly notice?: ReactNode;
   readonly children: ReactNode;
 }) {
   return (
@@ -39,8 +46,11 @@ export function StoreShell({
       <main
         id="content"
         tabIndex={-1}
-        className="mx-auto w-full max-w-5xl px-s pt-s pb-l sm:px-l sm:py-xl"
+        className="mx-auto w-full max-w-7xl px-s pt-s pb-l sm:px-l sm:py-xl"
       >
+        {notice === undefined ? null : (
+          <Suspense fallback={null}>{notice}</Suspense>
+        )}
         {children}
       </main>
       <StoreFooter locale={locale} />

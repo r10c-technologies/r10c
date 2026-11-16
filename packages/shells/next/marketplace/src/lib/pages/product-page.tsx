@@ -7,6 +7,7 @@ import {
   HeadingOne,
   HeadingTwo,
   MediaGallery,
+  MediaImage,
   Money,
   Overline,
   QuantityInput,
@@ -31,12 +32,23 @@ import { MAX_QUANTITY } from '../cart/cart-state';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
-import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import {
+  loadCardNames,
+  OfferingGrid,
+  OfferingGridSkeleton,
+} from '../catalog/offering-grid';
 import { readProduct } from '../catalog/product-read';
+import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
 import { storefrontOrigin } from '../seo/page-metadata';
 import { jsonLdScript, productJsonLd } from '../seo/product-json-ld';
 import { StoreShell } from './store-shell';
+
+/** The gallery's column: half the 80rem frame from `sm`, the screen below. */
+const GALLERY_SIZES = '(min-width: 40rem) 40rem, 100vw';
+
+/** The related strip holds four: whole rows at two and at four columns. */
+const RELATED_SIZE = 4;
 
 /**
  * A product detail page — one published offering, cached on the catalog's
@@ -63,24 +75,39 @@ async function RelatedOfferings({
 
   const page = await runRead(
     PublishedOffering,
-    loadOfferings({ categoryIds: [categoryId], pageSize: 4 }),
+    // One more than the strip holds, so excluding the offering in view still
+    // leaves a whole row of four (#569).
+    loadOfferings({ categoryIds: [categoryId], pageSize: RELATED_SIZE + 1 }),
     emptyPage<PublishedOffering>(),
   );
-  const related = page.items.filter(
-    item => item.offeringId !== excludeOfferingId,
-  );
+  const related = page.items
+    .filter(item => item.offeringId !== excludeOfferingId)
+    .slice(0, RELATED_SIZE);
 
   if (related.length === 0) return null;
 
+  // Rendered inside `ProductContent`'s cache, whose explicit lifetime wins
+  // over anything decided here — a failed read is kept as long as the page,
+  // as the page's own seller line already is.
+  const names = await loadCardNames(related);
+
+  // A named region, so the strip is a landmark a screen-reader user can jump
+  // to past the buy box.
   return (
-    <Stack gap="s">
-      <HeadingTwo>{t('storefront.product.related')}</HeadingTwo>
-      <OfferingGrid
-        locale={locale}
-        offerings={related}
-        emptyLabel={t('storefront.category.empty')}
-      />
-    </Stack>
+    <section aria-labelledby="related-heading">
+      <Stack gap="s">
+        <HeadingTwo id="related-heading">
+          {t('storefront.product.related')}
+        </HeadingTwo>
+        <OfferingGrid
+          locale={locale}
+          layout="strip"
+          offerings={related}
+          names={names}
+          emptyLabel={t('storefront.category.empty')}
+        />
+      </Stack>
+    </section>
   );
 }
 
@@ -138,6 +165,7 @@ async function ProductContent({
   );
   const category = trail.at(-1);
   const media = offering.media ?? [];
+  const hosts = imageHosts();
   const url = `${storefrontOrigin()}${localeHref(locale, storePaths.offering(offering.offeringId))}`;
 
   return (
@@ -238,7 +266,9 @@ async function ProductContent({
             </form>
 
             {offering.description ? (
-              <Text muted>{offering.description}</Text>
+              <Text muted className="max-w-(--measure)">
+                {offering.description}
+              </Text>
             ) : null}
 
             <Card>
@@ -303,14 +333,20 @@ async function ProductContent({
                 position: (index, total) =>
                   t('storefront.product.galleryPosition', { index, total }),
               }}
-              renderMedia={item => (
-                <img
+              sizes={GALLERY_SIZES}
+              // Each picture through the optimizer when its host allows, at
+              // the column's width (#571). The gallery marks the first one the
+              // priority: what the page is about is fetched first and at once,
+              // and the rest wait.
+              renderMedia={(item, slide) => (
+                <MediaImage
                   className="h-full w-full object-cover"
                   src={item.src}
                   alt={item.alt}
-                  // The first picture is what the page is about; the rest wait.
-                  loading={item.id === 'media-1' ? 'eager' : 'lazy'}
-                  decoding="async"
+                  sizes={slide.sizes}
+                  priority={slide.priority}
+                  loader={imageLoaderFor(item.src, hosts)}
+                  style={{ aspectRatio: undefined }}
                 />
               )}
             />
@@ -327,7 +363,11 @@ async function ProductContent({
           )}
         </div>
 
-        <Suspense fallback={<OfferingGridSkeleton count={3} />}>
+        <Suspense
+          fallback={
+            <OfferingGridSkeleton layout="strip" count={RELATED_SIZE} />
+          }
+        >
           <RelatedOfferings
             locale={locale}
             categoryId={category ? String(category.id) : undefined}

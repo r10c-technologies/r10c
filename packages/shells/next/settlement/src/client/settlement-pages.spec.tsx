@@ -122,6 +122,7 @@ const adapters = (): SettlementAdapters => ({
   settlementRunRest: Context.make(EntityRepositoryTag, repositories.run),
   vendorPayoutRest: Context.make(EntityRepositoryTag, repositories.payout),
   metadata: real.metadata,
+  vendorBalance: real.vendorBalance,
 });
 
 const renderPage = (page: ReactElement) =>

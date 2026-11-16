@@ -92,7 +92,13 @@ export const r10c: EsR10c = {
     home: {
       overline: 'Storefront',
       heading: 'r10c Marketplace',
-      lead: 'Things for the house, chosen slowly.',
+      promise: 'Products from many sellers, in one store',
+      claims: {
+        label: 'Why shop here',
+        multiVendor: 'Buy from several sellers in a single order.',
+        cancel:
+          'You can cancel from your receipt until your order has shipped.',
+      },
       categories: 'Categories',
       newest: 'New in',
       featured: 'Featured',
@@ -108,7 +114,8 @@ export const r10c: EsR10c = {
       details: 'Details',
       seller: 'Seller',
       addToCart: 'Add to cart',
-      view: 'View product',
+      add: 'Add',
+      addNamed: 'Add {{name}} to cart',
       brand: 'Brand',
       category: 'Category',
       reference: 'Reference',
@@ -161,6 +168,11 @@ export const r10c: EsR10c = {
       empty: 'Nothing matched “{{term}}”.',
     },
     cart: {
+      view: 'View cart',
+      // Not `count_one`/`count_other`: the number is only known in the browser,
+      // so the server translates around a mark, and `count` would pick a form.
+      itemsOne: '{{items}} item',
+      itemsOther: '{{items}} items',
       heading: 'Cart',
       empty: 'Your cart is empty.',
       remove: 'Remove',
@@ -259,17 +271,27 @@ export const r10c: EsR10c = {
     item: {
       outOfStock: 'Nothing available to sell',
     },
+    home: {
+      outOfStock: 'Out of stock',
+    },
   },
   order: {
     nav: {
       orders: 'Orders',
       received: 'Received orders',
     },
+    home: {
+      latest: 'Latest orders',
+      none: 'No orders yet.',
+    },
   },
   fulfilment: {
     nav: {
       title: 'Dispatch',
       shipments: 'Shipments',
+    },
+    home: {
+      awaitingDispatch: 'Shipments to dispatch',
     },
   },
   settlement: {
@@ -282,6 +304,9 @@ export const r10c: EsR10c = {
       runs: 'Settlement runs',
       payouts: 'Vendor payouts',
       payouts_vendor: 'My payouts',
+    },
+    home: {
+      balance: 'Your next payout',
     },
     agreement: {
       channelRatesHint:

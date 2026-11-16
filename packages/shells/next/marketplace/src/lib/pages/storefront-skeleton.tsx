@@ -16,14 +16,14 @@ import { OfferingGridSkeleton } from '../catalog/offering-grid';
  */
 export function StorefrontSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-s py-l sm:px-l sm:py-xl">
+    <div className="mx-auto w-full max-w-7xl px-s py-l sm:px-l sm:py-xl">
       <Stack gap="l">
         <Stack gap="2xs">
           <Skeleton shape="line" className="w-24" />
           <Skeleton shape="block" className="h-[2em] w-2/3" />
           <SkeletonText lines={2} />
         </Stack>
-        <OfferingGridSkeleton />
+        <OfferingGridSkeleton layout="listing" />
       </Stack>
     </div>
   );

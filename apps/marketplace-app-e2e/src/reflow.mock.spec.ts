@@ -40,6 +40,23 @@ const expectTouchTarget = async (target: Locator) => {
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(TOUCH_FLOOR);
 };
 
+/**
+ * Two cards to a row (#568): on a phone one card per row is a screen per
+ * product. The first two share a row, and each one's add button is a primary
+ * target at the floor.
+ */
+const expectTwoToARow = async (page: Page) => {
+  const cards = page.getByRole('article');
+  const [first, second] = await Promise.all([
+    cards.nth(0).boundingBox(),
+    cards.nth(1).boundingBox(),
+  ]);
+  expect(first?.y, 'the first two cards share a row').toBe(second?.y);
+  await expectTouchTarget(
+    cards.nth(0).getByRole('button', { name: /^Añadir .+ al carrito$/ }),
+  );
+};
+
 test('the storefront reflows at 320px and keeps commerce above the fold', async ({
   page,
   network,
@@ -52,12 +69,14 @@ test('the storefront reflows at 320px and keeps commerce above the fold', async 
     await expectAboveTheFold(page.getByRole('article').first());
     await expectNoSidewaysScroll(page);
     await expectTouchTarget(page.getByTestId('cart-badge'));
+    await expectTwoToARow(page);
   });
 
   await test.step('category', async () => {
     await page.goto('/es/c/lighting');
     await expectAboveTheFold(page.getByRole('article').first());
     await expectNoSidewaysScroll(page);
+    await expectTwoToARow(page);
   });
 
   const buy = page.getByRole('form', { name: 'Comprar' });

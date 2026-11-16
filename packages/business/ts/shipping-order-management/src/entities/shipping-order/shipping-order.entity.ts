@@ -127,6 +127,7 @@ export class ShippingOrder implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:shipping-order.fields.amountDue',
+    money: { unit: 'minor', currencyMember: 'currency' },
     filterable: false,
   })
   get amountDue(): number {

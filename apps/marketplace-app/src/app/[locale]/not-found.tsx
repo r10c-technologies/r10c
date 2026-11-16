@@ -37,7 +37,7 @@ export default function NotFound() {
       <main
         id="content"
         tabIndex={-1}
-        className="mx-auto w-full max-w-5xl px-s py-l sm:px-l sm:py-xl"
+        className="mx-auto w-full max-w-7xl px-s py-l sm:px-l sm:py-xl"
       >
         <Stack gap="s">
           <HeadingOne>{t('storefront.missing.heading')}</HeadingOne>
