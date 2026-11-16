@@ -727,38 +727,39 @@ describe('The generated-block list agrees everywhere it is written', () => {
   });
 });
 
-describe('Tag dimensions are documented', () => {
-  const layering = read('docs/_shared/layering.md');
-
-  const declaredTags = (): Set<string> => {
-    const found = new Set<string>();
-    const walk = (dir: string): void => {
-      for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        if (
-          ['node_modules', 'dist', 'out-tsc', '.next', '.git'].includes(
-            entry.name,
-          )
-        ) {
-          continue;
-        }
-        const full = join(dir, entry.name);
-        if (entry.isDirectory()) {
-          walk(full);
-        } else if (entry.name === 'package.json') {
-          try {
-            const pkg = JSON.parse(readFileSync(full, 'utf8'));
-            for (const tag of pkg?.nx?.tags ?? []) found.add(tag);
-          } catch {
-            // A package.json that does not parse is someone else's failure.
-          }
+/** Every `nx.tags` entry any project declares. */
+const declaredTags = (): Set<string> => {
+  const found = new Set<string>();
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (
+        ['node_modules', 'dist', 'out-tsc', '.next', '.git'].includes(
+          entry.name,
+        )
+      ) {
+        continue;
+      }
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name === 'package.json') {
+        try {
+          const pkg = JSON.parse(readFileSync(full, 'utf8'));
+          for (const tag of pkg?.nx?.tags ?? []) found.add(tag);
+        } catch {
+          // A package.json that does not parse is someone else's failure.
         }
       }
-    };
-    for (const root of ['apps', 'packages', 'tools']) {
-      walk(join(REPO_ROOT, root));
     }
-    return found;
   };
+  for (const root of ['apps', 'packages', 'tools']) {
+    walk(join(REPO_ROOT, root));
+  }
+  return found;
+};
+
+describe('Tag dimensions are documented', () => {
+  const layering = read('docs/_shared/layering.md');
 
   it('finds the tags it is meant to check', () => {
     expect(declaredTags().size).toBeGreaterThanOrEqual(10);
@@ -775,6 +776,95 @@ describe('Tag dimensions are documented', () => {
       missing,
       'these tag dimensions are declared in nx.tags but layering.md never ' +
         `explains them:\n  ${missing.join('\n  ')}`,
+    ).toEqual([]);
+  });
+});
+
+/**
+ * Facts that have a source, written in prose that nothing generates.
+ *
+ * Three of them drifted at once — the Nx major, the number of tenant databases
+ * and the list of scopes — each stated in a document an agent reads on every
+ * session, each true on the day it was written. ADR 0046's rule applies: a fact
+ * that is only stated gets skipped, so each is compared with the place it comes
+ * from. ADRs are left out on purpose: they are dated records, and a count in one
+ * is the count on its day.
+ */
+describe('Stated facts agree with their source', () => {
+  const liveDocs = (): string[] =>
+    allDocs().filter(doc => !doc.startsWith(join('docs', 'adr')));
+
+  it('names the Nx major the repository installs', () => {
+    const nx = JSON.parse(read('package.json')).devDependencies.nx as string;
+    const major = nx.match(/(\d+)\./)?.[1];
+    const stated: { doc: string; major: string }[] = [];
+    for (const doc of liveDocs()) {
+      for (const match of read(doc).matchAll(/\bNx (\d+)\b/g)) {
+        stated.push({ doc, major: match[1] });
+      }
+    }
+
+    expect(stated.length, 'no document names an Nx version').toBeGreaterThan(0);
+    expect(
+      stated.filter(s => s.major !== major),
+      `package.json installs Nx ${major}; these documents name another`,
+    ).toEqual([]);
+  });
+
+  it('counts the tenant databases the register declares', () => {
+    const words = ['one', 'two', 'three', 'four', 'five', 'six', 'seven'];
+    const tenant = SLICES.flatMap(slice => slice.stores).filter(
+      store => store.partitioning === 'per-organization',
+    ).length;
+    const stated: { doc: string; count: number }[] = [];
+    for (const doc of liveDocs()) {
+      for (const match of read(doc).matchAll(
+        /\b(one|two|three|four|five|six|seven) (?:(?:Mongo|tenant) )*databases\b/gi,
+      )) {
+        stated.push({ doc, count: words.indexOf(match[1].toLowerCase()) + 1 });
+      }
+    }
+
+    expect(
+      stated.length,
+      'no document counts the tenant databases per organization',
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      stated.filter(s => s.count !== tenant),
+      `tools/slices declares ${tenant} per-organization stores; these documents count another number of databases`,
+    ).toEqual([]);
+  });
+
+  it('lists every scope in layering.md', () => {
+    const bullet = read('docs/_shared/layering.md')
+      .split('\n')
+      .find(line => line.startsWith('- **`scope:*`**'));
+    expect(bullet, 'layering.md has no scope:* bullet').toBeDefined();
+
+    const scopes = [...declaredTags()]
+      .filter(tag => tag.startsWith('scope:'))
+      .map(tag => tag.slice('scope:'.length))
+      .filter(scope => scope !== 'shared');
+    expect(scopes.length).toBeGreaterThanOrEqual(10);
+
+    expect(
+      scopes.filter(scope => !bullet?.includes(`\`${scope}\``)),
+      'these scopes are declared in nx.tags but the scope:* bullet in layering.md does not name them',
+    ).toEqual([]);
+  });
+
+  it('lists every slice in the generated slice register', () => {
+    const text = read('docs/BUSINESS-ARCHITECTURE.md');
+    const block = text.slice(
+      text.indexOf('<!-- docs:begin slice-register -->'),
+      text.indexOf('<!-- docs:end slice-register -->'),
+    );
+    expect(SLICES.length).toBeGreaterThanOrEqual(10);
+    expect(
+      SLICES.filter(slice => !block.includes(`\`${slice.name}\``)).map(
+        slice => slice.name,
+      ),
+      'run `node tools/sync-docs.mjs`: the slice register block is stale',
     ).toEqual([]);
   });
 });
