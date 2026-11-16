@@ -4,6 +4,7 @@
 - Date: 2026-10-28
 - Area: messaging
 - Read when: emitting or consuming a domain event, or making a write safe to retry — events carry aggregate and version, and `Idempotency-Key` is the one header
+- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — a `planned` slice's subscription counts as a listener, so a fact a declared module will keep books from is published before that module runs
 
 ## Context
 
@@ -70,6 +71,18 @@ A `publishedEvents` entry with no matching subscription fails `@r10c/slices`.
 `settlement.run.completed` is dropped until a payouts process consumes it, and
 `payment.failed` — a refused capture, which the saga answers by compensating —
 is no longer published either.
+
+> **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**
+> (Proposed). "A slice subscribes" includes a slice whose status is `planned`.
+> The check has always read it that way — it matches `publishedEvents` against
+> every declared subscription and reads no status — and ADR 0078 relies on it:
+> a module is declared as a `planned` slice, with its subscriptions, before it
+> has a deployment, and that declaration is what keeps a fact published.
+>
+> The rule is unchanged for an event no declared slice names. It is still not
+> published, which is why `settlement.run.completed` and `payment.failed` stay
+> dropped. What a planned listener costs is that the event is relayed into an
+> exchange nothing is bound to until the module's first boot.
 
 ### Every message is registered
 

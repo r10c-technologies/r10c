@@ -549,9 +549,19 @@ Full design in
 
 ## Deliberately out of scope
 
-Fulfillment and logistics · payment service provider integration · tax
-calculation · returns and RMA · search relevance · recommendations · the
-dedicated operator bastion app · anything CRM/ERP/analytics.
+Fulfillment and logistics · payment service provider integration · filing a
+tax return · returns and RMA · search relevance · recommendations · the
+dedicated operator bastion app · anything CRM or analytics.
+
+**Tax facts and the ERP modules left this list** with
+[ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)
+(Proposed). Recording what a sale owed in tax — fiscal identity, the breakdown
+per line, the totals — is in scope on orders, payments and stock movements;
+filing is not, and who issues the fiscal document is still open. Accounting,
+cost control, services and manufacturing are future modules: each a slice with
+its own store that joins by subscribing to complete events and starts from a
+snapshot. None is in the capability map yet — a domain enters it when its slice
+is declared.
 
 Four more, decided in [ADR 0022](adr/0022-v1-marketplace-module-boundaries.md)
 and named here so their absence reads as a decision:

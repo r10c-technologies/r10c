@@ -17,6 +17,7 @@
   supplies the delivery mechanism this record needed and did not name:
   `EntityForm`'s runtime `fields: EntityFieldDescriptor[]` reach the browser
   through the served `$metadata` document.
+- Revised: 2026-11-16 by [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md) — lifecycle, pinning and tenant variation are that record's: four states, `in-design → active → retired → obsolete`, a pin that is the version record's id, and `lifecycleStatus` in place of `released`; the red lines, the dictionary, storage, planes and the trigger stand
 
 ## Trigger
 
@@ -85,6 +86,12 @@ ProductOffering                    ← a decorated class, stable
   characteristics: CharacteristicValue[]
 ```
 
+> **Revised 2026-11-16 by [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md).**
+> The pin is the **id of the version record**, not a `{ specKey, version }`
+> pair: `ProductOffering.specificationId` keeps its shape and names one
+> immutable version, and `specKey` and `version` are read off the record it
+> resolves to. Read `specRef` in this record as that id.
+
 Rejected: making the whole entity dynamic. The storefront prerenders, search
 projects, checkout prices and stock reserves — all against a stable shape. A fully
 dynamic offering means nothing is typed anywhere and [ADR
@@ -114,29 +121,41 @@ a potential reader of vendor input.
 
 ### A released specification version is immutable, and that is load-bearing
 
+> **Revised 2026-11-16 by [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md).**
+> The lifecycle, its verbs and its enforcement are that record's §1, and the
+> three paragraphs below are corrected to it. Why a released version must be
+> immutable is this record's, and is untouched.
+>
+> - **Four states, not five.** `draft` is `in-design`, SID's own name, and
+>   `in-test` is dropped. The member is `lifecycleStatus`;
+>   `EntitySpecification`'s `released` boolean goes.
+> - **Enforcement is a conditional write.** This section first said the service
+>   would not mount generic save and delete routes at all. ADR 0079 keeps
+>   `update` and `delete`, legal from `in-design` only, and makes the boundary
+>   the handler's conditional write on `lifecycleStatus: 'in-design'`.
+
 Lifecycle, a practical subset of SID's `lifecycleStatus`, paired as TMF pairs it
 with a `validFor` period:
 
 ```
-draft → in-test → active → retired → obsolete
+in-design → active → retired → obsolete
 ```
 
 `release` freezes the body, computes a content hash, sets `validFor.start`, and
 retires the previously active version with a `validFor.end`. `revise` clones an
-active version into a new draft at version _n+1_. There is no edit path on a
-released version.
+active version into a new `in-design` version at _n+1_. There is no edit path on
+a released version.
 
-Enforcement is route composition, not a flag: the service **does not mount the
-generic save/delete routes** for the specification entities at all — only the named
-use-cases — and each use-case additionally rejects `409` unless the version is
-`draft`. `EntityRepository.save<T>` is generic and therefore bypassable, so the
-mounting decision is the actual boundary. `@accessor({ readonly })` is the wrong
-tool here: it drops the member from deserialization as well, so the value would
-never reach the UI either.
+Enforcement is the write, not a flag: `update` and `delete` are legal from
+`in-design` only, and each handler's write is conditional on
+`lifecycleStatus: 'in-design'`, so a released version refuses both whatever a
+screen shows. `@accessor({ readonly })` is the wrong tool here: it drops the
+member from deserialization as well, so the value would never reach the UI
+either.
 
 Two entities must be locked, not one. `CharacteristicSpecification` rows are
-children of a version; a generic CRUD route on them bypasses the lifecycle
-entirely.
+children of a version; a write to one must be conditional on its version being
+`in-design`, or it bypasses the lifecycle entirely.
 
 Immutability pays three separate times, and this is the reason to take it
 seriously rather than treat it as hygiene:
@@ -144,15 +163,17 @@ seriously rather than treat it as hygiene:
 1. a compiled specification cache keyed `(specKey, version)` **never** needs
    invalidation;
 2. no distributed transaction is needed across the two stores, because a dangling
-   `specRef` is impossible by construction — versions retire, never delete;
+   `specRef` is impossible by construction — a released version retires, never
+   deletes;
 3. publication can deduplicate a published specification by content hash instead
    of copying it per offering.
 
 ### An instance pins its version
 
-`specRef` is `(specKey, version)`. Reading an instance resolves that version,
-never "the current one". Migration therefore becomes **optional**: records written
-in February keep validating against the specification they were written under.
+`specRef` is the id of one version record (ADR 0079 §2; this section first said
+the pair `(specKey, version)`). Reading an instance resolves that version, never
+"the current one". Migration therefore becomes **optional**: records written in
+February keep validating against the specification they were written under.
 
 `release` also emits a compatibility classification computed from the diff —
 added-optional is backward compatible, removed/renamed/narrowed is breaking. That
@@ -345,12 +366,13 @@ offering. That works precisely because a released version is immutable.
 | 0011 | Unaffected while specifications are on Mongo.                                                                                                 |
 | 0012 | Required only for operator **moderation** of vendor specifications. Dictionary curation does not need it — the dictionary is platform-plane.  |
 | 0013 | **Explicitly not promoted.** Deferred by the sequencing decision above.                                                                       |
+| 0079 | Owns lifecycle, pinning and tenant variation. This record keeps what a specification **is**: red lines, dictionary, storage, planes, trigger. |
 
 Working order:
 
 1. **The `business:kernel` tag tier**, and the retag of `business-ts-common`.
    Everything else imports through it.
-2. **Specification entities and lifecycle use-cases** on tenant Mongo; the
+2. **Specification entities and lifecycle use-cases** (ADR 0079 §1) on tenant Mongo; the
    `EntityForm` `fields` prop; `EntitySpecForm`; the `ProductOffering` skeleton and
    the `Product` rename. `dictionaryRef` and `allowedValues` ship in this wave as
    **nullable fields against an empty dictionary** — that is what keeps step 4 from

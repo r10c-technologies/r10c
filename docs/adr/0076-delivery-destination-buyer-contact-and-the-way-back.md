@@ -3,7 +3,8 @@
 - Status: Proposed
 - Date: 2026-11-14
 - Area: business
-- Read when: storing a buyer's address or contact, numbering an order, or letting a buyer find an order again — personal data lives on the group and the shipment only, and a number never authorizes
+- Read when: storing a buyer's address or contact, numbering an order, or letting a buyer find an order again — contact data lives on the group and the shipment only, a buyer's tax id on the order, and a number never authorizes
+- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the buyer's fiscal identity is a third personal record, on the order, and it travels only on a fiscal-document event with `audience: 'none'`, never on `order.*`
 
 ## Context
 
@@ -78,6 +79,28 @@ rather than "the shipment as its move left it", so adding `destination` to the
 entity cannot put it on the bus. A spec asserts both payloads carry no member
 of either value.
 
+> **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**
+> (Proposed). The table above is about **contact** data and stands for it. The
+> buyer's **fiscal identity** — `buyerTax`: an id type, a tax id and a name, or
+> `cf` when none is given — is a third category with a third home:
+>
+> | Record                  | Store / plane      | Holds                               | Readable by                               |
+> | ----------------------- | ------------------ | ----------------------------------- | ----------------------------------------- |
+> | `ProductOrder.buyerTax` | `order` / platform | id type, tax id, name               | the vendor whose order it is; an operator |
+> | `order.*`, and push     | the bus            | **nothing personal**, as above      | —                                         |
+> | a fiscal-document event | the bus, no push   | the fiscal identity, and only there | a subscribing slice; no browser           |
+>
+> It is on the order, not the group, because the seller is who must name the
+> buyer on an invoice and a vendor never reads a group. That is possible
+> without putting it on the bus because ADR 0078 §2 builds `order.placed` and
+> `order.cancelled` from their contract, member by member, where this section
+> assumed the payload **is** the order's serialization. The spec named above
+> extends to `buyerTax`: neither `order.*` nor a push carries a member of it.
+>
+> The one message that does carry it is a separate fiscal-document event,
+> registered with `audience: 'none'`, so the realtime slice's fail-closed
+> filter sends it to no browser.
+
 The workflow journal (`workflow`, control plane) holds the checkout's start
 input, and therefore the contact, for as long as the engine keeps a journal. No
 route reads the journal (ADR 0072). Its retention is open question 5.
@@ -140,6 +163,11 @@ order that silently never moves.
 
 Both dials are configuration rows with seeded defaults. They are product
 choices, not courier terms.
+
+> **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**
+> (Proposed). Neither sweep touches `ProductOrder.buyerTax`. A fiscal identity
+> is kept for as long as fiscal law requires the sale's record, and that period
+> is ADR 0078's open question on retention, not a product dial.
 
 ### 5. Numbers: readable, random, and never a credential
 
@@ -279,9 +307,12 @@ register.
 3. **Is a delivery time promised?** Notion asks whether same-day is a commercial
    promise; the 14-day delivery window (ADR 0070) is a timeout, not a promise,
    and must not be shown as one.
-4. **The buyer's NIT.** Notion's checkout page notes a tax identifier is needed
+4. ~~**The buyer's NIT.** Notion's checkout page notes a tax identifier is needed
    for a valid invoice. Fiscal documents are out of v1 scope; if that changes,
-   the NIT is a third personal field and follows §1.
+   the NIT is a third personal field and follows §1.~~ **Answered 2026-11-16 by
+   [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md):**
+   it is stored on the order as `buyerTax` and travels only on a
+   fiscal-document event — see the note on §1.
 5. **The journal's retention.** The workflow journal holds the start input, and
    with it the contact, for as long as the engine keeps journals, and entifix's
    engine has no purge today. Options: an entifix purge of completed flows
@@ -297,7 +328,8 @@ register.
 - A checkout takes one form. The four-tap path is gone for the storefront and
   unchanged at the counter.
 - Personal data has exactly two homes, a schedule for leaving each, and a spec
-  keeping it off the bus.
+  keeping it off the bus. (Contact data, that is: the fiscal identity is a
+  third, on the order, as the note on §1 records.)
 - The buyer can come back for as long as `order.receiptDays`, from any device
   that can open their email.
 - order-service becomes the fleet's first mail sender, and the storefront holds
