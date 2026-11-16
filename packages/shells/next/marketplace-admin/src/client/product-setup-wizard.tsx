@@ -235,8 +235,12 @@ export const validatorFor =
 export interface ProductSetupWizardProps {
   /** The step the address named, when it named one. */
   readonly step?: string;
-  /** Where to go once the create has been handed off. Defaults to the list. */
-  readonly onFinished?: () => void;
+  /**
+   * Where to go once the create has been handed off, given the new
+   * specification's id. Defaults to its own page, where its offerings are
+   * listed and a new one starts with it already chosen (#564).
+   */
+  readonly onFinished?: (created: { readonly id: string }) => void;
 }
 
 /**
@@ -336,11 +340,20 @@ export function ProductSetupWizard({
     // and the draft is spent.
     draft.clear();
 
-    if (onFinished !== undefined) {
-      onFinished();
+    // The wizard makes a specification, not an offering, so it lands on the
+    // specification: offering it is the next step, one region down.
+    const id = saved.id === undefined ? undefined : String(saved.id);
+    if (onFinished !== undefined && id !== undefined) {
+      onFinished({ id });
       return;
     }
-    router.push(withLocale(PRODUCT_SURFACE.basePath));
+    router.push(
+      withLocale(
+        id === undefined
+          ? PRODUCT_SURFACE.basePath
+          : `${PRODUCT_SURFACE.basePath}/${id}`,
+      ),
+    );
   };
 
   return (

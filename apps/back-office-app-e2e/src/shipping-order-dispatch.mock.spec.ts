@@ -29,9 +29,9 @@ test.beforeEach(() => {
 test('opens on the shipments awaiting dispatch', async ({ page }) => {
   await page.goto('/fulfilment/shipping-order');
 
-  await expect(record(page, /order-awaiting-1/).first()).toBeVisible();
+  await expect(record(page, /ord-a1/).first()).toBeVisible();
   // A dispatched parcel is one filter change away, not on the worklist.
-  await expect(page.getByText('order-dispatched-1')).toHaveCount(0);
+  await expect(record(page, /ord-d1/)).toHaveCount(0);
 });
 
 test('reaches the worklist from the navigation', async ({ page }) => {
@@ -148,13 +148,13 @@ test('dispatches a selection from the worklist, and names the shipment that coul
 }) => {
   await page.goto('/fulfilment/shipping-order');
   // One of the two was held by a cancellation after the list loaded.
-  await expect(record(page, /order-awaiting-2/).first()).toBeVisible();
+  await expect(record(page, /ord-a2/).first()).toBeVisible();
   moveShipment(AWAITING_SHIPMENT_2_ID, 'held');
 
-  await record(page, /order-awaiting-1/)
+  await record(page, /ord-a1/)
     .getByRole('checkbox')
     .check();
-  await record(page, /order-awaiting-2/)
+  await record(page, /ord-a2/)
     .getByRole('checkbox')
     .check();
   await page
@@ -168,8 +168,6 @@ test('dispatches a selection from the worklist, and names the shipment that coul
 
   await expect.poll(() => dispatches.includes(AWAITING_SHIPMENT_ID)).toBe(true);
   expect(dispatches).not.toContain(AWAITING_SHIPMENT_2_ID);
-  // The failed row is named by the first column the table shows it by.
-  await expect(page.getByTestId('bulk-result')).toContainText(
-    'order-awaiting-2',
-  );
+  // The failed row is named by its short id, the record having no name (#594).
+  await expect(page.getByTestId('bulk-result')).toContainText('ship-a2');
 });

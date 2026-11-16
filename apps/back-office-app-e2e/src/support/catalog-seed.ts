@@ -31,17 +31,43 @@ const BASE_NAMES = [
  * spec that finds one by typing is proving the *search* rather than a lucky
  * position in a preloaded list.
  */
-export const categorySeed = Array.from({ length: 14 }, (_, index) => {
+const numberedCategories = Array.from({ length: 14 }, (_, index) => {
   const number = index + 1;
   const baseName = BASE_NAMES[index % BASE_NAMES.length];
 
   return {
     id: `product-category-${number}`,
     code: `CAT-${number}`,
-    name: `${baseName} tools ${number}`,
-    description: `Everything ${baseName} makes (#${number})`,
+    // Per locale (#573): the back office reads `es` under `/es` and `en`
+    // under `/en`, so the two differ where a spec needs to tell them apart.
+    name: {
+      es: `Herramientas ${baseName} ${number}`,
+      en: `${baseName} tools ${number}`,
+    },
+    description: {
+      es: `Todo lo que hace ${baseName} (#${number})`,
+      en: `Everything ${baseName} makes (#${number})`,
+    },
   };
 });
+
+/**
+ * One category whose Spanish name carries an accent its English one does not:
+ * a picker in `es` finds "Café" by typing "café", and `en` reads "Coffee"
+ * (#565).
+ */
+export const categorySeed = [
+  ...numberedCategories,
+  {
+    id: 'product-category-cafe',
+    code: 'CAT-CAFE',
+    name: { es: 'Café', en: 'Coffee' },
+    description: {
+      es: 'Café en grano y molido',
+      en: 'Whole bean and ground coffee',
+    },
+  },
+];
 
 /**
  * Three, not one. The wizard's "duplicate an existing product" step is a table
@@ -59,6 +85,15 @@ export const productSeed = [
     // shapes a `link` could take — and nothing joins them now.
     brandId: 'product-brand-1',
     categoryId: 'product-category-1',
+    // What the offering list's thumbnail and the product workspace's gallery
+    // show (#558, #564). Served by the mock below, so no picture is fetched
+    // from anywhere real.
+    media: [
+      {
+        url: 'https://media.example.test/widget.png',
+        alt: 'Un widget azul sobre fondo blanco',
+      },
+    ],
   },
   {
     id: 'product-2',

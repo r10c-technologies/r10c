@@ -115,5 +115,5 @@ export const checkCategorySave = (category: ProductCategory) =>
     const refused = categorySaveRefusal(all, category);
     return refused === undefined
       ? category
-      : yield* categoryRefusal(refused, category.name);
+      : yield* categoryRefusal(refused, category.code);
   });

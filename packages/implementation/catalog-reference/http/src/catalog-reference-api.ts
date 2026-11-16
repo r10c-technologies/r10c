@@ -1,3 +1,8 @@
+// The fleet's locales, registered before a category's localized name is
+// queried as `name.<locale>` (#573): entifix refuses a locale path for a locale
+// the process never declared, and without this the service knows only `en`.
+import '@r10c/business-ts-i18n/locales';
+
 import {
   defineEntityApi,
   type EntityApiRequest,

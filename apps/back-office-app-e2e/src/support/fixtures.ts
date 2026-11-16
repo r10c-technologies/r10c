@@ -1,3 +1,8 @@
+// The fleet's locales, declared before a handler parses a query: a category's
+// name is localized (#573), and the picker queries it as `name.<locale>`,
+// which entifix refuses for a locale this process never declared.
+import '@r10c/business-ts-i18n/locales';
+
 import { describeEntityUseCases, problemOf } from '@entifix/core';
 import {
   configurationHandler,
@@ -21,6 +26,7 @@ import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   ProductOffering,
+  ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
@@ -320,14 +326,21 @@ const cancelHandlers = [
   }),
 ];
 
-/** A shipment awaiting dispatch — the one the dispatch journey hands over. */
-export const AWAITING_SHIPMENT_ID = 'shipping-order-awaiting-1';
+/**
+ * A shipment awaiting dispatch — the one the dispatch journey hands over.
+ *
+ * The ids, and their orders', are short and distinct because a shipment has no
+ * name of its own: since entifix 0.22.3 its row opens by its order, named by
+ * noun and short id (#594) — the first eight characters of a longer one — and
+ * four ids sharing a prefix would all read as the same shipment.
+ */
+export const AWAITING_SHIPMENT_ID = 'ship-a1';
 /** A second shipment awaiting dispatch, for a selection of two. */
-export const AWAITING_SHIPMENT_2_ID = 'shipping-order-awaiting-2';
+export const AWAITING_SHIPMENT_2_ID = 'ship-a2';
 /** A shipment already on its way, which the worklist must not open on. */
-export const DISPATCHED_SHIPMENT_ID = 'shipping-order-dispatched-1';
+export const DISPATCHED_SHIPMENT_ID = 'ship-d1';
 /** A parcel the buyer refused, which only a return moves on from. */
-export const REFUSED_SHIPMENT_ID = 'shipping-order-refused-1';
+export const REFUSED_SHIPMENT_ID = 'ship-r1';
 
 const shipment = (id: string, orderId: string, status: string) => ({
   id,
@@ -343,10 +356,10 @@ const shipment = (id: string, orderId: string, status: string) => ({
 
 /** The shipments a seeded vendor holds: two awaiting, one out, one refused. */
 export const shipmentSeed = () => [
-  shipment(AWAITING_SHIPMENT_ID, 'order-awaiting-1', 'awaiting-dispatch'),
-  shipment(AWAITING_SHIPMENT_2_ID, 'order-awaiting-2', 'awaiting-dispatch'),
-  shipment(DISPATCHED_SHIPMENT_ID, 'order-dispatched-1', 'dispatched'),
-  shipment(REFUSED_SHIPMENT_ID, 'order-refused-1', 'refused'),
+  shipment(AWAITING_SHIPMENT_ID, 'ord-a1', 'awaiting-dispatch'),
+  shipment(AWAITING_SHIPMENT_2_ID, 'ord-a2', 'awaiting-dispatch'),
+  shipment(DISPATCHED_SHIPMENT_ID, 'ord-d1', 'dispatched'),
+  shipment(REFUSED_SHIPMENT_ID, 'ord-r1', 'refused'),
 ];
 
 const shippingOrders = entityBackendHandlers(ShippingOrder, {
@@ -573,6 +586,38 @@ const offerings = entityBackendHandlers(ProductOffering, {
   ],
 });
 
+/** A 1×1 transparent PNG, for every seeded picture. */
+const PIXEL = Uint8Array.from(
+  atob(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  ),
+  character => character.charCodeAt(0),
+);
+const mediaHandlers = [
+  http.get('https://media.example.test/*', () =>
+    HttpResponse.arrayBuffer(PIXEL.buffer, {
+      headers: { 'content-type': 'image/png' },
+    }),
+  ),
+];
+
+/**
+ * The offerings' prices, beside them in the catalog slice: one priced
+ * offering, so the offering list's price column has a value and a `—` (#558).
+ */
+export const OFFERING_PRICE_URL = `${SERVICE_URL}/product-offering-price`;
+const offeringPrices = entityBackendHandlers(ProductOfferingPrice, {
+  baseUrl: OFFERING_PRICE_URL,
+  seed: [
+    {
+      id: 'price-1',
+      offeringId: 'product-offering-1',
+      amount: 4500,
+      currency: 'GTQ',
+    },
+  ],
+});
+
 /**
  * The offering screen's affordance document, with the verbs the entity really
  * declares — `publish` and `unpublish`, on a record and over a selection — so
@@ -617,6 +662,7 @@ export const vendorPayoutBackend = vendorPayouts.backend;
 
 /** The mock stock store, for reseeding or for breaking on purpose. */
 export const stockItemBackend = stockItems.backend;
+export const offeringPriceBackend = offeringPrices.backend;
 export const stockMovementBackend = stockMovements.backend;
 
 /** The mock catalog, for reseeding or for breaking on purpose. */
@@ -875,6 +921,8 @@ const base = defineEntifixE2eTest({
     ...publishedOfferings.handlers,
     ...publishedVendors.handlers,
     ...offerings.handlers,
+    ...offeringPrices.handlers,
+    ...mediaHandlers,
     ...offeringMetadataHandlers,
     ...bulkPublishHandlers,
     ...sellHandlers,

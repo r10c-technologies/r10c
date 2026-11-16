@@ -1,4 +1,8 @@
-import { SettlementRunStoreTag } from '@r10c/business-ts-settlement-management';
+import { type RequestPrincipal, RequestPrincipalTag } from '@entifix/business';
+import {
+  SettlementLedgerTag,
+  SettlementRunStoreTag,
+} from '@r10c/business-ts-settlement-management';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -6,8 +10,11 @@ import {
   agreementApi,
   commissionEntryApi,
   settlementRunApi,
+  vendorBalanceEndpoints,
   vendorPayoutApi,
 } from './settlement-api.js';
+
+const [balance] = vendorBalanceEndpoints;
 
 describe('the settlement declarations', () => {
   it('narrow every read to the caller, and only agreements are authored', () => {
@@ -40,5 +47,43 @@ describe('the settlement declarations', () => {
     );
 
     expect(answer).toEqual({ meta: { type: 'settlementRun' }, data: outcome });
+  });
+});
+
+describe('the vendor balance', () => {
+  const askedBy = (principal: Partial<RequestPrincipal>) =>
+    Effect.runPromise(
+      balance.handler({} as never).pipe(
+        Effect.provideService(SettlementLedgerTag, {
+          unsettledFor: () =>
+            Effect.succeed([
+              { saleAmount: 100, commissionAmount: 10, currency: 'GTQ' },
+            ]),
+        }),
+        Effect.provideService(RequestPrincipalTag, {
+          subject: 'u-1',
+          sessionId: 's-1',
+          roles: [],
+          attributes: {},
+          ...principal,
+        } as RequestPrincipal),
+      ),
+    );
+
+  it('is guarded by the ledger’s read permission', () => {
+    expect(balance.descriptor.guard).toEqual({
+      kind: 'permission',
+      permission: 'settlement-management:commission-entry:read',
+    });
+  });
+
+  it('answers a vendor their own balance, and anybody else nothing', async () => {
+    expect(
+      await askedBy({ partyRole: 'vendor', organizationId: 'v-1' }),
+    ).toEqual({ amount: 90, currency: 'GTQ', unsettledEntries: 1 });
+    expect(await askedBy({ partyRole: 'operator' })).toEqual({
+      amount: 0,
+      unsettledEntries: 0,
+    });
   });
 });

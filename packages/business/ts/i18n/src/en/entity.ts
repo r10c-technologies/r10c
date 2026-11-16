@@ -544,6 +544,11 @@ export const entity: EsEntity = {
       unpublishConfirm:
         'The offering stops being visible in the storefront and is removed from the published catalog. Your own copy is kept: you can publish it again.',
     },
+    related: {
+      price: 'Price',
+      image: 'Image',
+      available: 'Available',
+    },
   },
   'product-offering-price': {
     form: {

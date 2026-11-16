@@ -1,5 +1,6 @@
-import { defineEntityApi } from '@entifix/business';
-import { entityKey, JsonBody } from '@entifix/core';
+import { permissionForEntity } from '@entifix/authz';
+import { defineEntityApi, RequestPrincipalTag } from '@entifix/business';
+import { defineEndpoint, entityKey, implement, JsonBody } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
 import {
   Agreement,
@@ -9,9 +10,10 @@ import {
   SettlementRun,
   SettlementRunStoreTag,
   validateAgreement,
+  vendorBalance,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
 /**
  * A vendor's terms. Writing one is granted to **no** role: an `admin` who
@@ -86,3 +88,37 @@ export const settlementRunApi = defineEntityApi(
     },
   },
 );
+
+/**
+ * `GET /api/vendor-balance` — what the next settlement run will pay the caller
+ * (#562): `{ amount, currency?, unsettledEntries }`, `currency` absent when
+ * nothing is owed.
+ *
+ * Guarded by the ledger's own read permission, because it is a fold of the
+ * ledger lines that permission already shows, and narrowed the way every
+ * settlement read is: a vendor gets their own, anybody else the empty answer
+ * (ADR 0053) — never a `403`, which would say there was something to hide.
+ */
+const vendorBalanceEndpoint = defineEndpoint({
+  name: 'vendor-balance',
+  method: 'GET',
+  path: '/api/vendor-balance',
+  success: Schema.Struct({
+    amount: Schema.Number,
+    currency: Schema.optionalKey(Schema.String),
+    unsettledEntries: Schema.Number,
+  }),
+  errors: [MixedCurrencies],
+  guard: {
+    kind: 'permission',
+    permission: permissionForEntity(CommissionEntry, 'read'),
+  },
+});
+
+export const vendorBalanceEndpoints = [
+  implement(vendorBalanceEndpoint, () =>
+    Effect.gen(function* () {
+      return yield* vendorBalance(yield* RequestPrincipalTag);
+    }),
+  ),
+] as const;

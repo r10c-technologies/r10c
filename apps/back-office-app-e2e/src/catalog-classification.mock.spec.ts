@@ -2,7 +2,13 @@ import type { NetworkFixture } from '@entifix/testing-e2e/playwright';
 import type { Page } from '@playwright/test';
 import { http, HttpResponse } from 'msw';
 
-import { expect, PRODUCT_URL, record, test } from './support/fixtures';
+import {
+  CATEGORY_URL,
+  expect,
+  PRODUCT_URL,
+  record,
+  test,
+} from './support/fixtures';
 
 /**
  * Setting a specification's brand and category, and what that puts on the wire.
@@ -78,7 +84,7 @@ test('sends both classifications as scalar ids', async ({ page, network }) => {
 
   await page.getByLabel('Nombre').fill('Widget 100');
   await pickByName(page, 'Marca', 'Acme 1');
-  await pickByName(page, 'Categoría', 'Acme tools 1');
+  await pickByName(page, 'Categoría', 'Herramientas Acme 1');
 
   // What the operator picked was a name; what the draft holds is the id.
   await expect(heldValue(page, 'brandId')).toHaveText('Acme 1');
@@ -127,7 +133,7 @@ test('reads stored classifications back as names', async ({ page }) => {
   // `catalog-reference`'s own service, which is the only legal way across the
   // boundary. This is the round trip a draft restore depends on.
   await expect(heldValue(page, 'brandId')).toHaveText('Acme 1');
-  await expect(heldValue(page, 'categoryId')).toHaveText('Acme tools 1');
+  await expect(heldValue(page, 'categoryId')).toHaveText('Herramientas Acme 1');
 });
 
 test('omits a classification the user clears', async ({ page, network }) => {
@@ -142,4 +148,65 @@ test('omits a classification the user clears', async ({ page, network }) => {
   // Absent, not `''`. Nothing enforces this reference across the store
   // boundary, so an empty string would be a dangling id rather than "unset".
   await expect.poll(() => captured.body).not.toHaveProperty('brandId');
+});
+
+/**
+ * #565: a category's name is written per locale, so the operator authors both
+ * and each reader sees their own. The picker and the list read in the page's
+ * locale, and the picker's query is `name.<locale>`.
+ */
+test.describe('a category in each language', () => {
+  test('is authored in both, and each locale lists its own', async ({
+    page,
+    network,
+  }) => {
+    const captured: { body?: unknown } = {};
+    network.use(
+      http.post(CATEGORY_URL, async ({ request }) => {
+        const envelope = (await request.json()) as {
+          meta: { entity: string };
+          data: Record<string, unknown>;
+        };
+        captured.body = envelope.data;
+        return HttpResponse.json({
+          meta: { type: 'entity', entity: envelope.meta.entity },
+          data: { ...envelope.data, id: 'product-category-new' },
+        });
+      }),
+    );
+
+    await page.goto('/es/catalog/product-category/new');
+    await page
+      .getByRole('textbox', { name: /\(es\)$/ })
+      .first()
+      .fill('Té');
+    await page
+      .getByRole('textbox', { name: /\(en\)$/ })
+      .first()
+      .fill('Tea');
+    await page.getByLabel('Código').fill('CAT-TEA');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect
+      .poll(() => captured.body)
+      .toMatchObject({ code: 'CAT-TEA', name: { es: 'Té', en: 'Tea' } });
+  });
+
+  test('lists the name in the page’s locale', async ({ page }) => {
+    await page.goto('/es/catalog/product-category');
+    await expect(record(page, 'Café')).toHaveCount(1);
+
+    await page.goto('/en/catalog/product-category');
+    await expect(record(page, 'Coffee')).toHaveCount(1);
+  });
+
+  test('finds "Café" by typing "café" in a specification’s picker', async ({
+    page,
+  }) => {
+    await openCreateForm(page);
+
+    await page.getByRole('combobox', { name: 'Buscar Categoría' }).fill('café');
+    await page.getByRole('option', { name: 'Café', exact: true }).click();
+    await expect(heldValue(page, 'categoryId')).toHaveText('Café');
+  });
 });

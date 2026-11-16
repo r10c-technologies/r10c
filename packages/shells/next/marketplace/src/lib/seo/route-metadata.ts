@@ -1,6 +1,10 @@
 import type { Locale } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
-import { ProductCategory } from '@r10c/business-ts-catalog-reference';
+import {
+  categoryDescription,
+  categoryName,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
 import { getCategoryByCode } from '@r10c/implementation-catalog-reference-next';
 import type { Metadata } from 'next';
 import { cacheLife } from 'next/cache';
@@ -63,8 +67,8 @@ export async function categoryMetadata(
   return pageMetadata({
     locale,
     path: storePaths.category(code),
-    title: category?.name,
-    description: category?.description,
+    title: category && categoryName(category, locale),
+    description: category && categoryDescription(category, locale),
   });
 }
 

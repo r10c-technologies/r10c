@@ -11,6 +11,8 @@ test.use({ viewport: { width: 1280, height: 800 } });
 
 for (const { path, row } of [
   { path: '/es/catalog/product-brand', row: 'Acme 1' },
+  // With its price, picture and stock columns (#558).
+  { path: '/es/catalog/product-offering', row: 'Taza de cerámica' },
   { path: '/es/settlement/commission-entry', row: 'order-1' },
   { path: '/es/system/configuration', row: 'stock-service-domain' },
 ]) {

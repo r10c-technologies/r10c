@@ -16,13 +16,18 @@ import {
  * the target's name through the host's registry, once per page. Before that,
  * these screens printed `product-offering-1` and UUIDs: what the store holds,
  * not what a person reads. So each list is walked and its visible cells are
- * held to two shapes nobody should ever be shown — a UUID, and a referenced
- * entity's key followed by a number, the shape the seeds' ids take.
+ * held to two shapes nobody should ever be shown — a UUID, and an entity's
+ * key followed by a number, the shape the seeds' ids take.
+ *
+ * #594: that covers **every** cell, the record's own id included — a list no
+ * longer shows its own key (entifix 0.22.3) — and each row still opens by
+ * exactly one link, named by the record's name or by its noun and short id,
+ * never by a quantity or a status.
  */
 const UUID =
   /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
-const REFERENCED_KEY_ID =
-  /\b(product-offering|product-specification|product-brand|product-category|published-vendor|product-order|checkout-group|settlement-run)-\d+\b/;
+const KEY_ID =
+  /\b(product-offering|product-specification|product-brand|product-category|published-vendor|product-order|checkout-group|settlement-run|stock-item|stock-movement|reservation|commission-entry|vendor-payout|shipping-order)-\d+\b|\bagreement-[a-z0-9-]+\b/;
 
 const LISTS = [
   '/es/stock/stock-item',
@@ -46,24 +51,27 @@ for (const path of LISTS) {
     // Names are read after the rows land; wait until none is pending.
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
 
-    // What a reference renders: every cell but the selection checkbox and the
-    // record's own `ID` column, which is the record's key rather than a
-    // pointer to another one and is out of this check's reach.
-    const texts = await page.evaluate(() => {
-      const headers = [...document.querySelectorAll('thead th')].map(th =>
-        (th.textContent ?? '').trim(),
-      );
-      const own = headers.indexOf('ID');
-      return [...document.querySelectorAll('tbody tr')].flatMap(row =>
-        [...row.querySelectorAll('td')]
-          .filter(
-            (cell, index) => index !== own && !cell.querySelector('input'),
-          )
-          .map(cell => (cell as HTMLElement).innerText),
-      );
-    });
+    // Every cell but the selection checkbox, and each row's open links.
+    const rows = await page.evaluate(() =>
+      [...document.querySelectorAll('tbody tr')]
+        .filter(row => (row as HTMLElement).offsetParent !== null)
+        .map(row => ({
+          texts: [...row.querySelectorAll('td')]
+            .filter(cell => !cell.querySelector('input'))
+            .map(cell => (cell as HTMLElement).innerText),
+          links: [...row.querySelectorAll('td a[href]')].map(link =>
+            (link as HTMLElement).innerText.trim(),
+          ),
+        })),
+    );
+    const texts = rows.flatMap(row => row.texts);
     expect(texts.filter(text => UUID.test(text))).toEqual([]);
-    expect(texts.filter(text => REFERENCED_KEY_ID.test(text))).toEqual([]);
+    expect(texts.filter(text => KEY_ID.test(text))).toEqual([]);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const { links } of rows) {
+      expect(links).toHaveLength(1);
+      expect(links[0]).not.toMatch(/^[\d.,\s-]*$/);
+    }
   });
 }
 

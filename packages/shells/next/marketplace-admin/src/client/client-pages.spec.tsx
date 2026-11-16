@@ -69,7 +69,10 @@ const makeBrand = (id: string, name: string) => {
 };
 
 const makeCategory = (id: string, name: string) => {
-  const category = new ProductCategory(id.toUpperCase(), name);
+  const category = new ProductCategory(id.toUpperCase(), {
+    es: name,
+    en: name,
+  });
   category.id = id;
   return category;
 };
@@ -206,6 +209,12 @@ describe('the listing pages', () => {
   });
 });
 
+/**
+ * The name field. A category's name is localized (#565), so its form shows one
+ * input per locale; the first is the default locale's, the one its label names.
+ */
+const nameInput = () => screen.getAllByLabelText(/nombre/i)[0];
+
 describe('the single-record pages', () => {
   const cases = [
     ['brand', <ProductBrandSingleViewClientPage key="b" />, 'b-1', 'Acme'],
@@ -225,9 +234,7 @@ describe('the single-record pages', () => {
 
       renderPage(page);
 
-      await waitFor(() =>
-        expect(screen.getByLabelText(/nombre/i)).toHaveValue(name),
-      );
+      await waitFor(() => expect(nameInput()).toHaveValue(name));
     },
   );
 
@@ -238,9 +245,7 @@ describe('the single-record pages', () => {
     async (_label, page) => {
       renderPage(page);
 
-      await waitFor(() =>
-        expect(screen.getByLabelText(/nombre/i)).toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).toHaveValue(''));
       expect(
         screen.queryByRole('button', { name: 'Eliminar' }),
       ).not.toBeInTheDocument();
@@ -253,9 +258,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
 
       await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
@@ -269,9 +272,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
 
       await user.click(screen.getByRole('button', { name: 'Eliminar' }));
       // Delete asks first since entifix 0.20.0; the verb inside the dialog acts.
@@ -293,9 +294,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
       repositories.product.failNext(
         new Unavailable({ dependency: 'unreachable' }),
       );
@@ -321,9 +320,7 @@ describe('the single-record pages', () => {
       slug = id;
       const user = userEvent.setup();
       renderPage(page);
-      await waitFor(() =>
-        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
-      );
+      await waitFor(() => expect(nameInput()).not.toHaveValue(''));
       repositories.product.failNext(
         new Unavailable({ dependency: 'unreachable' }),
       );

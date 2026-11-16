@@ -7,7 +7,11 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
-import { ProductCategory } from '@r10c/business-ts-catalog-reference';
+import {
+  categoryDescription,
+  categoryName,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
 import {
   getCategoryByCode,
   loadCategoryChildren,
@@ -45,7 +49,10 @@ export interface CategoryPageProps {
   readonly searchParams: SearchParams;
 }
 
-/** What the page states about its category, as a cache entry may hold it. */
+/**
+ * What the page states about its category, as a cache entry may hold it: its
+ * name and description already in the page's locale (#572, #573).
+ */
 interface CategoryFound {
   readonly id: string;
   readonly name: string;
@@ -56,7 +63,10 @@ interface CategoryFound {
  * The category a code names, as plain data, or `undefined` for a code that
  * names none (or a retired one, which leaves browsing with #327).
  */
-async function findCategory(code: string): Promise<CategoryFound | undefined> {
+async function findCategory(
+  code: string,
+  locale: Locale,
+): Promise<CategoryFound | undefined> {
   'use cache';
   cacheLife(CATALOG_CACHE);
 
@@ -68,13 +78,13 @@ async function findCategory(code: string): Promise<CategoryFound | undefined> {
     getCategoryByCode(code),
     undefined,
   );
-  return category === undefined
-    ? undefined
-    : {
-        id: String(category.id),
-        name: category.name,
-        ...(category.description ? { description: category.description } : {}),
-      };
+  if (category === undefined) return undefined;
+  const description = categoryDescription(category, locale);
+  return {
+    id: String(category.id),
+    name: categoryName(category, locale),
+    ...(description ? { description } : {}),
+  };
 }
 
 /**
@@ -95,8 +105,8 @@ async function CategoryHeading({
   // The trail and the children are one vocabulary read each, and on a failed
   // read the page goes without them rather than without its products.
   const [trail, children] = await Promise.all([
-    runRead(ProductCategory, loadCategoryTrail(category.id), []),
-    runRead(ProductCategory, loadCategoryChildren(category.id), []),
+    runRead(ProductCategory, loadCategoryTrail(category.id, locale), []),
+    runRead(ProductCategory, loadCategoryChildren(category.id, locale), []),
   ]);
 
   return (
@@ -122,7 +132,7 @@ async function CategoryHeading({
       <CategoryNav
         label={t('storefront.category.children')}
         items={children.map(child => ({
-          label: child.name,
+          label: categoryName(child, locale),
           href: localeHref(locale, storePaths.category(child.code)),
         }))}
       />
@@ -140,7 +150,7 @@ export async function CategoryPage({
   searchParams,
 }: CategoryPageProps) {
   const t = getServerTFor(locale, 'r10c');
-  const category = await findCategory(code);
+  const category = await findCategory(code, locale);
   if (!category) notFound();
 
   // The path names the category, so a `?category=` on it is ignored.

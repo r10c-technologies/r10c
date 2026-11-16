@@ -86,7 +86,10 @@ const makeBrand = () => {
 };
 
 const makeCategory = () => {
-  const category = new ProductCategory('C-1', 'Herramientas');
+  const category = new ProductCategory('C-1', {
+    es: 'Herramientas',
+    en: 'Tools',
+  });
   category.id = 'c-1';
   return category;
 };
@@ -242,6 +245,8 @@ describe('the blank path', () => {
     await click('Finalizar');
 
     await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
+    // Handed the new specification, so a host can open it (#564).
+    expect(onFinished).toHaveBeenCalledWith({ id: expect.any(String) });
     expect(
       repositories.product.items.map(
         item => (item as ProductSpecification).name,
@@ -251,8 +256,40 @@ describe('the blank path', () => {
 });
 
 describe('finishing without a host to return to', () => {
-  it('navigates back to the product list, locale and all', async () => {
+  /**
+   * #564: what the wizard creates is a specification, so it lands on that
+   * specification's page — where its offerings are, and where a new one starts
+   * with it already chosen — rather than on the list it would have to find it in.
+   */
+  it('lands on the new specification, locale and all', async () => {
     renderWizard();
+
+    await click(/Desde cero/);
+    await click('Continuar');
+    await type(/Nombre/, 'Café');
+    await click('Continuar');
+    await click('Continuar');
+    await click('Finalizar');
+
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/es\/catalog\/product\/[^/?]+$/),
+      ),
+    );
+  });
+});
+
+describe('finishing on a write that named no record', () => {
+  it('falls back to the list, and hands nothing to a host', async () => {
+    // A save that answers without an id has nothing to land on.
+    const save = repositories.product.save.bind(repositories.product);
+    vi.spyOn(repositories.product, 'save').mockImplementation(entity =>
+      Effect.map(save(entity), saved =>
+        Object.assign(saved, { id: undefined }),
+      ),
+    );
+    const onFinished = vi.fn();
+    renderWizard({ onFinished });
 
     await click(/Desde cero/);
     await click('Continuar');
@@ -264,6 +301,7 @@ describe('finishing without a host to return to', () => {
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith('/es/catalog/product'),
     );
+    expect(onFinished).not.toHaveBeenCalled();
   });
 });
 

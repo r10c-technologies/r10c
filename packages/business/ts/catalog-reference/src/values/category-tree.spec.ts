@@ -18,7 +18,10 @@ const category = (
   parentId?: string,
   status: 'active' | 'retired' = 'active',
 ) => {
-  const one = new ProductCategory(id ?? 'new', id ?? 'New');
+  const one = new ProductCategory(id ?? 'new', {
+    es: id ?? 'New',
+    en: id ?? 'New',
+  });
   if (id !== undefined) one.id = id;
   one.parentId = parentId;
   one.status = status;
@@ -173,7 +176,7 @@ describe('categorySaveRefusal', () => {
   });
 
   it('has nothing to retire out from under on a new category', () => {
-    const fresh = new ProductCategory('new', 'New');
+    const fresh = new ProductCategory('new', { es: 'New', en: 'New' });
     fresh.status = 'retired';
 
     expect(categorySaveRefusal(TREE, fresh)).toBeUndefined();

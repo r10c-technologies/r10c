@@ -1,23 +1,79 @@
+/** A category's text in each locale the platform ships (ADR 0005). */
+export interface LocalizedRecordText {
+  es: string;
+  en: string;
+}
+
 export interface ProductCategoryRecord {
   id: string;
   code: string;
-  name: string;
-  description: string;
+  name: LocalizedRecordText;
+  description: LocalizedRecordText;
   status: 'active' | 'retired';
   parentId?: string;
 }
 
-const baseNames = [
-  'Electronics',
-  'Clothing',
-  'Home & Kitchen',
-  'Books',
-  'Sports & Outdoors',
-  'Beauty & Personal Care',
-  'Toys & Games',
-  'Automotive',
-  'Health & Wellness',
-  'Pet Supplies',
+/**
+ * Each base name in both locales, with the lower-case noun its description
+ * uses. Written per locale rather than translated at render: a category's name
+ * is content an operator authors, not copy (#572, #573).
+ */
+const baseNames: ReadonlyArray<{
+  es: string;
+  en: string;
+  esNoun: string;
+  enNoun: string;
+}> = [
+  {
+    es: 'Electrónica',
+    en: 'Electronics',
+    esNoun: 'electrónica',
+    enNoun: 'electronics',
+  },
+  { es: 'Ropa', en: 'Clothing', esNoun: 'ropa', enNoun: 'clothing' },
+  {
+    es: 'Hogar y cocina',
+    en: 'Home & Kitchen',
+    esNoun: 'hogar y cocina',
+    enNoun: 'home & kitchen',
+  },
+  { es: 'Libros', en: 'Books', esNoun: 'libros', enNoun: 'books' },
+  {
+    es: 'Deportes y aire libre',
+    en: 'Sports & Outdoors',
+    esNoun: 'deportes y aire libre',
+    enNoun: 'sports & outdoors',
+  },
+  {
+    es: 'Belleza y cuidado personal',
+    en: 'Beauty & Personal Care',
+    esNoun: 'belleza y cuidado personal',
+    enNoun: 'beauty & personal care',
+  },
+  {
+    es: 'Juguetes y juegos',
+    en: 'Toys & Games',
+    esNoun: 'juguetes y juegos',
+    enNoun: 'toys & games',
+  },
+  {
+    es: 'Automotriz',
+    en: 'Automotive',
+    esNoun: 'automotriz',
+    enNoun: 'automotive',
+  },
+  {
+    es: 'Salud y bienestar',
+    en: 'Health & Wellness',
+    esNoun: 'salud y bienestar',
+    enNoun: 'health & wellness',
+  },
+  {
+    es: 'Mascotas',
+    en: 'Pet Supplies',
+    esNoun: 'mascotas',
+    enNoun: 'pet supplies',
+  },
 ];
 
 /**
@@ -39,13 +95,17 @@ export const productCategoryTempData: ProductCategoryRecord[] = Array.from(
   { length: 50 },
   (_, index) => {
     const number = index + 1;
-    const baseName = baseNames[index % baseNames.length];
+    const base = baseNames[index % baseNames.length];
+    const level = Math.floor(index / baseNames.length) + 1;
     return {
       id: `product-category-${number}`,
       code: `PC-${String(number).padStart(3, '0')}`,
-      name: `${baseName} ${Math.floor(index / baseNames.length) + 1}`,
+      name: { es: `${base.es} ${level}`, en: `${base.en} ${level}` },
       status: number % 5 === 0 ? ('retired' as const) : ('active' as const),
-      description: `Category for ${baseName.toLowerCase()} products (#${number})`,
+      description: {
+        es: `Categoría de productos de ${base.esNoun} (#${number})`,
+        en: `Category for ${base.enNoun} products (#${number})`,
+      },
       ...(number > baseNames.length && {
         parentId: `product-category-${(index % baseNames.length) + 1}`,
       }),

@@ -337,6 +337,33 @@ export const r10c: EsR10c = {
       offeringPrices: 'Offering prices',
       guided: 'Catalog',
     },
+    /**
+     * An offering's page gathers what used to be three screens (#564): each
+     * region reads and writes through its own service.
+     */
+    offering: {
+      regions: {
+        images: 'Images',
+        prices: 'Prices',
+        stock: 'Stock',
+        movements: 'Stock movements',
+      },
+      images: {
+        none: 'This specification has no images yet.',
+        edit: 'Edit specification',
+        shared:
+          'The images belong to the specification: changing them changes every other offering that uses it too.',
+        previous: 'Previous image',
+        next: 'Next image',
+        position: '{{index}} of {{total}}',
+      },
+    },
+    /** A specification's page: its offerings, and how to offer it. */
+    product: {
+      regions: {
+        offerings: 'Offerings of this product',
+      },
+    },
     wizard: {
       productSetup: {
         title: 'New product',

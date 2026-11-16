@@ -1,7 +1,8 @@
 # 77. The back office's landing page, and regions composed across slice shells
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-15
+- Revised: 2026-11-15 — built for the product workspace (#564): the factory also takes `related` columns, since the offering list reads stock through the stock shell's adapter the same way the page's region does, and the shell keeps its own pictures and prices as regions of its own
 - Area: frontend
 - Read when: adding the back office's landing page, or a record page shows records another slice owns — the home has no screen type and writes nothing, and only the host passes one shell's region into another's page
 
@@ -57,9 +58,9 @@ standing (entifix 0028's states, per tile).
 - Each slice shell exports **its tiles** (a count, a label, where it leads) and
   **its related lists** (the `RelatedList` its own `EntityCrud` returns), built
   against the adapter that shell already mounts.
-- The offering's shell exports a **factory**, `productOfferingCrudWith({ regions })`,
-  instead of a fixed `productOfferingCrud`. Called with no regions it is the
-  page that exists today.
+- The offering's shell exports a **factory**, `productOfferingCrudWith({ related, regions })`,
+  instead of a fixed `productOfferingCrud`. Called with nothing it is this
+  slice's page alone — its pictures and prices, which the shell declares itself.
 - **Only `apps/back-office-app` passes another shell's region into it**, in the
   same place it already concatenates `NAV` and `SEARCH_SOURCES`. No shell
   imports another; the host is the composition root, which is what the `shell:*`

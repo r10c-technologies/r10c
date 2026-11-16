@@ -1,6 +1,9 @@
 import type { Locale } from '@entifix/core';
 import { Cluster, Text } from '@entifix/react-controls/primitives';
-import { ProductCategory } from '@r10c/business-ts-catalog-reference';
+import {
+  categoryName,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
 import { loadCategoryRoots } from '@r10c/implementation-catalog-reference-next';
 import { cacheLife } from 'next/cache';
 
@@ -21,14 +24,18 @@ export async function CategoryStrip({ locale }: { readonly locale: Locale }) {
   'use cache';
   cacheLife(CATALOG_CACHE);
 
-  const categories = await runRead(ProductCategory, loadCategoryRoots(), []);
+  const categories = await runRead(
+    ProductCategory,
+    loadCategoryRoots(locale),
+    [],
+  );
 
   return (
     <Cluster gap="s" as="ul" className="list-none p-0">
       {categories.map(category => (
         <li key={category.code}>
           <StoreLink locale={locale} href={storePaths.category(category.code)}>
-            <Text muted>{category.name}</Text>
+            <Text muted>{categoryName(category, locale)}</Text>
           </StoreLink>
         </li>
       ))}

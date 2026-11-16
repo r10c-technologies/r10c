@@ -76,7 +76,7 @@ const brand = (id: string, name: string) => {
 };
 
 const category = (id: string, code: string, name: string) => {
-  const one = new ProductCategory(code, name);
+  const one = new ProductCategory(code, { es: name, en: name });
   one.id = id;
   return one;
 };
@@ -307,7 +307,7 @@ describe('the vocabulary reads, on the wire', () => {
 
     const result = await runRead(
       ProductCategory,
-      loadCategories(),
+      loadCategories('es'),
       emptyPage<ProductCategory>(),
     );
 
@@ -315,7 +315,8 @@ describe('the vocabulary reads, on the wire', () => {
       'lighting',
       'tableware',
     ]);
-    expect(requestTo(CATEGORY_URL)?.search.get('sort')).toContain('name');
+    // #573: a localized name sorts in one locale, the page's.
+    expect(requestTo(CATEGORY_URL)?.search.get('sort')).toContain('name.es');
   });
 
   it('resolves a brand an offering names', async () => {
@@ -384,7 +385,7 @@ describe('when the backend does not answer', () => {
     );
 
     expect(
-      (await runRead(ProductCategory, loadCategories(), emptyPage())).items,
+      (await runRead(ProductCategory, loadCategories('es'), emptyPage())).items,
     ).toEqual([]);
     expect(logged).toHaveBeenCalled();
     logged.mockRestore();

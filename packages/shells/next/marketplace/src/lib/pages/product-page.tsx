@@ -15,7 +15,10 @@ import {
   SubmitButton,
   Text,
 } from '@entifix/react-controls/primitives';
-import { ProductCategory } from '@r10c/business-ts-catalog-reference';
+import {
+  categoryName,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { loadCategoryTrail } from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
@@ -130,7 +133,7 @@ async function ProductContent({
   // category line below: one vocabulary read, not two (ADR 0062).
   const trail = await runRead(
     ProductCategory,
-    loadCategoryTrail(offering.categoryId),
+    loadCategoryTrail(offering.categoryId, locale),
     [],
   );
   const category = trail.at(-1);
@@ -257,7 +260,7 @@ async function ProductContent({
                       <dt className="text-content-muted">
                         {t('storefront.product.category')}
                       </dt>
-                      <dd>{category.name}</dd>
+                      <dd>{categoryName(category, locale)}</dd>
                     </>
                   ) : null}
                   {/*

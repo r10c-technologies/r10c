@@ -4,12 +4,12 @@ import { catalogCrumbs } from './catalog-crumbs';
 
 const lighting = {
   code: 'lighting',
-  name: 'Lighting',
+  name: { es: 'Iluminación', en: 'Lighting' },
   status: 'active' as const,
 };
 const desk = {
   code: 'desk-lamps',
-  name: 'Desk Lamps',
+  name: { es: 'Lámparas de escritorio', en: 'Desk Lamps' },
   status: 'active' as const,
 };
 
@@ -19,9 +19,18 @@ describe('catalogCrumbs', () => {
       catalogCrumbs({ locale: 'es', home: 'Inicio', trail: [lighting, desk] }),
     ).toEqual([
       { label: 'Inicio', href: '/es' },
-      { label: 'Lighting', href: '/es/c/lighting' },
-      { label: 'Desk Lamps', href: '/es/c/desk-lamps' },
+      { label: 'Iluminación', href: '/es/c/lighting' },
+      { label: 'Lámparas de escritorio', href: '/es/c/desk-lamps' },
     ]);
+  });
+
+  /** #573: a crumb names its category in the page's locale. */
+  it('names each category in the page’s locale', () => {
+    expect(
+      catalogCrumbs({ locale: 'en', home: 'Home', trail: [lighting, desk] })
+        .slice(1)
+        .map(crumb => crumb.label),
+    ).toEqual(['Lighting', 'Desk Lamps']);
   });
 
   it('ends at the product when there is one', () => {
@@ -39,10 +48,16 @@ describe('catalogCrumbs', () => {
     const [, archive] = catalogCrumbs({
       locale: 'es',
       home: 'Inicio',
-      trail: [{ code: 'archive', name: 'Archive', status: 'retired' as const }],
+      trail: [
+        {
+          code: 'archive',
+          name: { es: 'Archivo', en: 'Archive' },
+          status: 'retired' as const,
+        },
+      ],
       leaf: 'Old Lamp',
     });
 
-    expect(archive).toEqual({ label: 'Archive', href: undefined });
+    expect(archive).toEqual({ label: 'Archivo', href: undefined });
   });
 });

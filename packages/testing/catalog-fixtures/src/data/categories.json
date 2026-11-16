@@ -2,67 +2,100 @@
   {
     "id": "category-lighting",
     "code": "lighting",
-    "name": "Lighting",
+    "name": {
+      "es": "Iluminación",
+      "en": "Lighting"
+    },
     "status": "active"
   },
   {
     "id": "category-tableware",
     "code": "tableware",
-    "name": "Tableware",
+    "name": {
+      "es": "Vajilla",
+      "en": "Tableware"
+    },
     "status": "active"
   },
   {
     "id": "category-textiles",
     "code": "textiles",
-    "name": "Textiles",
+    "name": {
+      "es": "Textiles del hogar",
+      "en": "Textiles"
+    },
     "status": "active"
   },
   {
     "id": "category-kitchen",
     "code": "kitchen",
-    "name": "Kitchen",
-    "description": "Tools and storage for cooking.",
+    "name": {
+      "es": "Cocina",
+      "en": "Kitchen"
+    },
+    "description": {
+      "es": "Utensilios y almacenaje para cocinar.",
+      "en": "Tools and storage for cooking."
+    },
     "status": "active"
   },
   {
     "id": "category-desk-lamps",
     "code": "desk-lamps",
-    "name": "Desk Lamps",
+    "name": {
+      "es": "Lámparas de escritorio",
+      "en": "Desk Lamps"
+    },
     "status": "active",
     "parentId": "category-lighting"
   },
   {
     "id": "category-task-lights",
     "code": "task-lights",
-    "name": "Task Lights",
+    "name": {
+      "es": "Luces de trabajo",
+      "en": "Task Lights"
+    },
     "status": "active",
     "parentId": "category-desk-lamps"
   },
   {
     "id": "category-ceiling-lights",
     "code": "ceiling-lights",
-    "name": "Ceiling Lights",
+    "name": {
+      "es": "Lámparas de techo",
+      "en": "Ceiling Lights"
+    },
     "status": "active",
     "parentId": "category-lighting"
   },
   {
     "id": "category-drinkware",
     "code": "drinkware",
-    "name": "Drinkware",
+    "name": {
+      "es": "Vasos y tazas",
+      "en": "Drinkware"
+    },
     "status": "active",
     "parentId": "category-tableware"
   },
   {
     "id": "category-bedding",
     "code": "bedding",
-    "name": "Bedding",
+    "name": {
+      "es": "Ropa de cama",
+      "en": "Bedding"
+    },
     "status": "active",
     "parentId": "category-textiles"
   },
   {
     "id": "category-archive",
     "code": "archive",
-    "name": "Archive",
+    "name": {
+      "es": "Archivo",
+      "en": "Archive"
+    },
     "status": "retired"
   }
 ]

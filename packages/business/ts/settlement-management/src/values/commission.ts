@@ -176,8 +176,8 @@ export const reversalOf = (
   };
 };
 
-/** One ledger line a payout sums. */
-interface PayoutEntry {
+/** One ledger line a payout sums, and a balance reads. */
+export interface PayoutEntry {
   readonly saleAmount: number;
   readonly commissionAmount: number;
   readonly currency: string;

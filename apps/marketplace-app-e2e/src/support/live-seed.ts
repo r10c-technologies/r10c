@@ -48,17 +48,21 @@ const BRAND_NAMES = [
   'Wonka',
   'Cyberdyne',
 ];
+/**
+ * The Spanish half of each base name: every live journey reads `/es`, and a
+ * category's name is written per locale (#573).
+ */
 const CATEGORY_NAMES = [
-  'Electronics',
-  'Clothing',
-  'Home & Kitchen',
-  'Books',
-  'Sports & Outdoors',
-  'Beauty & Personal Care',
-  'Toys & Games',
-  'Automotive',
-  'Health & Wellness',
-  'Pet Supplies',
+  'Electrónica',
+  'Ropa',
+  'Hogar y cocina',
+  'Libros',
+  'Deportes y aire libre',
+  'Belleza y cuidado personal',
+  'Juguetes y juegos',
+  'Automotriz',
+  'Salud y bienestar',
+  'Mascotas',
 ];
 
 /**

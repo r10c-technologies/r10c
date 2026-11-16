@@ -14,17 +14,21 @@ import {
 /**
  * The rules a category tree keeps, as the failures a save answers with
  * ([ADR 0062](../../../../../../docs/adr/0062-categories-form-a-tree.md)).
- * Each names the category by what an operator typed, since a new one has no
- * id yet. A parent that is not there, a loop and a sixth level are wrong as
+ * Each names the category by its code, which an operator typed and a new one
+ * has before it has an id. Not by its name: that is written per locale (#573),
+ * and a failure is a locale-agnostic value the shell translates. A parent that is not there, a loop and a sixth level are wrong as
  * written; a retired parent and an active child are the tree as it stands.
  */
-const named = { name: Schema.String };
+const named = { categoryCode: Schema.String };
 
 export class CategoryParentMissing extends Failure.invalid<CategoryParentMissing>()(
   'CategoryParentMissing',
   CATEGORY_PARENT_MISSING,
   named,
-  { message: ({ name }) => `"${name}" names a parent that does not exist` },
+  {
+    message: ({ categoryCode }) =>
+      `"${categoryCode}" names a parent that does not exist`,
+  },
 ) {}
 
 export class CategoryParentRetired extends Failure.conflict<CategoryParentRetired>()(
@@ -32,7 +36,8 @@ export class CategoryParentRetired extends Failure.conflict<CategoryParentRetire
   CATEGORY_PARENT_RETIRED,
   named,
   {
-    message: ({ name }) => `"${name}" would sit active under a retired parent`,
+    message: ({ categoryCode }) =>
+      `"${categoryCode}" would sit active under a retired parent`,
   },
 ) {}
 
@@ -40,7 +45,10 @@ export class CategoryCycle extends Failure.invalid<CategoryCycle>()(
   'CategoryCycle',
   CATEGORY_CYCLE,
   named,
-  { message: ({ name }) => `"${name}" would sit under its own subtree` },
+  {
+    message: ({ categoryCode }) =>
+      `"${categoryCode}" would sit under its own subtree`,
+  },
 ) {}
 
 export class CategoryTooDeep extends Failure.invalid<CategoryTooDeep>()(
@@ -48,8 +56,8 @@ export class CategoryTooDeep extends Failure.invalid<CategoryTooDeep>()(
   CATEGORY_TOO_DEEP,
   named,
   {
-    message: ({ name }) =>
-      `"${name}" would make the tree deeper than it may be`,
+    message: ({ categoryCode }) =>
+      `"${categoryCode}" would make the tree deeper than it may be`,
   },
 ) {}
 
@@ -61,7 +69,10 @@ export class CategoryHasActiveChildren extends Failure.conflict<CategoryHasActiv
   'CategoryHasActiveChildren',
   CATEGORY_HAS_CHILDREN,
   named,
-  { message: ({ name }) => `"${name}" still has an active child` },
+  {
+    message: ({ categoryCode }) =>
+      `"${categoryCode}" still has an active child`,
+  },
 ) {}
 
 export type CategoryRefusal =
@@ -82,5 +93,5 @@ const REFUSALS = {
 /** The failure a tree rule's code stands for, naming the category. */
 export const categoryRefusal = (
   code: CategoryPlacementRefusal | CategoryRetireRefusal,
-  name: string,
-): CategoryRefusal => new REFUSALS[code]({ name });
+  categoryCode: string,
+): CategoryRefusal => new REFUSALS[code]({ categoryCode });

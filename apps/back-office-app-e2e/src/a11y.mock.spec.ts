@@ -23,6 +23,12 @@ const SCREENS = [
     path: '/es/catalog/product-brand',
     ready: { record: 'Acme 1' },
   },
+  // The product workspace (#564): a form with three slices' regions under it.
+  {
+    screen: 'definiciones-product-workspace',
+    path: '/es/catalog/product-offering/product-offering-1',
+    ready: { role: 'region', name: 'Existencias' },
+  },
   {
     screen: 'operaciones-stock-items',
     path: '/es/stock/stock-item',
@@ -41,11 +47,11 @@ const SCREENS = [
   {
     screen: 'operaciones-shipment-worklist',
     path: '/es/fulfilment/shipping-order',
-    ready: { record: 'shipping-order-awaiting-1' },
+    ready: { record: /ord-a1/ },
   },
   {
     screen: 'shipment-detail',
-    path: '/es/fulfilment/shipping-order/shipping-order-dispatched-1',
+    path: '/es/fulfilment/shipping-order/ship-d1',
     ready: { role: 'button', name: 'Registrar entrega' },
   },
   {
@@ -77,7 +83,8 @@ const SCREENS = [
 
 for (const palette of PALETTES) {
   test(`every screen type meets the gate in ${palette}`, async ({ page }) => {
-    test.setTimeout(240_000);
+    // About twenty seconds a screen, the keyboard walk being most of it.
+    test.setTimeout(SCREENS.length * 25_000);
     await usePalette(page, palette);
     const help: (number | null)[] = [];
 
