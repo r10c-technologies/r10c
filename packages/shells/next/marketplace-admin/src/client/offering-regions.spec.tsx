@@ -11,7 +11,7 @@ import {
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { Context, Effect } from 'effect';
 import type { ReactElement } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createClientAdapters } from './adapters/create-client-adapters.js';
 import {
@@ -110,7 +110,20 @@ const renderPage = (page: ReactElement) =>
   );
 
 beforeEach(() => {
+  // The images region joins the record's section nav (#597), whose active
+  // section is tracked by an observer jsdom does not have.
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      observe = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
   slug = 'o-1';
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('the offering list (#558)', () => {

@@ -7,6 +7,7 @@ import {
   crudContextOf,
   type EntityCrudRelated,
   useLocaleHref,
+  useRegion,
 } from '@entifix/next-shell';
 import {
   ButtonLink,
@@ -105,6 +106,9 @@ export function OfferingImagesRegion({
   const adapters = useMarketplaceAdminAdapters();
   const id = useId();
   const heading = translateKey('r10c:marketplaceAdmin.offering.regions.images');
+  // Listed in the record's section nav beside the related lists, which
+  // register themselves the same way (#597).
+  useRegion(id, heading);
 
   const { entity: specification } = useEntityRecord<
     ProductSpecification,

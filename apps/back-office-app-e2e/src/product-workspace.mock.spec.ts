@@ -46,6 +46,20 @@ test.describe('the product workspace', () => {
     await expect(region(page, 'Movimientos de inventario')).toBeVisible();
   });
 
+  test("lists the pictures in the record's sections, and the link lands on them", async ({
+    page,
+  }) => {
+    await page.goto(OFFERING);
+
+    // The images region is the shell's own, not a related list, and it joins
+    // the section nav beside them (#597).
+    const sections = page.getByRole('navigation', {
+      name: 'Secciones del registro',
+    });
+    await sections.getByRole('link', { name: 'Imágenes' }).click();
+    await expect(region(page, 'Imágenes')).toBeInViewport();
+  });
+
   test('leads to the specification to change its pictures', async ({
     page,
   }) => {
