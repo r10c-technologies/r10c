@@ -15,6 +15,11 @@ export const app = {
       ocean: 'Océano',
       midnight: 'Medianoche',
     },
+    // El inicio del vendedor (#563): lo que requiere su atención hoy.
+    home: {
+      tiles: 'Pendientes de hoy',
+      none: 'Cuando actúe por una organización, aquí verá lo que requiere su atención.',
+    },
     nav: {
       // `//home`, where the proxy lands an authenticated visitor. Not the
       // breadcrumb root — that is the shell's `shell:breadcrumbs.home`.

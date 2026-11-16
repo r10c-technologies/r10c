@@ -271,6 +271,9 @@ export const r10c: EsR10c = {
     item: {
       outOfStock: 'Nothing available to sell',
     },
+    home: {
+      outOfStock: 'Out of stock',
+    },
   },
   order: {
     nav: {
@@ -283,6 +286,9 @@ export const r10c: EsR10c = {
       title: 'Dispatch',
       shipments: 'Shipments',
     },
+    home: {
+      awaitingDispatch: 'Shipments to dispatch',
+    },
   },
   settlement: {
     nav: {
@@ -294,6 +300,9 @@ export const r10c: EsR10c = {
       runs: 'Settlement runs',
       payouts: 'Vendor payouts',
       payouts_vendor: 'My payouts',
+    },
+    home: {
+      balance: 'Your next payout',
     },
     agreement: {
       channelRatesHint:

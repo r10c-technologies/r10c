@@ -210,6 +210,23 @@ const vendorPayouts = entityBackendHandlers(VendorPayout, {
 });
 
 /**
+ * What the next settlement run will pay the seeded vendor (#562), as the
+ * same-origin proxy answers it: settlement-service's own fold, which the home's
+ * balance tile shows and never sums itself (#563).
+ */
+export const VENDOR_BALANCE = {
+  amount: 12_550,
+  currency: 'GTQ',
+  unsettledEntries: 3,
+} as const;
+
+const balanceHandlers = [
+  http.get(`${APP_URL}/api/settlement/vendor-balance`, () =>
+    HttpResponse.json(VENDOR_BALANCE),
+  ),
+];
+
+/**
  * The settlement screens' affordance documents, served from the **app's own**
  * `/api/settlement/...` proxy path for the reason the stock ones are.
  *
@@ -916,6 +933,7 @@ const base = defineEntifixE2eTest({
     ...settlementRuns.handlers,
     ...vendorPayouts.handlers,
     ...settlementMetadataHandlers,
+    ...balanceHandlers,
     ...stockMetadataHandlers,
     ...salesMetadataHandlers,
     ...publishedOfferings.handlers,

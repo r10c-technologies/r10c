@@ -43,6 +43,7 @@ const adapters: SettlementAdapters = {
   settlementRunRest: repository(),
   vendorPayoutRest: repository(),
   metadata: real.metadata,
+  vendorBalance: real.vendorBalance,
 };
 
 const wrapperWith = (supplied?: SettlementAdapters) =>

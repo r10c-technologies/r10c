@@ -296,6 +296,11 @@ export const r10c = {
     item: {
       outOfStock: 'Sin existencias disponibles',
     },
+    // Las tarjetas del inicio del vendedor (#563): cada una lleva a la lista
+    // filtrada que cuenta.
+    home: {
+      outOfStock: 'Productos agotados',
+    },
   },
   order: {
     nav: {
@@ -311,6 +316,9 @@ export const r10c = {
       title: 'Despacho',
       shipments: 'Envíos',
     },
+    home: {
+      awaitingDispatch: 'Envíos por despachar',
+    },
   },
   settlement: {
     nav: {
@@ -325,6 +333,10 @@ export const r10c = {
       runs: 'Cortes de liquidación',
       payouts: 'Pagos a vendedores',
       payouts_vendor: 'Mis pagos',
+    },
+    home: {
+      // Lo que el próximo corte le pagará: el saldo de #562.
+      balance: 'Su próximo pago',
     },
     agreement: {
       channelRatesHint:

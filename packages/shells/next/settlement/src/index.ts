@@ -1,6 +1,7 @@
 export * from './client/adapters/create-client-adapters';
 export * from './client/agreement-form';
 export * from './client/agreement-single-view';
+export * from './client/balance-tile';
 export * from './client/channel-rate-editor';
 export * from './client/client-types';
 export * from './client/reference-labels';

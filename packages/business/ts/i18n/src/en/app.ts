@@ -10,6 +10,10 @@ export const app: EsApp = {
       ocean: 'Ocean',
       midnight: 'Midnight',
     },
+    home: {
+      tiles: "Today's work",
+      none: 'When you act for an organization, what needs your attention appears here.',
+    },
     nav: {
       dashboard: 'Dashboard',
       account: 'Account',

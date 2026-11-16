@@ -14,6 +14,7 @@ import {
   Agreement,
   CommissionEntry,
   SettlementRun,
+  type VendorBalance,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
 import { Context } from 'effect';
@@ -100,6 +101,23 @@ const agreementWriter = buildEntityRestAdapterWrite(
   SETTLEMENT_SERVICE,
 );
 
+/**
+ * The caller's balance (#562), through the same proxy as the metadata: it is
+ * not an entity, so no repository reads it. A non-`2xx` answer rejects, so the
+ * tile showing it says it failed rather than showing nothing owed.
+ */
+export const readVendorBalance = async (
+  fetcher: typeof fetch = fetch,
+): Promise<VendorBalance> => {
+  const response = await fetcher('/api/settlement/vendor-balance', {
+    headers: { accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`vendor-balance answered ${response.status}`);
+  }
+  return (await response.json()) as VendorBalance;
+};
+
 export function createClientAdapters(): SettlementAdapters {
   return {
     agreementWriter,
@@ -108,5 +126,6 @@ export function createClientAdapters(): SettlementAdapters {
     settlementRunRest,
     vendorPayoutRest,
     metadata,
+    vendorBalance: () => readVendorBalance(),
   };
 }

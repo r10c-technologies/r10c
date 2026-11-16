@@ -18,6 +18,13 @@ import { expect, record, test } from './support/fixtures';
  * 3.2.6 assertion can compare them.
  */
 const SCREENS = [
+  // The vendor's home (#563): no screen type of its own (ADR 0077), only
+  // tiles, each one link to the list it counts.
+  {
+    screen: 'home',
+    path: '/es/home',
+    ready: { role: 'link', name: /Envíos por despachar/ },
+  },
   {
     screen: 'definiciones-brand-list',
     path: '/es/catalog/product-brand',

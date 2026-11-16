@@ -43,7 +43,7 @@ import {
 import { ORDER_PUSH_TOPICS, OrderProvider } from '@r10c/shells-next-order';
 import { SalesProvider } from '@r10c/shells-next-sales';
 import { SettlementProvider } from '@r10c/shells-next-settlement';
-import { StockProvider } from '@r10c/shells-next-stock';
+import { STOCK_PUSH_TOPICS, StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
 
@@ -82,6 +82,7 @@ const PUSHED_TOPICS: readonly PushTopic[] = [
   ...CATALOG_PUSH_TOPICS,
   ...ORDER_PUSH_TOPICS,
   ...FULFILMENT_PUSH_TOPICS,
+  ...STOCK_PUSH_TOPICS,
 ];
 
 /**
