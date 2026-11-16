@@ -308,6 +308,10 @@ export const r10c = {
       orders: 'Pedidos',
       received: 'Pedidos recibidos',
     },
+    home: {
+      latest: 'Últimos pedidos',
+      none: 'Aún no ha recibido pedidos.',
+    },
   },
   fulfilment: {
     nav: {

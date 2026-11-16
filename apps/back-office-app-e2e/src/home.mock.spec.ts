@@ -2,7 +2,12 @@ import { seedSession } from '@entifix/testing-e2e/playwright';
 import type { Page } from '@playwright/test';
 import { http, HttpResponse } from 'msw';
 
-import { expect, STOCK_SERVICE_URL, test } from './support/fixtures';
+import {
+  expect,
+  PAID_ORDER_ID,
+  STOCK_SERVICE_URL,
+  test,
+} from './support/fixtures';
 
 /**
  * The vendor's home (#563, ADR 0077): what needs them today, each count one
@@ -11,6 +16,19 @@ import { expect, STOCK_SERVICE_URL, test } from './support/fixtures';
  */
 const tiles = (page: Page) =>
   page.getByRole('list', { name: 'Pendientes de hoy' }).getByRole('listitem');
+
+/** Every domain a vendor home reads, orders among them. */
+const PROVISIONED = [
+  'product-configuration-management',
+  'stock-management',
+  'settlement-management',
+  'shipping-order-management',
+  'order-management',
+];
+
+test.beforeEach(async ({ context }) => {
+  await seedSession(context, { roles: ['admin'], entitlements: PROVISIONED });
+});
 
 test('a vendor sees what needs them today, with the seeded counts', async ({
   page,
@@ -27,6 +45,11 @@ test('a vendor sees what needs them today, with the seeded counts', async ({
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: /Su próximo pago.*125,50/ }),
+  ).toBeVisible();
+  // And the latest order, one activation from its own record.
+  const orders = tiles(page).filter({ hasText: 'Últimos pedidos' });
+  await expect(
+    orders.locator(`a[href$="/order/product-order/${PAID_ORDER_ID}"]`),
   ).toBeVisible();
 });
 

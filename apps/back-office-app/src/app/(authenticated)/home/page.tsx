@@ -6,6 +6,7 @@ import {
   Text,
 } from '@entifix/react-controls';
 import { DispatchTile } from '@r10c/shells-next-fulfilment';
+import { LatestOrdersTile } from '@r10c/shells-next-order';
 import { BalanceTile } from '@r10c/shells-next-settlement';
 import { OutOfStockTile } from '@r10c/shells-next-stock';
 import type { ReactElement } from 'react';
@@ -29,6 +30,7 @@ export default async function AdminHomePage() {
   const tiles: readonly ReactElement[] = [
     ...(shown.dispatch ? [<DispatchTile key="dispatch" />] : []),
     ...(shown.outOfStock ? [<OutOfStockTile key="out-of-stock" />] : []),
+    ...(shown.latestOrders ? [<LatestOrdersTile key="latest-orders" />] : []),
     ...(shown.balance ? [<BalanceTile key="balance" />] : []),
   ];
 

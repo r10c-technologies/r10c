@@ -24,6 +24,10 @@ vi.mock('@r10c/shells-next-stock', async importOriginal => ({
   ...(await importOriginal<object>()),
   OutOfStockTile: () => <span>out-of-stock</span>,
 }));
+vi.mock('@r10c/shells-next-order', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  LatestOrdersTile: () => <span>latest-orders</span>,
+}));
 vi.mock('@r10c/shells-next-settlement', async importOriginal => ({
   ...(await importOriginal<object>()),
   BalanceTile: () => <span>balance</span>,
@@ -39,7 +43,11 @@ describe('AdminHomePage', () => {
     principal = {
       roles: ['admin'],
       organizationId: 'org-1',
-      entitlements: ['shipping-order-management', 'settlement-management'],
+      entitlements: [
+        'shipping-order-management',
+        'order-management',
+        'settlement-management',
+      ],
       partyRole: 'vendor',
     };
     render(await Page());
@@ -47,6 +55,7 @@ describe('AdminHomePage', () => {
     const list = screen.getByRole('list', { name: 'admin.home.tiles' });
     expect(list).toHaveTextContent('dispatch');
     expect(list).toHaveTextContent('balance');
+    expect(list).toHaveTextContent('latest-orders');
     expect(list).not.toHaveTextContent('out-of-stock');
   });
 
