@@ -11,6 +11,7 @@
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — transaction-service runs two workflow runners (ports `34103`, `35103`), only replica 0 binding HTTP
 - Revised: 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md) — a platform deployment may own a single projection store: realtime-service owns `flow-status`
 - Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — transaction-service owns no Mongo store: the `saga` store is deleted and its only store is `workflow` (#490)
+- Revised: 2026-11-16 — the fleet no longer runs six: every slice that earned a store since (stock, order, payment, settlement, sales, fulfilment, transaction, realtime) is its own deployment, and no two slices share a process today. The count lives in the generated register (`docs/_shared/planes.md`, `tools/slices/`), not here; the principle — co-deploying two slices is reversible, merging two stores is binding — is unchanged.
 
 ## Context
 
@@ -51,6 +52,11 @@ assumption that made a domain without a frontend look like a gap.
 > _can you still name the one slice that writes each store, without reading
 > code?_ Yes for every one — none of the six is shared, and `auth` remains the
 > only multi-domain store in the repository.
+
+> **Clarified 2026-11-16.** Six was the count on the day of that clarification.
+> Each slice built since claimed the index its reservation held and became a
+> deployment of its own; the register declares them, and a hand-kept count here
+> would drift the next time one is added or two are merged.
 
 **Eight deployments become five.** No new mechanism: ADR 0020 already says a
 Slice is _"realized as **one or more** deployments"_, so consolidating needs a

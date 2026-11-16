@@ -11,10 +11,11 @@
  * why a table says what it says all live outside on purpose. Only the rows are
  * generated, because only the rows have a source that can disagree with them.
  *
- * Three blocks today:
+ * The blocks today:
  *
  *   ports-infra     docs/_shared/ports.md   ← infra/local/lib.sh
  *   store-register  docs/_shared/planes.md  ← tools/slices/
+ *   slice-register  docs/BUSINESS-ARCHITECTURE.md ← tools/slices/
  *   adr-index       docs/adr/README.md      ← the ADR files themselves
  *   adr-triggers    CLAUDE.md               ← the ADR files themselves
  *
@@ -166,6 +167,26 @@ const storeRegister = async () => {
   );
 };
 
+/* ---------------------------------------------------------- slice-register */
+
+const sliceRegister = async () => {
+  const { SLICES } = await import(p('tools/slices/src/registry.ts'));
+
+  const rows = SLICES.map(slice => [
+    `\`${slice.name}\``,
+    slice.status === 'planned' ? '**planned**' : 'active',
+    slice.domains.length ? slice.domains.map(d => `\`${d}\``).join(', ') : '—',
+    slice.stores.length
+      ? slice.stores.map(store => `\`${store.name}\``).join(', ')
+      : '—',
+    slice.deployments.length
+      ? slice.deployments.map(d => `\`${d}\``).join(', ')
+      : '—',
+  ]).sort((a, b) => a[0].localeCompare(b[0]));
+
+  return table(['Slice', 'Status', 'Domains', 'Stores', 'Deployment'], rows);
+};
+
 /* -------------------------------------------------------------- adr-index */
 
 /**
@@ -283,6 +304,11 @@ export const BLOCKS = [
     name: 'store-register',
     file: 'docs/_shared/planes.md',
     render: storeRegister,
+  },
+  {
+    name: 'slice-register',
+    file: 'docs/BUSINESS-ARCHITECTURE.md',
+    render: sliceRegister,
   },
   { name: 'adr-index', file: 'docs/adr/README.md', render: adrIndex },
   { name: 'adr-triggers', file: 'CLAUDE.md', render: adrTriggers },

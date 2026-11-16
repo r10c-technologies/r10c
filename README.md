@@ -4,16 +4,16 @@
 
 Nx + pnpm monorepo for the **entifix** entity framework and the marketplace apps built on it. Everything is layered top-to-bottom and **dependencies only point downward**.
 
-## Status (2026-08)
+## Status (2026-11)
 
 Active development. In place today:
 
-- **entifix** entity framework — core, business contracts + use-cases, REST adapter, **Mongo** and **Postgres** adapters, the Redis/AMQP clients, and the React integration.
-- **12 domains, 29 entities** ([ADR 0022](docs/adr/0022-v1-marketplace-module-boundaries.md) locked the v1 boundaries): **product-configuration-management** (`ProductOffering`/`ProductOfferingPrice`/`ProductSpecification`/`EntitySpecification`/`CharacteristicSpecification`), **catalog-reference** (`ProductBrand`/`ProductCategory`/`DictionaryTerm` — platform-plane, because a marketplace has to merge taxonomy and per-vendor taxonomy cannot), **marketplace-catalog** (`PublishedOffering`), **marketplace-vendor** (`PublishedVendor`), **authn** (`UserIdentity`/`EntityIdentifier`/`UserDevice`), **party-management** (`Organization`/`Individual`/`PartyRole`), **access-management** (`Membership`/`Role`/`Entitlement`), **stock-management** (`StockItem`/`Reservation`/`StockMovement`), **order-management** (`ProductOrder`), **payment-management** (`Payment`), **settlement-management** (`Agreement`/`SettlementRun`/`CommissionEntry`/`VendorPayout`) and **config** (`Configuration`). See the [capability map](docs/BUSINESS-ARCHITECTURE.md#capability-map).
-- **Six deployments**, two of them frontends: `marketplace-app` and `back-office-app` (which mounts the catalog, system-management, user-administration and account shells at one origin), plus `config-service`, `marketplace-admin-service` (co-deploying the `transaction` slice), `auth-service` and `marketplace-service`. The `stock`, `order`, `payment` and `settlement` slices own their stores in the register but are **planned** — no process runs them yet.
-- Backends wired to real datastores: **config-service → PostgreSQL**, **marketplace-admin-service**, **auth-service** & **marketplace-service → MongoDB**, seeded on first boot.
+- **entifix** entity framework — core, business contracts + use-cases, REST adapter, **Mongo** and **Postgres** adapters, the Redis/AMQP clients, the durable flow engine, and the React integration.
+- **Every v1 domain has its entities, use cases, cells and a running slice** ([ADR 0022](docs/adr/0022-v1-marketplace-module-boundaries.md) locked the boundaries): the catalog (**product-configuration-management**, **catalog-reference**, **marketplace-catalog**, **marketplace-vendor**), identity and access (**authn**, **party-management**, **access-management**), the commerce chain (**stock-management**, **order-management**, **payment-management**, **settlement-management**, **sales-management**, **shipping-order-management**) and **config**. The one exception is vendor-authored specifications: `EntitySpecification` and `CharacteristicSpecification` exist as entities and no service serves them ([ADR 0014](docs/adr/0014-entity-specifications-and-the-characteristic-dictionary.md)). See the [capability map](docs/BUSINESS-ARCHITECTURE.md#capability-map).
+- **Twelve services, one per slice, and two frontends**: `marketplace-app` (the storefront) and `back-office-app` (which mounts the catalog, system-management, user-administration, account and every vendor worklist at one origin), behind a local Envoy edge. The services are `marketplace-`, `marketplace-admin-`, `auth-`, `config-`, `transaction-`, `order-`, `payment-`, `settlement-`, `stock-`, `sales-`, `fulfilment-` and `realtime-service`; the slice register in [docs/BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md#slices) lists them with their stores. The payment provider and the courier are simulated adapters.
+- Backends wired to real datastores: **config-service** and **transaction-service → PostgreSQL**, the rest → **MongoDB**, with **Redis** holding auth-service's session and authentication state; each seeded on first boot.
 
-Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Postgres; a write announces itself through an outbox in its own unit of work, and a flow spanning services runs on a durable workflow engine and answers `202`; authentication is **Zitadel** (authorization code + PKCE against its hosted UI; r10c stores no password, and MFA and social sign-in are configuration) while r10c keeps its own Redis sessions and cookie-carried **RS256** JWTs, verified with a public key every service resolves from config-service, with permission-based authorization; copy is `es`/`en` through mandatory i18n. Business data is split across **three planes** and the tenant plane is live — the catalog physically lives in one Mongo database per organization, reached only through the handle the session resolves. Every session carries the population it belongs to (`partyRole`: customer / vendor / operator) rather than inferring it from a missing organization. Observability (OTLP → local `otel-lgtm`) is wired on the services.
+Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Postgres; a write announces itself through an outbox in its own unit of work, and a flow spanning services runs on a durable workflow engine and answers `202`; authentication is **Zitadel** (authorization code + PKCE against its hosted UI; r10c stores no password, and MFA and social sign-in are configuration) while r10c keeps its own Redis sessions and cookie-carried **RS256** JWTs, verified with a public key every service resolves from config-service, with permission-based authorization; copy is `es`/`en` through mandatory i18n. Business data is split across **three planes** and the tenant plane is live — each organization has four Mongo databases (catalog, stock, sales, fulfilment), reached only through the handle the session resolves. Every session carries the population it belongs to (`partyRole`: customer / vendor / operator) rather than inferring it from a missing organization. Observability (OTLP → local `otel-lgtm`) is wired on the services.
 
 ## Documentation
 
@@ -39,8 +39,8 @@ packages/business/ts/<domain>       ← pure domain entities & use-cases (no fra
 packages/utils/ts/*                 ← generic TS helpers
 ```
 
-Five tag dimensions in each project's `nx.tags` make that arrow enforceable —
-`layer:`, `scope:`, `business:`, `shell:` and `host:` — and
+Seven tag dimensions in each project's `nx.tags` make that arrow enforceable —
+`layer:`, `scope:`, `business:`, `tech:`, `shell:`, `host:` and `type:` — and
 `@nx/enforce-module-boundaries` fails the build on any upward or cross-domain
 edge. A `host:next` app may not import entifix's datastore clients: a Next
 backend is composition (cookies, proxying, RSC aggregation), never data access.
@@ -49,7 +49,7 @@ Business data lives in a **Store**, a Store belongs to a **Slice**, and a Store
 sits in one of **three planes** — **control** (parties, access, identity, config,
 agreements and payouts), **platform** (the published catalog, the
 brand/category/dictionary vocabulary, buyer orders and payments) and **tenant**
-(vendor-authored offerings and specifications, pricing, stock). `Domain → Store →
+(vendor-authored offerings and specifications, pricing, stock, selling channels, shipments). `Domain → Store →
 Slice → Deployment`: a domain's entities live in exactly one Store, a Store has
 exactly one writing Slice, and the register in
 [docs/\_shared/planes.md](docs/_shared/planes.md) is a mirror of
@@ -64,9 +64,9 @@ database handle the request resolves to_, so no query can leak by omission. See
 The framework is decorator + [Effect](https://effect.website)-based:
 
 - **`@entifix/core`** — `@entity()` / `@accessor()` register metadata on `MetaEntity`; domain types (`Entity`, `EntityLoadRequest`, `EntityPage`, filtering/sorting); the shared (de)serializer; **entity links** (`EntityLink` / `EntityCollectionLink`) that model relations as either a foreign key or embedded data, resolved lazily through an `EntityLinkResolver`.
-- **`@entifix/business`** — repository/resolver contracts + use-case factories over Effect. Repositories return `Effect<T, EntifixError>`; dependencies are injected as `Context.Tag`s.
+- **`@entifix/business`** — repository/resolver contracts + use-case factories over Effect. Repositories return `Effect<T, EntifixError>`; dependencies are injected as `Context.Service` classes provided through `Layer`.
 - **`@entifix/rest`** / **`@entifix/mongo`** / **`@entifix/sql`** — turn an entity into an `EntityRepository` over HTTP (web), MongoDB or PostgreSQL (backend). The same use-case runs against any of them; only the composition root swaps the adapter.
-- **`entifix-react-*`** — `controls` (UI primitives) and `integration` (Effect-aware hooks: `useDataLoading`, `useEntityLinkResolver`).
+- **`@entifix/react-controls`** / **`@entifix/react-integration`** — UI primitives and Effect-aware hooks (`useDataLoading`, `useEntityLinkResolver`).
 
 Backends are **Effect-native** (no Nest): they compose `@entifix/service-shell` (`@effect/platform` HTTP + `/api/health{,/live,/ready}` + `Layer` DI + graceful shutdown) and compile stage-3 like entifix, so they import entity classes natively. Frontends and backends both resolve runtime config through `config-service` (`:3190`), never hardcoded.
 
@@ -93,7 +93,7 @@ pnpm run back-office:dev:reset
 # rather than entry points.
 pnpm nx run config-service:dev             # :3190 (Postgres)
 pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo)
-pnpm nx run auth-service:dev               # :3102 (Mongo)
+pnpm nx run auth-service:dev               # :3102 (Mongo + Redis)
 ```
 
 Full command reference (build, typecheck, lint, test, e2e, affected, graph) is in [docs/DEVELOPING.md](docs/DEVELOPING.md).

@@ -21,6 +21,7 @@
 - Revised: 2026-10-25 — the session-scope resolver moved into the `auth/mongo` cell (#374); the path it names is corrected in place.
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — §5: a checkout writes a group and one order per vendor, not one order with vendor-tagged lines
 - Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the v1 inventory stays fixed and what comes after it is named: accounting, cost control, services and manufacturing join as `planned` slices that subscribe, and existing entities gain fiscal members
+- Revised: 2026-11-16 — the inventory counts and the two tables below are the 2026-08-12 snapshot and are no longer kept by hand: the live register is generated into `docs/_shared/planes.md` and `docs/BUSINESS-ARCHITECTURE.md` from `tools/slices/`. The four planned slices (stock, order, payment, settlement) are built and active, and a tenant now has four databases, not two.
 
 ## Context
 
@@ -64,6 +65,14 @@ store hosts them, which slice writes it, and which of those slices run yet.
 ## Decision
 
 Eleven domains, 28 entities, 12 stores, 9 slices, 6 deployments.
+
+> **Clarified 2026-11-16.** Those counts, and the register and slice tables
+> below, describe the day this record was written; they are kept as the record of
+> the decision and not as the inventory. Every slice here was built, and later
+> records added domains, stores and slices of their own. What is true now is the
+> generated register (`tools/slices/`, mirrored into `docs/_shared/planes.md` and
+> `docs/BUSINESS-ARCHITECTURE.md`), which fails the build when it drifts —
+> a count kept here would not.
 
 > **Revised 2026-08-17.** Twelve, 29, 13 and 10 as of
 > [ADR 0024](0024-selling-through-a-vendors-own-channel.md), which adds the
@@ -215,6 +224,9 @@ compensation, so the hop costs nothing new
 ### 3. Two tenant stores, two databases per organization
 
 `catalog` is `tenant_<organizationId>`; `stock` is `stock_<organizationId>`.
+
+> **Clarified 2026-11-16.** Four, as of [ADR 0070](0070-fulfilment-and-cash-on-delivery.md):
+> `fulfilment` is `fulfilment_<organizationId>`. The argument is the same one.
 
 > **Revised 2026-08-17.** Three, as of
 > [ADR 0024](0024-selling-through-a-vendors-own-channel.md): `sales` is
@@ -406,9 +418,11 @@ instructs agents to read the relevant ADR before designing in an area.
   0012 (decision 10 above).
 - **ADR 0006's isolation rule gains a second resolution path**, which is the most
   consequential edit in the set and the reason 0023 exists separately.
-- **The register is the target topology and the current one.** Four planned
-  slices mean `tools/slices/` describes stores no process opens — deliberately,
-  and enforced: a planned slice declaring a deployment fails the build.
+- **The register is the target topology and the current one.** On the day this
+  was written four planned slices meant `tools/slices/` described stores no
+  process opened — deliberately, and enforced: a planned slice declaring a
+  deployment fails the build. Those four are active now; the rule stands for the
+  next planned slice.
 - **A new invariant starts from the package, not the entity.** Every
   `*_DOMAIN` constant under `packages/business/ts` must be claimed by exactly one
   slice. Invariant 1 scans `@entity()` and is therefore blind to a domain package
@@ -427,8 +441,9 @@ instructs agents to read the relevant ADR before designing in an area.
 - Restoring a brand/category **picker** over a scalar id field, which needs an
   `EntityLinkSource` fed by a marketplace-service adapter and a picker that
   writes an id rather than an `EntityLink`.
-- Building the four planned slices, in the order the storefront needs them:
-  `stock` and `order` together, then `payment`, then `settlement`.
+- ~~Building the four planned slices, in the order the storefront needs them:
+  `stock` and `order` together, then `payment`, then `settlement`.~~ **Done** —
+  all four are active, with a deployment each.
 - The catalog publisher — the `catalog.published` producer and its consumer.
 - ~~Resolving `partyRole` from the membership the session opened under, replacing
   the precedence rule in decision 6.~~ **Done 2026-09-11 (#76)** — see the note

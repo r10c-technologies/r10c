@@ -10,14 +10,20 @@ entity framework in [ENTIFIX.md](./ENTIFIX.md); the client side in
 ```
 apps/
   <domain>-app/            Next.js frontend (App Router, React 19, Tailwind)
-  <domain>-service/        Effect-native backend (effect/http)
+  <domain>-service/        Effect-native backend (effect/http), one per slice —
+                           marketplace, marketplace-admin, auth, transaction, order,
+                           payment, settlement, stock, sales, fulfilment, realtime
   config-service/          Postgres-backed configuration service
   *-e2e/                   Playwright (Next apps) / Vitest (services)
+  fleet-e2e/               the live pass across the whole fleet (no mock half)
 packages/
   business/ts/<domain>/     pure entities + use-cases (no framework)
-  implementation/<domain>/react/   entity-tight React organisms (none today — see below)
+  implementation/<key>/<tech>   cells: http, next (by domain); mongo, sql, redis (by store)
   shells/next/<shell>/      Next pages + client adapters
-  utils/ts/{array,date,object,type}   generic helpers
+  shells/effect/<slice>/    a slice's cells, consumers and sweeps on the fleet base
+  utils/ts/{array,date,fleet,object,type}   generic helpers
+  utils/react/ui            React UI helpers shared by the shells
+  testing/*                 fixtures and cell doubles (type:testing)
 tools/entifix/               the swap kit: run against a local entifix, put the release back
 .entifix/                   this checkout's own entifix clone (gitignored, after entifix:checkout)
 infra/local/                minikube platform (MongoDB, Redis, Postgres, Zitadel, otel-lgtm)
@@ -820,6 +826,12 @@ pnpm nx e2e marketplace-admin-service-e2e                   # mock
 pnpm nx e2e stock-service-e2e                               # mock
 pnpm nx e2e sales-service-e2e                               # mock
 pnpm nx e2e settlement-service-e2e                          # mock
+pnpm nx e2e order-service-e2e                               # mock
+pnpm nx e2e payment-service-e2e                             # mock
+pnpm nx e2e fulfilment-service-e2e                          # mock
+pnpm nx e2e transaction-service-e2e                         # mock
+pnpm nx e2e auth-service-e2e                                # mock
+pnpm nx e2e marketplace-app-e2e                             # mock
 pnpm nx e2e realtime-service-e2e                            # mock
 
 pnpm run back-office:dev                                    # then, in another shell:
@@ -842,11 +854,11 @@ E2E_PROFILE=live STOCK_SERVICE_URL=http://localhost:3108 \
 E2E_PROFILE=live SALES_SERVICE_URL=http://localhost:3109 \
   JWT_PRIVATE_KEY="$(…)" JWT_PUBLIC_KEY="$(…)" \
   pnpm nx e2e sales-service-e2e
-
-E2E_PROFILE=live SETTLEMENT_SERVICE_URL=http://localhost:3107 \
-  JWT_PRIVATE_KEY="$(…)" JWT_PUBLIC_KEY="$(…)" \
-  pnpm nx e2e settlement-service-e2e
 ```
+
+The order, payment, settlement, fulfilment and transaction services have `mock`
+specs only; their live coverage is `fleet-e2e`
+([The live pass](#the-live-pass)), which runs the whole fleet together.
 
 `mock` is the default because the default has to run anywhere. `live` never
 falls back: a missing target URL **throws**, because a suite that skips itself
@@ -1070,15 +1082,16 @@ the flow per caller and omits a verb the caller cannot reach.
 Documentation drifts because nothing fails when it does. Two mechanisms make
 parts of it fail, split by what a machine can actually know.
 
-**Generated — `tools/sync-docs.mjs`.** Four blocks are written from source and
+**Generated — `tools/sync-docs.mjs`.** Five blocks are written from source and
 must not be edited by hand:
 
-| Block            | In                       | Source               |
-| ---------------- | ------------------------ | -------------------- |
-| `ports-infra`    | `docs/_shared/ports.md`  | `infra/local/lib.sh` |
-| `store-register` | `docs/_shared/planes.md` | `tools/slices/`      |
-| `adr-index`      | `docs/adr/README.md`     | the ADR files        |
-| `adr-triggers`   | `CLAUDE.md`              | the ADR files        |
+| Block            | In                              | Source               |
+| ---------------- | ------------------------------- | -------------------- |
+| `ports-infra`    | `docs/_shared/ports.md`         | `infra/local/lib.sh` |
+| `store-register` | `docs/_shared/planes.md`        | `tools/slices/`      |
+| `slice-register` | `docs/BUSINESS-ARCHITECTURE.md` | `tools/slices/`      |
+| `adr-index`      | `docs/adr/README.md`            | the ADR files        |
+| `adr-triggers`   | `CLAUDE.md`                     | the ADR files        |
 
 Each sits between `<!-- docs:begin <name> -->` and `<!-- docs:end <name> -->`.
 Change the source, run `node tools/sync-docs.mjs`, stage the result.
@@ -1221,7 +1234,7 @@ has tested and writes any codemods into `migrations.json`. `.github/dependabot.y
 
 That ignore list is not tidiness. Dependabot raised `typescript` 6.0.3 → 7.0.2 on
 its own, and TypeScript 7 — the Go-native rewrite — no longer exposes
-`ts.readConfigFile`, `ts.ScriptTarget` or `ts.ModifierFlags`, all of which Nx 23
+`ts.readConfigFile`, `ts.ScriptTarget` or `ts.ModifierFlags`, all of which Nx
 calls while building the project graph. The graph never built, so every `nx`
 command in CI failed and the 54 healthy updates grouped alongside it were
 unreachable.

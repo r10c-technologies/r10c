@@ -11,6 +11,7 @@
   (an organization now has **two** tenant databases, not one) and
   [ADR 0023](0023-service-to-service-tenant-crossing.md) (the session is the only
   _user-facing_ tenant resolution, not the only one).
+- Revised: 2026-11-16 — the Consequences no longer name `apps/marketplace-admin-service/src/routes.ts`, which does not exist: apps are composition and the per-request tenant handle is resolved in `fleetTenantMongoLayer` (`@r10c/shells-effect-service`).
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Layer.scoped` is now a scoped `Layer.effect`; the decision is unchanged.
 
 ## Context
@@ -152,10 +153,13 @@ plane, matching the existing rule that liveness never checks a dependency.
 ## Consequences
 
 - **Swapping the catalog to tenant storage is a one-line change per route.**
-  `apps/marketplace-admin-service/src/routes.ts` already resolves the database
-  _inside_ each handler (`const db = yield* MongoDatabaseTag`) and provides
-  `EntityRepositoryTag` per request. Replacing that `yield*` with the tenant
-  handle touches no use-case, entity, adapter, filter translator or envelope.
+  Each handler resolved the database _inside_ the request
+  (`const db = yield* MongoDatabaseTag`) and provided `EntityRepositoryTag` per
+  request. Replacing that `yield*` with the tenant handle touched no use-case,
+  entity, adapter, filter translator or envelope. (The handlers are cells now,
+  [ADR 0060](0060-the-implementation-layer-cells.md); the per-request handle is
+  resolved by `fleetTenantMongoLayer` in
+  `packages/shells/effect/service/src/fleet-storage.ts`.)
   That is the design's central claim and the reason this shape was chosen.
 - **Every authenticated route now depends on the session carrying an
   organization.** e2e fixtures that mint sessions (`seedSession` in

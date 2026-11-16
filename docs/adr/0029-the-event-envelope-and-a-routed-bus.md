@@ -5,6 +5,7 @@
 - Area: messaging
 - Read when: publishing or subscribing to a bus message — `meta` describes the message and `data` the occurrence, and the dedup key is `event.id`
 - Revised: 2026-10-25 — `TenantDatabasePrefix` and `SagaDatabaseName` no longer exist (#371, #376); the sentence that named them is corrected in place.
+- Revised: 2026-11-16 — the example binding `transaction.*` and its `subscribedEvents` field are corrected: the register's field is `subscriptions`, and `transaction` now binds only `shipping-order.*` (the saga tracker is gone, ADR 0066).
 - Amended by: [ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md) — a
   subscriber's queue is no longer unconditionally exclusive. A `work`
   subscription binds a named, durable queue with a dead-letter exchange and a
@@ -126,10 +127,16 @@ already unwrapped it.
 
 `entifix.events`, type `topic`, published to with `event.name` as the routing key.
 `EventBus.subscribe(pattern, handler)` binds the subscriber's exclusive queue to
-the pattern it declared — the saga tracker binds `transaction.*`, which is the
-same string `tools/slices/transaction.slice.ts` has always declared as
-`subscribedEvents`. The register becomes executable at the transport rather than
-prose about it.
+the pattern it declared — the saga tracker bound `transaction.*`, which was the
+same string `tools/slices/transaction.slice.ts` declared. The register becomes
+executable at the transport rather than prose about it.
+
+> **Corrected 2026-11-16.** The tracker and `transaction.*` were deleted with the
+> saga engine ([ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md)). The
+> register's field is now `subscriptions` (each with a `mode` and a `dedupe`), and
+> the one binding the `transaction` slice declares is `shipping-order.*`, in
+> `tools/slices/src/slices/transaction.slice.ts`. The mechanism — a declared
+> pattern bound at the transport — is the one described here.
 
 A **new exchange name**, not a redeclaration: a broker will not change an existing
 exchange's type, so `entifix.transactions` had to be left behind. It lingers,

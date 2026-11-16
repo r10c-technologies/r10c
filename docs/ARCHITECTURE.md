@@ -5,13 +5,14 @@ The **business** architecture — which capabilities exist, what they are called
 which data plane they live in, and how they extend — is
 [BUSINESS-ARCHITECTURE.md](./BUSINESS-ARCHITECTURE.md).
 
-> **Status (2026-08)** — Layered monorepo in active development. The entity
-> framework (entifix), the product-catalog, authn, authz, party- and
-> access-management domains, the Next.js frontends, and the Effect-native
-> backends are all in place. Backends are wired to real datastores:
-> **config-service → PostgreSQL**, **marketplace-admin-service** and
-> **auth-service → MongoDB**. **Full CRUD** runs end-to-end for the
-> marketplace-admin catalog: `load`/`get`/`save`/`delete` over REST on the web and
+> **Status (2026-11)** — Layered monorepo in active development. The entity
+> framework (entifix), the catalog, authn, authz, party- and access-management
+> domains, the commerce slices (stock, order, payment, settlement, sales,
+> fulfilment), the Next.js frontends and the Effect-native backends are all in
+> place: twelve services, one per slice, over Mongo, Postgres and Redis.
+> **config-service** and **transaction-service** run on PostgreSQL;
+> **auth-service** also holds sessions in Redis; the rest are MongoDB. **Full
+> CRUD** runs end-to-end for the marketplace-admin catalog: `load`/`get`/`save`/`delete` over REST on the web and
 > Mongo on the backend — and the same use-cases run against Postgres through
 > `@entifix/sql`, which is what config-service's own operator CRUD uses —
 > with every message framed as an
@@ -27,27 +28,27 @@ which data plane they live in, and how they extend — is
 > **Multi-tenancy is live on the tenant plane**: the catalog physically lives in
 > its own Mongo database per organization, resolved per request from the session
 > (see [Tenancy](#tenancy-resolving-the-organizations-storage)). An organization
-> now has **two** tenant databases — `tenant_<id>` for the `catalog` store and
-> `stock_<id>` for `stock` — because they are two stores with two writing slices
-> ([ADR 0022](./adr/0022-v1-marketplace-module-boundaries.md)). Copy ships `es`/`en`
+> now has **four** tenant databases — `tenant_<id>`, `stock_<id>`, `sales_<id>`
+> and `fulfilment_<id>` — because they are four stores with four writing slices
+> ([ADR 0020](./adr/0020-stores-and-slices.md)). Copy ships `es`/`en`
 > through mandatory i18n, and marketplace-app renders the storefront on the
 > server, prerendered per locale. Access tokens are **RS256**, verified against a
 > public key ([ADR 0015](./adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md)),
 > and **Zitadel now authenticates** — authorization code + PKCE against its hosted
 > UI, with r10c holding no credential at all
-> ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)). A real rule
-> engine, tenant
-> storage on Postgres ([ADR 0013](./adr/0013-tenant-storage-on-postgres.md)),
-> catalog publication into the platform plane
-> ([ADR 0009](./adr/0009-catalog-authoring-and-publication.md)) and stock/orders
+> ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)). Catalog
+> publication into the platform plane
+> ([ADR 0009](./adr/0009-catalog-authoring-and-publication.md)), stock, orders,
+> payment, settlement and fulfilment are built; a real rule engine and tenant
+> storage on Postgres ([ADR 0013](./adr/0013-tenant-storage-on-postgres.md))
 > are still deferred.
 
 ## Layering
 
 The repo is layered top-to-bottom and **dependencies only point downward**; the Nx
 ESLint rule `@nx/enforce-module-boundaries` fails the build on any upward edge. The
-layer diagram and the six tag dimensions (`layer` / `scope` / `entifix` /
-`business` / `shell` / `host`) that encode the hierarchy are the single source in
+layer diagram and the tag dimensions (`layer` / `scope` / `business` / `tech` /
+`shell` / `host`, plus `type` and the framework's own `tier`) that encode the hierarchy are the single source in
 [_shared/layering.md](_shared/layering.md); the constraints are detailed in
 [DEVELOPING.md → Module boundaries](./DEVELOPING.md#module-boundaries).
 
@@ -109,19 +110,18 @@ backend │  EntityRepositoryTag = makeMongoRepository(db, Ctor)   │  → Mong
 
 See [ENTIFIX.md](./ENTIFIX.md) for how the entities and links make this work.
 
-### A load, end to end (products)
+### A load, end to end (product specifications)
 
-The web and the backend run the **same** `loadProductsUCFactory()`; only the
-adapters behind the tags differ.
+The web and the backend run the **same** entifix `loadUCFactory` over the same
+entity; only the adapters behind the tags differ.
 
 ```
-Product (business, @entity + EntityLink brand/category)
-  └─ loadProductsUCFactory()  ── loads a page, reloads unresolved links via EntityLinkResolverTag
-       ├─ web: ProductTable (EntityTable) → ProductListClientPage → /catalog/product (back-office-app)
-       │        tags ← REST adapter + useEntityLinkResolver([[ProductBrand, …], [ProductCategory, …]])
-       │        columns/labels/formatting ← Product's accessor metadata (describeEntityColumns)
-       └─ backend: GET /api/product (marketplace-admin-service)
-                tags ← makeMongoRepository(db, Product) + makeMongoLinkResolver(db, [ProductBrand, ProductCategory])
+ProductSpecification (business, @entity; brandId / categoryId are plain id members)
+  └─ loadUCFactory<ProductSpecification>()  ── loads a page through EntityRepositoryTag
+       ├─ web: makeEntityCrud(ProductSpecification) → ProductListClientPage → /catalog/product (back-office-app)
+       │        tag ← REST adapter (/api/admin) · columns, labels, formatting ← the entity's accessor metadata
+       └─ backend: GET /api/product-specification (marketplace-admin-service)
+                tag ← makeMongoRepository(tenant db, ProductSpecification), resolved per request
                 then serializeEntityCollection(...) → JSON
 ```
 
@@ -159,8 +159,9 @@ Effect Layers.
   design.
 
   Three callers send it: `loadRemoteConfiguration` when a service boots, and — in
-  `@entifix/next-shell`, sharing `lib/config/service-token.ts` — an app's
-  `createConfigRoute` and its **readiness probe**. The probe belongs on that list
+  `@entifix/next-shell`, handed the token by `configSourceFor` in
+  `@r10c/utils-ts-fleet` — an app's `createConfigRoute` and its **readiness
+  probe**. The probe belongs on that list
   because readiness _reads_ the gated route: without the header it sees a `401`,
   reports `degraded`, and the app never becomes Ready despite being healthy, which
   in Kubernetes means a rollout that never takes traffic.
@@ -185,6 +186,36 @@ Effect Layers.
   co-deployed into marketplace-admin-service until #229 split it out, which was
   a `deployments` edit because its store's handle was already named. See
   [Stores, slices & data planes](../docs/_shared/planes.md).
+- **marketplace-service** (`:3100`, Mongo) — the storefront's read host: the
+  `catalog-reference` vocabulary and the `published-catalog` and
+  `published-vendor` projections, read-only
+  ([ADR 0022](adr/0022-v1-marketplace-module-boundaries.md)).
+- **stock-service** (`:3108`, Mongo) — the tenant `stock` store: the
+  `StockItem` position, the append-only `StockMovement` ledger and the
+  reservations a checkout takes through a crossing
+  ([ADR 0010](adr/0010-stock-ledger-reservations-and-concurrency.md)).
+- **order-service** (`:3105`, Mongo) — the platform `order` store: a checkout's
+  `CheckoutGroup` and one `ProductOrder` per vendor
+  ([ADR 0069](adr/0069-a-checkout-group-of-per-vendor-orders.md)).
+- **payment-service** (`:3106`, Mongo) — the platform `payment` store: capture,
+  allocation per order and refund, behind a provider port with a simulated
+  adapter.
+- **settlement-service** (`:3107`, Mongo) — the control-plane `settlement`
+  store: agreements, the commission ledger, runs and payouts, folded from the
+  bus ([ADR 0057](adr/0057-settlement-joins-the-sale-to-its-payment.md)).
+- **sales-service** (`:3109`, Mongo) — the tenant `sales` store: a vendor's
+  selling channels, and the till's `sell` verb, which starts a checkout
+  ([ADR 0056](adr/0056-the-counter-sale-is-the-checkout-saga.md)).
+- **fulfilment-service** (`:3110`, Mongo) — the tenant `fulfilment` store: a
+  vendor's `ShippingOrder`s and the delivery flow's crossing steps
+  ([ADR 0070](adr/0070-fulfilment-and-cash-on-delivery.md)).
+- **realtime-service** (`:3191`, Mongo) — the `flow-status` projection and the
+  one push stream every tab opens
+  ([ADR 0072](adr/0072-the-realtime-slice-flow-status-and-the-edge.md)).
+
+Each is the host of exactly one slice, declared in `tools/slices/`; the
+register in [\_shared/planes.md](_shared/planes.md) is the list of which
+store each owns.
 
 ### Where a service's code lives
 
@@ -196,7 +227,7 @@ seed, and the daemons it starts. What it serves and stores is in cells
 
 - `packages/implementation/<domain>/http` — the domain's routes. Entity CRUD is
   `makeEntityRoutes(Entity, { verbs, guard, scope?, prepare?, override? })`
-  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.10.2/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
+  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.22.4/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
   bound to storage through the `EntityRepositoryFactoryTag` the host provides;
   a verb that is not CRUD is a hand route beside it.
 - `packages/implementation/<store>/{mongo,redis,sql}` — the store's
@@ -320,8 +351,8 @@ service was given (values, redacted); this serves its _shape_.
 It is mounted by `makeServerLayer`, like the health routes, so a service gains
 it by composition. `ServiceDefinition` carries one new field, `slices` — it
 cannot be derived, because `EventSourceTag` names only the _emitting_ slice and
-one deployment may host several (marketplace-admin-service also runs
-`transaction`). Stores, brokers and upstreams come from the probe registrations;
+one deployment may host several (none does today; co-deployment is the
+reversible move of [ADR 0021](./adr/0021-consolidating-the-fleet-into-five-deployments.md)). Stores, brokers and upstreams come from the probe registrations;
 publishes and bindings come from a `WiringRegistry` the AMQP adapter records
 into as it publishes and subscribes, so the document reports what the process
 **did**, not what a declaration says.
@@ -754,7 +785,8 @@ Two invariants hold the design up:
   step to fail halfway ([ADR 0011](./adr/0011-organization-provisioning-and-migrations.md)).
 
 **The payoff was the `guarded` helper in what was then
-`apps/marketplace-admin-service/src/routes.ts`.** Every catalog route already
+`apps/marketplace-admin-service/src/routes.ts` (the routes are now cells,
+[ADR 0060](adr/0060-the-implementation-layer-cells.md)).** Every catalog route already
 resolved its database inside the request (`const db = yield* MongoDatabaseTag`),
 so re-providing that one tag with the organization's handle moved the whole
 catalog onto the tenant plane — six routes redirected, and no use-case, entity,
@@ -779,16 +811,18 @@ port table is the single source in [_shared/ports.md](_shared/ports.md).
 
 ## Transactions (CQRS writes)
 
-Reads and writes are direct. `@entifix/transactions` also holds a single-step
-`202` engine — validate, lock, execute, roll back — with its `LockService`,
-`SequenceService` and a passive tracker the client polled. One write in this
-fleet ever used it, the specification create, for a unique `code`; #463 made
-that a plain unit of work drawing the code from a per-organization counter, and
-the tracker, `/api/transaction/*` and the Redis lock and sequence went with it
-([ADR 0066](adr/0066-flows-run-on-a-durable-workflow-engine.md)).
+Reads and writes are direct. `@entifix/transactions` holds the contracts a write
+that announces itself needs — the unit of work, the outbox and inbox, the
+flow-engine port — and the engine's mechanisms: the circuit breaker, the
+bulkhead, the retry budget and the outbox relay. A flow that spans slices runs
+on the durable engine in `@entifix/workflow`
+([ADR 0066](adr/0066-flows-run-on-a-durable-workflow-engine.md)); the single-step
+`202` engine, its lock and sequence services and the passive tracker are gone,
+and the one write that used them, a specification's unique `code`, is a plain
+unit of work drawing the code from a per-organization counter (#463).
 
 **A write that announces itself is one unit of work**
-([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.10.2/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
+([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.22.4/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
 `UnitOfWork.run(body, { claim?, replay?, afterCommit? })` gives the body one
 transaction, records the events it `emit`s into the outbox in that transaction,
 and takes at most one claim — an event's (`consumer` + `eventId`, so a fold runs
@@ -923,16 +957,35 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 
 **Business domains** (`packages/business/ts/*`, pure — entities + use-cases):
 
-- `business-ts-product-configuration-management` — `Product`, `ProductBrand`,
-  `ProductCategory`; `loadProductsUCFactory` (link-following load).
+- `business-ts-product-configuration-management` — `ProductSpecification`,
+  `ProductOffering` (with its lifecycle, publish and unpublish use cases),
+  `ProductOfferingPrice`, and `EntitySpecification` and
+  `CharacteristicSpecification`, which no service serves yet
+  ([ADR 0014](adr/0014-entity-specifications-and-the-characteristic-dictionary.md)).
   **Tenant plane.**
+- `business-ts-catalog-reference` — `ProductBrand`, `ProductCategory` (a tree,
+  [ADR 0062](adr/0062-categories-form-a-tree.md)) and `DictionaryTerm`.
+  **Platform plane.**
+- `business-ts-marketplace-catalog` and `-marketplace-vendor` — the
+  storefront's projections, `PublishedOffering` and `PublishedVendor`.
+  **Platform plane.**
 - `business-ts-party-management` — `Organization` (the tenant), `Individual`,
   `PartyRole`. **Control plane.**
 - `business-ts-access-management` — `Membership`, `Role`, `Entitlement`.
   **Control plane.**
-- `business-ts-marketplace-catalog`, `-stock-management`, `-order-management`,
-  `-payment-management`, `-settlement-management` — named and tagged; entities
-  land with the iterations their ADRs name.
+- `business-ts-stock-management` — `StockItem`, `StockMovement`, `Reservation`.
+  **Tenant plane.**
+- `business-ts-order-management` — `CheckoutGroup`, `ProductOrder`.
+  `business-ts-payment-management` — `Payment`, `PaymentAllocation`, `Refund`.
+  **Platform plane.**
+- `business-ts-settlement-management` — `Agreement`, `CommissionEntry`,
+  `SettlementRun`, `VendorPayout`. **Control plane.**
+- `business-ts-sales-management` — `SalesChannel`.
+  `business-ts-shipping-order-management` — `ShippingOrder`. **Tenant plane.**
+- `business-ts-configuration` — `Configuration`. **Control plane.**
+- The `-contracts` and `-vocabulary` packages (`catalog`, `order`, `party`,
+  `payment`, `flow`, `sales`) and `authz-grants` are `business:policy`: the
+  shared vocabulary a domain expresses itself in, never a domain.
 - `business-ts-authn` — `UserIdentity` (carrying the `role` aspect),
   `EntityIdentifier`, `UserDevice`; `resolveSession`, `registerUser` and the OIDC
   callback UCs over `AccountRepositoryTag`/`IdentityProviderTag`. There is no
@@ -959,9 +1012,11 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   serialized form already is a table row; the filter translator emits only
   parameterized fragments and validates every identifier against the entity's
   `filterable`/`sortable` allowlist before interpolation.
-- `@entifix/transactions` — transaction facade + engine + ports (framework-free).
-  `@entifix/redis` (lock + sequence, and now `SessionStoreTag`'s Redis
-  adapter) and `@entifix/amqp` (event bus) are its transport adapters.
+- `@entifix/transactions` — the unit of work, the outbox and inbox contracts,
+  the flow-engine port and the breaker, bulkhead and retry-budget mechanisms
+  (framework-free). `@entifix/workflow` is the durable flow engine over it.
+  `@entifix/redis` (`SessionStoreTag`'s Redis adapter and the one-time token
+  store) and `@entifix/amqp` (the event bus) are its transport adapters.
 - `@entifix/jwt` — `TokenServiceTag`'s jose-backed **RS256** adapter
   (`TOKEN_ALGORITHM`; sign/verify short-lived access tokens). `verifyAccessToken`
   pins `algorithms: ['RS256']`, which is the security boundary: jose otherwise
@@ -978,15 +1033,23 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 
 - `packages/implementation/<key>/<tech>` holds **cells** — one domain, or one
   store, written in one technology, depending only on entities, use cases and
-  ports ([ADR 0060](adr/0060-the-implementation-layer-cells.md)). The first two
-  are the storefront's reads: `implementation-marketplace-catalog-next` over the
-  published projection and `implementation-catalog-reference-next` over the
-  browse vocabulary. Neither names a transport; `shells-next-marketplace`
-  binds REST and runs them.
-- `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-auth`,
-  `shells-next-system-management` (`scope:shared`, so a second host can mount it
-  with no moves), `@entifix/next-shell` and `@entifix/next-i18n` — Next pages +
-  client adapters. `@entifix/service-shell` — the backend base.
+  ports ([ADR 0060](adr/0060-the-implementation-layer-cells.md)). Domain-keyed
+  cells are `http` (a domain's routes, as descriptors) and `next` (a domain's
+  screens; the storefront's reads are `marketplace-catalog/next`,
+  `marketplace-vendor/next` and `catalog-reference/next`, which name no
+  transport — `shells-next-marketplace` binds REST and runs them); store-keyed
+  cells are `mongo`, `sql` and `redis` (`order/mongo`, `stock/mongo`,
+  `configuration/sql`, `session/redis` and the rest).
+- The Next shells — `shells-next-marketplace`, `-marketplace-admin`, `-auth`,
+  `-system-management` (`scope:shared`, so a second host can mount it with no
+  moves), `-stock`, `-order`, `-sales`, `-settlement` and `-fulfilment` — with
+  `@entifix/next-shell` and `@entifix/next-i18n`: Next pages + client adapters.
+- The Effect shells (`packages/shells/effect/*`) — `shells-effect-service` is
+  the fleet base on `@entifix/service-shell`, and each slice has its own
+  (`-auth`, `-config`, `-marketplace`, `-marketplace-admin`, `-stock`, `-order`,
+  `-payment`, `-settlement`, `-sales`, `-fulfilment`, `-transaction`,
+  `-realtime`), plus `-flow-catalog` for the flow snapshot
+  ([ADR 0064](adr/0064-failures-reach-the-slice-shell.md)).
 
 **A host keeps composition, and that includes the proxy mounts.** A shell
 contributes its pages, its adapters, its nav fragment and its search sources; the
@@ -1009,12 +1072,16 @@ imported, and why the permission-annotated vocabulary
 layer a shell and an app both reach.
 
 **Apps** — frontends `marketplace-app` (`:3000`, the public storefront) and
-`back-office-app` (`:3001`, which mounts `shells-next-marketplace-admin` **and**
-`shells-next-auth`, so the catalog, system management, user administration and the
-account surface share one origin); backends `marketplace-service` (`:3100`),
-`marketplace-admin-service` (`:3101`, co-deploying the `transaction` slice),
-`auth-service` (`:3102`) and `config-service` (`:3190`); plus `*-e2e` projects.
-Six deployments in total. **marketplace-service** owns the `published-catalog`
+`back-office-app` (`:3001`, which mounts the domain shells — marketplace-admin,
+auth, system management, stock, order, sales, settlement and fulfilment — so the
+catalog, system management, user administration, the account surface and every
+vendor worklist share one origin); twelve backends, one per slice
+(`marketplace-service`, `marketplace-admin-service`, `auth-service`,
+`transaction-service`, `order-service`, `payment-service`, `settlement-service`,
+`stock-service`, `sales-service`, `fulfilment-service`, `config-service` and
+`realtime-service`, ports in [_shared/ports.md](_shared/ports.md)); the edge
+that owns the `300N` origins; plus `*-e2e` projects and `fleet-e2e`.
+**marketplace-service** owns the `published-catalog`
 projection and the `catalog-reference` vocabulary and serves them read-only —
 a public read path that never opens a tenant connection. The storefront reads
 both of them over REST from its own server components — resolving the address
@@ -1022,7 +1089,7 @@ from config-service directly, with no proxy, because there is no browser in that
 path to hide an address from
 ([ADR 0051](adr/0051-the-storefront-reads-the-projection.md)).
 
-**Utils** — `utils-ts-{array,date,object,type}`.
+**Utils** — `utils-ts-{array,date,fleet,object,type}` and `utils-react-ui`.
 
 For Nx specifics, file layout, commands, and conventions see
 [DEVELOPING.md](./DEVELOPING.md). For the client side (design system + workspace
