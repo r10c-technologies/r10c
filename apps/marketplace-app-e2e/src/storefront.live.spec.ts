@@ -147,7 +147,7 @@ test.describe('browsing the published catalog', () => {
       .first();
     const offering = seededByName(await card.getByRole('heading').innerText());
 
-    await card.getByRole('link', { name: 'Ver producto' }).click();
+    await card.getByRole('link').click();
     await page.waitForURL(`**/es/p/${offering.offeringId}`);
 
     await expect(

@@ -114,7 +114,9 @@ export const r10c = {
       details: 'Detalles',
       seller: 'Vendedor',
       addToCart: 'Añadir al carrito',
-      view: 'Ver producto',
+      // El botón de la tarjeta: una palabra corta, y un nombre que dice qué añade.
+      add: 'Añadir',
+      addNamed: 'Añadir {{name}} al carrito',
       brand: 'Marca',
       category: 'Categoría',
       reference: 'Referencia',

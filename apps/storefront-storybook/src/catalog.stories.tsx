@@ -44,11 +44,7 @@ function OfferingTile({ offering }: { readonly offering: PublishedOffering }) {
         soldBy: seller => `Vendido por ${seller}`,
         labels: { available: 'Disponible', unavailable: 'Agotado' },
       })}
-      cta={
-        <a className="text-primary underline" href={`#${offering.offeringId}`}>
-          Ver producto
-        </a>
-      }
+      href={`#${offering.offeringId}`}
     />
   );
 }

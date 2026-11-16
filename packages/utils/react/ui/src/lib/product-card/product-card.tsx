@@ -67,7 +67,19 @@ export interface ProductCardProps {
   readonly chips?: ReactNode;
   readonly rating?: ReactNode;
   readonly availability?: ProductCardAvailability;
-  /** The call to action: a link or a form. The card does not decide which. */
+  /**
+   * Where the card leads. Given, the title is a link stretched over the whole
+   * card, so a tap on the picture or the name opens the product: that is
+   * where a phone user taps, and a second "view" button would be a second way
+   * to do what the card itself does (#568). Absent (a fixture, a story), the
+   * title is plain text.
+   */
+  readonly href?: string;
+  /**
+   * The call to action: a link or a form. The card does not decide which. It
+   * sits above the stretched title link, so it still takes its own taps and
+   * focus.
+   */
   readonly cta?: ReactNode;
   readonly density?: ProductCardDensity;
 }
@@ -79,7 +91,9 @@ const GAP: Record<ProductCardDensity, 's' | 'xs'> = {
 
 /**
  * The media box reserves its aspect ratio with or without a picture, so the
- * grid does not reflow when an image arrives or fails.
+ * grid does not reflow when an image arrives or fails. A wide card shows it
+ * 16:9; a narrow one (two to a row on a phone) shows it square, the shape the
+ * snapshot's pictures are, so the card is not mostly letterbox (#568).
  */
 function CardMedia({
   media,
@@ -88,7 +102,8 @@ function CardMedia({
   readonly media: ProductCardMedia | undefined;
   readonly title: string;
 }) {
-  const box = 'aspect-video w-full overflow-hidden rounded-xl';
+  const box =
+    'aspect-video w-full overflow-hidden rounded-xl @max-[13rem]:aspect-square';
   if (media === undefined) {
     return (
       <div
@@ -122,6 +137,7 @@ export function ProductCard({
   chips,
   rating,
   availability,
+  href,
   cta,
   density = 'comfortable',
 }: ProductCardProps) {
@@ -133,7 +149,11 @@ export function ProductCard({
       role="article"
       aria-labelledby={titleId}
       data-density={density}
-      className="flex flex-col"
+      // A size container, so the card lays itself out by its own width rather
+      // than the viewport's: the same card is narrow in a phone's two columns
+      // and wide in a desktop strip. `relative` anchors the title's stretched
+      // link.
+      className="@container relative flex flex-col"
     >
       <Stack gap={gap} className="h-full">
         <div className="relative">
@@ -145,7 +165,16 @@ export function ProductCard({
 
         <Stack gap="3xs">
           <HeadingThree id={titleId} className="line-clamp-2">
-            {title}
+            {href === undefined ? (
+              title
+            ) : (
+              <a
+                href={href}
+                className="text-content no-underline focus-ring after:absolute after:inset-0 after:content-['']"
+              >
+                {title}
+              </a>
+            )}
           </HeadingThree>
           {brand === undefined ? null : <Text muted>{brand}</Text>}
           {seller === undefined ? null : (
@@ -155,7 +184,9 @@ export function ProductCard({
           )}
           {rating === undefined ? null : <div>{rating}</div>}
           {description === undefined ? null : (
-            <Text muted lineClamp={2}>
+            // Left out of a narrow card: two lines of description at that
+            // width are a third of a phone screen per product.
+            <Text muted lineClamp={2} className="@max-[13rem]:hidden">
               {description}
             </Text>
           )}
@@ -186,7 +217,7 @@ export function ProductCard({
           )}
         </Stack>
 
-        {cta}
+        {cta === undefined ? null : <div className="relative z-10">{cta}</div>}
       </Stack>
     </Card>
   );

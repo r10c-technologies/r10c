@@ -23,7 +23,13 @@ test.describe('browsing the catalog', () => {
       page.getByRole('heading', { name: 'Marketplace r10c' }),
     ).toBeVisible();
 
-    await page.getByRole('link', { name: 'Ver producto' }).first().click();
+    // The card is the link: its title, stretched over it (#568).
+    await page
+      .getByRole('region', { name: 'Destacados' })
+      .getByRole('article')
+      .first()
+      .getByRole('link')
+      .click();
 
     // Wait for the navigation, then assert the URL. Every click here is a full
     // server navigation, and `toHaveURL` polls on the 5s *expect* timeout — a
@@ -530,6 +536,41 @@ test.describe('browsing the catalog', () => {
  * #533: a read that failed is not a catalog with nothing in it. The mock
  * backend answers this one term with a `503` (`support/server-mocks.mjs`).
  */
+test.describe('a product card', () => {
+  test('is one link and one action: the picture opens the product, the button only adds', async ({
+    page,
+  }) => {
+    await page.goto('/es/search?q=lino');
+    const card = page.getByRole('article').first();
+
+    // Exactly one link and one button per card reach the keyboard (#568).
+    await expect(card.getByRole('link')).toHaveCount(1);
+    await expect(card.getByRole('button')).toHaveCount(1);
+    await expect(page.getByRole('link', { name: 'Ver producto' })).toHaveCount(
+      0,
+    );
+
+    // A tap on the picture lands on the product: the title's link is
+    // stretched over the whole card.
+    const media = card.locator('img, [aria-hidden="true"]').first();
+    await media.click();
+    await page.waitForURL(/\/es\/p\/offering-lino-napkins-/);
+  });
+
+  test('on a phone, two cards share a row and the second row starts on the first screen', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/es');
+
+    const cards = page
+      .getByRole('region', { name: 'Lo más nuevo' })
+      .getByRole('article');
+    const third = await cards.nth(2).boundingBox();
+    expect(third?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(844);
+  });
+});
+
 test.describe('a listing whose read failed', () => {
   test('says so, offers a retry, and never says there is nothing', async ({
     page,
@@ -667,7 +708,7 @@ test.describe('the cart', () => {
       .getByRole('region', { name: 'Destacados' })
       .getByRole('article')
       .first()
-      .getByRole('button', { name: 'Añadir al carrito' })
+      .getByRole('button', { name: /^Añadir .+ al carrito$/ })
       .click();
 
     await page.waitForURL(/\/es\/cart(\?|$)/);

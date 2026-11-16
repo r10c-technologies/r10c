@@ -31,10 +31,15 @@ const meta = {
       url: 'https://picsum.photos/seed/aurora-desk-lamp/800/800',
       alt: 'Aurora Desk Lamp, arm raised',
     },
+    href: '#product',
     cta: (
-      <a className="text-primary underline" href="#product">
-        Ver producto
-      </a>
+      <button
+        type="button"
+        aria-label="Añadir Aurora Desk Lamp al carrito"
+        className="w-full rounded-md bg-primary px-s py-2xs text-primary-content"
+      >
+        Añadir
+      </button>
     ),
   },
 } satisfies Meta<typeof ProductCard>;

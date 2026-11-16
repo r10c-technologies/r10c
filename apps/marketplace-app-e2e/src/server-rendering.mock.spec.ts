@@ -33,12 +33,12 @@ test.describe('server rendering', () => {
     ]);
 
     expect(spanish).toContain('lang="es"');
-    expect(spanish).toContain('Ver producto');
-    expect(spanish).not.toContain('View product');
+    expect(spanish).toContain('Vendido por');
+    expect(spanish).not.toContain('Sold by');
 
     expect(english).toContain('lang="en"');
-    expect(english).toContain('View product');
-    expect(english).not.toContain('Ver producto');
+    expect(english).toContain('Sold by');
+    expect(english).not.toContain('Vendido por');
   });
 
   // A locale segment is a locale or it is nothing. `/de` is not a prefix the

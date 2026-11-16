@@ -1,10 +1,7 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
-  ButtonLink,
-  Cluster,
   EmptyState,
-  Grid,
   Skeleton,
   Stack,
   SubmitButton,
@@ -96,10 +93,11 @@ export function OfferingGrid({
   const t = getServerTFor(locale, 'r10c');
 
   return (
-    <Grid min="18rem" gap="l">
+    <div className={GRID}>
       {offerings.map(offering => (
         <ProductCard
           key={offering.offeringId}
+          href={localeHref(locale, storePaths.offering(offering.offeringId))}
           {...offeringCard(offering, {
             locale,
             brandName: names.brandName,
@@ -110,41 +108,48 @@ export function OfferingGrid({
               unavailable: t('storefront.product.unavailable'),
             },
           })}
-          // Two actions, and neither is a client component. "View product"
-          // navigates, so it is a `ButtonLink`. "Add to cart" is a form posting
-          // to the same Server Action the product page uses, with
-          // `SubmitButton`, a server component: entifix's `Button` is
-          // `'use client'`, and one per tile is a client boundary per tile.
+          // One action, and it is not a client component. The card itself is
+          // the link to the product (#568); "Add" is a form posting to the
+          // same Server Action the product page uses, with `SubmitButton`, a
+          // server component: entifix's `Button` is `'use client'`, and one
+          // per tile is a client boundary per tile.
+          //
+          // Its visible word is short, and its name says what it adds, with
+          // the visible word inside it (WCAG 2.5.3). It is the card's primary
+          // target, so it takes the 44px floor at the card's full width.
           cta={
-            <Cluster gap="2xs">
-              <form action={addToCart}>
-                <input
-                  type="hidden"
-                  name="offeringId"
-                  value={offering.offeringId}
-                />
-                <input type="hidden" name="locale" value={locale} />
-                <SubmitButton variant="primary" size="sm">
-                  {t('storefront.product.addToCart')}
-                </SubmitButton>
-              </form>
-              <ButtonLink
-                href={localeHref(
-                  locale,
-                  storePaths.offering(offering.offeringId),
-                )}
-                variant="secondary"
+            <form action={addToCart}>
+              <input
+                type="hidden"
+                name="offeringId"
+                value={offering.offeringId}
+              />
+              <input type="hidden" name="locale" value={locale} />
+              <SubmitButton
+                variant="primary"
                 size="sm"
+                className="touch-target w-full"
+                aria-label={t('storefront.product.addNamed', {
+                  name: offering.name,
+                })}
               >
-                {t('storefront.product.view')}
-              </ButtonLink>
-            </Cluster>
+                {t('storefront.product.add')}
+              </SubmitButton>
+            </form>
           }
         />
       ))}
-    </Grid>
+    </div>
   );
 }
+
+/**
+ * Two to a row on a phone, where one card per row is a screen per product;
+ * from `sm` up, as many as fit at a readable width. A layout and not a density
+ * mode: the buyer chooses nothing (ADR 0075).
+ */
+const GRID =
+  'grid grid-cols-2 gap-s sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] sm:gap-l';
 
 /**
  * What a streaming route flushes while the grid is still resolving. Same `Grid`
@@ -157,14 +162,21 @@ export function OfferingGridSkeleton({
   readonly count?: number;
 }) {
   return (
-    <Grid min="18rem" gap="l">
+    <div className={GRID}>
       {Array.from({ length: count }, (_, index) => (
-        <Stack key={index} gap="s">
-          <Skeleton shape="block" className="aspect-video w-full" />
-          <Skeleton shape="line" className="w-2/3" />
-          <Skeleton shape="line" className="w-full" />
-        </Stack>
+        // The card's own container rule, so a narrow placeholder is square
+        // exactly where the card that replaces it is.
+        <div key={index} className="@container">
+          <Stack gap="s">
+            <Skeleton
+              shape="block"
+              className="aspect-video w-full @max-[13rem]:aspect-square"
+            />
+            <Skeleton shape="line" className="w-2/3" />
+            <Skeleton shape="line" className="w-full" />
+          </Stack>
+        </div>
       ))}
-    </Grid>
+    </div>
   );
 }

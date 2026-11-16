@@ -37,7 +37,8 @@ describe('ProductCard', () => {
         chips={<span>LED</span>}
         rating={<span>4,5</span>}
         availability={{ label: 'Disponible', available: true }}
-        cta={<a href="/es/p/1">Ver producto</a>}
+        href="/es/p/1"
+        cta={<button type="button">Añadir</button>}
       />,
     );
 
@@ -57,7 +58,17 @@ describe('ProductCard', () => {
       'src',
       MEDIA.url,
     );
-    expect(screen.getByRole('link', { name: 'Ver producto' })).toBeVisible();
+    // The title is the card's one link, stretched over it (#568), and the
+    // action sits above the stretch so it keeps its own taps.
+    const link = screen.getByRole('link', { name: 'Aurora Desk Lamp' });
+    expect(link).toHaveAttribute('href', '/es/p/1');
+    expect(link).toHaveClass('after:absolute', 'after:inset-0');
+    expect(
+      within(screen.getByRole('heading', { level: 3 })).getByRole('link'),
+    ).toBe(link);
+    expect(
+      screen.getByRole('button', { name: 'Añadir' }).parentElement,
+    ).toHaveClass('relative', 'z-10');
   });
 
   it('leaves out what it is not given, keeping the media box', () => {
