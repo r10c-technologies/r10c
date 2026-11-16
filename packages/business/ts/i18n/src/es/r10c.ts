@@ -98,7 +98,16 @@ export const r10c = {
     home: {
       overline: 'Tienda',
       heading: 'Marketplace r10c',
-      lead: 'Objetos para la casa, elegidos de a poco.',
+      // Lo que el h1 promete, distinto del nombre de la tienda (#570).
+      promise: 'Productos de varios vendedores, en una sola tienda',
+      // Solo lo que hoy es cierto. Lo de entrega y pago contra entrega espera
+      // a que cada vendedor lo diga en su producto (#589).
+      claims: {
+        label: 'Por qué comprar aquí',
+        multiVendor: 'Compra a varios vendedores en un solo pedido.',
+        cancel:
+          'Puedes cancelar desde tu recibo mientras tu pedido no ha salido.',
+      },
       categories: 'Categorías',
       newest: 'Lo más nuevo',
       featured: 'Destacados',

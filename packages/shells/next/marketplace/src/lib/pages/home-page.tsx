@@ -1,10 +1,10 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
+  Cluster,
   Grid,
   HeadingOne,
   HeadingTwo,
-  Lead,
   Overline,
   Stack,
   Text,
@@ -154,8 +154,26 @@ export function HomePage({
       <Stack gap="xl">
         <Stack gap="2xs">
           <Overline>{t('storefront.home.overline')}</Overline>
-          <HeadingOne>{t('storefront.home.heading')}</HeadingOne>
-          <Lead className="max-w-(--measure)">{t('storefront.home.lead')}</Lead>
+          {/* The promise, not the store's name again: the masthead already
+              says that, and a first-time buyer needs a reason (#570). */}
+          <HeadingOne>{t('storefront.home.promise')}</HeadingOne>
+          {/* Only claims true of the product today, as text: the cancel
+              window lives on a receipt, which has no public page to link to.
+              A cluster, so on a phone it folds and the first card stays on
+              the first screen. */}
+          <Cluster
+            as="ul"
+            gap="xs"
+            aria-label={t('storefront.home.claims.label')}
+            className="m-0 list-none p-0"
+          >
+            <li>
+              <Text muted>{t('storefront.home.claims.multiVendor')}</Text>
+            </li>
+            <li>
+              <Text muted>{t('storefront.home.claims.cancel')}</Text>
+            </li>
+          </Cluster>
         </Stack>
 
         <section aria-label={t('storefront.home.newest')}>

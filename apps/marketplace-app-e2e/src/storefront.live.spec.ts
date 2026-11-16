@@ -115,7 +115,10 @@ test.describe('browsing the published catalog', () => {
     await page.goto('/es');
 
     await expect(
-      page.getByRole('heading', { name: 'Marketplace r10c' }),
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Productos de varios vendedores, en una sola tienda',
+      }),
     ).toBeVisible();
     await expect(
       page.getByRole('region', { name: 'Categorías' }).getByRole('link'),

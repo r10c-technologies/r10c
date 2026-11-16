@@ -20,7 +20,9 @@ test.describe('server rendering', () => {
     expect(response.status()).toBe(200);
 
     const html = await response.text();
-    expect(html).toContain('Marketplace r10c');
+    expect(html).toContain(
+      'Productos de varios vendedores, en una sola tienda',
+    );
     expect(html).toContain('Aurora Desk Lamp');
   });
 

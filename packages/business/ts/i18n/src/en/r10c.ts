@@ -92,7 +92,13 @@ export const r10c: EsR10c = {
     home: {
       overline: 'Storefront',
       heading: 'r10c Marketplace',
-      lead: 'Things for the house, chosen slowly.',
+      promise: 'Products from many sellers, in one store',
+      claims: {
+        label: 'Why shop here',
+        multiVendor: 'Buy from several sellers in a single order.',
+        cancel:
+          'You can cancel from your receipt until your order has shipped.',
+      },
       categories: 'Categories',
       newest: 'New in',
       featured: 'Featured',

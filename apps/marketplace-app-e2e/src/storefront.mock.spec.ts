@@ -20,9 +20,23 @@ test.describe('browsing the catalog', () => {
   test('home lists featured products and links to one', async ({ page }) => {
     await page.goto('/es');
 
+    // The h1 is the store's promise, not its name again (#570): the masthead
+    // link already names it.
+    const heading = page.getByRole('heading', { level: 1 });
+    await expect(heading).toHaveText(
+      'Productos de varios vendedores, en una sola tienda',
+    );
     await expect(
-      page.getByRole('heading', { name: 'Marketplace r10c' }),
+      page.getByRole('banner').getByRole('link', { name: 'Marketplace r10c' }),
     ).toBeVisible();
+    await expect(
+      page
+        .getByRole('list', { name: 'Por qué comprar aquí' })
+        .getByRole('listitem'),
+    ).toHaveText([
+      'Compra a varios vendedores en un solo pedido.',
+      'Puedes cancelar desde tu recibo mientras tu pedido no ha salido.',
+    ]);
 
     // The card is the link: its title, stretched over it (#568).
     await page
