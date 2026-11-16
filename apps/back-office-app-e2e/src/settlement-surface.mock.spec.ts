@@ -118,10 +118,10 @@ test('shows the ledger line behind a payout', async ({ page }) => {
 
   const line = record(page, 'order-1');
   await expect(line).toBeVisible();
-  // The base and the cut, both on the line. A payout is the first minus the
-  // second, which is why the entry captures the base at all.
-  await expect(line.getByText('2500', { exact: true })).toBeVisible();
-  await expect(line.getByText('200', { exact: true })).toBeVisible();
+  // The base and the cut, both on the line, as money (#596). A payout is the
+  // first minus the second, which is why the entry captures the base at all.
+  await expect(line.getByText(/^25,00\sGTQ$/)).toBeVisible();
+  await expect(line.getByText(/^2,00\sGTQ$/)).toBeVisible();
 });
 
 test('shows what the vendor is owed, not what the platform kept', async ({
@@ -129,12 +129,10 @@ test('shows what the vendor is owed, not what the platform kept', async ({
 }) => {
   await page.goto('/settlement/vendor-payout');
 
-  // 2500 sold less 200 commission. The number that would appear if a payout
-  // folded the commissions instead is 200, and it must not.
-  await expect(page.getByRole('cell', { name: '2300' })).toBeVisible();
-  await expect(
-    page.getByRole('cell', { name: '200', exact: true }),
-  ).toHaveCount(0);
+  // 25,00 sold less 2,00 commission. The amount that would appear if a payout
+  // folded the commissions instead is 2,00, and it must not.
+  await expect(page.getByRole('cell', { name: /^23,00\sGTQ$/ })).toBeVisible();
+  await expect(page.getByRole('cell', { name: /^2,00\sGTQ$/ })).toHaveCount(0);
 });
 
 test('opens a payout read-only', async ({ page }) => {

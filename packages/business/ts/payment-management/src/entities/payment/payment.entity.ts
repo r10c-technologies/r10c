@@ -106,6 +106,7 @@ export class Payment implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:payment.fields.amount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     sortable: true,
     filterable: true,

@@ -133,4 +133,16 @@ describe('Payment', () => {
     expect(groupId?.type).toBe('string');
     expect(groupId?.filterable).toBe(true);
   });
+
+  it('reads its amounts as money in minor units of its own currency', () => {
+    // Every amount in the fleet is stored in minor units. Without `money`, a
+    // generated table prints 5499 where a person reads Q54.99.
+    const columns = describeEntityColumns(Payment);
+    for (const name of ['amount']) {
+      expect(columns.find(column => column.name === name)?.money).toEqual({
+        unit: 'minor',
+        currencyMember: 'currency',
+      });
+    }
+  });
 });

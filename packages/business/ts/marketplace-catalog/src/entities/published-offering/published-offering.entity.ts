@@ -135,6 +135,7 @@ export class PublishedOffering implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:published-offering.fields.amount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     sortable: true,
     filterable: true,

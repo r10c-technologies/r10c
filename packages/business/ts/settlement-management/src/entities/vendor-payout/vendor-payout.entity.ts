@@ -104,6 +104,7 @@ export class VendorPayout implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:vendor-payout.fields.amount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     sortable: true,
     filterable: true,

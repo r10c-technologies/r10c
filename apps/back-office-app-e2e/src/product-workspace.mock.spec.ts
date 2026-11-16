@@ -31,7 +31,7 @@ test.describe('the product workspace', () => {
         name: 'Un widget azul sobre fondo blanco',
       }),
     ).toBeVisible();
-    await expect(region(page, 'Precios')).toContainText('4500');
+    await expect(region(page, 'Precios')).toContainText(/45,00/);
     await expect(
       record(region(page, 'Existencias'), 'Taza de cerámica'),
     ).toContainText('10');
@@ -112,7 +112,7 @@ test.describe('the product workspace', () => {
 
     await page.goto(OFFERING);
 
-    await expect(region(page, 'Precios')).toContainText('4500');
+    await expect(region(page, 'Precios')).toContainText(/45,00/);
     await expect(region(page, 'Existencias')).toHaveCount(0);
     expect(stockReads).toEqual([]);
   });
@@ -135,7 +135,7 @@ test.describe('the product workspace', () => {
       '/es/workspace?tab=master%3Aproduct-offering%3Aproduct-offering-1',
     );
 
-    await expect(region(page, 'Precios')).toContainText('4500');
+    await expect(region(page, 'Precios')).toContainText(/45,00/);
     await expect(region(page, 'Existencias')).toBeVisible();
   });
 });

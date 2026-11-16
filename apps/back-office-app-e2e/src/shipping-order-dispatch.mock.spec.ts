@@ -34,6 +34,15 @@ test('opens on the shipments awaiting dispatch', async ({ page }) => {
   await expect(record(page, /ord-d1/)).toHaveCount(0);
 });
 
+test('reads what the courier collects as money, never as minor units', async ({
+  page,
+}) => {
+  await page.goto(`/fulfilment/shipping-order/${AWAITING_SHIPMENT_ID}`);
+
+  // 50 minor units is 0,50 quetzales (#596).
+  await expect(page.getByText(/0,50\sGTQ/).first()).toBeVisible();
+});
+
 test('reaches the worklist from the navigation', async ({ page }) => {
   await page.goto('/account');
 

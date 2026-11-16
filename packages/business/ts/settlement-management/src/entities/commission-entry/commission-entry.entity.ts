@@ -141,6 +141,7 @@ export class CommissionEntry implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:commission-entry.fields.saleAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     sortable: true,
     filterable: true,
@@ -156,6 +157,7 @@ export class CommissionEntry implements Entity {
   @accessor({
     type: 'number',
     labelKey: 'entity:commission-entry.fields.commissionAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
     sortable: true,
     filterable: true,

@@ -90,6 +90,7 @@ export class OrderItem {
   @accessor({
     type: 'number',
     labelKey: 'entity:product-order.fields.item.amount',
+    money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
   })
   get amount(): number {
