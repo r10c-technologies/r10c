@@ -115,7 +115,11 @@ export const test = defineEntifixE2eTest({
   // The storefront serves its own documents and server actions; the catalog's
   // pictures name an outside host the browser is told does not resolve
   // (`playwright.config.ts`), so they are let through to fail on their own.
-  passthroughOrigins: [APP_URL, 'https://picsum.photos'],
+  passthroughOrigins: [
+    APP_URL,
+    'https://picsum.photos',
+    'https://media.example.org',
+  ],
 });
 
 export { expect } from '@entifix/testing-e2e/playwright';

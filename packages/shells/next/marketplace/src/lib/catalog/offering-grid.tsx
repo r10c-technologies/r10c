@@ -15,6 +15,7 @@ import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { ProductCard } from '@r10c/utils-react-ui';
 
 import { addToCart } from '../cart/cart-actions';
+import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
 import { emptyPage, runReadOutcome } from './catalog-reads';
 
@@ -45,7 +46,9 @@ export interface CardNames {
 export async function loadCardNames(
   offerings: readonly PublishedOffering[],
 ): Promise<CardNames> {
-  const vendorIds = [...new Set(offerings.map(offering => offering.vendorId))];
+  const vendorIds = Array.from(
+    new Set(offerings.map(offering => offering.vendorId)),
+  );
   const [brands, vendors] = await Promise.all([
     runReadOutcome(ProductBrand, loadBrands(), emptyPage<ProductBrand>()),
     runReadOutcome(PublishedVendor, loadVendors(vendorIds), []),
@@ -110,60 +113,88 @@ export function OfferingGrid({
   }
 
   const t = getServerTFor(locale, 'r10c');
+  const hosts = imageHosts();
 
   return (
     <div className={GRID[layout]}>
-      {offerings.map(offering => (
-        <ProductCard
-          key={offering.offeringId}
-          href={localeHref(locale, storePaths.offering(offering.offeringId))}
-          {...offeringCard(offering, {
-            locale,
-            brandName: names.brandName,
-            sellerName: names.sellerName,
-            soldBy: seller => t('storefront.product.soldBy', { seller }),
-            labels: {
-              available: t('storefront.product.available'),
-              unavailable: t('storefront.product.unavailable'),
-            },
-          })}
-          // One action, and it is not a client component. The card itself is
-          // the link to the product (#568); "Add" is a form posting to the
-          // same Server Action the product page uses, with `SubmitButton`, a
-          // server component: entifix's `Button` is `'use client'`, and one
-          // per tile is a client boundary per tile.
-          //
-          // Its visible word is short, and its name says what it adds, with
-          // the visible word inside it (WCAG 2.5.3). It is the card's primary
-          // target, so it takes the 44px floor at the card's full width.
-          cta={
-            <form action={addToCart}>
-              <input
-                type="hidden"
-                name="offeringId"
-                value={offering.offeringId}
-              />
-              <input type="hidden" name="locale" value={locale} />
-              {returnTo === undefined ? null : (
-                <input type="hidden" name="returnTo" value={returnTo} />
-              )}
-              <SubmitButton
-                variant="primary"
-                size="sm"
-                className="touch-target w-full"
-                aria-label={t('storefront.product.addNamed', {
-                  name: offering.name,
-                })}
-              >
-                {t('storefront.product.add')}
-              </SubmitButton>
-            </form>
-          }
-        />
-      ))}
+      {offerings.map(offering => {
+        const card = offeringCard(offering, {
+          locale,
+          brandName: names.brandName,
+          sellerName: names.sellerName,
+          soldBy: seller => t('storefront.product.soldBy', { seller }),
+          labels: {
+            available: t('storefront.product.available'),
+            unavailable: t('storefront.product.unavailable'),
+          },
+        });
+        return (
+          <ProductCard
+            key={offering.offeringId}
+            href={localeHref(locale, storePaths.offering(offering.offeringId))}
+            {...card}
+            // At the size the card shows it, through the optimizer when its
+            // host allows (#571).
+            media={
+              card.media === undefined
+                ? undefined
+                : {
+                    // Named, not spread: a snapshot's media is a class whose
+                    // members are accessors, which a spread leaves behind.
+                    url: card.media.url,
+                    alt: card.media.alt,
+                    sizes: SIZES[layout],
+                    loader: imageLoaderFor(card.media.url, hosts),
+                  }
+            }
+            // One action, and it is not a client component. The card itself is
+            // the link to the product (#568); "Add" is a form posting to the
+            // same Server Action the product page uses, with `SubmitButton`, a
+            // server component: entifix's `Button` is `'use client'`, and one
+            // per tile is a client boundary per tile.
+            //
+            // Its visible word is short, and its name says what it adds, with
+            // the visible word inside it (WCAG 2.5.3). It is the card's primary
+            // target, so it takes the 44px floor at the card's full width.
+            cta={
+              <form action={addToCart}>
+                <input
+                  type="hidden"
+                  name="offeringId"
+                  value={offering.offeringId}
+                />
+                <input type="hidden" name="locale" value={locale} />
+                {returnTo === undefined ? null : (
+                  <input type="hidden" name="returnTo" value={returnTo} />
+                )}
+                <SubmitButton
+                  variant="primary"
+                  size="sm"
+                  className="touch-target w-full"
+                  aria-label={t('storefront.product.addNamed', {
+                    name: offering.name,
+                  })}
+                >
+                  {t('storefront.product.add')}
+                </SubmitButton>
+              </form>
+            }
+          />
+        );
+      })}
     </div>
   );
 }
+
+/**
+ * How wide a card's picture is shown in each layout, as `sizes`: half the
+ * viewport in two columns, then a strip's quarter of the 80rem frame or a
+ * listing's column beside its filters.
+ */
+const SIZES: Record<OfferingGridLayout, string> = {
+  strip: '(min-width: 64rem) 20rem, 50vw',
+  listing: '(min-width: 40rem) 24rem, 50vw',
+};
 
 /**
  * Two to a row on a phone in both layouts, where one card per row is a screen

@@ -107,12 +107,15 @@ const CONFIGURATION = {
  * - **One product, two sellers.** Two vendors offer "Lino Napkin Set" under
  *   the same name, and only the seller line tells their cards apart.
  * - **A seller whose name cannot be read.** `SELLER_DOWN_VENDOR` answers 503
- *   below, so a grid naming it shows every card without a seller line.
+ *   below, so a grid naming it shows every card without a seller line. Its
+ *   one offering's picture is on a host the image optimizer may not fetch.
  *
  * All three are old, uncategorized and out of stock, so no home strip or
  * category count picks them up.
  */
 const SELLER_DOWN_VENDOR = 'e2e-vendor-down';
+/** A media host not on `STOREFRONT_IMAGE_HOSTS`; the browser is told it does not resolve. */
+const OUTSIDE_MEDIA_HOST = 'https://media.example.org';
 
 const journeyOffering = (offeringId, vendorId, name, amount) => ({
   id: offeringId,
@@ -139,12 +142,17 @@ const JOURNEY_OFFERINGS = [
     'Lino Napkin Set',
     4200,
   ),
-  journeyOffering(
-    'offering-eclipse-runner',
-    SELLER_DOWN_VENDOR,
-    'Eclipse Table Runner',
-    9900,
-  ),
+  {
+    ...journeyOffering(
+      'offering-eclipse-runner',
+      SELLER_DOWN_VENDOR,
+      'Eclipse Table Runner',
+      9900,
+    ),
+    // On a host the optimizer is not allowed to fetch from, so its picture
+    // renders as it is, with no `srcset` (#571).
+    media: [{ url: `${OUTSIDE_MEDIA_HOST}/runner.jpg`, alt: 'Runner, folded' }],
+  },
 ];
 
 const collections = [
@@ -412,8 +420,29 @@ const sellerDownHandler = http.get(
       : undefined,
 );
 
+/**
+ * The seed's pictures, as the image optimizer fetches them (#571). The
+ * browser never asks picsum for anything any more — it asks the storefront's
+ * `/_next/image` — so the fetch happens here, in the Next process, and an
+ * unhandled one would leave this hermetic profile for the real host. Every
+ * picture is the same one grey pixel.
+ */
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/58BAwAI/AL+XJ/PNgAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+const pictureHandler = http.get(
+  'https://picsum.photos/*',
+  () =>
+    new HttpResponse(PIXEL, {
+      headers: { 'content-type': 'image/png' },
+    }),
+);
+
 setupServer(
   unavailableHandler,
+  pictureHandler,
   sellerDownHandler,
   buyerCancelHandler,
   buyerReceiptHandler,

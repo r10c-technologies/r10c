@@ -7,6 +7,7 @@ import {
   HeadingOne,
   HeadingTwo,
   MediaGallery,
+  MediaImage,
   Money,
   Overline,
   QuantityInput,
@@ -37,10 +38,14 @@ import {
   OfferingGridSkeleton,
 } from '../catalog/offering-grid';
 import { readProduct } from '../catalog/product-read';
+import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
 import { storefrontOrigin } from '../seo/page-metadata';
 import { jsonLdScript, productJsonLd } from '../seo/product-json-ld';
 import { StoreShell } from './store-shell';
+
+/** The gallery's column: half the 80rem frame from `sm`, the screen below. */
+const GALLERY_SIZES = '(min-width: 40rem) 40rem, 100vw';
 
 /** The related strip holds four: whole rows at two and at four columns. */
 const RELATED_SIZE = 4;
@@ -160,6 +165,7 @@ async function ProductContent({
   );
   const category = trail.at(-1);
   const media = offering.media ?? [];
+  const hosts = imageHosts();
   const url = `${storefrontOrigin()}${localeHref(locale, storePaths.offering(offering.offeringId))}`;
 
   return (
@@ -327,14 +333,20 @@ async function ProductContent({
                 position: (index, total) =>
                   t('storefront.product.galleryPosition', { index, total }),
               }}
-              renderMedia={item => (
-                <img
+              sizes={GALLERY_SIZES}
+              // Each picture through the optimizer when its host allows, at
+              // the column's width (#571). The gallery marks the first one the
+              // priority: what the page is about is fetched first and at once,
+              // and the rest wait.
+              renderMedia={(item, slide) => (
+                <MediaImage
                   className="h-full w-full object-cover"
                   src={item.src}
                   alt={item.alt}
-                  // The first picture is what the page is about; the rest wait.
-                  loading={item.id === 'media-1' ? 'eager' : 'lazy'}
-                  decoding="async"
+                  sizes={slide.sizes}
+                  priority={slide.priority}
+                  loader={imageLoaderFor(item.src, hosts)}
+                  style={{ aspectRatio: undefined }}
                 />
               )}
             />

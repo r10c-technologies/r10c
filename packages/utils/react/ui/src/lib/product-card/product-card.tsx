@@ -2,6 +2,8 @@ import {
   Card,
   Cluster,
   HeadingThree,
+  MediaImage,
+  type MediaImageLoader,
   Money,
   Stack,
   StatusTag,
@@ -13,6 +15,17 @@ import { type ReactNode, useId } from 'react';
 export interface ProductCardMedia {
   readonly url: string;
   readonly alt: string;
+  /**
+   * How wide the card shows it, as a `sizes` attribute. The page knows its
+   * columns; the card does not. Absent, the full viewport width, which is
+   * never too small but often too big.
+   */
+  readonly sizes?: string;
+  /**
+   * Resizes the picture per width, so a phone fetches a thumbnail rather than
+   * the vendor's original (#571). Absent, the picture is served as it is.
+   */
+  readonly loader?: MediaImageLoader;
 }
 
 export type ProductCardDensity = 'comfortable' | 'compact';
@@ -115,12 +128,15 @@ function CardMedia({
     );
   }
   return (
-    <img
+    <MediaImage
       className={`${box} object-cover`}
       src={media.url}
       alt={media.alt}
-      loading="lazy"
-      decoding="async"
+      sizes={media.sizes ?? '100vw'}
+      loader={media.loader}
+      // The box is the class's, which changes with the card's width; an inline
+      // ratio would pin it.
+      style={{ aspectRatio: undefined }}
     />
   );
 }
@@ -153,9 +169,11 @@ export function ProductCard({
       // than the viewport's: the same card is narrow in a phone's two columns
       // and wide in a desktop strip. `relative` anchors the title's stretched
       // link.
-      className="@container relative flex flex-col"
+      // On a phone, two cards to a row, the card's own padding was a third of
+      // its width; it narrows to give the picture and the words that room.
+      className="@container relative flex flex-col max-sm:p-xs"
     >
-      <Stack gap={gap} className="h-full">
+      <Stack gap={gap} className="h-full @max-[13rem]:gap-2xs">
         <div className="relative">
           <CardMedia media={media} title={title} />
           {badges === undefined ? null : (
