@@ -172,6 +172,61 @@ describe('ConfigurationSingleViewClientPage', () => {
     );
   });
 
+  describe('when the row changed underneath the form', () => {
+    /** The record moves to revision 5 behind the open form's back. */
+    const moveOn = () => {
+      const next = makeRow('c-1', 'url', 'moved');
+      next.revision = 5;
+      repository.seed([next]);
+    };
+
+    const openAndRefuse = async (onSaved: () => void) => {
+      slug = 'c-1';
+      renderPage(
+        <ConfigurationSingleViewClientPage slug="c-1" onSaved={onSaved} />,
+      );
+      await waitFor(() =>
+        expect(screen.getByDisplayValue('auth')).toBeInTheDocument(),
+      );
+      moveOn();
+      await userEvent.click(
+        screen.getByRole('button', { name: /Guardar|Save/i }),
+      );
+      await screen.findByRole('button', { name: /Conservar mis cambios/i });
+    };
+
+    it('keeps what was typed and saves at the revision it was told is current', async () => {
+      const onSaved = vi.fn();
+      await openAndRefuse(onSaved);
+      expect(onSaved).not.toHaveBeenCalled();
+
+      await userEvent.click(
+        screen.getByRole('button', { name: /Conservar mis cambios/i }),
+      );
+      await userEvent.click(
+        screen.getByRole('button', { name: /Guardar|Save/i }),
+      );
+
+      await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    });
+
+    it('drops what was typed and shows the record as it now stands', async () => {
+      const onSaved = vi.fn();
+      await openAndRefuse(onSaved);
+
+      await userEvent.click(
+        screen.getByRole('button', { name: /Descartar los míos/i }),
+      );
+
+      await waitFor(() =>
+        expect(screen.getByDisplayValue('moved')).toBeInTheDocument(),
+      );
+      expect(
+        screen.queryByRole('button', { name: /Conservar mis cambios/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('deletes an existing row and calls back', async () => {
     slug = 'c-1';
     const onDeleted = vi.fn();

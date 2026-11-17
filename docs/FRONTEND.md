@@ -959,7 +959,7 @@ The decisions are [ADR 0072](adr/0072-the-realtime-slice-flow-status-and-the-edg
 the stream lives and who hears what) and
 [ADR 0073](adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md)
 (how a write settles); the mechanism is entifix's `PushChannel` and `useOptimisticMutation`
-([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.23.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
+([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.23.1/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 
 > **Built by #475–#478.** The back office mounts all of it in `apps/back-office-app/src/app/providers.tsx`:
 > the `ToastProvider` and its `ToastRegion`, one module-level push channel, `PendingFlowsProvider`
@@ -1112,7 +1112,7 @@ new question starts with no facets.
 
 **The facets count, and the counts are disjunctive** (#350). Beside the page the
 listing reads `GET /api/published-offering/$facets` — entifix's facet counter,
-[entifix ADR 0012](https://github.com/r10c-technologies/entifix/blob/v0.23.0/docs/adr/0012-facet-counts-are-a-port-of-their-own.md)
+[entifix ADR 0012](https://github.com/r10c-technologies/entifix/blob/v0.23.1/docs/adr/0012-facet-counts-are-a-port-of-their-own.md)
 — in parallel, through the same `runRead`, so a failed count renders the panel
 without numbers and never the page without products. Each facet is counted under
 the search **minus its own choice** (`offeringFacetQueries`), so choosing one
@@ -1131,7 +1131,7 @@ opens, rather than one hidden for good. No script either way.
 
 **Search ignores accents** (#379): `cafe` finds `Café`, `jarron` finds
 `Jarrón`, because entifix's `like` folds accents and case in every engine
-([entifix ADR 0011](https://github.com/r10c-technologies/entifix/blob/v0.23.0/docs/adr/0011-like-ignores-accents.md)).
+([entifix ADR 0011](https://github.com/r10c-technologies/entifix/blob/v0.23.1/docs/adr/0011-like-ignores-accents.md)).
 Ranking by relevance is not part of it (#441). A card's "Añadir al carrito" is a form posting to the
 same Server Action as the product page, with a plain `<button>` wearing
 entifix's `button` recipe: `Button` is `'use client'`, and one per tile would be

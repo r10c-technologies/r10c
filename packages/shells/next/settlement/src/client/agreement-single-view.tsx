@@ -11,10 +11,12 @@ import { useLocaleHref } from '@entifix/next-shell';
 import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
 import { Agreement } from '@r10c/business-ts-settlement-management';
 import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { AGREEMENT_SURFACE } from '../settlement-surfaces';
 import { AgreementForm } from './agreement-form';
 import { useSettlementAdapters } from './settlement-context';
+import { staleCurrentOf } from './stale-revision';
 
 type AgreementContext = EntityRepositoryTag;
 
@@ -61,6 +63,7 @@ export function AgreementSingleViewClientPage({
     entity,
     isLoading,
     error: loadError,
+    reload,
   } = useEntityRecord<Agreement, AgreementContext>({
     uc: getUCFactory<Agreement>(),
     ctx,
@@ -77,6 +80,20 @@ export function AgreementSingleViewClientPage({
     ctx,
   });
 
+  // A conflict answered either way stops showing: the alert belongs to the
+  // `current` revision it named, so a later refusal names another and shows.
+  const [answered, setAnswered] = useState<number>();
+  const staleCurrent = staleCurrentOf(writeError);
+  const shownWriteError =
+    staleCurrent !== undefined && staleCurrent === answered
+      ? undefined
+      : writeError;
+  const handleLoadCurrent = () => {
+    setAnswered(staleCurrent);
+    reload();
+  };
+  const handleConflictResolved = () => setAnswered(staleCurrent);
+
   const afterSave =
     onSaved ?? (() => router.push(withLocale(AGREEMENT_SURFACE.basePath)));
 
@@ -91,11 +108,13 @@ export function AgreementSingleViewClientPage({
       // Reseeds the draft — and the rate editor's own state — when the record
       // arrives. `useEntityForm` seeds once, and so does a `useState`
       // initializer, so both depend on this key.
-      key={String(entity?.id ?? NEW_SLUG)}
+      key={`${String(entity?.id ?? NEW_SLUG)}:${String(entity?.revision)}`}
       entity={entity}
       isLoading={isLoading}
       isSaving={isSaving}
-      error={loadError ?? writeError}
+      error={loadError ?? shownWriteError}
+      onLoadCurrent={handleLoadCurrent}
+      onConflictResolved={handleConflictResolved}
       metadataSource={metadata}
       onSave={handleSave}
       backHref={withLocale(AGREEMENT_SURFACE.basePath)}

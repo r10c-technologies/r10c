@@ -1,6 +1,6 @@
 # Entifix — entities and the Effect-agnostic use-case
 
-> **Status (2026-11, entifix 0.23.0)** — `@entifix/core`, `@entifix/business`,
+> **Status (2026-11, entifix 0.23.1)** — `@entifix/core`, `@entifix/business`,
 > `@entifix/rest`, `@entifix/mongo`, `@entifix/react-controls` and
 > `@entifix/react-integration` are implemented and installed from the registry.
 > The `load`, `get`, `save` and `delete` use-cases run end-to-end over both REST
@@ -441,10 +441,10 @@ factory does, and `makeEntityFacetRoutes` mounts `GET <entity>/$facets` only on 
 host that binds it. Only a `filterable` member may be counted. r10c's single-Mongo
 fleet layer binds the factory beside the repository factory, so any such service
 can count what it can load
-([entifix ADR 0012](https://github.com/r10c-technologies/entifix/blob/v0.23.0/docs/adr/0012-facet-counts-are-a-port-of-their-own.md)).
+([entifix ADR 0012](https://github.com/r10c-technologies/entifix/blob/v0.23.1/docs/adr/0012-facet-counts-are-a-port-of-their-own.md)).
 
 Failures are typed values with a family, a category and a registered `code`
-([entifix ADR 0013](https://github.com/r10c-technologies/entifix/blob/v0.23.0/docs/adr/0013-failures-are-typed-values-decided-at-the-shell.md)):
+([entifix ADR 0013](https://github.com/r10c-technologies/entifix/blob/v0.23.1/docs/adr/0013-failures-are-typed-values-decided-at-the-shell.md)):
 match them with `Failure.isCategory` / `isFamily` / `isTag`, never `instanceof`.
 The old `EntifixError` tree — `EntifixConnError`, `EntifixBuildError`,
 `EntifixLogicError` — still exists while entifix #126 removes it, and an
@@ -616,7 +616,7 @@ GET /api/product-brand?rsql=name%3Dlike%3DAcme%3Bstock%3Dgt%3D10&sort=%2Bname%2C
 
 **`like` and `nlike` ignore accents as well as case**, in every engine, by one
 rule (NFD, drop the combining marks, lowercase — so `ñ` is `n`):
-[entifix ADR 0011](https://github.com/r10c-technologies/entifix/blob/v0.23.0/docs/adr/0011-like-ignores-accents.md).
+[entifix ADR 0011](https://github.com/r10c-technologies/entifix/blob/v0.23.1/docs/adr/0011-like-ignores-accents.md).
 
 `;` is and, `,` is or (and binds tighter), `(…)` groups. The first six plus
 `=in=`/`=out=` are standard RSQL; the rest are entifix extensions written in the

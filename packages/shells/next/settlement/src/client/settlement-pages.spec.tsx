@@ -259,6 +259,51 @@ describe('the agreement record page', () => {
   });
 });
 
+describe('when the agreement changed underneath the form', () => {
+  /** The record moves to revision 5 behind the open form's back. */
+  const openAndRefuse = async (onSaved: () => void) => {
+    slug = 'agreement-acme';
+    renderPage(<AgreementSingleViewClientPage onSaved={onSaved} />);
+    await waitFor(() =>
+      expect(screen.getByDisplayValue('800')).toBeInTheDocument(),
+    );
+    const next = makeAgreement();
+    next.revision = 5;
+    next.commissionBasisPoints = 900;
+    repositories.agreement.seed([next]);
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }));
+    await screen.findByRole('button', { name: /conservar mis cambios/i });
+  };
+
+  it('keeps what was typed and saves at the revision it was told is current', async () => {
+    const onSaved = vi.fn();
+    await openAndRefuse(onSaved);
+    expect(onSaved).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /conservar mis cambios/i }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+  });
+
+  it('drops what was typed and shows the record as it now stands', async () => {
+    await openAndRefuse(vi.fn());
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /descartar los míos/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByDisplayValue('900')).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole('button', { name: /conservar mis cambios/i }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('saving an agreement', () => {
   it('navigates away once the record is written', async () => {
     // The success arm of the save, which is the whole of what this page adds

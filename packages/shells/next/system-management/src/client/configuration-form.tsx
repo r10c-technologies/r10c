@@ -10,6 +10,9 @@ import {
 } from '@entifix/react-controls';
 import { useEntityForm } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
+import { useState } from 'react';
+
+import { staleCurrentOf } from './stale-revision';
 
 export interface ConfigurationFormProps {
   entity?: Configuration;
@@ -19,6 +22,10 @@ export interface ConfigurationFormProps {
   error?: EntifixFailure;
   onSave: (entity: Configuration) => void;
   onDelete?: () => void;
+  /** Drops what was typed and shows the record as it now stands. */
+  onLoadCurrent?: () => void;
+  /** The conflict was answered, so its alert can go. */
+  onConflictResolved?: () => void;
   backHref?: string;
 }
 
@@ -47,11 +54,17 @@ export function ConfigurationForm({
   error,
   onSave,
   onDelete,
+  onLoadCurrent,
+  onConflictResolved,
   backHref,
 }: ConfigurationFormProps) {
   const et = useT('entity');
   const st = useT('r10c');
   const isSecret = entity?.isSecret === true;
+
+  // The newer revision a conflict told this form about, once the person chose
+  // to keep what they typed.
+  const [keptRevision, setKeptRevision] = useState<number>();
 
   const translateKey = useTranslateKey();
   const form = useEntityForm<Configuration>({
@@ -61,8 +74,9 @@ export function ConfigurationForm({
     onSubmit: values => {
       const target = new Configuration();
       target.id = entity?.id;
-      // The revision the record was read at: the save is conditional on it.
-      target.revision = entity?.revision;
+      // The revision the record was read at, or the one "keep mine" took: the
+      // save is conditional on it.
+      target.revision = keptRevision ?? entity?.revision;
       target.service = readDraftString(values, 'service');
       target.groupName = readDraftString(values, 'groupName');
       target.key = readDraftString(values, 'key');
@@ -77,6 +91,18 @@ export function ConfigurationForm({
       onSave(target);
     },
   });
+
+  // A save refused because the record moved on (ADR 0032): the fields keep what
+  // was typed, and "keep mine" only takes the newer revision as the one the next
+  // save names. Nothing here saves; the person presses Save again.
+  const staleCurrent = staleCurrentOf(error);
+  const keepMine =
+    typeof staleCurrent === 'number' && onConflictResolved !== undefined
+      ? () => {
+          setKeptRevision(staleCurrent);
+          onConflictResolved();
+        }
+      : undefined;
 
   return (
     <EntityForm<Configuration>
@@ -98,6 +124,8 @@ export function ConfigurationForm({
       isSaving={isSaving}
       isDeleting={isDeleting}
       error={error}
+      onKeepMine={keepMine}
+      onLoadCurrent={onLoadCurrent}
       backHref={backHref}
       // `entity` is undefined until the record lands, so testing it alone
       // titled a loading edit form "New" and then relabelled it (#139).

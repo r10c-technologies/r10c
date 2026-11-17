@@ -20,6 +20,7 @@ import {
 import { useState } from 'react';
 
 import { ChannelRateEditor } from './channel-rate-editor';
+import { staleCurrentOf } from './stale-revision';
 
 export interface AgreementFormProps {
   entity?: Agreement;
@@ -30,6 +31,10 @@ export interface AgreementFormProps {
   /** Where this caller's affordances come from — the served descriptor. */
   metadataSource?: EntityMetadataSource;
   onSave: (entity: Agreement) => void;
+  /** Drops what was typed and shows the record as it now stands. */
+  onLoadCurrent?: () => void;
+  /** The conflict was answered, so its alert can go. */
+  onConflictResolved?: () => void;
   backHref?: string;
 }
 
@@ -68,6 +73,8 @@ export function AgreementForm({
   error,
   metadataSource,
   onSave,
+  onLoadCurrent,
+  onConflictResolved,
   backHref,
 }: AgreementFormProps) {
   const et = useT('entity');
@@ -89,6 +96,10 @@ export function AgreementForm({
     () => entity?.channelCommissionBasisPoints ?? {},
   );
 
+  // The newer revision a conflict told this form about, once the person chose
+  // to keep what they typed.
+  const [keptRevision, setKeptRevision] = useState<number>();
+
   const translateKey = useTranslateKey();
   const form = useEntityForm<Agreement>({
     entityConstructor: Agreement,
@@ -109,8 +120,9 @@ export function AgreementForm({
     onSubmit: values => {
       const target = new Agreement();
       target.id = entity?.id;
-      // The revision the record was read at: the save is conditional on it.
-      target.revision = entity?.revision;
+      // The revision the record was read at, or the one "keep mine" took: the
+      // save is conditional on it.
+      target.revision = keptRevision ?? entity?.revision;
       target.vendorId = readDraftString(values, 'vendorId');
       target.commissionBasisPoints = Number(
         readDraftString(values, 'commissionBasisPoints'),
@@ -131,6 +143,18 @@ export function AgreementForm({
     },
   });
 
+  // A save refused because the record moved on (ADR 0032): the fields keep what
+  // was typed, and "keep mine" only takes the newer revision as the one the next
+  // save names. Nothing here saves; the person presses Save again.
+  const staleCurrent = staleCurrentOf(error);
+  const keepMine =
+    typeof staleCurrent === 'number' && onConflictResolved !== undefined
+      ? () => {
+          setKeptRevision(staleCurrent);
+          onConflictResolved();
+        }
+      : undefined;
+
   return (
     <EntityForm<Agreement>
       entityConstructor={Agreement}
@@ -146,6 +170,8 @@ export function AgreementForm({
       isSaving={isSaving}
       isDeleting={isDeleting}
       error={error}
+      onKeepMine={keepMine}
+      onLoadCurrent={onLoadCurrent}
       backHref={backHref}
       // `entity` is undefined until the record lands, so testing it alone
       // titled a loading edit form "New" and then relabelled it (#139).
