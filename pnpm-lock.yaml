@@ -4818,6 +4818,48 @@ importers:
         specifier: 0.5.23
         version: 0.5.23
 
+  tools/capabilities:
+    devDependencies:
+      '@entifix/authz':
+        specifier: 'catalog:'
+        version: 0.22.4(effect@4.0.7)
+      '@r10c/business-ts-authz-grants':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz-grants
+      '@r10c/shells-effect-flow-catalog':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/flow-catalog
+      '@r10c/shells-next-auth':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/auth
+      '@r10c/shells-next-fulfilment':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/fulfilment
+      '@r10c/shells-next-marketplace':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/marketplace
+      '@r10c/shells-next-marketplace-admin':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/marketplace-admin
+      '@r10c/shells-next-order':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/order
+      '@r10c/shells-next-sales':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/sales
+      '@r10c/shells-next-settlement':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/settlement
+      '@r10c/shells-next-stock':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/stock
+      '@r10c/shells-next-system-management':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/system-management
+      '@r10c/slices':
+        specifier: workspace:*
+        version: link:../slices
+
   tools/conventions:
     devDependencies:
       '@entifix/style':

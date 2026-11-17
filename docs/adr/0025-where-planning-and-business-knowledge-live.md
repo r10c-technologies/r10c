@@ -13,6 +13,7 @@
   lives here, entifix work included; an entifix issue closes on r10c's
   adoption; ADRs split by concern; and the entifix records r10c follows are
   listed in `CLAUDE.md`, pinned to the installed release
+- Revised: 2026-11-16 by [ADR 0080](0080-a-capability-register-holds-one-thin-entry-per-use-case.md) — the contract artifact gains `tools/capabilities/`; the docs site publishes nothing the repository could not hold; payment-link provider and courier names stay out of the repository, which seeds `other` alone
 
 ## Context
 
@@ -60,12 +61,12 @@ putting them in one place:
 
 **Four artifacts, one job each, and a named seam between them.**
 
-| Artifact                                         | Answers                         | Enforced by              |
-| ------------------------------------------------ | ------------------------------- | ------------------------ |
-| **Notion** — the `r10c` space                    | how the business actually works | nothing; that is fine    |
-| **ADR** — `docs/adr/`                            | what we decided, and why        | `@r10c/docs-check`       |
-| **`BUSINESS-ARCHITECTURE.md` + `tools/slices/`** | what the contract is            | `@r10c/slices`           |
-| **GitHub issue** under a **milestone**, in r10c  | what is next, and is it done    | the milestone's own test |
+| Artifact                                                                 | Answers                         | Enforced by                          |
+| ------------------------------------------------------------------------ | ------------------------------- | ------------------------------------ |
+| **Notion** — the `r10c` space                                            | how the business actually works | nothing; that is fine                |
+| **ADR** — `docs/adr/`                                                    | what we decided, and why        | `@r10c/docs-check`                   |
+| **`BUSINESS-ARCHITECTURE.md` + `tools/slices/` + `tools/capabilities/`** | what the contract is            | `@r10c/slices`, `@r10c/capabilities` |
+| **GitHub issue** under a **milestone**, in r10c                          | what is next, and is it done    | the milestone's own test             |
 
 A process question goes to Notion. When it forces a modelling call, that call
 becomes an ADR. The consequence lands in the register. The work becomes an issue
@@ -256,14 +257,19 @@ un-publishes a commit that was public when it was made.
 So exposure is decided **per commit, at commit time, permanently**, and the line
 is drawn by ownership rather than by sensitivity:
 
-| Committable, forever public                                                        | Notion only                                   |
-| ---------------------------------------------------------------------------------- | --------------------------------------------- |
-| Public law and public mechanism: IVA rates, DTE types, how FEL certification works | our commission percentages and tier structure |
-| Ports, entity shapes, ADR reasoning                                                | named pilot vendors and real agreement terms  |
-| Milestone and story titles                                                         | negotiated courier rates, margin assumptions  |
+| Committable, forever public                                                        | Notion only                                           |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Public law and public mechanism: IVA rates, DTE types, how FEL certification works | our commission percentages and tier structure         |
+| Ports, entity shapes, ADR reasoning                                                | named pilot vendors and real agreement terms          |
+| Milestone and story titles                                                         | negotiated courier rates, margin assumptions          |
+| The mechanism for a provider or courier dictionary, seeded with `other` alone      | the names of real payment-link providers and couriers |
 
 The test is not "is this secret" but "is this ours". Guatemalan tax law is
 already public; our position on it is not.
+
+The docs site follows the same line: it publishes nothing the repository could
+not hold, so a name that is Notion-only is on no page of it
+([ADR 0080](0080-a-capability-register-holds-one-thin-entry-per-use-case.md)).
 
 ## Consequences
 
