@@ -15,12 +15,13 @@ import {
 } from './catalog-reference-api.js';
 
 const brand = (id: string, status: 'active' | 'retired' = 'active') =>
-  Object.assign(new ProductBrand(id), { id, status });
+  Object.assign(new ProductBrand(id), { id, status, revision: 1 });
 
 const category = (id: string, parentId?: string) =>
   Object.assign(new ProductCategory(id, { es: id, en: id }), {
     id,
     status: 'active' as const,
+    revision: 1,
     ...(parentId === undefined ? {} : { parentId }),
   });
 

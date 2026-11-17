@@ -101,6 +101,8 @@ export const errors: EsErrors = {
   invalidEnvelope: 'The request body is not valid.',
   invalidRecords: 'Some records are not valid.',
   duplicateKey: 'A record with that value already exists.',
+  staleRevision:
+    'This record changed since you opened it. Review the current version before saving again.',
   declined: 'The request was declined.',
   contention: 'Another operation got there first. Try again.',
   overloaded: 'The service is overloaded. Try again in a moment.',

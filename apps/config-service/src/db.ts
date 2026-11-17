@@ -594,6 +594,14 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   // Observability. Read the same way as the keys above — out of this table via
   // SQL — because config-service cannot fetch its own configuration over HTTP.
+  // How long a retried save replays its first answer (ADR 0068): the generic
+  // create and update of a revisioned record are idempotent at the edge.
+  {
+    service: 'config-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'config-service',
     group_name: 'logging',

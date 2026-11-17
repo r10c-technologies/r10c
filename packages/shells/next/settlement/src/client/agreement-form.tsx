@@ -109,6 +109,8 @@ export function AgreementForm({
     onSubmit: values => {
       const target = new Agreement();
       target.id = entity?.id;
+      // The revision the record was read at: the save is conditional on it.
+      target.revision = entity?.revision;
       target.vendorId = readDraftString(values, 'vendorId');
       target.commissionBasisPoints = Number(
         readDraftString(values, 'commissionBasisPoints'),

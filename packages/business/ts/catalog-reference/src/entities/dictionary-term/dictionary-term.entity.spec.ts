@@ -66,7 +66,7 @@ describe('DictionaryTerm', () => {
       column => column.name,
     );
 
-    expect(names).toEqual(['id', 'code', 'values', 'unit']);
+    expect(names).toEqual(['id', 'code', 'values', 'unit', 'revision']);
   });
 
   it('keeps the value set on the wire but out of the query allowlist', () => {

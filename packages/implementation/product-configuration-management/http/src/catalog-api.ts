@@ -12,6 +12,7 @@ import {
   makeEntityEnvelope,
   readEntityEnvelope,
   readWireSelection,
+  StaleRevision,
 } from '@entifix/core';
 import { EventSourceTag } from '@entifix/transactions';
 import {
@@ -58,7 +59,13 @@ export const productSpecificationApi = defineEntityApi(
     override: {
       create: {
         idempotent: 'unit',
-        errors: [MediaNotHttps, MediaAltMissing, Invalid, DuplicateKey],
+        errors: [
+          MediaNotHttps,
+          MediaAltMissing,
+          Invalid,
+          DuplicateKey,
+          StaleRevision,
+        ],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
             const specification = yield* readEntityEnvelope(

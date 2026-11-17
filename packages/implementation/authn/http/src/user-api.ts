@@ -16,6 +16,7 @@ import {
   JsonBody,
   NotFound,
   serializeEntity,
+  StaleRevision,
 } from '@entifix/core';
 import {
   AccessTokenLifetimeTag,
@@ -336,7 +337,7 @@ const userSessions = defineEndpoint({
   path: '/api/user-identity/:id/sessions',
   params: { id: Schema.String },
   success: Schema.Struct({ items: JsonBody }),
-  errors: [DuplicateKey, NotFound],
+  errors: [DuplicateKey, StaleRevision, NotFound],
   guard: {
     kind: 'permission',
     permission: permissionForEntity(UserDevice, 'read'),

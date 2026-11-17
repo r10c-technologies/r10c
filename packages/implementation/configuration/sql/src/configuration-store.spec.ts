@@ -45,6 +45,9 @@ const ROW = {
  */
 const sqlFake = () => {
   const fake = makeFakeSqlClient();
+  // The revision check's create answers the row it inserted (a stand-in id:
+  // what these specs assert is the secret and audit rules around the save).
+  fake.respondTo('DO NOTHING', [{ id: 'cfg-created' }]);
   const client = Object.assign(fake.client as object, {
     withTransaction: <A, E, R>(effect: Effect.Effect<A, E, R>) => effect,
   });

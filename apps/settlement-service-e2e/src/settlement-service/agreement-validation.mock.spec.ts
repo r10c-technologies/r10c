@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
@@ -25,7 +27,12 @@ const post = async (data: Record<string, unknown>) => {
   return service.client.post(
     '/api/agreement',
     { meta: { type: 'entity', entity: 'agreement' }, data },
-    { headers: { Authorization: `Bearer ${token}` } },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Idempotency-Key': `"${randomUUID()}"`,
+      },
+    },
   );
 };
 

@@ -61,6 +61,8 @@ export function ConfigurationForm({
     onSubmit: values => {
       const target = new Configuration();
       target.id = entity?.id;
+      // The revision the record was read at: the save is conditional on it.
+      target.revision = entity?.revision;
       target.service = readDraftString(values, 'service');
       target.groupName = readDraftString(values, 'groupName');
       target.key = readDraftString(values, 'key');

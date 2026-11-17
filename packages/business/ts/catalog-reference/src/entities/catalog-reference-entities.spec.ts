@@ -59,6 +59,7 @@ describe('ProductBrand', () => {
       ['description', 'string', 'Description'],
       ['website', 'string', 'Website'],
       ['status', 'enum', 'Status'],
+      ['revision', 'revision', 'Revision'],
     ]);
   });
 
@@ -102,7 +103,15 @@ describe('ProductCategory', () => {
   it('describes its columns with declared types and labels', () => {
     expect(
       describeEntityColumns(ProductCategory).map(column => column.name),
-    ).toEqual(['id', 'code', 'name', 'description', 'status', 'parentId']);
+    ).toEqual([
+      'id',
+      'code',
+      'name',
+      'description',
+      'status',
+      'parentId',
+      'revision',
+    ]);
   });
 
   /**

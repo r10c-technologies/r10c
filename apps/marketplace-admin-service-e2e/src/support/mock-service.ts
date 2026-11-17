@@ -4,7 +4,7 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { TokenServiceTag } from '@entifix/business';
+import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
 // `OutboxMaxAttempts` lives in the shared mongo client, not in this app: the
@@ -27,6 +27,7 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { makeInMemoryIdempotencyStore } from '@entifix/testing-unit';
 import { EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
@@ -103,6 +104,11 @@ const MockAppLayer = (() => {
       makeStaticPolicyDecision(ROLE_PERMISSIONS),
     ),
     Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
+    // A generic create or update of a revisioned record is idempotent at the edge.
+    Layer.succeed(
+      IdempotencyStoreTag,
+      makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
+    ),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
     // The shipped layer reads this from config-service; here it is a literal

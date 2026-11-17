@@ -1,5 +1,5 @@
 import { MongoClientTag } from '@entifix/mongo';
-import { seedCollection } from '@r10c/shells-effect-service';
+import { revised, seedCollection } from '@r10c/shells-effect-service';
 import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
@@ -8,11 +8,6 @@ import {
   offeringTempDataFor,
 } from './offering-temp-data';
 import { productTempDataFor } from './product-temp-data';
-
-const asRecords = (
-  data: ReadonlyArray<object>,
-): ReadonlyArray<Record<string, unknown>> =>
-  data as ReadonlyArray<Record<string, unknown>>;
 
 /**
  * Seeds the catalog collections (`product-specification`, `product-offering`
@@ -42,7 +37,7 @@ export const seedCatalog = (tenantDbName: string, vendor: SeededVendor) =>
     yield* seedCollection(
       db,
       'product-specification',
-      asRecords(productTempDataFor(vendor)),
+      revised(productTempDataFor(vendor)),
     );
 
     // The offering and its price, in the same tenant database and by the same
@@ -50,11 +45,11 @@ export const seedCatalog = (tenantDbName: string, vendor: SeededVendor) =>
     yield* seedCollection(
       db,
       'product-offering',
-      asRecords(offeringTempDataFor(vendor)),
+      revised(offeringTempDataFor(vendor)),
     );
     yield* seedCollection(
       db,
       'product-offering-price',
-      asRecords(offeringPriceTempDataFor(vendor)),
+      revised(offeringPriceTempDataFor(vendor)),
     );
   });

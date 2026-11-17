@@ -3,11 +3,13 @@ import { generateKeyPairSync } from 'node:crypto';
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
 import { serveTestService } from '@entifix/service-shell/testing';
+import { makeInMemoryIdempotencyStore } from '@entifix/testing-unit';
 import { makeFakeSqlClient } from '@entifix/testing-unit/drivers';
 import {
   ConfigurationLookupTag,
@@ -26,7 +28,7 @@ import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/sql';
 import { describe, expect, it } from 'vitest';
 
-import { authLayer, migrateAndSeed } from './app-layer.js';
+import { authLayer, idempotencyLayer, migrateAndSeed } from './app-layer.js';
 import { endpoints, makeAppLayer, policy } from './index.js';
 
 const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -80,6 +82,42 @@ describe('the configuration store migration', () => {
     expect(statements[0]).toContain('CREATE TABLE IF NOT EXISTS configuration');
     expect(statements.some(sql => sql.includes('INSERT INTO'))).toBe(false);
   });
+});
+
+describe('the idempotency store config-service keeps in its own database', () => {
+  const lookupWith = (retention?: string) =>
+    Layer.succeed(ConfigurationLookupTag, {
+      forService: () =>
+        Effect.succeed(
+          retention === undefined
+            ? {}
+            : { idempotency: [{ key: 'retentionMs', value: retention }] },
+        ),
+    } as never);
+
+  it.each([['60000'], [undefined]])(
+    'creates the tables, then answers a store (retention %s)',
+    async retention => {
+      const fake = makeFakeSqlClient();
+      const store = await Effect.runPromise(
+        Effect.gen(function* () {
+          return yield* IdempotencyStoreTag;
+        }).pipe(
+          Effect.provide(
+            idempotencyLayer.pipe(Layer.provide(lookupWith(retention))),
+          ),
+          Effect.provideService(SqlClient.SqlClient, fake.client as never),
+        ),
+      );
+
+      expect(typeof store.claim).toBe('function');
+      expect(
+        fake.executions.some(execution =>
+          execution.sql.includes('entifix_idempotency'),
+        ),
+      ).toBe(true);
+    },
+  );
 });
 
 describe('the token verification config-service reads from its own rows', () => {
@@ -173,6 +211,10 @@ const serveConfig = () =>
           admin: ['config:configuration:write', 'config:configuration:delete'],
         }),
       ),
+      Layer.succeed(
+        IdempotencyStoreTag,
+        makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
+      ),
       // The generic reads are not exercised here; the writes are the cell's.
       Layer.succeed(EntityRepositoryFactoryTag, {} as never),
     ),
@@ -188,7 +230,11 @@ describe('the config endpoints', () => {
         `${service.baseUrl}/api/configuration/${CONTRACT_SECRET.id}`,
         {
           method: 'PUT',
-          headers: { ...asOperator, 'content-type': 'application/json' },
+          headers: {
+            ...asOperator,
+            'content-type': 'application/json',
+            'idempotency-key': '"spec-1"',
+          },
           body: JSON.stringify({
             meta: { type: 'entity', entity: 'configuration' },
             data: { is_secret: false, value: '' },

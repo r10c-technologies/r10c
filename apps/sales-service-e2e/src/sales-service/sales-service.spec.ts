@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
@@ -45,11 +47,18 @@ const SEEDED = {
 const freshName = (label: string) =>
   `e2e-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+/** A generic create or update is idempotent at the edge: it names its key. */
+const once = () => ({ headers: { 'Idempotency-Key': `"${randomUUID()}"` } });
+
 const createChannel = (name: string, type = 'counter') =>
-  service.client.post('/api/sales-channel', {
-    meta: { type: 'entity', entity: 'sales-channel' },
-    data: { name, type, status: 'active' },
-  });
+  service.client.post(
+    '/api/sales-channel',
+    {
+      meta: { type: 'entity', entity: 'sales-channel' },
+      data: { name, type, status: 'active' },
+    },
+    once(),
+  );
 
 describe('sales-service', () => {
   it('GET /api/health reports ok', async () => {
@@ -160,8 +169,11 @@ describe('authoring a channel', () => {
           name: renamed,
           type: 'phone',
           status: 'inactive',
+          // The revision the create answered: a save names what it read.
+          revision: created.data.data['revision'],
         },
       },
+      once(),
     );
 
     expect(updated.status).toBe(200);
@@ -170,6 +182,41 @@ describe('authoring a channel', () => {
     // Retiring is a state change, because every order placed through a channel
     // keeps referring to it.
     expect(updated.data.data['status']).toBe('inactive');
+    expect(updated.data.data['revision']).toBe(2);
+
+    // A second save at the revision the first one read is refused, and the
+    // first one's edit survives (ADR 0079 §4).
+    const stale: Single = await service.client.put(
+      `/api/sales-channel/${id}`,
+      {
+        meta: { type: 'entity', entity: 'sales-channel' },
+        data: {
+          name: freshName('phone-stale'),
+          type: 'phone',
+          status: 'active',
+          revision: created.data.data['revision'],
+        },
+      },
+      once(),
+    );
+    expect(stale.status).toBe(409);
+    expect((stale.data as unknown as { code: string }).code).toBe(
+      'staleRevision',
+    );
+    const kept: Single = await service.client.get(`/api/sales-channel/${id}`);
+    expect(kept.data.data['name']).toBe(renamed);
+
+    // An update that names no revision is never an overwrite.
+    const unrevised = await service.client.put(
+      `/api/sales-channel/${id}`,
+      {
+        meta: { type: 'entity', entity: 'sales-channel' },
+        data: { name: freshName('phone-bare'), type: 'phone' },
+      },
+      once(),
+    );
+    expect(unrevised.status).toBe(400);
+    expect(unrevised.data.code).toBe('invalid');
 
     const storefront: Single = await service.client.get(
       `/api/sales-channel/${SEEDED.storefront.id}`,
@@ -178,10 +225,14 @@ describe('authoring a channel', () => {
   });
 
   it('refuses a channel type outside the closed set', async () => {
-    const res = await service.client.post('/api/sales-channel', {
-      meta: { type: 'entity', entity: 'sales-channel' },
-      data: { name: freshName('bad'), type: 'kiosk', status: 'active' },
-    });
+    const res = await service.client.post(
+      '/api/sales-channel',
+      {
+        meta: { type: 'entity', entity: 'sales-channel' },
+        data: { name: freshName('bad'), type: 'kiosk', status: 'active' },
+      },
+      once(),
+    );
 
     expect(res.status).toBe(400);
     expect(res.data.code).toBe('invalidBody');

@@ -53,6 +53,7 @@ export class SalesChannel implements Entity {
   #name: string;
   #type: SalesChannelType;
   #status: SalesChannelStatus = 'active';
+  #revision?: number;
   // #endregion
 
   // #region constructors
@@ -128,6 +129,17 @@ export class SalesChannel implements Entity {
   }
   set status(value: SalesChannelStatus) {
     this.#status = value;
+  }
+
+  // The revision check (ADR 0079 §4, entifix 0032): an authored record states
+  // the revision it read and a save is conditional on it. Server-owned but
+  // client-visible, so neither `readonly` nor `hidden`; it presents as nothing.
+  @accessor({ type: 'revision', label: 'Revision' })
+  get revision(): number | undefined {
+    return this.#revision;
+  }
+  set revision(value: number | undefined) {
+    this.#revision = value;
   }
   // #endregion
 }

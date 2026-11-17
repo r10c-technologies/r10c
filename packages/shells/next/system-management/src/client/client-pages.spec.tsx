@@ -49,6 +49,7 @@ const makeRow = (
 ): Configuration => {
   const row = new Configuration();
   row.id = id;
+  row.revision = 1;
   row.service = 'auth-service';
   row.groupName = 'mongo';
   row.key = key;

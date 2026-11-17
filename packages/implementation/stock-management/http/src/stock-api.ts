@@ -15,6 +15,7 @@ import {
   JsonBody,
   makeEntityEnvelope,
   readEntityEnvelope,
+  StaleRevision,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import {
@@ -162,7 +163,7 @@ const release = defineEndpoint({
   path: '/api/reservation/:id',
   params: { id: Schema.String },
   success: HoldEnded,
-  errors: [Invalid, DuplicateKey],
+  errors: [Invalid, DuplicateKey, StaleRevision],
   guard: {
     kind: 'crossing',
     permission: 'stock-management:reservation:release',
@@ -177,7 +178,7 @@ const conversion = defineEndpoint({
   path: '/api/reservation/:id/conversion',
   params: { id: Schema.String },
   success: HoldEnded,
-  errors: [Invalid, DuplicateKey],
+  errors: [Invalid, DuplicateKey, StaleRevision],
   guard: {
     kind: 'crossing',
     permission: 'stock-management:reservation:convert',
@@ -192,7 +193,13 @@ const restoration = defineEndpoint({
   path: '/api/stock-restoration',
   payload: JsonBody,
   success: JsonBody,
-  errors: [InconsistentMovement, InvalidBody, Invalid, DuplicateKey],
+  errors: [
+    InconsistentMovement,
+    InvalidBody,
+    Invalid,
+    DuplicateKey,
+    StaleRevision,
+  ],
   guard: {
     kind: 'crossing',
     permission: 'stock-management:stock-movement:restore',

@@ -162,7 +162,7 @@
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.7",
     "jose": "6.2.14",
-    "mongodb": "7.8.0",
+    "mongodb": "7.9.0",
     "tslib": "2.9.1"
   }
 }

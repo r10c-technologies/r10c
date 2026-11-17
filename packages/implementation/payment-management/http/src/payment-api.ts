@@ -12,6 +12,7 @@ import {
   JsonBody,
   makeEntityEnvelope,
   Overloaded,
+  StaleRevision,
   UpstreamUnavailable,
 } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
@@ -95,7 +96,7 @@ export const paymentApi = defineEntityApi(
       create: {
         idempotent: 'unit',
         payload: CaptureRequest,
-        errors: [InvalidBody, PaymentDeclined, DuplicateKey],
+        errors: [InvalidBody, PaymentDeclined, DuplicateKey, StaleRevision],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
             const body = request.payload as CaptureRequest;
@@ -198,7 +199,7 @@ const collection = defineEndpoint({
     currency: Schema.NonEmptyString,
   }),
   success: JsonBody,
-  errors: [InvalidBody, DuplicateKey],
+  errors: [InvalidBody, DuplicateKey, StaleRevision],
   guard: {
     kind: 'crossing',
     permission: 'payment-management:collection:write',

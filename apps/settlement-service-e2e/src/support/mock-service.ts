@@ -3,7 +3,7 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { TokenServiceTag } from '@entifix/business';
+import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
 import { MongoUnitOfWorkLayer } from '@entifix/mongo/transactions';
@@ -18,7 +18,10 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
-import { makeRecordingEventBus } from '@entifix/testing-unit';
+import {
+  makeInMemoryIdempotencyStore,
+  makeRecordingEventBus,
+} from '@entifix/testing-unit';
 import {
   EventBusTag,
   EventSourceTag,
@@ -98,6 +101,7 @@ const SEED = {
   agreement: [
     {
       id: SEEDED_AGREEMENT_ID,
+      revision: 1,
       vendorId: E2E_ORGANIZATION_ID,
       commissionBasisPoints: 800,
       channelCommissionBasisPoints: { counter: 0 },
@@ -105,6 +109,7 @@ const SEED = {
     },
     {
       id: SEEDED_OTHER_AGREEMENT_ID,
+      revision: 1,
       vendorId: E2E_OTHER_ORGANIZATION_ID,
       commissionBasisPoints: 1200,
       effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
@@ -201,6 +206,11 @@ const connections = Layer.mergeAll(
   ),
   Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision(ROLE_PERMISSIONS)),
   Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
+  // A generic create or update of a revisioned record is idempotent at the edge.
+  Layer.succeed(
+    IdempotencyStoreTag,
+    makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
+  ),
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   // Records what the store announces; under `mock` nothing consumes it.

@@ -31,6 +31,7 @@
     "@entifix/redis": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@entifix/testing-e2e": "catalog:",
+    "@entifix/testing-unit": "catalog:",
     "@entifix/tooling": "catalog:",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",

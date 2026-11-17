@@ -24,3 +24,17 @@ export const seedCollection = (
       );
     }
   });
+
+/**
+ * Stamps the first revision on seed records of an entity that declares one.
+ *
+ * A seed inserts wire records verbatim, and a record with no `revision` can
+ * never be updated: an update names the revision it read, and the stored one
+ * has none to match (entifix 0032). Seed data is a *first save*, so it starts
+ * at `1` — what `save` writes for a create. A record that states its own is
+ * left as it is.
+ */
+export const revised = (
+  data: ReadonlyArray<object>,
+): ReadonlyArray<Record<string, unknown>> =>
+  data.map(item => ({ revision: 1, ...item }));

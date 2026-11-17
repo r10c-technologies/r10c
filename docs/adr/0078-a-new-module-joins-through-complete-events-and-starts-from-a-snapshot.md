@@ -58,7 +58,7 @@ A new module is a slice with its own store, its own domain and its own
 deployment ([ADR 0020](0020-stores-and-slices.md)), on entifix like every other.
 It learns what happened from the bus and writes **its own** transactions: each
 handler claims the inbox and writes the module's records in one unit of work
-([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.22.4/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
+([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.23.0/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
 
 It holds **no crossing token for a read**, and no existing slice gains a route,
 a permission, a branch or a subscription on its account. Adding a module is

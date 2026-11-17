@@ -1,15 +1,10 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
 import { AGREEMENT_COLLECTION } from '@r10c/implementation-settlement-mongo';
-import { seedCollection } from '@r10c/shells-effect-service';
+import { revised, seedCollection } from '@r10c/shells-effect-service';
 import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
 import { agreementTempData } from './settlement-temp-data';
-
-const asRecords = (
-  data: ReadonlyArray<object>,
-): ReadonlyArray<Record<string, unknown>> =>
-  data as ReadonlyArray<Record<string, unknown>>;
 
 /**
  * Seeds the demo vendor's agreement on first boot.
@@ -39,7 +34,7 @@ export const seedSettlement = (vendors: readonly SeededVendor[]) =>
     yield* seedCollection(
       db,
       AGREEMENT_COLLECTION,
-      asRecords(
+      revised(
         vendors.flatMap(vendor => agreementTempData(vendor.organizationId)),
       ),
     );

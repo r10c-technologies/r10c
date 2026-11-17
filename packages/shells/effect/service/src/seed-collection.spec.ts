@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
-import { seedCollection } from './seed-collection.js';
+import { revised, seedCollection } from './seed-collection.js';
 
 describe('seedCollection', () => {
   it('fills an empty collection', async () => {
@@ -26,5 +26,14 @@ describe('seedCollection', () => {
 
     expect(fake.read('widget')).toEqual([{ id: 'kept' }]);
     expect(fake.read('other')).toEqual([]);
+  });
+});
+
+describe('revised', () => {
+  it('starts a seed record at revision 1 and keeps one it states', () => {
+    expect(revised([{ id: 'a' }, { id: 'b', revision: 4 }])).toEqual([
+      { id: 'a', revision: 1 },
+      { id: 'b', revision: 4 },
+    ]);
   });
 });

@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { SEEDED_AGREEMENT_ID, startMockService } from '../support/mock-service';
@@ -18,7 +20,11 @@ const service = defineServiceE2e({
 
 const anonymous = { headers: { Authorization: undefined } };
 const as = (authorization: string) => ({
-  headers: { Authorization: authorization },
+  headers: {
+    Authorization: authorization,
+    // A generic create or update is idempotent at the edge.
+    'Idempotency-Key': `"${randomUUID()}"`,
+  },
 });
 
 const agreementBody = (data: Record<string, unknown> = {}) => ({
@@ -102,7 +108,11 @@ describe('writing an agreement', () => {
     const token = await signTokenFor(['super-admin']);
     const res = await service.client.put(
       `/api/agreement/${SEEDED_AGREEMENT_ID}`,
-      agreementBody({ id: 'some-other-agreement', commissionBasisPoints: 900 }),
+      agreementBody({
+        id: 'some-other-agreement',
+        commissionBasisPoints: 900,
+        revision: 1,
+      }),
       as(`Bearer ${token}`),
     );
 

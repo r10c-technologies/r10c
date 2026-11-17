@@ -126,6 +126,8 @@ export const errors = {
   invalidEnvelope: 'El cuerpo de la solicitud no es válido.',
   invalidRecords: 'Hay registros que no son válidos.',
   duplicateKey: 'Ya existe un registro con ese valor.',
+  staleRevision:
+    'Este registro cambió desde que lo abriste. Revisa la versión actual antes de guardar de nuevo.',
   declined: 'La solicitud fue rechazada.',
   contention: 'Otra operación se cruzó con esta. Inténtalo de nuevo.',
   overloaded: 'El servicio está saturado. Inténtalo de nuevo en un momento.',

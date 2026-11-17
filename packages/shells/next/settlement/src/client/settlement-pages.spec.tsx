@@ -73,6 +73,7 @@ vi.mock('next/navigation', () => ({
 const makeAgreement = () => {
   const agreement = new Agreement('acme', 800);
   agreement.id = 'agreement-acme';
+  agreement.revision = 1;
   agreement.channelCommissionBasisPoints = { counter: 0 };
   return agreement;
 };

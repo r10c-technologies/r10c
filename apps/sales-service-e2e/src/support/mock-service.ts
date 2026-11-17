@@ -3,7 +3,7 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { TokenServiceTag } from '@entifix/business';
+import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
@@ -17,6 +17,7 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { makeInMemoryIdempotencyStore } from '@entifix/testing-unit';
 import { InMemoryRetryBudgetLayer } from '@entifix/transactions/engine';
 import {
   AUTH_TOKEN_AUDIENCE,
@@ -102,6 +103,11 @@ const MockAppLayer = (() => {
       makeStaticPolicyDecision(ROLE_PERMISSIONS),
     ),
     Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
+    // A generic create or update of a revisioned record is idempotent at the edge.
+    Layer.succeed(
+      IdempotencyStoreTag,
+      makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
+    ),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
     // The shipped layer reads these addresses from config-service; here they

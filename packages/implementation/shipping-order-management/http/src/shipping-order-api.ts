@@ -17,6 +17,7 @@ import {
   makeEnvelope,
   NotFound,
   readWireSelection,
+  StaleRevision,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import type { FlowAccepted } from '@r10c/business-ts-flow-contracts';
@@ -70,6 +71,7 @@ const MOVE_ERRORS = [
   ShippingOrderNotTransitionable,
   Invalid,
   DuplicateKey,
+  StaleRevision,
 ];
 
 /** A vendor verb on their own shipment, behind their session and its grant. */
@@ -160,7 +162,7 @@ const openShipment = defineEndpoint({
   path: BASE,
   payload: JsonBody,
   success: JsonBody,
-  errors: [InvalidBody, Invalid, DuplicateKey],
+  errors: [InvalidBody, Invalid, DuplicateKey, StaleRevision],
   guard: crossing('open'),
   idempotent: 'unit',
 });

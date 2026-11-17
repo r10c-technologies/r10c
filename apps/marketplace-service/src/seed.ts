@@ -1,15 +1,10 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
-import { seedCollection } from '@r10c/shells-effect-service';
+import { revised, seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
 import { dictionaryTermTempData } from './dictionary-term-temp-data';
 import { productBrandTempData } from './product-brand-temp-data';
 import { productCategoryTempData } from './product-category-temp-data';
-
-const asRecords = (
-  data: ReadonlyArray<object>,
-): ReadonlyArray<Record<string, unknown>> =>
-  data as ReadonlyArray<Record<string, unknown>>;
 
 /**
  * Seeds the `catalog-reference` store on first boot. Collection names match each
@@ -27,13 +22,9 @@ export const seedCatalogReference = Effect.gen(function* () {
 
   yield* Effect.all(
     [
-      seedCollection(db, 'dictionary-term', asRecords(dictionaryTermTempData)),
-      seedCollection(db, 'product-brand', asRecords(productBrandTempData)),
-      seedCollection(
-        db,
-        'product-category',
-        asRecords(productCategoryTempData),
-      ),
+      seedCollection(db, 'dictionary-term', revised(dictionaryTermTempData)),
+      seedCollection(db, 'product-brand', revised(productBrandTempData)),
+      seedCollection(db, 'product-category', revised(productCategoryTempData)),
     ],
     { discard: true },
   );
