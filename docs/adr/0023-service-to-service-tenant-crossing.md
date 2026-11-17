@@ -9,6 +9,7 @@
   `x-organization-id`; the decision is unchanged.
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): the framework file named in Context lived in the in-tree copy, now
   entifix's `@entifix/business`.
+- Revised: 2026-11-16 — the fleet token's source file is named correctly: `packages/utils/ts/fleet/src/index.ts`, not a `packages/shells/next/common` path that does not exist.
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): the token is a `Context.Service` rather than a `Context.Tag`; the decision is unchanged.
 
 ## Trigger
@@ -112,7 +113,7 @@ provided as `ServiceCrossingTokenTag`.
 
 The fleet already has a shared secret — `X-Service-Token`, gating
 config-service's fleet lookup, read through
-`packages/shells/next/common/src/lib/config/service-token.ts`. Reusing it here
+`packages/utils/ts/fleet/src/index.ts` (`serviceToken`). Reusing it here
 would be one line of work and would turn a single leaked secret into a
 tenant-data **write** capability across every organization. The two grants are
 not comparable: one reads configuration, the other mutates a vendor's stock. They

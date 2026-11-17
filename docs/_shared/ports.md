@@ -5,21 +5,21 @@ cross-cutting platform services use **319x**; the domain index `N` is shared per
 frontend/backend pair. Infra exposes minikube NodePorts at `30000 +` the
 canonical port.
 
-| Domain (`N`)            | `-app` | `-service`          |
-| ----------------------- | ------ | ------------------- |
-| marketplace (0)         | 3000   | 3100²               |
-| marketplace-admin (1)   | 3001⁴  | 3101                |
-| auth (2)                | —⁴     | 3102                |
-| transaction-manager (3) | —      | 3103³               |
-| system-management (4)   | 3004¹  | —                   |
-| order (5)               | —      | 3105⁷               |
-| payment (6)             | —      | 3106⁸               |
-| settlement (7)          | —      | 3107⁵               |
-| stock (8)               | —      | 3108⁶               |
-| sales (9)               | —      | 3109⁹               |
-| fulfilment (10)         | —      | 3110¹⁰              |
-| — platform —            |        | config-service 3190 |
-| — platform —            |        | realtime 3191¹¹     |
+| Domain (`N`)          | `-app` | `-service`          |
+| --------------------- | ------ | ------------------- |
+| marketplace (0)       | 3000   | 3100²               |
+| marketplace-admin (1) | 3001⁴  | 3101                |
+| auth (2)              | —⁴     | 3102                |
+| transaction (3)       | —      | 3103³               |
+| system-management (4) | 3004¹  | —                   |
+| order (5)             | —      | 3105⁷               |
+| payment (6)           | —      | 3106⁸               |
+| settlement (7)        | —      | 3107⁵               |
+| stock (8)             | —      | 3108⁶               |
+| sales (9)             | —      | 3109⁹               |
+| fulfilment (10)       | —      | 3110¹⁰              |
+| — platform —          |        | config-service 3190 |
+| — platform —          |        | realtime 3191¹¹     |
 
 ⚠️ **A `300N` is an origin, and the edge owns it — Next listens on `320N`, the
 origin + 200** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)).
@@ -160,6 +160,16 @@ ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
 name any organization. Separate `is_secret` rows, separate rotations, and the
 named upgrade path is unchanged.
 
+⁴ `3002` is free. back-office-app on `:3001` serves the catalog, system
+management, user administration **and** the account surface — one origin, which
+is the point: a session established at sign-in is set on the very host the rest
+of the back office is served from, so the cookie hop, the `AUTH_APP_URL`
+indirection and the absolute cross-app account links all disappear. The auth
+**domain** did not merge with marketplace-admin: its screens live in
+`@r10c/shells-next-auth` (`scope:auth`), the host carries `scope:back-office`
+and composes both, and splitting them apart again is a new app mounting that
+shell. `auth-service` stays on `:3102` — it is what Zitadel calls back into.
+
 ⁵ **settlement-service, bound — and the last of the five reserved indices to be
 claimed.** It owns the `settlement` store, which is the one commerce store on the
 **control** plane. A plane answers _who may read it_, and an `Agreement` —
@@ -248,6 +258,119 @@ now holds it. Reclaiming an index that already means something else is how a
 port table stops being readable, and the reservation is what made the split a
 `deployments` edit rather than a port negotiation.
 
+⁶ **stock-service, bound.** The first of the five reserved indices to be
+claimed. It owns the `stock` store — tenant plane, one Mongo database per
+organization (`stock_<organizationId>`), beside the catalog's
+`tenant_<organizationId>` rather than inside it — and serves the `StockItem`
+reads and the append-only `StockMovement` ledger that moves them. Every route is
+authenticated and organization-scoped; nothing here is readable anonymously,
+because a vendor's stock position is exactly what a competitor would want, and
+what the storefront shows about availability is a projection and a hint
+([ADR 0010](../adr/0010-stock-ledger-reservations-and-concurrency.md)).
+
+`POST /api/reservation` is a platform→tenant crossing — the fleet's other store
+that takes them is fulfilment's, note 10 — and the single exception to "authenticated and organization-scoped" above — it is
+authenticated by a **crossing token** (`x-crossing-token`, its own `is_secret`
+configuration row, deliberately not the fleet's `CONFIG_SERVICE_TOKEN`) plus
+`stock-management:reservation:write`, and scoped by an explicit
+`x-organization-id`, because the organization comes from the item rather than
+from the principal: checkout's buyer holds no membership in the vendor they are
+buying from. It accepts **no session**, not even `super-admin`'s, since two
+accepted credentials on one route means the weaker one is the security level
+([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). The reservation
+_reads_ beside it are ordinary session-guarded tenant reads — one route, one
+credential, each way.
+
+⚠️ **`POST /api/stock-restoration` is another crossing into this store**, beside the
+reservation's own. A cancelled order's goods go back as a new
+`+quantity` movement with `reason: 'cancellation'` — never as an un-conversion,
+because by then the hold is spent and the ledger is append-only. Its permission
+is `stock-management:stock-movement:restore` rather than the `stock-movement:write`
+a vendor's own session holds, so a crossing token can write the one correction a
+cancellation makes and not that vendor's whole ledger
+([ADR 0058](../adr/0058-the-order-after-payment.md)). `reason` is server-owned,
+and the route is idempotent on `Idempotency-Key` because the cancellation flow
+dispatches it **after** its pivot.
+
+⚠️ **A restoration names its cause, and a return is not a cancellation.** The
+body carries a closed `cause: 'cancellation' | 'return'`, mapped server-side to
+the movement's `reason`, so a parcel refused or returned goes back as a
+`return` movement the ledger can tell apart (ADR 0070).
+
+⚠️ **Every counter move announces `stock-item.changed`.** A movement, a hold
+taken, released or converted, goods put back — each bumps the item's `version`
+and emits the change at that version into the organization's own
+`stock_<organizationId>` outbox in the same unit, drained at commit; the tenant
+relay walks every `stock_*` database for what a drain left behind. The realtime
+slice pushes it to the vendor's own open tabs, so availability moves without a
+reload (#481).
+
+Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`
+releases one and `POST /api/reservation/:id/conversion` converts it to a sale.
+Each carries its own crossing permission, and there is deliberately no `PUT` — a
+generic save could rewrite a quantity or an expiry after the fact, which is a
+hold that never expires granted by its holder. ⚠️ **Both answer `200` when the
+hold was already gone.** They are compensations the checkout flow dispatches,
+delivery is at-least-once, and a compensation that errors on its second delivery
+strands a flow that had in fact been fully reversed; the body says which
+happened. A sweep releases what expired, walking every `stock_<organizationId>`
+database on an interval.
+
+⁷ **order-service, bound.** It owns the `order` store — **platform** plane and
+single, one named database, which is the opposite of stock's per-request tenant
+handle beside it. That is forced rather than chosen: a basket can span several
+vendors, so its receipt cannot live in any one of their tenant databases. A
+checkout writes one `CheckoutGroup` — the buyer's receipt, opened under the
+flow's own id — and one `ProductOrder` per vendor in it, so each vendor reads,
+ships, cancels and is refunded for their own order alone
+([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)). A vendor
+never reads a group: it would show them the other sellers in the basket.
+
+⚠️ **It reserves nothing itself.** ADR 0023's crossing into stock is dispatched
+by transaction-service, which holds both halves of the checkout flow; this
+service is a _participant_. The checkout writes accept a **crossing token and no
+session** — the buyer behind a checkout holds no grant over the receipt written
+on their behalf — while its reads accept a session and no token. One route, one
+credential, each way ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)).
+
+`DELETE /api/product-order/:id` is a **compensation**, not a customer-facing
+cancel: it undoes a step that should not have happened. A cancellation is a
+business event with its own record and its own money consequences, and it is
+the derived verb `POST /api/product-order/:id/cancel`
+([ADR 0071](../adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)).
+
+⚠️ **Three credentials on one surface, and each route still takes exactly one.**
+`cancel` is session-guarded by the permission its own `@useCase()` descriptor
+derives — there is still no `product-order:write` for any role, and it is a verb
+rather than a save. `buyer-cancellation` and `GET
+/api/checkout-group/:id/buyer-receipt` take the nonce from a storefront receipt
+and **no session at all**: the group stores that nonce's SHA-256 digest, so the
+record is the authority and the credential is inert wherever else it travels. The
+flows' own steps — the group's opening, an order's write, its `cancelling` claim
+and its `confirmed`, `dispatched` and `closed` moves — take a crossing token
+([ADR 0058](../adr/0058-the-order-after-payment.md)).
+
+⚠️ **`/cancelling` and `/cancel` look alike and are not the same thing.** The
+first takes the concurrency claim and is dispatched by the coordinator behind a
+crossing guard; the second is the verb a person reaches. A browser reaching the first
+would lock an order with no refund behind it.
+
+⚠️ **Delivery is the shipment's; an order only follows it.** There is no
+`fulfil` verb any more: a vendor dispatches and records delivery on their
+`ShippingOrder` in fulfilment-service, and the delivery flow moves the order
+`confirmed → dispatched → fulfilled` (or `cancelled` for a parcel refused or
+returned) behind a crossing token
+([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)).
+
+⚠️ **It holds the coordinator's inbound token and is a participant in the flow it
+starts**, making it the third holder of that secret beside the storefront and
+sales-service. The cycle is deliberate: a cancellation's authority is verifiable
+only where the order lives, and handing the digest and the window to a slice that
+declares no domain would put an order's authorization rule outside the order.
+
+The cart is **not** here. It is a cookie, so the storefront's first response is
+correct without a round trip, and the fleet keeps zero anonymous write surfaces.
+
 ⁸ **payment-service, bound.** The second of the five reserved indices to be
 claimed. It owns the `payment` store — **platform** plane and single, one named
 database beside the order's rather than inside it, so "which slice writes a
@@ -309,124 +432,12 @@ question has the same answer, because un-refunding is charging a customer again.
 It publishes `payment.captured` and `payment.refunded` from an
 outbox in its own store. The capture _decision_ never arrives as a message — the checkout flow
 dispatches it — so what the bus carries is the consequence: order-service advances an order
-to `paid`, and settlement will fold a commission entry in M6.
+to `paid`, and settlement folds each order's commission entries
+([ADR 0057](../adr/0057-settlement-joins-the-sale-to-its-payment.md)).
 
 **Both app `dev` targets start it**, as they start every checkout participant:
 a fleet without it is a checkout whose pivot fails against an address nothing
 is listening on.
-
-⁷ **order-service, bound.** It owns the `order` store — **platform** plane and
-single, one named database, which is the opposite of stock's per-request tenant
-handle beside it. That is forced rather than chosen: a basket can span several
-vendors, so its receipt cannot live in any one of their tenant databases. A
-checkout writes one `CheckoutGroup` — the buyer's receipt, opened under the
-flow's own id — and one `ProductOrder` per vendor in it, so each vendor reads,
-ships, cancels and is refunded for their own order alone
-([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)). A vendor
-never reads a group: it would show them the other sellers in the basket.
-
-⚠️ **It reserves nothing itself.** ADR 0023's crossing into stock is dispatched
-by transaction-service, which holds both halves of the checkout flow; this
-service is a _participant_. The checkout writes accept a **crossing token and no
-session** — the buyer behind a checkout holds no grant over the receipt written
-on their behalf — while its reads accept a session and no token. One route, one
-credential, each way ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)).
-
-`DELETE /api/product-order/:id` is a **compensation**, not a customer-facing
-cancel: it undoes a step that should not have happened. A cancellation is a
-business event with its own record and its own money consequences, and it is
-the derived verb `POST /api/product-order/:id/cancel`
-([ADR 0071](../adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)).
-
-⚠️ **Three credentials on one surface, and each route still takes exactly one.**
-`cancel` is session-guarded by the permission its own `@useCase()` descriptor
-derives — there is still no `product-order:write` for any role, and it is a verb
-rather than a save. `buyer-cancellation` and `GET
-/api/checkout-group/:id/buyer-receipt` take the nonce from a storefront receipt
-and **no session at all**: the group stores that nonce's SHA-256 digest, so the
-record is the authority and the credential is inert wherever else it travels. The
-flows' own steps — the group's opening, an order's write, its `cancelling` claim
-and its `confirmed`, `dispatched` and `closed` moves — take a crossing token
-([ADR 0058](../adr/0058-the-order-after-payment.md)).
-
-⚠️ **`/cancelling` and `/cancel` look alike and are not the same thing.** The
-first takes the concurrency claim and is dispatched by the coordinator behind a
-crossing guard; the second is the verb a person reaches. A browser reaching the first
-would lock an order with no refund behind it.
-
-⚠️ **Delivery is the shipment's; an order only follows it.** There is no
-`fulfil` verb any more: a vendor dispatches and records delivery on their
-`ShippingOrder` in fulfilment-service, and the delivery flow moves the order
-`confirmed → dispatched → fulfilled` (or `cancelled` for a parcel refused or
-returned) behind a crossing token
-([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)).
-
-⚠️ **It holds the coordinator's inbound token and is a participant in the flow it
-starts**, making it the third holder of that secret beside the storefront and
-sales-service. The cycle is deliberate: a cancellation's authority is verifiable
-only where the order lives, and handing the digest and the window to a slice that
-declares no domain would put an order's authorization rule outside the order.
-
-The cart is **not** here. It is a cookie, so the storefront's first response is
-correct without a round trip, and the fleet keeps zero anonymous write surfaces.
-
-⁶ **stock-service, bound.** The first of the five reserved indices to be
-claimed. It owns the `stock` store — tenant plane, one Mongo database per
-organization (`stock_<organizationId>`), beside the catalog's
-`tenant_<organizationId>` rather than inside it — and serves the `StockItem`
-reads and the append-only `StockMovement` ledger that moves them. Every route is
-authenticated and organization-scoped; nothing here is readable anonymously,
-because a vendor's stock position is exactly what a competitor would want, and
-what the storefront shows about availability is a projection and a hint
-([ADR 0010](../adr/0010-stock-ledger-reservations-and-concurrency.md)).
-
-`POST /api/reservation` is the one platform→tenant crossing in the system, and
-the single exception to "authenticated and organization-scoped" above — it is
-authenticated by a **crossing token** (`x-crossing-token`, its own `is_secret`
-configuration row, deliberately not the fleet's `CONFIG_SERVICE_TOKEN`) plus
-`stock-management:reservation:write`, and scoped by an explicit
-`x-organization-id`, because the organization comes from the item rather than
-from the principal: checkout's buyer holds no membership in the vendor they are
-buying from. It accepts **no session**, not even `super-admin`'s, since two
-accepted credentials on one route means the weaker one is the security level
-([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). The reservation
-_reads_ beside it are ordinary session-guarded tenant reads — one route, one
-credential, each way.
-
-⚠️ **`POST /api/stock-restoration` is the second crossing into this store**, and
-the only other one in the fleet. A cancelled order's goods go back as a new
-`+quantity` movement with `reason: 'cancellation'` — never as an un-conversion,
-because by then the hold is spent and the ledger is append-only. Its permission
-is `stock-management:stock-movement:restore` rather than the `stock-movement:write`
-a vendor's own session holds, so a crossing token can write the one correction a
-cancellation makes and not that vendor's whole ledger
-([ADR 0058](../adr/0058-the-order-after-payment.md)). `reason` is server-owned,
-and the route is idempotent on `Idempotency-Key` because the cancellation flow
-dispatches it **after** its pivot.
-
-⚠️ **A restoration names its cause, and a return is not a cancellation.** The
-body carries a closed `cause: 'cancellation' | 'return'`, mapped server-side to
-the movement's `reason`, so a parcel refused or returned goes back as a
-`return` movement the ledger can tell apart (ADR 0070).
-
-⚠️ **Every counter move announces `stock-item.changed`.** A movement, a hold
-taken, released or converted, goods put back — each bumps the item's `version`
-and emits the change at that version into the organization's own
-`stock_<organizationId>` outbox in the same unit, drained at commit; the tenant
-relay walks every `stock_*` database for what a drain left behind. The realtime
-slice pushes it to the vendor's own open tabs, so availability moves without a
-reload (#481).
-
-Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`
-releases one and `POST /api/reservation/:id/conversion` converts it to a sale.
-Each carries its own crossing permission, and there is deliberately no `PUT` — a
-generic save could rewrite a quantity or an expiry after the fact, which is a
-hold that never expires granted by its holder. ⚠️ **Both answer `200` when the
-hold was already gone.** They are compensations the checkout flow dispatches,
-delivery is at-least-once, and a compensation that errors on its second delivery
-strands a flow that had in fact been fully reversed; the body says which
-happened. A sweep releases what expired, walking every `stock_<organizationId>`
-database on an interval.
 
 ⁹ **sales-service, bound.** The third of the five reserved indices to be
 claimed, and the one that finally gives a vendor a way to sell somewhere other
@@ -460,40 +471,6 @@ So this process is the **second** holder of that
 secret, beside the storefront — which holds it for the opposite reason, having no
 session to check at all
 ([ADR 0056](../adr/0056-the-counter-sale-is-the-checkout-saga.md)).
-
-¹¹ **realtime-service, bound** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)),
-inspector `9191`. It owns the `flow-status` store — platform plane, single, a
-projection of the `workflow` journal — and serves the one push stream every tab
-opens, `GET /api/realtime/stream`, which the edge routes to it on every origin,
-and the catch-up a pending write settles from, `GET /api/realtime/flow/:id` and
-`GET /api/realtime/flow?ids=…` — answered to the flow's organizations and
-parties or to a capability by digest, and `404` to anyone else exactly as to a
-flow not yet projected. The projection is its one `work` subscription, on
-`flow.*` with an inbox claim, and an older version never overwrites a newer
-one.
-Every app's `dev` starts it, because a fleet without it is a back office whose
-stream answers Envoy's `503`.
-
-⚠️ **Every push subscription is a `broadcast`.** Each replica holds different
-connections, so each binds its own exclusive queue for every pushable event, and
-a message missed while a replica was down is caught up by the browser's
-`resync` on reopen rather than redelivered. What a browser hears is decided by
-a **push projection** in `@r10c/shells-effect-realtime`: a member whose role
-grants the entity's read permission receives an `order.*` record itself, anyone
-else a hint `{entity, change, id}` under its own registered name
-(`entity.changed`); a publication is always a hint.
-
-⚠️ **The audience filter fails closed.** Organization entries match the
-session's `activeOrganizationId`, party entries its `partyId`, flow entries a
-presented capability by SHA-256 digest; an event with no audience reaches
-nobody. That is why `payment.*` is not pushed: it is registered with no
-audience, and a capture names no vendor until it is allocated per order (#480).
-
-It holds no crossing token and accepts none. A caller with neither a session nor
-a capability is refused `401` **before** the stream opens, because a `401` on an
-open `EventSource` kills it for good; a stream nearing its token's `exp` is sent
-`event: reauth` instead. The SSE dials — the jittered `retry:` range, the reauth
-margin and the drain window — are configuration rows.
 
 ¹⁰ **fulfilment-service, bound** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
 inspector `9110`, promoted by the commit that wrote its store (#483). It owns the
@@ -537,19 +514,44 @@ reached through a same-origin `/api/fulfilment` proxy (`fulfilment-service-domai
 in config-service) that forwards `GET` and `POST` only — the four verbs are the
 only session-guarded writes, and every other write is a flow's crossing.
 
+¹¹ **realtime-service, bound** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)),
+inspector `9191`. It owns the `flow-status` store — platform plane, single, a
+projection of the `workflow` journal — and serves the one push stream every tab
+opens, `GET /api/realtime/stream`, which the edge routes to it on every origin,
+and the catch-up a pending write settles from, `GET /api/realtime/flow/:id` and
+`GET /api/realtime/flow?ids=…` — answered to the flow's organizations and
+parties or to a capability by digest, and `404` to anyone else exactly as to a
+flow not yet projected. The projection is its one `work` subscription, on
+`flow.*` with an inbox claim, and an older version never overwrites a newer
+one.
+Every app's `dev` starts it, because a fleet without it is a back office whose
+stream answers Envoy's `503`.
+
+⚠️ **Every push subscription is a `broadcast`.** Each replica holds different
+connections, so each binds its own exclusive queue for every pushable event, and
+a message missed while a replica was down is caught up by the browser's
+`resync` on reopen rather than redelivered. What a browser hears is decided by
+a **push projection** in `@r10c/shells-effect-realtime`: a member whose role
+grants the entity's read permission receives an `order.*` record itself, anyone
+else a hint `{entity, change, id}` under its own registered name
+(`entity.changed`); a publication is always a hint.
+
+⚠️ **The audience filter fails closed.** Organization entries match the
+session's `activeOrganizationId`, party entries its `partyId`, flow entries a
+presented capability by SHA-256 digest; an event with no audience reaches
+nobody. That is why `payment.*` is not pushed: it is registered with no
+audience, and a capture names no vendor until it is allocated per order (#480).
+
+It holds no crossing token and accepts none. A caller with neither a session nor
+a capability is refused `401` **before** the stream opens, because a `401` on an
+open `EventSource` kills it for good; a stream nearing its token's `exp` is sent
+`event: reauth` instead. The SSE dials — the jittered `retry:` range, the reauth
+margin and the drain window — are configuration rows.
+
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime
 config from config-service (`GET /api/config/:service`); they never hardcode it.
 
-⁴ `3002` is free. back-office-app on `:3001` serves the catalog, system
-management, user administration **and** the account surface — one origin, which
-is the point: a session established at sign-in is set on the very host the rest
-of the back office is served from, so the cookie hop, the `AUTH_APP_URL`
-indirection and the absolute cross-app account links all disappear. The auth
-**domain** did not merge with marketplace-admin: its screens live in
-`@r10c/shells-next-auth` (`scope:auth`), the host carries `scope:back-office`
-and composes both, and splitting them apart again is a new app mounting that
-shell. `auth-service` stays on `:3102` — it is what Zitadel calls back into.
 Infrastructure NodePorts published to the host. **This table is generated** from
 `infra/local/lib.sh` (`PORT_SPECS`, `LOGIN_NODEPORT`, `MINIKUBE_PORTS`) by
 `tools/sync-docs.mjs` — add the port there, run `node tools/sync-docs.mjs`, and

@@ -9,7 +9,8 @@
   capability map, and the Context paragraph describing a three-entity business is
   marked as of its date.
 - Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — a new domain, `shipping-order-management`, in a new `fulfilment` slice
-- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — tax and ERP leave the out-of-scope list: recording a sale's tax facts is in scope, and accounting, cost control, services and manufacturing are future modules; filing stays out
+- Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — tax and ERP leave the out-of-scope list: recording a sale's tax facts is in scope, and accounting, cost control, services and manufacturing are future modules; filing stays out, and returns are narrowed to returns after delivery, since a refused parcel's return is built
+- Revised: 2026-11-16 — the follow-ups no longer list fulfilment as out of scope: it is built ([ADR 0070](0070-fulfilment-and-cash-on-delivery.md), already noted above)
 
 ## Context
 
@@ -173,7 +174,9 @@ free for TMF637's meaning.
 ## Follow-ups (deliberately out of scope)
 
 - The `Product` → `ProductSpecification`/`ProductOffering` entity migration.
-- Fulfillment, tax, returns, search relevance, recommendations.
+- ~~Fulfillment~~ — built, as `shipping-order-management`
+  ([ADR 0070](0070-fulfilment-and-cash-on-delivery.md)); tax, returns after
+  delivery, search relevance, recommendations.
 - Any CRM/ERP/analytics domain — named in the target, not in the map.
 
 > **Revised 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)**

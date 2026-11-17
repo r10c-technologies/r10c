@@ -91,13 +91,13 @@ A plane is a property of the **Store** — it answers _who may read it_. An
 entity's plane is derived from the store that hosts it, so two entities in one
 store can never disagree about theirs.
 
-| Plane        | Storage                                                                                | Holds                                                                                                           |
-| ------------ | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **control**  | one shared database                                                                    | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
-| **platform** | one shared database                                                                    | published catalog, the brand/category/dictionary vocabulary, buyer orders, payments                             |
-| **tenant**   | **three Mongo databases per organization** — `tenant_<id>`, `stock_<id>`, `sales_<id>` | vendor-authored offerings and specifications, pricing, stock, selling channels                                  |
+| Plane        | Storage                                                                                                  | Holds                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **control**  | one shared database                                                                                      | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
+| **platform** | one shared database                                                                                      | published catalog, the brand/category/dictionary vocabulary, buyer orders, payments                             |
+| **tenant**   | **four Mongo databases per organization** — `tenant_<id>`, `stock_<id>`, `sales_<id>`, `fulfilment_<id>` | vendor-authored offerings and specifications, pricing, stock, selling channels, shipments                       |
 
-**Three tenant databases, not one.** `catalog`, `stock` and `sales` are the same
+**Four tenant databases, not one.** `catalog`, `stock`, `sales` and `fulfilment` are the same
 plane and the same partitioning but different stores with different writing
 slices, so they get different handles — which makes one-writer a property of the
 connection rather than of review. They must never transact together anyway; a

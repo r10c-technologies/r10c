@@ -1,6 +1,6 @@
 <!-- Single source imported by CLAUDE.md and docs/DEVELOPING.md. Edit here only. -->
 
-Nx 23 monorepo with pnpm workspaces. Pinned toolchain: **Node 26.4**, **pnpm 11.9**
+Nx 24 monorepo with pnpm workspaces. Pinned toolchain: **Node 26.4**, **pnpm 11.9**
 (see `engines` in the root `package.json`). Always use `pnpm` (never `npm`/`yarn`)
 and run Nx via `pnpm nx …` (or `pnpm exec nx`). Project names are scoped
 `@r10c/<name>`, but Nx accepts the unscoped suffix for most commands

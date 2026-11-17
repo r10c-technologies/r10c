@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-01
 - Area: messaging
-- Read when: a create goes through the transaction engine — the client mints the id, that id is the idempotency key, and the event is written to the outbox inside the same Mongo transaction
+- Read when: a write has to announce itself, or a client mints the id that makes a retry safe — the client's id is the idempotency key, and the event is written to the outbox inside the same Mongo transaction
 - Amended by: [ADR 0029](0029-the-event-envelope-and-a-routed-bus.md) — the
   deduplication key is the message's own `event.id` (`<transactionId>:<step>`),
   not `transactionId`, and `OutboxEntry` carries a `DomainEvent`. Every decision
@@ -27,6 +27,7 @@
   persist-before-publish rule extends from events to command dispatch. The
   single-step engine this record describes is unchanged, and every decision here
   stands.
+- Revised: 2026-11-16 — the `Read when` header no longer sends a reader to a transaction engine that was deleted (ADR 0066): it names the two rules that stand, the client-minted idempotency key and the event shipped in the write's own unit.
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — the tracker sections are superseded: `TransactionRecord`, `GET /api/transaction/:id` and the single-step engine go; the client-minted id and the event shipping with its write stand
 - Revised: 2026-10-29 — the specification create, the one write that ran through the transaction engine, is a plain unit of work drawing its code from a per-organization counter (#463); the event-ships-with-the-write rule stands for every outbox
 

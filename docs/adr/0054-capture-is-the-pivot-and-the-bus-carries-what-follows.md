@@ -8,6 +8,7 @@
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — the pivot is the slip's commit point, enforced by the validator rather than by the runner's ordering
 - Revised: 2026-10-29 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — `payment.failed` is no longer published, since nothing subscribes to it
 - Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — capture is the `payment.capture@3` fragment's pivot in a composed slip, no longer a `defineSaga` step run by `runSaga` (#486)
+- Revised: 2026-11-16 — two statements of what was not yet built are corrected: durable retry across a coordinator restart exists (ADR 0066), and `order-contracts` was built with its consumer (ADR 0057).
 
 ## Context
 
@@ -97,8 +98,14 @@ reason — `sagaCommandId(sagaId, step.id, index)` is stable across attempts, so
 participant idempotent on the command id recognises the replay. ADR 0052 stated
 that requirement on participants; this is the code that now depends on it.
 
-Durable retry across a **coordinator** restart is a different mechanism and is
-still not built. #233 holds it.
+Durable retry across a **coordinator** restart is a different mechanism, and it
+was not built under this record.
+
+> **Corrected 2026-11-16.** It is built now: flows run on the durable workflow
+> engine ([ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md)), and a
+> coordinator killed mid-flow resumes
+> (`apps/fleet-e2e/src/commerce/runner-kill.live.spec.ts`). #233 closed on 2026-09-10 with
+> ADR 0055's resume-from-the-record, which ADR 0066's engine then replaced.
 
 ### 3b. A later step can name what an earlier one created
 
@@ -213,6 +220,10 @@ the relay costs one layer beside it.
   `payment-contracts`, and `order.placed` turned out to have no consumer once
   capture stopped being event-driven. A decoder nothing decodes with is
   speculative code, and it lands with the consumer that needs it.
+  > **Corrected 2026-11-16.** It landed with its consumer: settlement joins
+  > `order.placed` to `payment.captured` ([ADR 0057](0057-settlement-joins-the-sale-to-its-payment.md)),
+  > and `packages/business/ts/order-contracts` holds the decoder
+  > (`src/values/order-event.ts`).
 
 ## What a live pass could not prove
 

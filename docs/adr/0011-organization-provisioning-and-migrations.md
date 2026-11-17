@@ -11,6 +11,9 @@
 - Revised: 2026-08-17 by [ADR 0024](0024-selling-through-a-vendors-own-channel.md) —
   a third tenant store (`sales`) means three tenant databases per organization,
   not two.
+- Revised: 2026-11-16 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) —
+  a fourth tenant store (`fulfilment`) means four tenant databases per
+  organization.
 
 ## Context
 
@@ -41,11 +44,13 @@ from config-service. The organization id is the only input, so a name is always
 derivable and never stored twice.
 
 **There is one prefix per store, not one per organization.** An organization has
-three tenant databases — `tenant_<organizationId>` for the `catalog` store,
-`stock_<organizationId>` for `stock` and `sales_<organizationId>` for `sales` —
-because they are three stores with three writing slices
+four tenant databases — `tenant_<organizationId>` for the `catalog` store,
+`stock_<organizationId>` for `stock`, `sales_<organizationId>` for `sales` and
+`fulfilment_<organizationId>` for `fulfilment` —
+because they are four stores with four writing slices
 ([ADR 0022](0022-v1-marketplace-module-boundaries.md),
-[ADR 0024](0024-selling-through-a-vendors-own-channel.md)). All are still lazily
+[ADR 0024](0024-selling-through-a-vendors-own-channel.md),
+[ADR 0070](0070-fulfilment-and-cash-on-delivery.md)). All are still lazily
 created and still cost nothing until written, so provisioning is unchanged in
 substance: a registry record plus a naming convention, now applied once per
 store.

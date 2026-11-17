@@ -57,7 +57,7 @@ single deep doc. Its reasoning is in the decision index below.
 - **Boundaries are enforced; to make an edge legal, retag — never weaken the
   rule.** Imports point downward and stay in-scope by each project's `nx.tags`,
   or `@nx/enforce-module-boundaries` fails the build. A new project needs
-  `layer:`/`scope:` tags (and `business:`, `shell:` or `host:` where they
+  `layer:`/`scope:` tags (and `business:`, `tech:`, `shell:` or `host:` where they
   apply). See
   [DEVELOPING.md → Module boundaries](docs/DEVELOPING.md#module-boundaries).
 - **Failures travel typed to the slice shell, and only the shell logs.** A
@@ -94,7 +94,7 @@ single deep doc. Its reasoning is in the decision index below.
   [docs/I18N.md](docs/I18N.md).
 - **Two documentation facts fail the build, each its own way.** A table between
   `<!-- docs:begin … -->` markers (`ports-infra`, `store-register`,
-  `adr-index`, `adr-triggers`) is **generated** by `node tools/sync-docs.mjs` —
+  `slice-register`, `adr-index`, `adr-triggers`) is **generated** by `node tools/sync-docs.mjs` —
   edit its source, regenerate, stage; a hand-edit fails `--check`. Prose is
   **asserted** by `pnpm nx test @r10c/docs-check`. Both run unconditionally in
   CI. See
@@ -182,7 +182,7 @@ headers and run `node tools/sync-docs.mjs`.
 
 **Messaging, transactions and sagas**
 
-- [0028](docs/adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md) **The transaction id is the client's, and its event ships with the write** — read when a create goes through the transaction engine — the client mints the id, that id is the idempotency key, and the event is written to the outbox inside the same Mongo transaction.
+- [0028](docs/adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md) **The transaction id is the client's, and its event ships with the write** — read when a write has to announce itself, or a client mints the id that makes a retry safe — the client's id is the idempotency key, and the event is written to the outbox inside the same Mongo transaction.
 - [0029](docs/adr/0029-the-event-envelope-and-a-routed-bus.md) **The event envelope, and a bus that routes** — read when publishing or subscribing to a bus message — `meta` describes the message and `data` the occurrence, and the dedup key is `event.id`.
 - [0030](docs/adr/0030-failure-retry-and-quarantine-on-the-bus.md) **Failure, retry and quarantine on the bus** — read when a handler fails or a payload cannot be parsed — three failure classes, `work` versus `broadcast`, and `x-delivery-limit` is immutable once the queue exists.
 - [0036](docs/adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md) **The reactive stream is server-sent, same-origin, and scoped per connection** — read when pushing anything to a browser — SSE and not a socket, because Next cannot upgrade a route handler and every consumer reads one way; where the stream lives is ADR 0072's.

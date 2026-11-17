@@ -6,6 +6,7 @@
 - Revised: 2026-10-24 — `OfferingCard` is replaced by the generic `ProductCard` in `@r10c/utils-react-ui` (#334).
 - Revised: 2026-10-25 — `makeEntityRoutes` went straight to entifix 0.7.2 rather than through r10c: nine hand-written copies and the framework's own example were already the second consumer (#358 superseded by #366)
 - Revised: 2026-10-26 — transaction-service's saga coordinator is a named exception that stays in its app, with the condition that would move it (#431)
+- Revised: 2026-11-16 — the untracked `react/` directory under `product-configuration-management` is gone, so the sentence about deleting it is struck.
 - Area: entities
 - Read when: adding a package under `packages/implementation/`, or a UI file imports an adapter — a cell depends on entities, use cases and ports, never on another cell or an adapter
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — an http cell translates and never decides a status, a retry or a log line; composition moves out of the apps into one Effect shell per slice, and the coordinator exception below ends — it moves into `shells-effect-transaction` (#447)
@@ -180,6 +181,7 @@ its three forbidden couplings are unchanged.
 - **Two packages per domain are the expected steady state**, not a smell: a
   domain with a screen and a route set has a `react` or `next` cell and an
   `http` cell, plus one persistence cell per store it owns.
-- `packages/implementation/product-configuration-management/react/` exists on
+- ~~`packages/implementation/product-configuration-management/react/` exists on
   some checkouts holding only `node_modules`; it is untracked, and #310 deletes
-  it before the first real cell.
+  it before the first real cell.~~ **Gone** — the directory no longer exists; the
+  domain's cell is `product-configuration-management/http`.

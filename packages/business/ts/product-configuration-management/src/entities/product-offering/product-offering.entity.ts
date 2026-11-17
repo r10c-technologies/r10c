@@ -17,11 +17,15 @@ import {
  * subscription) without redefining the thing itself.
  *
  * The skeleton stays **typed**. The storefront prerenders against these members
- * and checkout prices against them, so only *characteristics* are
- * specification-driven — `specificationId` pins the immutable
- * `EntitySpecification` version this offering was authored under, which is what
- * lets February's records stay readable after March's redefinition
- * ([ADR 0014](../../../../../../docs/adr/0014-entity-specifications-and-the-characteristic-dictionary.md)).
+ * and checkout prices against them, so only *characteristics* are meant to be
+ * specification-driven. Today `specificationId` names a `ProductSpecification`
+ * with no version: the offering pins nothing, and an edit to the specification
+ * reaches every offering that names it. The design — an immutable, versioned
+ * specification an offering is authored under, so February's records stay
+ * readable after March's redefinition — is
+ * [ADR 0014](../../../../../../../docs/adr/0014-entity-specifications-and-the-characteristic-dictionary.md)
+ * and, for versioning, [ADR 0079](../../../../../../../docs/adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)
+ * (both Proposed).
  *
  * Price is deliberately elsewhere: see `ProductOfferingPrice`.
  *

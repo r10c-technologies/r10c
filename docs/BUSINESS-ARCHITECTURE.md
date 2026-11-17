@@ -4,10 +4,10 @@ Every iteration so far built the **platform**: the entity framework, the
 layering, auth, i18n, observability, the transaction engine. This document adds
 the other half — the **business** the platform exists to run.
 
-It is the map, not the implementation. Most entities and use-cases land in
-following iterations; what is fixed here is the vocabulary, the decomposition,
-the data planes, and the rules that keep a domain extractable into its own
-service later.
+It is the map, not the implementation. The commerce slices are built — stock,
+order, payment, settlement, sales and fulfilment run under the flow engine — and
+what is fixed here is the vocabulary, the decomposition, the data planes, and
+the rules that keep a domain extractable into its own service.
 
 The decisions behind it:
 [ADR 0005](adr/0005-business-domain-decomposition.md) ·
@@ -22,13 +22,16 @@ crosses from the platform plane into a tenant's storage.
 
 [0009](adr/0009-catalog-authoring-and-publication.md) (catalog publication) and
 [0010](adr/0010-stock-ledger-reservations-and-concurrency.md) (the stock ledger)
-are **Accepted** as of ADR 0022, which landed the entities their triggers named —
-their decisions are in effect even though the publisher and the checkout are not
-built yet. Still **Proposed**, and worth reading before designing in those areas:
+are **Accepted** and built: the publisher, the projection and the checkout all
+run. Still **Proposed**, and worth reading before designing in those areas:
 [0012](adr/0012-operator-cross-tenant-access.md) (operator cross-tenant access),
 [0013](adr/0013-tenant-storage-on-postgres.md) (tenant storage on Postgres) and
 [0014](adr/0014-entity-specifications-and-the-characteristic-dictionary.md)
-(vendor-authored specifications).
+(vendor-authored specifications), and
+[0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)
+and
+[0079](adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)
+(how a new module joins, and how a specification is versioned).
 
 ## The target, and the first stage
 
@@ -40,8 +43,8 @@ The first stage is a **marketplace**: many vendors sell their own products to
 final users through one storefront. It is a first stage, not a scope limit —
 every module is named and shaped so the next business model extends it rather
 than replaces it. A subscription is a `ProductOffering` with a recurring price,
-not a new catalog. A delivery integration is another kind of stock movement, not
-a new inventory.
+not a new catalog. A courier integration is another participant of the delivery
+flow behind the `ShippingOrder`, not a new order.
 
 ## Naming: TM Forum, borrowed not adopted
 
@@ -91,7 +94,7 @@ different things by "product".
 | **Membership**            | A `Party`'s participation in an `Organization`, carrying the roles it holds there.                                                                                                                                                                                                                                                                                     | ours          |
 | **Entitlement**           | The set of business domains an `Organization` is provisioned for. The ceiling on what its tenant roles may grant.                                                                                                                                                                                                                                                      | ours          |
 | **ProductSpecification**  | What a thing _is_ — the facts common to every instance of it. Definitional, not commercial.                                                                                                                                                                                                                                                                            | SID           |
-| **EntitySpecification**   | A **vendor-authored, versioned** specification. Its released versions are immutable, and an instance pins the version it was written under.                                                                                                                                                                                                                            | SID           |
+| **EntitySpecification**   | A **vendor-authored, versioned** specification. Its released versions will be immutable, and an instance will pin the version it was written under ([ADR 0079](adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)); the entity exists, but no service serves it yet.                                                            | SID           |
 | **Characteristic**        | One spec'd member: a code, a value type, and constraints. A `CharacteristicSpecification` defines it; a `CharacteristicValue` on an instance holds it.                                                                                                                                                                                                                 | SID           |
 | **DictionaryTerm**        | A platform-owned characteristic vocabulary entry — code, value set, unit. What makes a characteristic comparable across vendors, and therefore facetable.                                                                                                                                                                                                              | ours          |
 | **ProductOffering**       | The commercial packaging: what is orderable from a catalog, priced and termed.                                                                                                                                                                                                                                                                                         | SID           |
@@ -272,9 +275,9 @@ Four rows worth their reasoning:
   a third for the same reason: its truth is `projection-of:auth`, not
   `projection-of:catalog`
   ([ADR 0061](adr/0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md)).
-- **`catalog`, `stock` and `sales` are three tenant stores**, physically
-  `tenant_<organizationId>`, `stock_<organizationId>` and
-  `sales_<organizationId>`. Same plane, same partitioning, separate databases —
+- **`catalog`, `stock`, `sales` and `fulfilment` are four tenant stores**,
+  physically `tenant_<organizationId>`, `stock_<organizationId>`,
+  `sales_<organizationId>` and `fulfilment_<organizationId>`. Same plane, same partitioning, separate databases —
   so one-writer is a property of which handle a request resolves to rather than
   of review. They must never transact together anyway; a cross-domain write goes
   through a flow.
@@ -287,19 +290,27 @@ Four rows worth their reasoning:
 
 ### Slices
 
-| Slice               | Status | Stores                                                 | Deployment                        |
-| ------------------- | ------ | ------------------------------------------------------ | --------------------------------- |
-| `config`            | active | configuration                                          | config-service `:3190`            |
-| `auth`              | active | auth, session                                          | auth-service `:3102`              |
-| `marketplace-admin` | active | catalog                                                | marketplace-admin-service `:3101` |
-| `transaction`       | active | workflow                                               | transaction-service `:3103`       |
-| `marketplace`       | active | catalog-reference, published-catalog, published-vendor | marketplace-service `:3100`       |
-| `stock`             | active | stock                                                  | stock-service `:3108`             |
-| `order`             | active | order                                                  | order-service `:3105`             |
-| `payment`           | active | payment                                                | payment-service `:3106`           |
-| `settlement`        | active | settlement                                             | settlement-service `:3107`        |
-| `sales`             | active | sales                                                  | sales-service `:3109`             |
-| `realtime`          | active | flow-status                                            | realtime-service `:3191`          |
+The register of slices. **This table is generated** from `tools/slices/` by
+`tools/sync-docs.mjs`; ports are in [\_shared/ports.md](_shared/ports.md).
+
+<!-- docs:begin slice-register -->
+
+| Slice               | Status | Domains                                                          | Stores                                                       | Deployment                  |
+| ------------------- | ------ | ---------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------- |
+| `auth`              | active | `authn`, `party-management`, `access-management`                 | `auth`, `session`                                            | `auth-service`              |
+| `config`            | active | `config`                                                         | `configuration`                                              | `config-service`            |
+| `fulfilment`        | active | `shipping-order-management`                                      | `fulfilment`, `fulfilment-idempotency`                       | `fulfilment-service`        |
+| `marketplace-admin` | active | `product-configuration-management`                               | `catalog`                                                    | `marketplace-admin-service` |
+| `marketplace`       | active | `catalog-reference`, `marketplace-catalog`, `marketplace-vendor` | `catalog-reference`, `published-catalog`, `published-vendor` | `marketplace-service`       |
+| `order`             | active | `order-management`                                               | `order`                                                      | `order-service`             |
+| `payment`           | active | `payment-management`                                             | `payment`                                                    | `payment-service`           |
+| `realtime`          | active | —                                                                | `flow-status`                                                | `realtime-service`          |
+| `sales`             | active | `sales-management`                                               | `sales`                                                      | `sales-service`             |
+| `settlement`        | active | `settlement-management`                                          | `settlement`                                                 | `settlement-service`        |
+| `stock`             | active | `stock-management`                                               | `stock`, `stock-idempotency`                                 | `stock-service`             |
+| `transaction`       | active | —                                                                | `workflow`                                                   | `transaction-service`       |
+
+<!-- docs:end slice-register -->
 
 **Co-deployment is reversible; merging stores is not.** Two slices sharing a
 process keeps ownership where it was — splitting back out means pointing a
@@ -349,34 +360,37 @@ Then two rules that apply to the entity itself:
 
 ### The three planes
 
-| Plane        | Storage                                                                          | Holds                                                                                                           |
-| ------------ | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Control**  | one shared database                                                              | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
-| **Platform** | one shared database                                                              | published catalog, catalog vocabulary, buyer orders, payments                                                   |
-| **Tenant**   | **three databases per organization** — `tenant_<id>`, `stock_<id>`, `sales_<id>` | vendor-authored offerings, specifications, pricing, stock, selling channels                                     |
+| Plane        | Storage                                                                                            | Holds                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Control**  | one shared database                                                                                | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
+| **Platform** | one shared database                                                                                | published catalog, catalog vocabulary, buyer orders, payments                                                   |
+| **Tenant**   | **four databases per organization** — `tenant_<id>`, `stock_<id>`, `sales_<id>`, `fulfilment_<id>` | vendor-authored offerings, specifications, pricing, stock, selling channels, shipments                          |
 
 ## Capability map
 
-| Capability                 | ODA analog                                                     | Package                                        | Plane    | Store               | Status   |
-| -------------------------- | -------------------------------------------------------------- | ---------------------------------------------- | -------- | ------------------- | -------- |
-| Party Management           | Party Management (TMFC028)                                     | `business-ts-party-management`                 | control  | `auth`              | entities |
-| Access Management          | Permissions Management (TMFC035)                               | `business-ts-access-management`                | control  | `auth`              | entities |
-| Configuration              | —                                                              | `business-ts-configuration`                    | control  | `configuration`     | in use   |
-| Identity & Sessions        | Digital Identity Mgmt (TMFC020)                                | `business-ts-authn`                            | control  | `auth`              | in use   |
-| Product Configuration Mgmt | Product Catalog Mgmt (TMFC001), Product Configurator (TMFC027) | `business-ts-product-configuration-management` | tenant   | `catalog`           | in use   |
-| Catalog Reference          | Product Catalog Mgmt (TMFC001), classification half            | `business-ts-catalog-reference`                | platform | `catalog-reference` | entities |
-| Marketplace Catalog        | Product Catalog Mgmt, published view                           | `business-ts-marketplace-catalog`              | platform | `published-catalog` | entities |
-| Marketplace Vendor         | Party Management (TMFC028), published view                     | `business-ts-marketplace-vendor`               | platform | `published-vendor`  | entities |
-| Stock Management           | — (no ODA analog)                                              | `business-ts-stock-management`                 | tenant   | `stock`             | entities |
-| Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`                 | platform | `order`             | entities |
-| Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           | entities |
-| Settlement Management      | Agreement Mgmt (TMFC039), partner revenue                      | `business-ts-settlement-management`            | control  | `settlement`        | entities |
-| Sales Management           | — (no ODA analog); SID Market/Sales, Sales Channel ABE         | `business-ts-sales-management`                 | tenant   | `sales`             | entities |
-| Fulfillment                | Shipping & Logistics (TMF700 Shipping Order)                   | `business-ts-shipping-order-management`        | tenant   | `fulfilment`        | entities |
+| Capability                 | ODA analog                                                     | Package                                        | Plane    | Store               | Status |
+| -------------------------- | -------------------------------------------------------------- | ---------------------------------------------- | -------- | ------------------- | ------ |
+| Party Management           | Party Management (TMFC028)                                     | `business-ts-party-management`                 | control  | `auth`              | in use |
+| Access Management          | Permissions Management (TMFC035)                               | `business-ts-access-management`                | control  | `auth`              | in use |
+| Configuration              | —                                                              | `business-ts-configuration`                    | control  | `configuration`     | in use |
+| Identity & Sessions        | Digital Identity Mgmt (TMFC020)                                | `business-ts-authn`                            | control  | `auth`              | in use |
+| Product Configuration Mgmt | Product Catalog Mgmt (TMFC001), Product Configurator (TMFC027) | `business-ts-product-configuration-management` | tenant   | `catalog`           | in use |
+| Catalog Reference          | Product Catalog Mgmt (TMFC001), classification half            | `business-ts-catalog-reference`                | platform | `catalog-reference` | in use |
+| Marketplace Catalog        | Product Catalog Mgmt, published view                           | `business-ts-marketplace-catalog`              | platform | `published-catalog` | in use |
+| Marketplace Vendor         | Party Management (TMFC028), published view                     | `business-ts-marketplace-vendor`               | platform | `published-vendor`  | in use |
+| Stock Management           | — (no ODA analog)                                              | `business-ts-stock-management`                 | tenant   | `stock`             | in use |
+| Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`                 | platform | `order`             | in use |
+| Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           | in use |
+| Settlement Management      | Agreement Mgmt (TMFC039), partner revenue                      | `business-ts-settlement-management`            | control  | `settlement`        | in use |
+| Sales Management           | — (no ODA analog); SID Market/Sales, Sales Channel ABE         | `business-ts-sales-management`                 | tenant   | `sales`             | in use |
+| Fulfillment                | Shipping & Logistics (TMF700 Shipping Order)                   | `business-ts-shipping-order-management`        | tenant   | `fulfilment`        | in use |
 
-`entities` means the domain's entity skeletons and its store are declared, with
-use-cases and adapters still to come. Every capability above owns exactly one
-store, and every store has one writing slice — see the register.
+`in use` means the domain has its entities, use cases and cells, and a deployed
+slice serves them. The exceptions inside a row are named where they matter:
+Product Configuration Management declares `EntitySpecification` and
+`CharacteristicSpecification`, which no service serves yet. Every capability
+above owns exactly one store, and every store has one writing slice — see the
+register.
 
 Authorization vocabulary (`@entifix/authz`) is not a capability — it is the
 shared policy language every capability expresses itself in, which is why it is
@@ -465,10 +479,18 @@ Design detail in [ADR 0009](adr/0009-catalog-authoring-and-publication.md).
 
 ## Vendors design their own products
 
+> **Not built yet.** `EntitySpecification` and `CharacteristicSpecification`
+> exist as entities, but no service, cell or screen serves them, an offering
+> points at a `ProductSpecification` with no version, and a vendor cannot add a
+> characteristic without code. What follows is the design
+> ([ADR 0014](adr/0014-entity-specifications-and-the-characteristic-dictionary.md),
+> Proposed; versioning in
+> [ADR 0079](adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)).
+
 Fixed entities put the operator on the critical path of every onboarding: a
-vendor's new field is a platform release. So a vendor authors an
+vendor's new field is a platform release. So a vendor will author an
 `EntitySpecification` — a versioned list of characteristics — and an offering
-pins the version it was written under. Released versions are immutable, which is
+will pin the version it was written under. Released versions are immutable, which is
 what makes February's records still readable after March's redefinition, and what
 lets a published specification be shared by content hash instead of copied per
 offering.
@@ -506,7 +528,7 @@ Two rules follow, and they hold regardless of how many services are deployed:
    updates even inside a single process handling two requests. Quantities move by
    atomic in-place operators (`$inc`, `SET qty = qty + $1`) over an append-only
    movement ledger, with the running total materialized. Audit and reconciliation
-   come free, and a future logistics integration is one more movement type.
+   come free, and goods coming back are one more movement reason (`return`, ADR 0070).
 2. **A purchase reserves, it does not decrement.** Checkout takes a _conditional_
    atomic write — increment `reserved` only where `onHand - reserved >= qty` —
    which is itself the concurrency control: zero rows matched means out of stock,
@@ -540,7 +562,7 @@ Full design in
 | -------------------------------------- | --------------------------------------------------------------------- |
 | `ProductOffering` with a one-off price | recurring price → subscriptions; usage price → metered services       |
 | `EntitySpecification` over a product   | the same pattern over a service or a resource spec                    |
-| Stock movements                        | a shipment is a movement type; a warehouse is a movement location     |
+| Stock movements                        | a warehouse is a movement location                                    |
 | `PricingLogicAlgorithm` as a port      | promotions, tiered and contract pricing behind the same seam          |
 | Marketplace catalog projection         | any read model the storefront needs (search index, recommendations)   |
 | Settlement over vendor sales           | any partner revenue share, including non-commerce applications        |
@@ -549,14 +571,24 @@ Full design in
 
 ## Deliberately out of scope
 
-Fulfillment and logistics · payment service provider integration · filing a
-tax return · returns and RMA · search relevance · recommendations · the
-dedicated operator bastion app · anything CRM or analytics.
+A real payment acquirer (today a simulated adapter behind the payment provider
+port) · a real tax certifier (the fiscal document will be issued through a
+simulated adapter, [ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md),
+not built) · a real courier integration (the vendor records delivery,
+refusal and return by hand) · filing a tax return · returns after delivery and
+RMA · search relevance · recommendations · the dedicated operator bastion app ·
+anything CRM or analytics.
+
+Fulfilment itself is **in scope and built**: `ShippingOrder`, the dispatch and
+delivery flow, and cash on delivery
+([ADR 0070](adr/0070-fulfilment-and-cash-on-delivery.md)).
 
 **Tax facts and the ERP modules left this list** with
 [ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)
 (Proposed). Recording what a sale owed in tax — fiscal identity, the breakdown
-per line, the totals — is in scope on orders, payments and stock movements;
+per line, the totals — and computing the IVA is in scope on orders, payments and
+stock movements, with the fiscal document issued through a simulated adapter and a simulated
+courier adapter, both future and not built;
 filing is not, and who issues the fiscal document is still open. Accounting,
 cost control, services and manufacturing are future modules: each a slice with
 its own store that joins by subscribing to complete events and starts from a

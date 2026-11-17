@@ -4,6 +4,7 @@
 - Date: 2026-07-26
 - Area: auth
 - Read when: changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `entifix_at` to the token signs everyone out every 15 minutes
+- Revised: 2026-11-16 — the rejected device comparison says where "auth-app's origin" went: auth-app was merged into `back-office-app` (the note ADR 0002 already carries).
 - Revised: 2026-08-13 by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) —
   records here the supersession ADR 0016 declared but never wrote back: the
   **recovery** and **lockout** sections below are superseded, and the Context
@@ -156,7 +157,9 @@ precisely because nothing here decides anything.** It powers the session list an
 the notification; the access token authorizes.
 
 **Rejected: comparing the device at refresh time.** The `entifix_did` cookie lives
-on auth-app's origin, so in production there is nothing to compare on another
+on auth-app's origin (since merged into `back-office-app`, `:3001`; see the note
+in [ADR 0002](0002-authorization-roles-and-abac.md) — the reasoning below was
+written for two origins and is kept as written), so in production there is nothing to compare on another
 app's origin — a check that would appear to work on localhost and silently stop
 working in production.
 
