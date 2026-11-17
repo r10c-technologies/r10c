@@ -13,12 +13,17 @@ import {
 import { checkCategorySave, retireSelection } from './retire-selection.js';
 
 const brand = (id: string) =>
-  Object.assign(new ProductBrand(id), { id, status: 'active' as const });
+  Object.assign(new ProductBrand(id), {
+    id,
+    status: 'active' as const,
+    revision: 1,
+  });
 
 const category = (id: string, parentId?: string) =>
   Object.assign(new ProductCategory(id, { es: id, en: id }), {
     id,
     status: 'active' as const,
+    revision: 1,
     ...(parentId === undefined ? {} : { parentId }),
   });
 

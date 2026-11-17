@@ -275,7 +275,9 @@ export async function OfferingListing({
           currentPage={current}
           pageSize={SEARCH_PAGE_SIZE}
           totalItems={result.total}
-          t={controls}
+          // i18next 27's `TFunction` is not assignable to the controls'
+          // `Translate`, so the pagination gets the call it declares.
+          t={(key, params) => (params ? controls(key, params) : controls(key))}
           // Page 1 is the bare address, as the codec writes it.
           hrefFor={target =>
             searchHref(href, state, {

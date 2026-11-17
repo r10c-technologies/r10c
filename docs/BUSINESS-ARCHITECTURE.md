@@ -300,12 +300,12 @@ The register of slices. **This table is generated** from `tools/slices/` by
 | `auth`              | active | `authn`, `party-management`, `access-management`                 | `auth`, `session`                                            | `auth-service`              |
 | `config`            | active | `config`                                                         | `configuration`                                              | `config-service`            |
 | `fulfilment`        | active | `shipping-order-management`                                      | `fulfilment`, `fulfilment-idempotency`                       | `fulfilment-service`        |
-| `marketplace-admin` | active | `product-configuration-management`                               | `catalog`                                                    | `marketplace-admin-service` |
+| `marketplace-admin` | active | `product-configuration-management`                               | `catalog`, `catalog-idempotency`                             | `marketplace-admin-service` |
 | `marketplace`       | active | `catalog-reference`, `marketplace-catalog`, `marketplace-vendor` | `catalog-reference`, `published-catalog`, `published-vendor` | `marketplace-service`       |
 | `order`             | active | `order-management`                                               | `order`                                                      | `order-service`             |
 | `payment`           | active | `payment-management`                                             | `payment`                                                    | `payment-service`           |
 | `realtime`          | active | —                                                                | `flow-status`                                                | `realtime-service`          |
-| `sales`             | active | `sales-management`                                               | `sales`                                                      | `sales-service`             |
+| `sales`             | active | `sales-management`                                               | `sales`, `sales-idempotency`                                 | `sales-service`             |
 | `settlement`        | active | `settlement-management`                                          | `settlement`                                                 | `settlement-service`        |
 | `stock`             | active | `stock-management`                                               | `stock`, `stock-idempotency`                                 | `stock-service`             |
 | `transaction`       | active | —                                                                | `workflow`                                                   | `transaction-service`       |

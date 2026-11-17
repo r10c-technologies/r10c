@@ -5,6 +5,7 @@ import { MongoPublishedVendorsLayer } from '@r10c/implementation-published-vendo
 import {
   fleetBusLayer,
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetSecurityLayer,
   fleetSingleMongoLayer,
   makeFleetServiceLayer,
@@ -80,6 +81,10 @@ export const marketplaceComposition =
         Layer.succeed(EventSourceTag, SLICE_NAME),
       );
 
+      // The operator's saves are idempotent at the edge (ADR 0068): their
+      // `Idempotency-Key` records live in this service's own database.
+      const idempotency = yield* fleetIdempotencyLayer(configuration);
+
       return Layer.provideMerge(
         Layer.mergeAll(
           Layer.effectDiscard(options.seed),
@@ -94,6 +99,7 @@ export const marketplaceComposition =
           Layer.mergeAll(
             MongoPublishedCatalogLayer,
             MongoPublishedVendorsLayer,
+            idempotency,
           ),
           connections,
         ),

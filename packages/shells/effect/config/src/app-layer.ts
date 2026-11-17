@@ -4,12 +4,20 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
+import {
+  ConfigurationRepositoryTag,
+  IdempotencyStoreTag,
+  TokenServiceTag,
+} from '@entifix/business';
 import { ConfigurationClientInMemory } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { redactValue } from '@entifix/service-shell';
 import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
 import { SqlHealthProbeLayer } from '@entifix/sql';
+import {
+  ensureSqlTransactionTables,
+  makeSqlIdempotencyStore,
+} from '@entifix/sql/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -98,6 +106,8 @@ export const migrateAndSeed = (rows: ReadonlyArray<ConfigurationRow>) =>
     yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS is_secret boolean NOT NULL DEFAULT false`;
     yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS updated_at timestamptz`;
     yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS updated_by text`;
+    // The revision check (ADR 0079 §4): a row states the revision it read.
+    yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS revision integer NOT NULL DEFAULT 1`;
 
     // An entity is addressed by a single `EntityId`, so `id` has to be the primary
     // key; the natural `(service, group_name, key)` triple stays enforced as a
@@ -258,6 +268,30 @@ export const authLayer = Layer.unwrap(
 );
 
 /**
+ * The store the generic create and update of a revisioned record remember
+ * their answers in, so a save whose response was lost replays rather than
+ * answering `409` against its own first write. The retention is this
+ * service's own `idempotency.retentionMs` row, read as every other service
+ * reads its own.
+ */
+export const idempotencyLayer = Layer.effect(
+  IdempotencyStoreTag,
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    const plain = yield* (yield* ConfigurationLookupTag).forService(
+      SERVICE_NAME,
+    );
+    const retention = (plain['idempotency'] ?? []).find(
+      entry => entry.key === 'retentionMs',
+    );
+    yield* ensureSqlTransactionTables(sql);
+    return makeSqlIdempotencyStore(sql, {
+      retentionMs: Number(retention?.value ?? 86_400_000),
+    });
+  }),
+);
+
+/**
  * What the service brings to its slice's composition: the seed rows are the
  * app's data, so they are handed in rather than owned here (ADR 0064).
  */
@@ -275,6 +309,7 @@ export const makeAppLayer = (options: ConfigShellOptions) =>
     Layer.mergeAll(
       SqlHealthProbeLayer(['configuration']),
       authLayer,
+      idempotencyLayer,
       // The `configuration` store, through its cell: reads that blank every
       // secret, and writes audited with the actor in the same transaction.
       ConfigurationRepositoryFactoryLayer,

@@ -37,6 +37,7 @@ const CONFIGURATION = fleetConfigurationOf({
     uri: 'mongodb://127.0.0.1:1/?directConnection=true',
     db: 'marketplace',
   }),
+  idempotency: configurationRows({ retentionMs: 60_000 }),
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
 });

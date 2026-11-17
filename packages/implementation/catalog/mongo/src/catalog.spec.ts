@@ -139,7 +139,7 @@ const settled = () => new Promise(resolve => setTimeout(resolve, 20));
 describe('committing a transition', () => {
   it('writes the offering and its announcement together, and drains it at once', async () => {
     const w = world({
-      [OFFERING_COLLECTION]: [{ id: 'o-1', status: 'draft' }],
+      [OFFERING_COLLECTION]: [{ id: 'o-1', status: 'draft', revision: 3 }],
     });
 
     const outcome = await w.run(
@@ -156,6 +156,8 @@ describe('committing a transition', () => {
 
     expect(outcome).toBe('committed');
     expect(w.fake.read(OFFERING_COLLECTION)[0]?.['status']).toBe('published');
+    // A form opened at revision 3 must now be stale.
+    expect(w.fake.read(OFFERING_COLLECTION)[0]?.['revision']).toBe(4);
     expect(w.bus.published.map(event => event.name)).toEqual([
       'catalog.published',
     ]);
@@ -186,7 +188,7 @@ describe('committing a transition', () => {
     const w = world({
       [OFFERING_COLLECTION]: [{ id: 'o-1', status: 'draft' }],
     });
-    w.fake.failOn('replaceOne', new Error('network down'));
+    w.fake.failOn('updateOne', new Error('network down'));
 
     await expect(
       w.run(

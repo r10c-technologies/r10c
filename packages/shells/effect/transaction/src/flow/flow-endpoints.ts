@@ -15,6 +15,7 @@ import {
   JsonBody,
   makeEnvelope,
   Overloaded,
+  StaleRevision,
   UpstreamUnavailable,
 } from '@entifix/core';
 import { FlowEngineTag } from '@entifix/transactions';
@@ -166,6 +167,7 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         Overloaded,
         // A store's answer to a registration it could not make twice.
         DuplicateKey,
+        StaleRevision,
       ],
       guard: {
         kind: 'crossing',

@@ -15,6 +15,7 @@ import {
   isLocale,
   JsonBody,
   NotFound,
+  StaleRevision,
   textBody,
   Unauthenticated,
 } from '@entifix/core';
@@ -88,7 +89,7 @@ const oidcStart = defineEndpoint({
   path: '/api/auth/oidc/start',
   payload: JsonBody,
   success: Schema.Struct({ authorizationUrl: Schema.String }),
-  errors: [Declined, DuplicateKey, NotFound],
+  errors: [Declined, DuplicateKey, StaleRevision, NotFound],
   guard: { kind: 'public' },
 });
 
@@ -149,7 +150,7 @@ const backChannelLogout = defineEndpoint({
   path: '/api/auth/backchannel-logout',
   payload: formBody({ logout_token: Schema.String }),
   success: Ok,
-  errors: [InvalidRequest, DuplicateKey, NotFound],
+  errors: [InvalidRequest, DuplicateKey, StaleRevision, NotFound],
   guard: { kind: 'public' },
 });
 
@@ -171,7 +172,7 @@ const providerEvents = defineEndpoint({
   // signature is the provider adapter's to know, not this cell's.
   headers: Schema.Record(Schema.String, Schema.String),
   success: Ok,
-  errors: [Unauthenticated, DuplicateKey, NotFound],
+  errors: [Unauthenticated, DuplicateKey, StaleRevision, NotFound],
   guard: { kind: 'public' },
 });
 
@@ -188,7 +189,7 @@ const refresh = defineEndpoint({
   path: '/api/auth/refresh',
   payload: JsonBody,
   success: JsonBody,
-  errors: [InvalidRequest, SessionExpired, DuplicateKey],
+  errors: [InvalidRequest, SessionExpired, DuplicateKey, StaleRevision],
   guard: { kind: 'public' },
 });
 
@@ -199,7 +200,7 @@ const resolveSession = defineEndpoint({
   path: '/api/auth/session/:sessionId',
   params: { sessionId: Schema.String },
   success: JsonBody,
-  errors: [SessionUnresolved, DuplicateKey],
+  errors: [SessionUnresolved, DuplicateKey, StaleRevision],
   guard: { kind: 'public' },
 });
 

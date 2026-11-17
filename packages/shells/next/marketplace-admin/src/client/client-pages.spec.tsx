@@ -65,6 +65,7 @@ vi.mock('next/navigation', () => ({
 const makeBrand = (id: string, name: string) => {
   const brand = new ProductBrand(name);
   brand.id = id;
+  brand.revision = 1;
   return brand;
 };
 
@@ -74,12 +75,14 @@ const makeCategory = (id: string, name: string) => {
     en: name,
   });
   category.id = id;
+  category.revision = 1;
   return category;
 };
 
 const makeProduct = () => {
   const product = new ProductSpecification('P-1', 'Widget');
   product.id = 'p-1';
+  product.revision = 1;
   product.brandId = 'b-1';
   product.categoryId = 'c-1';
   return product;

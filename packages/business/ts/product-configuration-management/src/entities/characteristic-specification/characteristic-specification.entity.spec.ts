@@ -99,6 +99,7 @@ describe('CharacteristicSpecification', () => {
       'code',
       'valueType',
       'termId',
+      'revision',
     ]);
   });
 });

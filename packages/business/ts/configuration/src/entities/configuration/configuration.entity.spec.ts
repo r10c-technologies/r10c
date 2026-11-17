@@ -80,6 +80,7 @@ describe('Configuration', () => {
       ['isSecret', 'is_secret', 'boolean'],
       ['updatedAt', 'updated_at', 'date'],
       ['updatedBy', 'updated_by', 'string'],
+      ['revision', 'revision', 'revision'],
     ]);
   });
 

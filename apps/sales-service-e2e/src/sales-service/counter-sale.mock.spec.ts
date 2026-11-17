@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
@@ -125,7 +127,12 @@ describe('the till`s one write', () => {
             status: 'inactive',
           },
         },
-        { headers: { Authorization: await bearerFor(['admin']) } },
+        {
+          headers: {
+            Authorization: await bearerFor(['admin']),
+            'Idempotency-Key': `"${randomUUID()}"`,
+          },
+        },
       );
 
     const res = await sell(

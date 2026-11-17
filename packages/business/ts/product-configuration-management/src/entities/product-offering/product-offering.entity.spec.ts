@@ -112,6 +112,7 @@ describe('ProductOffering', () => {
       'specificationId',
       'status',
       'statusChangedAt',
+      'revision',
     ]);
   });
 

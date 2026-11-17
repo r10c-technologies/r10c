@@ -5,6 +5,7 @@
  * marketplace-admin-service only mounts it, handing in its seed (ADR 0064).
  */
 export {
+  CATALOG_IDEMPOTENCY_DB,
   makeAppLayer,
   marketplaceAdminComposition,
   type MarketplaceAdminShellOptions,

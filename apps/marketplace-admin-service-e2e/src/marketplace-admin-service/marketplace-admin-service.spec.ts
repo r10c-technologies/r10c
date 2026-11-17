@@ -159,11 +159,26 @@ describe('media on a product specification', () => {
     media,
   });
 
-  const put = (media: unknown) =>
-    service.client.put('/api/product-specification/product-2', {
-      meta: { type: 'entity', entity: 'product-specification' },
-      data: { id: 'product-2', ...specification(media) },
-    });
+  // An update names the revision it read, and every write names its key. The
+  // seeded record sits at revision 1 and the one save that succeeds below moves
+  // it, so each call reads the record it is about to replace.
+  const put = async (media: unknown) => {
+    const current = await service.client.get(
+      '/api/product-specification/product-2',
+    );
+    return service.client.put(
+      '/api/product-specification/product-2',
+      {
+        meta: { type: 'entity', entity: 'product-specification' },
+        data: {
+          id: 'product-2',
+          revision: current.data.data.revision,
+          ...specification(media),
+        },
+      },
+      { headers: { 'idempotency-key': `"${crypto.randomUUID()}"` } },
+    );
+  };
 
   // A create is claimed on its key in the unit of work, so it carries one.
   const post = (media: unknown) =>

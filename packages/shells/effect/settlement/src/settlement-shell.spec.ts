@@ -37,6 +37,7 @@ const CONFIGURATION = fleetConfigurationOf({
     publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
     keyId: 'spec-key',
   }),
+  idempotency: configurationRows({ retentionMs: 60_000 }),
   mongo: configurationRows({
     uri: 'mongodb://127.0.0.1:1/?directConnection=true',
     db: 'settlement',

@@ -76,6 +76,6 @@ describe('EntitySpecification', () => {
       column => column.name,
     );
 
-    expect(names).toEqual(['id', 'name', 'version', 'released']);
+    expect(names).toEqual(['id', 'name', 'version', 'released', 'revision']);
   });
 });

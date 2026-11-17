@@ -39,31 +39,31 @@ packages:
 catalog:
   # Read by the @effect/platform-node-shared override below.
   '@effect/platform-node-shared': 4.0.7
-  '@entifix/amqp': 0.22.4
-  '@entifix/authz': 0.22.4
-  '@entifix/business': 0.22.4
-  '@entifix/core': 0.22.4
-  '@entifix/i18n': 0.22.4
-  '@entifix/jwt': 0.22.4
-  '@entifix/mongo': 0.22.4
-  '@entifix/next-i18n': 0.22.4
-  '@entifix/next-shell': 0.22.4
-  '@entifix/posthog': 0.22.4
-  '@entifix/react-controls': 0.22.4
-  '@entifix/react-integration': 0.22.4
-  '@entifix/redis': 0.22.4
-  '@entifix/rest': 0.22.4
-  '@entifix/service-shell': 0.22.4
-  '@entifix/sql': 0.22.4
-  '@entifix/static': 0.22.4
-  '@entifix/style': 0.22.4
-  '@entifix/testing-auth': 0.22.4
-  '@entifix/testing-e2e': 0.22.4
-  '@entifix/testing-unit': 0.22.4
-  '@entifix/tooling': 0.22.4
-  '@entifix/transactions': 0.22.4
-  '@entifix/workflow': 0.22.4
-  '@entifix/zitadel': 0.22.4
+  '@entifix/amqp': 0.23.1
+  '@entifix/authz': 0.23.1
+  '@entifix/business': 0.23.1
+  '@entifix/core': 0.23.1
+  '@entifix/i18n': 0.23.1
+  '@entifix/jwt': 0.23.1
+  '@entifix/mongo': 0.23.1
+  '@entifix/next-i18n': 0.23.1
+  '@entifix/next-shell': 0.23.1
+  '@entifix/posthog': 0.23.1
+  '@entifix/react-controls': 0.23.1
+  '@entifix/react-integration': 0.23.1
+  '@entifix/redis': 0.23.1
+  '@entifix/rest': 0.23.1
+  '@entifix/service-shell': 0.23.1
+  '@entifix/sql': 0.23.1
+  '@entifix/static': 0.23.1
+  '@entifix/style': 0.23.1
+  '@entifix/testing-auth': 0.23.1
+  '@entifix/testing-e2e': 0.23.1
+  '@entifix/testing-unit': 0.23.1
+  '@entifix/tooling': 0.23.1
+  '@entifix/transactions': 0.23.1
+  '@entifix/workflow': 0.23.1
+  '@entifix/zitadel': 0.23.1
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false
@@ -87,12 +87,6 @@ overrides:
   # (#426), not on its own. `.github/dependabot.yml` holds the same line, and
   # both are lifted together.
   '@opentelemetry/api': 1.9.1
-  # entifix 0.22.4 declares i18next `>=26 <27` and react-i18next `>=17 <18`, and
-  # its `Translate` type does not accept i18next 27's `TFunction` (the
-  # storefront build fails TS2322). `autoInstallPeers` floated the projects
-  # that name neither onto 27; they ride entifix's range until it widens.
-  i18next: 26.6.0
-  react-i18next: 17.1.10
   # The one @effect package r10c never names: @effect/platform-node asks for
   # it on a caret range, which floats it onto 4.1 while entifix holds the
   # family on the 4.0 line — and 4.1's build imports modules effect 4.0 does

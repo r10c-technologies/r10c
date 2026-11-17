@@ -16,6 +16,7 @@ import {
   makeEntityEnvelope,
   makeEnvelope,
   NotFound,
+  StaleRevision,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import {
@@ -106,7 +107,7 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
     create: {
       idempotent: 'unit',
       payload: JsonBody,
-      errors: [InvalidBody, Invalid, DuplicateKey, NotFound],
+      errors: [InvalidBody, Invalid, DuplicateKey, StaleRevision, NotFound],
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         Effect.gen(function* () {
           const order = yield* readStepRecord(ProductOrder, request.payload);
@@ -165,7 +166,7 @@ export const checkoutGroupApi = defineEntityApi(CheckoutGroup, GROUP_KEY, {
     create: {
       idempotent: 'unit',
       payload: JsonBody,
-      errors: [InvalidBody, Invalid, DuplicateKey],
+      errors: [InvalidBody, Invalid, DuplicateKey, StaleRevision],
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         Effect.gen(function* () {
           const group = yield* readStepRecord(CheckoutGroup, request.payload);

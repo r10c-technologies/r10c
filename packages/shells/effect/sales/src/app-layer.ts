@@ -1,6 +1,7 @@
 import type { MongoClientTag } from '@entifix/mongo';
 import {
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetSecurityLayer,
   fleetTenantMongoLayer,
   httpFlowStarterLayer,
@@ -11,6 +12,8 @@ import { SEEDED_VENDORS, type SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 const SERVICE_NAME = 'sales-service';
+/** The database the saves' idempotency records live in (ADR 0068). */
+export const SALES_IDEMPOTENCY_DB = 'sales-idempotency';
 
 /**
  * The `sales` slice's composition, mounted by its service alone (ADR 0064) — the `sales` store's only writer.
@@ -84,6 +87,14 @@ export const salesComposition =
       // creates a tenant database on first write, so a sibling touching
       // `sales_<id>` would race the seed on a fresh `dev:reset` and see a store
       // that is empty, half-seeded or seeded depending on scheduling.
+      // A key names no organization, so the records of a channel save's
+      // `Idempotency-Key` live in one database of their own, a name the tenant
+      // directory's `sales_` prefix never matches.
+      const idempotency = yield* fleetIdempotencyLayer(
+        configuration,
+        SALES_IDEMPOTENCY_DB,
+      );
+
       return Layer.provideMerge(
         // Every seeded vendor: `SEEDED_VENDORS` is the list auth-service
         // provisions and the catalog and stock services seed under.
@@ -95,7 +106,7 @@ export const salesComposition =
             { discard: true },
           ),
         ),
-        connections,
+        Layer.provideMerge(idempotency, connections),
       );
     });
 

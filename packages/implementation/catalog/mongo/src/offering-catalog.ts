@@ -2,7 +2,11 @@ import {
   type TenantDatabaseResolver,
   TenantDatabaseResolverTag,
 } from '@entifix/business';
-import { envelopeEntityName, serializeEntity } from '@entifix/core';
+import {
+  bumpRevision,
+  envelopeEntityName,
+  serializeEntity,
+} from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
@@ -34,7 +38,7 @@ class OfferingMoved {
  * ⚠️ **The transition is a status compare-and-set.** It was a plain replace,
  * so two publishes racing on one offering both read `draft`, both wrote, and
  * both emitted `catalog.published` — two announcements, and an unpublish that
- * lost the race could overwrite a publish that won it (#371). The replace now
+ * lost the race could overwrite a publish that won it (#371). The write now
  * names the status the decision was read in; a miss rolls the unit back,
  * outbox entry and all, and answers `changed`.
  *
@@ -67,10 +71,15 @@ export const MongoOfferingCatalogLayer = Layer.effect(
       commitTransition: (organizationId, offering, from, event) =>
         Effect.gen(function* () {
           const db = yield* databaseOf(organizationId);
-          const document = {
+          // Everything but the identity and the revision: the revision is not
+          // restated from what was read, it is moved in the same write
+          // (entifix 0032 §6), so a form opened before the verb saves at a
+          // revision that no longer matches.
+          const fields: Record<string, unknown> = {
             ...serializeEntity(ProductOffering, offering),
-            id: offering.id,
           };
+          delete fields['id'];
+          delete fields['revision'];
           const outcome = yield* units.forDatabase(db).run(
             unit =>
               Effect.gen(function* () {
@@ -78,9 +87,11 @@ export const MongoOfferingCatalogLayer = Layer.effect(
                   try: () =>
                     unit.handle.db
                       .collection(OFFERING_COLLECTION)
-                      .replaceOne({ id: offering.id, status: from }, document, {
-                        session: unit.handle.session,
-                      }),
+                      .updateOne(
+                        { id: offering.id, status: from },
+                        { $set: fields, ...bumpRevision.mongo },
+                        { session: unit.handle.session },
+                      ),
                   catch: mongoUnitFault,
                 });
                 if (written.matchedCount === 0) {

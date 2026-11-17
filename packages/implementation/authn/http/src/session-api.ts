@@ -10,6 +10,7 @@ import {
   JsonBody,
   NotFound,
   serializeEntityCollection,
+  StaleRevision,
 } from '@entifix/core';
 import {
   DevMailboxTag,
@@ -61,7 +62,7 @@ const mySessions = defineEndpoint({
   method: 'GET',
   path: '/api/auth/sessions',
   success: Items,
-  errors: [DuplicateKey, NotFound],
+  errors: [DuplicateKey, StaleRevision, NotFound],
   guard: { kind: 'session' },
 });
 

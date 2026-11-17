@@ -10,10 +10,12 @@ import { useLocaleHref } from '@entifix/next-shell';
 import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
 import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { CONFIGURATION_LIST_HREF } from '../../configuration-paths';
 import { ConfigurationForm } from '../configuration-form';
 import { NEW_SLUG, slugToEntityId } from '../slug';
+import { staleCurrentOf } from '../stale-revision';
 import { useSystemManagementAdapters } from '../system-management-context';
 
 type ConfigurationContext = EntityRepositoryTag;
@@ -51,6 +53,7 @@ export function ConfigurationSingleViewClientPage({
     entity,
     isLoading,
     error: loadError,
+    reload,
   } = useEntityRecord<Configuration, ConfigurationContext>({
     uc: getUCFactory<Configuration>(),
     ctx,
@@ -68,6 +71,20 @@ export function ConfigurationSingleViewClientPage({
     deleteUc: deleteUCFactory<Configuration>(),
     ctx,
   });
+
+  // A conflict answered either way stops showing: the alert belongs to the
+  // `current` revision it named, so a later refusal names another and shows.
+  const [answered, setAnswered] = useState<number>();
+  const staleCurrent = staleCurrentOf(writeError);
+  const shownWriteError =
+    staleCurrent !== undefined && staleCurrent === answered
+      ? undefined
+      : writeError;
+  const handleLoadCurrent = () => {
+    setAnswered(staleCurrent);
+    reload();
+  };
+  const handleConflictResolved = () => setAnswered(staleCurrent);
 
   const afterSave =
     onSaved ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
@@ -89,12 +106,14 @@ export function ConfigurationSingleViewClientPage({
   return (
     <ConfigurationForm
       // Reseeds the draft when the record arrives — `useEntityForm` seeds once.
-      key={String(entity?.id ?? NEW_SLUG)}
+      key={`${String(entity?.id ?? NEW_SLUG)}:${String(entity?.revision)}`}
       entity={entity}
       isLoading={isLoading}
       isSaving={isSaving}
       isDeleting={isDeleting}
-      error={loadError ?? writeError}
+      error={loadError ?? shownWriteError}
+      onLoadCurrent={handleLoadCurrent}
+      onConflictResolved={handleConflictResolved}
       onSave={handleSave}
       onDelete={id == null ? undefined : handleDelete}
       backHref={withLocale(CONFIGURATION_LIST_HREF)}

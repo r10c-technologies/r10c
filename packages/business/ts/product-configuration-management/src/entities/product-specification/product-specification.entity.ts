@@ -40,6 +40,7 @@ export class ProductSpecification implements Entity {
   #brandId?: string;
   #categoryId?: string;
   #media?: readonly MediaReferenceValue[];
+  #revision?: number;
   // #endregion
 
   // #region constructors
@@ -200,6 +201,17 @@ export class ProductSpecification implements Entity {
   }
   set media(value: readonly MediaReferenceValue[] | undefined) {
     this.#media = value;
+  }
+
+  // The revision check (ADR 0079 §4, entifix 0032): an authored record states
+  // the revision it read and a save is conditional on it. Server-owned but
+  // client-visible, so neither `readonly` nor `hidden`; it presents as nothing.
+  @accessor({ type: 'revision', label: 'Revision' })
+  get revision(): number | undefined {
+    return this.#revision;
+  }
+  set revision(value: number | undefined) {
+    this.#revision = value;
   }
   // #endregion
 }

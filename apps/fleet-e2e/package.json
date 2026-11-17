@@ -24,6 +24,6 @@
     "@entifix/jwt": "catalog:",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
-    "mongodb": "7.8.0"
+    "mongodb": "7.9.0"
   }
 }

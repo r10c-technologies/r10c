@@ -1,15 +1,10 @@
 import { MongoClientTag } from '@entifix/mongo';
-import { seedCollection } from '@r10c/shells-effect-service';
+import { revised, seedCollection } from '@r10c/shells-effect-service';
 import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 
 import { SALES_CHANNEL_COLLECTION } from './sales-channel-index';
 import { salesChannelTempData } from './sales-temp-data';
-
-const asRecords = (
-  data: ReadonlyArray<object>,
-): ReadonlyArray<Record<string, unknown>> =>
-  data as ReadonlyArray<Record<string, unknown>>;
 
 /**
  * Seeds the demo vendor's channels on first boot.
@@ -37,6 +32,6 @@ export const seedSales = (tenantDbName: string, _vendor: SeededVendor) =>
     yield* seedCollection(
       db,
       SALES_CHANNEL_COLLECTION,
-      asRecords(salesChannelTempData),
+      revised(salesChannelTempData),
     );
   });

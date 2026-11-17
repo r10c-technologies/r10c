@@ -38,6 +38,7 @@ describe('SalesChannel', () => {
       ['name', 'string'],
       ['type', 'enum'],
       ['status', 'enum'],
+      ['revision', 'revision'],
     ]);
   });
 

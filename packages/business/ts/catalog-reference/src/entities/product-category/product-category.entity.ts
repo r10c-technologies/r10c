@@ -22,6 +22,7 @@ export class ProductCategory implements Entity {
   #description?: LocalizedText;
   #status: ReferenceStatus = DEFAULT_REFERENCE_STATUS;
   #parentId?: string;
+  #revision?: number;
   //#endregion
 
   //#region constructors
@@ -140,6 +141,17 @@ export class ProductCategory implements Entity {
   }
   set parentId(value: string | undefined) {
     this.#parentId = value;
+  }
+
+  // The revision check (ADR 0079 §4, entifix 0032): an authored record states
+  // the revision it read and a save is conditional on it. Server-owned but
+  // client-visible, so neither `readonly` nor `hidden`; it presents as nothing.
+  @accessor({ type: 'revision', label: 'Revision' })
+  get revision(): number | undefined {
+    return this.#revision;
+  }
+  set revision(value: number | undefined) {
+    this.#revision = value;
   }
   //#endregion
 }

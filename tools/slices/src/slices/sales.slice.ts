@@ -41,6 +41,15 @@ export const salesSlice: SliceDeclaration = {
       partitioning: 'per-organization',
       truth: 'system-of-record',
     },
+    // The saves' `Idempotency-Key` records (ADR 0068), in one database for
+    // stock's reason: a key names no organization. Not entity records.
+    {
+      name: 'sales-idempotency',
+      plane: 'control',
+      hosts: [],
+      partitioning: 'single',
+      truth: 'system-of-record',
+    },
   ],
   deployments: ['sales-service'],
   coDeployedWith: [],

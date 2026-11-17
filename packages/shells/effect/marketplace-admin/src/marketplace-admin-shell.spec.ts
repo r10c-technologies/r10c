@@ -35,6 +35,7 @@ const CONFIGURATION = fleetConfigurationOf({
   tenant: configurationRows({
     dbPrefix: 'tenant_',
   }),
+  idempotency: configurationRows({ retentionMs: 60_000 }),
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
