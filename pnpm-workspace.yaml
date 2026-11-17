@@ -17,6 +17,7 @@ packages:
   # `slices` is the executable form of the ADR 0020 store register; `docs` holds
   # the documentation assertions, and reads the same entity scan.
   - 'tools/slices'
+  - 'tools/capabilities'
   - 'tools/docs'
   # `i18n` asserts that every error code a service emits has a catalog entry.
   - 'tools/i18n'

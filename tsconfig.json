@@ -82,6 +82,9 @@
       "path": "./tools/slices"
     },
     {
+      "path": "./tools/capabilities"
+    },
+    {
       "path": "./packages/shells/next/auth"
     },
     {

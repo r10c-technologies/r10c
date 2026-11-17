@@ -368,26 +368,34 @@ Then two rules that apply to the entity itself:
 
 ## Capability map
 
-| Capability                 | ODA analog                                                     | Package                                        | Plane    | Store               | Status |
-| -------------------------- | -------------------------------------------------------------- | ---------------------------------------------- | -------- | ------------------- | ------ |
-| Party Management           | Party Management (TMFC028)                                     | `business-ts-party-management`                 | control  | `auth`              | in use |
-| Access Management          | Permissions Management (TMFC035)                               | `business-ts-access-management`                | control  | `auth`              | in use |
-| Configuration              | —                                                              | `business-ts-configuration`                    | control  | `configuration`     | in use |
-| Identity & Sessions        | Digital Identity Mgmt (TMFC020)                                | `business-ts-authn`                            | control  | `auth`              | in use |
-| Product Configuration Mgmt | Product Catalog Mgmt (TMFC001), Product Configurator (TMFC027) | `business-ts-product-configuration-management` | tenant   | `catalog`           | in use |
-| Catalog Reference          | Product Catalog Mgmt (TMFC001), classification half            | `business-ts-catalog-reference`                | platform | `catalog-reference` | in use |
-| Marketplace Catalog        | Product Catalog Mgmt, published view                           | `business-ts-marketplace-catalog`              | platform | `published-catalog` | in use |
-| Marketplace Vendor         | Party Management (TMFC028), published view                     | `business-ts-marketplace-vendor`               | platform | `published-vendor`  | in use |
-| Stock Management           | — (no ODA analog)                                              | `business-ts-stock-management`                 | tenant   | `stock`             | in use |
-| Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`                 | platform | `order`             | in use |
-| Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           | in use |
-| Settlement Management      | Agreement Mgmt (TMFC039), partner revenue                      | `business-ts-settlement-management`            | control  | `settlement`        | in use |
-| Sales Management           | — (no ODA analog); SID Market/Sales, Sales Channel ABE         | `business-ts-sales-management`                 | tenant   | `sales`             | in use |
-| Fulfillment                | Shipping & Logistics (TMF700 Shipping Order)                   | `business-ts-shipping-order-management`        | tenant   | `fulfilment`        | in use |
+<!-- docs:begin capability-map -->
 
-`in use` means the domain has its entities, use cases and cells, and a deployed
-slice serves them. The exceptions inside a row are named where they matter:
-Product Configuration Management declares `EntitySpecification` and
+| Capability                 | ODA analog                                                     | Package                                        | Plane    | Store               |
+| -------------------------- | -------------------------------------------------------------- | ---------------------------------------------- | -------- | ------------------- |
+| Party Management           | Party Management (TMFC028)                                     | `business-ts-party-management`                 | control  | `auth`              |
+| Access Management          | Permissions Management (TMFC035)                               | `business-ts-access-management`                | control  | `auth`              |
+| Configuration              | —                                                              | `business-ts-configuration`                    | control  | `configuration`     |
+| Identity & Sessions        | Digital Identity Mgmt (TMFC020)                                | `business-ts-authn`                            | control  | `auth`              |
+| Product Configuration Mgmt | Product Catalog Mgmt (TMFC001), Product Configurator (TMFC027) | `business-ts-product-configuration-management` | tenant   | `catalog`           |
+| Catalog Reference          | Product Catalog Mgmt (TMFC001), classification half            | `business-ts-catalog-reference`                | platform | `catalog-reference` |
+| Marketplace Catalog        | Product Catalog Mgmt, published view                           | `business-ts-marketplace-catalog`              | platform | `published-catalog` |
+| Marketplace Vendor         | Party Management (TMFC028), published view                     | `business-ts-marketplace-vendor`               | platform | `published-vendor`  |
+| Stock Management           | — (no ODA analog)                                              | `business-ts-stock-management`                 | tenant   | `stock`             |
+| Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`                 | platform | `order`             |
+| Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           |
+| Settlement Management      | Agreement Mgmt (TMFC039), partner revenue                      | `business-ts-settlement-management`            | control  | `settlement`        |
+| Sales Management           | — (no ODA analog); SID Market/Sales, Sales Channel ABE         | `business-ts-sales-management`                 | tenant   | `sales`             |
+| Fulfillment                | Shipping & Logistics (TMF700 Shipping Order)                   | `business-ts-shipping-order-management`        | tenant   | `fulfilment`        |
+
+<!-- docs:end capability-map -->
+
+**This table is generated** by `tools/sync-docs.mjs`. The ODA column is the
+domain table in `tools/capabilities/`, which also checks every use case's `oda`
+against it, and the plane and store come from `tools/slices/`
+([ADR 0080](adr/0080-a-capability-register-holds-one-thin-entry-per-use-case.md)).
+What is built, per use case, is that register's `status`; the table no longer
+carries a status of its own. The exceptions inside a row are named where they
+matter: Product Configuration Management declares `EntitySpecification` and
 `CharacteristicSpecification`, which no service serves yet. Every capability
 above owns exactly one store, and every store has one writing slice — see the
 register.

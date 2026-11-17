@@ -94,7 +94,7 @@ single deep doc. Its reasoning is in the decision index below.
   [docs/I18N.md](docs/I18N.md).
 - **Two documentation facts fail the build, each its own way.** A table between
   `<!-- docs:begin … -->` markers (`ports-infra`, `store-register`,
-  `slice-register`, `adr-index`, `adr-triggers`) is **generated** by `node tools/sync-docs.mjs` —
+  `slice-register`, `capability-map`, `adr-index`, `adr-triggers`) is **generated** by `node tools/sync-docs.mjs` —
   edit its source, regenerate, stage; a hand-edit fails `--check`. Prose is
   **asserted** by `pnpm nx test @r10c/docs-check`. Both run unconditionally in
   CI. See
