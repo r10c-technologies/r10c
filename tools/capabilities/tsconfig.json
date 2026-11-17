@@ -1,0 +1,51 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/capabilities",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "vitest/globals", "vitest/importMeta"],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../slices"
+    },
+    {
+      "path": "../../packages/shells/next/system-management"
+    },
+    {
+      "path": "../../packages/shells/next/stock"
+    },
+    {
+      "path": "../../packages/shells/next/settlement"
+    },
+    {
+      "path": "../../packages/shells/next/sales"
+    },
+    {
+      "path": "../../packages/shells/next/order"
+    },
+    {
+      "path": "../../packages/shells/next/marketplace-admin"
+    },
+    {
+      "path": "../../packages/shells/next/marketplace"
+    },
+    {
+      "path": "../../packages/shells/next/fulfilment"
+    },
+    {
+      "path": "../../packages/shells/next/auth"
+    },
+    {
+      "path": "../../packages/shells/effect/flow-catalog"
+    },
+    {
+      "path": "../../packages/business/ts/authz-grants"
+    }
+  ]
+}

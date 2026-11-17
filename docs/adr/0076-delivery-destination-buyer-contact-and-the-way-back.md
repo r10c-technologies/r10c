@@ -5,6 +5,7 @@
 - Area: business
 - Read when: storing a buyer's address or contact, numbering an order, or letting a buyer find an order again — contact data lives on the group and the shipment only, a buyer's tax id on the order, and a number never authorizes
 - Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the buyer's fiscal identity is a third personal record, on the order, and it travels only on a fiscal-document event with `audience: 'none'`, never on `order.*`
+- Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — payment evidence is personal data removed by the §4 sweep; the receipt capability authorizes one write; the review step offers `link`
 
 ## Context
 

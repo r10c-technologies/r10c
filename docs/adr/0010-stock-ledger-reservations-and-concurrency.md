@@ -34,6 +34,7 @@
   said `findOneAndUpdate` where the route uses `updateOne`. And the cross-plane
   reserve is dispatched by transaction-service, not by order-management.
 - Revised: 2026-11-03 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — a hold converts after the checkout's commit point rather than on payment, a restoration can be a `return`, and every counter move announces `stock-item.changed` at the item's version
+- Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — a hold's expiry may be stated per hold by the coordinator, bounded by stock-service's `maxHoldSeconds`
 
 ## Trigger
 

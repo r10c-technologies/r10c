@@ -108,6 +108,8 @@ export interface UseCaseDeclaration {
   reversible?: 'undo' | 'confirm';
   /** The verb an `undo` runs over the same selection. */
   inverse?: string;
+  /** The flow recipe the verb starts (`recipe: 'cancellation'`), when it starts one. */
+  recipe?: string;
   /** Absolute path of the file declaring it. */
   file: string;
   /** The `packages/business/ts/<name>` package it lives in. */
@@ -149,6 +151,7 @@ export const declaredUseCases = (): UseCaseDeclaration[] => {
       const reversible = /\breversible:\s*'(undo|confirm)'/.exec(body)?.[1] as
         'undo' | 'confirm' | undefined;
       const inverse = /\binverse:\s*'([^']+)'/.exec(body)?.[1];
+      const recipe = /\brecipe:\s*'([^']+)'/.exec(body)?.[1];
       found.push({
         className,
         entity,
@@ -156,6 +159,7 @@ export const declaredUseCases = (): UseCaseDeclaration[] => {
         catalogKeys,
         ...(reversible === undefined ? {} : { reversible }),
         ...(inverse === undefined ? {} : { inverse }),
+        ...(recipe === undefined ? {} : { recipe }),
         file,
         packageName: relative(BUSINESS_ROOT, file).split(sep)[0],
       });

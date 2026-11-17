@@ -12,6 +12,7 @@
 - Revised: 2026-11-04 — checkout, the till's sale and both cancellations answer `202`, and the saga runner the record named is deleted (#486, #487, #490)
 - Revised: 2026-11-04 — a write whose flow parks past its commit point settles there (#489): a vendor's `dispatch` waited on a delivery flow that only ends with the courier's report, days later, which held the report's own verbs disabled until the report arrived. `flow.waiting` confirms it, and so does a catch-up reading `waiting` with `committed` (entifix 0.17.0, slip grammar 2)
 - Revised: 2026-11-04 — the push a pending write settles by left with each announcement rather than at the outbox relay's next sweep, up to 15 s later; measured 8 s before, 3 ms after (#492, ADR 0072)
+- Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — a storefront checkout settles on `flow.waiting`, since a link segment waits for days past the commit point
 
 ## Context
 

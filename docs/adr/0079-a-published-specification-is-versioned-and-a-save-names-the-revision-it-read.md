@@ -4,6 +4,7 @@
 - Date: 2026-11-16
 - Area: business
 - Read when: editing a specification something points at, two people saving one record, or a tenant needing its own field or step — a released version is never edited, an order line is a copy, and a stale `revision` answers `409`
+- Revised: 2026-11-17 — a missing `revision` answers `400 invalid`, not `invalidBody`, and a status move increments `revision`, as entifix's revision check decides ([entifix ADR 0032](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0032-a-save-names-the-revision-it-read.md))
 
 ## Context
 
@@ -145,7 +146,8 @@ conditional on it. A second save on the same `revision` is refused.
 - **How it fails.** `409`, `application/problem+json`, `code: 'staleRevision'` —
   a key in the `errors` catalog, category `conflict`
   ([ADR 0064](0064-failures-reach-the-slice-shell.md)). An update with no
-  `revision` is `400 invalidBody`, never a silent overwrite.
+  `revision` is `400 invalid`, the framework's own failure, with the field
+  problem at `/data/revision`, never a silent overwrite.
 - **What a person sees.** The form keeps what they typed, says the record
   changed, and offers the current one. It never retries by itself.
 
@@ -160,9 +162,11 @@ autosaved draft.
 rest.** Excluded: quantities and ledgers, which are `$inc` over append-only
 movements and never read-modify-written
 ([ADR 0010](0010-stock-ledger-reservations-and-concurrency.md)); status moves,
-which keep their one conditional write on the status they leave; projections,
-ordered by the event's version; append-only records. A `revision` is not an
-event's `meta.version` and feeds none of the existing ones.
+which keep their one conditional write on the status they leave and are never
+refused for a `revision`, but increment it in that same write when the record
+carries one, so a form opened before the move cannot save over it;
+projections, ordered by the event's version; append-only records. A `revision`
+is not an event's `meta.version` and feeds none of the existing ones.
 
 ### 5. A tenant varies data through characteristics and process through configuration
 

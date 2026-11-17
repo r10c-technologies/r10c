@@ -510,9 +510,10 @@ describe("The router's decision index", () => {
   it('keeps the router small enough to be worth loading every session', () => {
     // A ceiling, not a target. It was 170KB before the digest moved into the
     // records it duplicated; ~26KB after, plus ~30KB of `@import`ed snippets.
+    // Raised to 42,000 for ADR 0078-0083's index lines and rules.
     // Raise this only with a reason — every byte here is paid on every turn of
     // every session, by the main thread and each subagent alike.
-    const CEILING = 40_000;
+    const CEILING = 42_000;
     const size = Buffer.byteLength(claude(), 'utf8');
 
     expect(
