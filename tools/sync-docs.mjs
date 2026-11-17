@@ -16,6 +16,7 @@
  *   ports-infra     docs/_shared/ports.md   ← infra/local/lib.sh
  *   store-register  docs/_shared/planes.md  ← tools/slices/
  *   slice-register  docs/BUSINESS-ARCHITECTURE.md ← tools/slices/
+ *   capability-map  docs/BUSINESS-ARCHITECTURE.md ← tools/capabilities/ + tools/slices/
  *   adr-index       docs/adr/README.md      ← the ADR files themselves
  *   adr-triggers    CLAUDE.md               ← the ADR files themselves
  *
@@ -287,6 +288,38 @@ const adrTriggers = async () => {
   );
 };
 
+/* ----------------------------------------------------------- capability-map */
+
+/**
+ * The capability map (ADR 0080 §4): the ODA analog is the domain table in
+ * `tools/capabilities/`, the plane and store are the store hosting the domain in
+ * `tools/slices/`. Rows keep the domain table's order, which is the order the
+ * map was written in by hand.
+ */
+const capabilityMap = async () => {
+  const { DOMAINS } = await import(p('tools/capabilities/src/domains.ts'));
+  const { SLICES } = await import(p('tools/slices/src/registry.ts'));
+  const stores = SLICES.flatMap(slice => slice.stores);
+
+  const rows = DOMAINS.map(row => {
+    const store = stores.find(s => s.hosts.includes(row.domain));
+    if (store === undefined) {
+      throw new Error(
+        `sync-docs: no store hosts the domain '${row.domain}' (tools/capabilities DOMAINS)`,
+      );
+    }
+    return [
+      row.capability,
+      row.odaAnalog,
+      `\`${row.packageName}\``,
+      store.plane,
+      `\`${store.name}\``,
+    ];
+  });
+
+  return table(['Capability', 'ODA analog', 'Package', 'Plane', 'Store'], rows);
+};
+
 /* ------------------------------------------------------------------ driver */
 
 /**
@@ -309,6 +342,11 @@ export const BLOCKS = [
     name: 'slice-register',
     file: 'docs/BUSINESS-ARCHITECTURE.md',
     render: sliceRegister,
+  },
+  {
+    name: 'capability-map',
+    file: 'docs/BUSINESS-ARCHITECTURE.md',
+    render: capabilityMap,
   },
   { name: 'adr-index', file: 'docs/adr/README.md', render: adrIndex },
   { name: 'adr-triggers', file: 'CLAUDE.md', render: adrTriggers },
@@ -368,7 +406,7 @@ const main = async () => {
   }
   console.error(
     '\nThese blocks are written from source, not by hand. Change the source' +
-      '\n(infra/local/lib.sh, tools/slices/, or the ADR files), then run:' +
+      '\n(infra/local/lib.sh, tools/slices/, tools/capabilities/, or the ADR files), then run:' +
       '\n\n    node tools/sync-docs.mjs\n\nand stage the result.',
   );
   process.exit(1);

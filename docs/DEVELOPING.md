@@ -1082,16 +1082,21 @@ the flow per caller and omits a verb the caller cannot reach.
 Documentation drifts because nothing fails when it does. Two mechanisms make
 parts of it fail, split by what a machine can actually know.
 
-**Generated — `tools/sync-docs.mjs`.** Five blocks are written from source and
+**Generated — `tools/sync-docs.mjs`.** Six blocks are written from source and
 must not be edited by hand:
 
-| Block            | In                              | Source               |
-| ---------------- | ------------------------------- | -------------------- |
-| `ports-infra`    | `docs/_shared/ports.md`         | `infra/local/lib.sh` |
-| `store-register` | `docs/_shared/planes.md`        | `tools/slices/`      |
-| `slice-register` | `docs/BUSINESS-ARCHITECTURE.md` | `tools/slices/`      |
-| `adr-index`      | `docs/adr/README.md`            | the ADR files        |
-| `adr-triggers`   | `CLAUDE.md`                     | the ADR files        |
+| Block            | In                              | Source                                  |
+| ---------------- | ------------------------------- | --------------------------------------- |
+| `ports-infra`    | `docs/_shared/ports.md`         | `infra/local/lib.sh`                    |
+| `store-register` | `docs/_shared/planes.md`        | `tools/slices/`                         |
+| `slice-register` | `docs/BUSINESS-ARCHITECTURE.md` | `tools/slices/`                         |
+| `capability-map` | `docs/BUSINESS-ARCHITECTURE.md` | `tools/capabilities/` + `tools/slices/` |
+| `adr-index`      | `docs/adr/README.md`            | the ADR files                           |
+| `adr-triggers`   | `CLAUDE.md`                     | the ADR files                           |
+
+`capability-map` is the ODA column of the capability map: its source is the
+domain table in `tools/capabilities/src/domains.ts`, the same table
+`@r10c/capabilities` checks every use case's `oda` against (ADR 0080 §4).
 
 Each sits between `<!-- docs:begin <name> -->` and `<!-- docs:end <name> -->`.
 Change the source, run `node tools/sync-docs.mjs`, stage the result.

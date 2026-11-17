@@ -1,0 +1,48 @@
+{
+  "name": "@r10c/capabilities",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:shared",
+      "type:testing"
+    ],
+    "sourceRoot": "tools/capabilities/src",
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts",
+          "cwd": "tools/capabilities"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@entifix/authz": "catalog:",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/shells-effect-flow-catalog": "workspace:*",
+    "@r10c/shells-next-auth": "workspace:*",
+    "@r10c/shells-next-fulfilment": "workspace:*",
+    "@r10c/shells-next-marketplace": "workspace:*",
+    "@r10c/shells-next-marketplace-admin": "workspace:*",
+    "@r10c/shells-next-order": "workspace:*",
+    "@r10c/shells-next-sales": "workspace:*",
+    "@r10c/shells-next-settlement": "workspace:*",
+    "@r10c/shells-next-stock": "workspace:*",
+    "@r10c/shells-next-system-management": "workspace:*",
+    "@r10c/slices": "workspace:*"
+  }
+}
