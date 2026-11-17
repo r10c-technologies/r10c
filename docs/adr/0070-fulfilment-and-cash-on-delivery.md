@@ -5,6 +5,7 @@
 - Revised: 2026-11-04 — the delivery flow built (#488): a vendor's `dispatch` starts it, it branches on the courier's report through guards on its waits, a refused card delivery refunds as a retried step after the dispatch pivot rather than through a child flow, a return the window never sees strands the flow, and a parcel is returned only after it was refused
 - Revised: 2026-11-04 — the dispatch worklist (#489): a vendor's `dispatch` settles when the flow parks on the courier's report, through `flow.waiting`, rather than when the flow ends
 - Revised: 2026-11-13 — a vendor's shipment verbs are offered only from the statuses the transition table allows them, `dispatch`, `record-refusal` and `record-return` confirm first, and `dispatch` also runs over a selection of the worklist, one delivery flow per shipment (#534)
+- Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — a `link` checkout commits like `cod` and then waits for the seller's confirmation; the dials gain the payment window; the courier is a dictionary, and dispatch requires a recorded guide
 - Area: business
 - Read when: an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout
 

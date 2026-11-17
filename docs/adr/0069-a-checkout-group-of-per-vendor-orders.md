@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-28
 - Revised: 2026-11-13 — the storefront's checkout starts from a review step that shows each seller's lines, tender and the total; the cart no longer starts it (#534)
+- Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — money the vendor collected, by courier or by link, settles `collectedBy: 'vendor'`, and an unpaid link order voids its join
 - Area: business
 - Read when: a basket spans vendors, a vendor acts on their part of a sale, or a refund is partial — a checkout writes one group and one order per vendor, and one capture is allocated per order
 

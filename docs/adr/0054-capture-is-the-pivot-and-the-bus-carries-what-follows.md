@@ -9,6 +9,7 @@
 - Revised: 2026-10-29 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — `payment.failed` is no longer published, since nothing subscribes to it
 - Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — capture is the `payment.capture@3` fragment's pivot in a composed slip, no longer a `defineSaga` step run by `runSaga` (#486)
 - Revised: 2026-11-16 — two statements of what was not yet built are corrected: durable retry across a coordinator restart exists (ADR 0066), and `order-contracts` was built with its consumer (ADR 0057).
+- Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — a payment the seller confirms is recorded by a retriable step after the commit point, not a pivot; `paid` may precede `payment.captured`; `PaymentMethods` gains `link`
 
 ## Context
 

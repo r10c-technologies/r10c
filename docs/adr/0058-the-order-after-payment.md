@@ -11,6 +11,7 @@
 - Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — cancel and refund act on one vendor's order, the `fulfil` verb is gone (ADR 0070), the buyer's capability lives on the checkout group, and the saga's `/cancelled` step is `POST /api/product-order/:id/closed`
 - Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — a person's cancel is the derived `POST /api/product-order/:id/cancel`, no longer `/cancellation`; the saga's `/cancelling` and `/cancelled` are crossing endpoints
 - Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — cancellation is a composed slip started through `FlowStarterTag` and answered `202`; its instance read `GET /api/saga/:id` is deleted, and a flow's progress is read from flow-status (#487, #490)
+- Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — §2: an `awaiting-payment` order is withdrawn by one conditional write with no refund; §5: the buyer's capability also authorizes attaching payment evidence, for the receipt's read lifetime
 
 ## Context
 

@@ -106,7 +106,7 @@ single deep doc. Its reasoning is in the decision index below.
 - **Four artifacts hold knowledge, one job each — do not merge them.** _How the
   business works_ is in **Notion** (the `r10c` space, via the Notion MCP
   server); _what we decided and why_ is an **ADR**; _the contract_ is
-  `BUSINESS-ARCHITECTURE.md` + `tools/slices/`; _what is next and whether it is
+  `BUSINESS-ARCHITECTURE.md` + `tools/slices/` + `tools/capabilities/`; _what is next and whether it is
   done_ is a **GitHub issue under a milestone**. Business processes are **not**
   put in `docs/`. The repo is public now and private later, so exposure is
   decided per commit, permanently: commission rates, named vendors and courier
@@ -155,6 +155,7 @@ headers and run `node tools/sync-docs.mjs`.
 - [0070](docs/adr/0070-fulfilment-and-cash-on-delivery.md) **Fulfilment and cash on delivery, and one composed checkout per channel** — read when an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout.
 - [0076](docs/adr/0076-delivery-destination-buyer-contact-and-the-way-back.md) _(Proposed)_ **Delivery destination, buyer contact, order numbers, and the buyer's way back to an order** — read when storing a buyer's address or contact, numbering an order, or letting a buyer find an order again — contact data lives on the group and the shipment only, a buyer's tax id on the order, and a number never authorizes.
 - [0079](docs/adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md) _(Proposed)_ **A published specification is versioned, an instance pins its version, and a save names the revision it read** — read when editing a specification something points at, two people saving one record, or a tenant needing its own field or step — a released version is never edited, an order line is a copy, and a stale `revision` answers `409`.
+- [0081](docs/adr/0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) _(Proposed)_ **An order waits for a payment the seller confirms, and a receipt is a file** — read when a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date.
 
 **Entities and the framework**
 
@@ -221,6 +222,7 @@ headers and run `node tools/sync-docs.mjs`.
 - [0064](docs/adr/0064-failures-reach-the-slice-shell.md) **Failures travel typed to the slice shell, answer one problem body, and are logged only there** — read when adding a refusal, a status mapping, an error body or a log call, or about to write `Effect.retry` in a consumer — `code` is the `errors` key, business and implementation never log, and the slice shell decides status, retry and logging.
 - [0071](docs/adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) **Http cells hold descriptors, and the slice shell builds the API** — read when adding a route, a verb or a guard, or an `http` cell reaches for `effect/http` — a cell declares, the slice shell serves, and `exposedAPIs` is checked.
 - [0074](docs/adr/0074-change-validation-and-the-cache-it-may-trust.md) **Change Validation, and what may trust the cache it carries** — read when a CI job is slow because it rebuilds what another job built, adding a job or a check to `change_validation.yml`, a check passed without running, the Actions cache is near its 10 GB, or about to restore `.nx/cache` between runners — a restored `.nx/cache` is ignored by Nx 24, and a repository-wide check must never read from the cache.
+- [0080](docs/adr/0080-a-capability-register-holds-one-thin-entry-per-use-case.md) _(Proposed)_ **A capability register holds one thin entry per use case** — read when adding a use case or publishing to the docs site — the id is a permission shape, and `implemented` must resolve to code.
 
 **Superseded**, for their reasoning only: [0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md), [0043](docs/adr/0043-the-optimistic-mutation-contract.md), [0052](docs/adr/0052-the-checkout-saga.md), [0055](docs/adr/0055-a-coordinator-resumes-from-its-own-record.md).
 
