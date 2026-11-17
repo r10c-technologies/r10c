@@ -10,7 +10,8 @@
 > `EntityTable`, which builds its columns from the accessor metadata; its filter
 > and sort panels are wired end-to-end into the load request over the **RSQL
 > query protocol** (§6), from the browser to Mongo. Filtering on links is not
-> supported yet.
+> supported yet. An authored record carries a `revision`, and a stale save
+> answers `409` (§4).
 
 Entifix is a small entity framework whose entire purpose is to let a **single
 use-case** run in any environment. It reaches that goal by combining two ideas:
@@ -449,6 +450,41 @@ match them with `Failure.isCategory` / `isFamily` / `isTag`, never `instanceof`.
 The old `EntifixError` tree — `EntifixConnError`, `EntifixBuildError`,
 `EntifixLogicError` — still exists while entifix #126 removes it, and an
 `EntifixError` reaching a consumer is classified transient.
+
+### A save names the revision it read
+
+An entity a person edits declares `@accessor({ type: 'revision' })` on a member
+named `revision`, and the generic `save` becomes a conditional write on it
+([ADR 0079](./adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md) §4,
+[entifix ADR 0032](https://github.com/r10c-technologies/entifix/blob/v0.23.1/docs/adr/0032-a-save-names-the-revision-it-read.md)):
+
+- **The check.** An update carries the `revision` it read; the store writes only
+  where the stored value still equals it, and increments it. A mismatch is
+  `StaleRevision` — `409`, code `staleRevision`, carrying the `current` record.
+  An update with no `revision` is `400 invalid` at `/data/revision`, never a
+  silent overwrite. `save` is no longer an upsert. The member is optional and
+  may not be `required`, `sortable`, `filterable`, `hidden` or `readonly`.
+- **Retries.** Generic create and update are idempotent `'edge'`, so a service
+  serving them binds `IdempotencyStoreTag` and a client sends `Idempotency-Key`;
+  a save that landed but lost its answer replays instead of answering `409` to
+  itself. config-service is the SQL case: its own idempotency table, retained
+  for `idempotency.retentionMs`.
+- **A verb moves the revision too.** A hand-written write — the offering's
+  publish transition in `catalog/mongo`'s `offering-catalog.ts` — uses
+  `$set` with `bumpRevision.mongo` (or `bumpRevision.sql`), so an open form on
+  that record goes stale rather than overwriting the move.
+- **Seeds start at `revision: 1`** through `revised()` in
+  `@r10c/shells-effect-service`'s `seed-collection.ts`; a stored record with no
+  revision could never be updated. A SQL table needs `revision integer NOT NULL`.
+- **The form.** `makeEntityCrud` wires the conflict alert — the typed input is
+  kept, with _keep mine_ (retry at `current`'s revision) and _load current_. A
+  host rendering `EntityForm` directly passes `onKeepMine` and `onLoadCurrent`
+  itself, as the agreement and configuration forms do.
+- **Which records.** `tools/slices/src/revision.spec.ts` lists every `@entity()`
+  as authored (declares a revision) or excluded with its reason — quantities and
+  ledgers (ADR 0010), status moves that keep one conditional write, and the
+  auth, party and access records sign-in and provisioning write. A new entity in
+  neither list fails the build.
 
 ### The envelope is the message
 
