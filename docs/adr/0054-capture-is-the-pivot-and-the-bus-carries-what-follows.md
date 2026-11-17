@@ -104,7 +104,8 @@ was not built under this record.
 > **Corrected 2026-11-16.** It is built now: flows run on the durable workflow
 > engine ([ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md)), and a
 > coordinator killed mid-flow resumes
-> (`apps/fleet-e2e/src/commerce/runner-kill.live.spec.ts`). #233 is closed by it.
+> (`apps/fleet-e2e/src/commerce/runner-kill.live.spec.ts`). #233 closed on 2026-09-10 with
+> ADR 0055's resume-from-the-record, which ADR 0066's engine then replaced.
 
 ### 3b. A later step can name what an earlier one created
 

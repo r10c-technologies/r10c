@@ -794,12 +794,20 @@ describe('Stated facts agree with their source', () => {
   const liveDocs = (): string[] =>
     allDocs().filter(doc => !doc.startsWith(join('docs', 'adr')));
 
+  // A generated block quotes dated ADR headers (`Read when`, `Revised`), which
+  // are records of their day and are not asserted here.
+  const liveText = (doc: string): string =>
+    read(doc).replace(
+      /<!-- docs:begin [\w-]+ -->[\s\S]*?<!-- docs:end [\w-]+ -->/g,
+      '',
+    );
+
   it('names the Nx major the repository installs', () => {
     const nx = JSON.parse(read('package.json')).devDependencies.nx as string;
     const major = nx.match(/(\d+)\./)?.[1];
     const stated: { doc: string; major: string }[] = [];
     for (const doc of liveDocs()) {
-      for (const match of read(doc).matchAll(/\bNx (\d+)\b/g)) {
+      for (const match of liveText(doc).matchAll(/\bNx (\d+)\b/g)) {
         stated.push({ doc, major: match[1] });
       }
     }
@@ -818,17 +826,25 @@ describe('Stated facts agree with their source', () => {
     ).length;
     const stated: { doc: string; count: number }[] = [];
     for (const doc of liveDocs()) {
-      for (const match of read(doc).matchAll(
-        /\b(one|two|three|four|five|six|seven) (?:(?:Mongo|tenant) )*databases\b/gi,
-      )) {
-        stated.push({ doc, count: words.indexOf(match[1].toLowerCase()) + 1 });
+      // Only a line about tenancy counts: "two databases" of Postgres is not
+      // a tenant count.
+      for (const line of liveText(doc).split('\n')) {
+        if (!/tenant|organi[sz]ation/i.test(line)) continue;
+        for (const match of line.matchAll(
+          /(?:\*\*)?\b(one|two|three|four|five|six|seven)\b(?:\*\*)? (?:(?:Mongo|tenant) )*databases\b/gi,
+        )) {
+          stated.push({
+            doc,
+            count: words.indexOf(match[1].toLowerCase()) + 1,
+          });
+        }
       }
     }
 
     expect(
       stated.length,
       'no document counts the tenant databases per organization',
-    ).toBeGreaterThanOrEqual(3);
+    ).toBeGreaterThanOrEqual(5);
     expect(
       stated.filter(s => s.count !== tenant),
       `tools/slices declares ${tenant} per-organization stores; these documents count another number of databases`,
@@ -850,6 +866,16 @@ describe('Stated facts agree with their source', () => {
     expect(
       scopes.filter(scope => !bullet?.includes(`\`${scope}\``)),
       'these scopes are declared in nx.tags but the scope:* bullet in layering.md does not name them',
+    ).toEqual([]);
+
+    const lists = (bullet ?? '').split('`scope:shared`')[0];
+    const named = [...lists.matchAll(/`([a-z][a-z-]*)`/g)].map(
+      match => match[1],
+    );
+    expect(named.length).toBeGreaterThanOrEqual(10);
+    expect(
+      named.filter(name => !declaredTags().has(`scope:${name}`)),
+      'the scope:* bullet in layering.md names scopes no project declares',
     ).toEqual([]);
   });
 

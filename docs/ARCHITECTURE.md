@@ -11,7 +11,7 @@ which data plane they live in, and how they extend — is
 > fulfilment), the Next.js frontends and the Effect-native backends are all in
 > place: twelve services, one per slice, over Mongo, Postgres and Redis.
 > **config-service** and **transaction-service** run on PostgreSQL;
-> **auth-service** also holds sessions in Redis; the rest are MongoDB. **Full
+> **auth-service** also holds sessions in Redis (nothing is cached there); the rest are MongoDB. **Full
 > CRUD** runs end-to-end for the marketplace-admin catalog: `load`/`get`/`save`/`delete` over REST on the web and
 > Mongo on the backend — and the same use-cases run against Postgres through
 > `@entifix/sql`, which is what config-service's own operator CRUD uses —
@@ -186,9 +186,11 @@ Effect Layers.
   co-deployed into marketplace-admin-service until #229 split it out, which was
   a `deployments` edit because its store's handle was already named. See
   [Stores, slices & data planes](../docs/_shared/planes.md).
-- **marketplace-service** (`:3100`, Mongo) — the storefront's read host: the
-  `catalog-reference` vocabulary and the `published-catalog` and
-  `published-vendor` projections, read-only
+- **marketplace-service** (`:3100`, Mongo) — the storefront's read host and the
+  operator's vocabulary host: `catalog-reference` (brands, categories and
+  dictionary terms, written by the operator through the back office) and the
+  `published-catalog` and `published-vendor` projections, which it alone writes
+  from the bus and serves read-only
   ([ADR 0022](adr/0022-v1-marketplace-module-boundaries.md)).
 - **stock-service** (`:3108`, Mongo) — the tenant `stock` store: the
   `StockItem` position, the append-only `StockMovement` ledger and the
@@ -984,7 +986,7 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   `business-ts-shipping-order-management` — `ShippingOrder`. **Tenant plane.**
 - `business-ts-configuration` — `Configuration`. **Control plane.**
 - The `-contracts` and `-vocabulary` packages (`catalog`, `order`, `party`,
-  `payment`, `flow`, `sales`) and `authz-grants` are `business:policy`: the
+  `payment`, `flow`, `sales`), `authz-grants`, `common` and `i18n` are `business:policy`: the
   shared vocabulary a domain expresses itself in, never a domain.
 - `business-ts-authn` — `UserIdentity` (carrying the `role` aspect),
   `EntityIdentifier`, `UserDevice`; `resolveSession`, `registerUser` and the OIDC
@@ -1042,7 +1044,7 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   `configuration/sql`, `session/redis` and the rest).
 - The Next shells — `shells-next-marketplace`, `-marketplace-admin`, `-auth`,
   `-system-management` (`scope:shared`, so a second host can mount it with no
-  moves), `-stock`, `-order`, `-sales`, `-settlement` and `-fulfilment` — with
+  moves), `-stock`, `-order`, `-sales`, `-settlement` and `-fulfilment`, and `i18n-catalog` — with
   `@entifix/next-shell` and `@entifix/next-i18n`: Next pages + client adapters.
 - The Effect shells (`packages/shells/effect/*`) — `shells-effect-service` is
   the fleet base on `@entifix/service-shell`, and each slice has its own
@@ -1082,7 +1084,8 @@ vendor worklist share one origin); twelve backends, one per slice
 `realtime-service`, ports in [_shared/ports.md](_shared/ports.md)); the edge
 that owns the `300N` origins; plus `*-e2e` projects and `fleet-e2e`.
 **marketplace-service** owns the `published-catalog`
-projection and the `catalog-reference` vocabulary and serves them read-only —
+projection and the `catalog-reference` vocabulary, and serves the projection
+read-only and the vocabulary to the operator who authors it —
 a public read path that never opens a tenant connection. The storefront reads
 both of them over REST from its own server components — resolving the address
 from config-service directly, with no proxy, because there is no browser in that

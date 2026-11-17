@@ -856,8 +856,8 @@ E2E_PROFILE=live SALES_SERVICE_URL=http://localhost:3109 \
   pnpm nx e2e sales-service-e2e
 ```
 
-The order, payment, settlement, fulfilment and transaction services have `mock`
-specs only; their live coverage is `fleet-e2e`
+The order, payment, settlement, fulfilment, transaction and realtime services have
+`mock` specs only; their live coverage is `fleet-e2e`
 ([The live pass](#the-live-pass)), which runs the whole fleet together.
 
 `mock` is the default because the default has to run anywhere. `live` never

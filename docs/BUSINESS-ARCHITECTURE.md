@@ -571,8 +571,10 @@ Full design in
 
 ## Deliberately out of scope
 
-A real payment acquirer and a real tax certifier (both are simulated adapters
-behind ports) · a real courier integration (the vendor records delivery,
+A real payment acquirer (today a simulated adapter behind the payment provider
+port) · a real tax certifier (the fiscal document will be issued through a
+simulated adapter, [ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md),
+not built) · a real courier integration (the vendor records delivery,
 refusal and return by hand) · filing a tax return · returns after delivery and
 RMA · search relevance · recommendations · the dedicated operator bastion app ·
 anything CRM or analytics.
@@ -585,7 +587,8 @@ delivery flow, and cash on delivery
 [ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)
 (Proposed). Recording what a sale owed in tax — fiscal identity, the breakdown
 per line, the totals — and computing the IVA is in scope on orders, payments and
-stock movements, with the fiscal document issued through a simulated adapter;
+stock movements, with the fiscal document issued through a simulated adapter and a simulated
+courier adapter, both future and not built;
 filing is not, and who issues the fiscal document is still open. Accounting,
 cost control, services and manufacturing are future modules: each a slice with
 its own store that joins by subscribing to complete events and starts from a

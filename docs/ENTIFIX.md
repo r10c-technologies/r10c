@@ -1,10 +1,10 @@
 # Entifix — entities and the Effect-agnostic use-case
 
-> **Status (2026-07)** — `@entifix/core`, `-business`, `-rest-client`,
-> `-mongo-client`, and `entifix-react-{controls,integration}` are implemented.
-> The `load` and `get` use-cases run end-to-end over both REST and Mongo;
-> `save`/`delete` are implemented on the adapters (and the shared serializer) but
-> not yet driven by a UI/route. To-one links (`EntityLink`) are resolved on both
+> **Status (2026-11, entifix 0.22.4)** — `@entifix/core`, `@entifix/business`,
+> `@entifix/rest`, `@entifix/mongo`, `@entifix/react-controls` and
+> `@entifix/react-integration` are implemented and installed from the registry.
+> The `load`, `get`, `save` and `delete` use-cases run end-to-end over both REST
+> and Mongo. To-one links (`EntityLink`) are resolved on both
 > web and backend; to-many (`EntityCollectionLink`) is modeled and deserialized
 > but only served as foreign keys so far. The React side now renders through
 > `EntityTable`, which builds its columns from the accessor metadata; its filter

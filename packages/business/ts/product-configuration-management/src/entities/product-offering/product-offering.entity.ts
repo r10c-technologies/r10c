@@ -23,8 +23,8 @@ import {
  * reaches every offering that names it. The design — an immutable, versioned
  * specification an offering is authored under, so February's records stay
  * readable after March's redefinition — is
- * [ADR 0014](../../../../../../docs/adr/0014-entity-specifications-and-the-characteristic-dictionary.md)
- * and, for versioning, [ADR 0079](../../../../../../docs/adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)
+ * [ADR 0014](../../../../../../../docs/adr/0014-entity-specifications-and-the-characteristic-dictionary.md)
+ * and, for versioning, [ADR 0079](../../../../../../../docs/adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)
  * (both Proposed).
  *
  * Price is deliberately elsewhere: see `ProductOfferingPrice`.

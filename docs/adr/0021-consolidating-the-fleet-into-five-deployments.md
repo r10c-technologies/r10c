@@ -54,8 +54,8 @@ assumption that made a domain without a frontend look like a gap.
 > only multi-domain store in the repository.
 
 > **Clarified 2026-11-16.** Six was the count on the day of that clarification.
-> Each slice built since claimed the index its reservation held and became a
-> deployment of its own; the register declares them, and a hand-kept count here
+> Each slice built since became a deployment of its own, most on an index
+> reserved for it; the register declares them, and a hand-kept count here
 > would drift the next time one is added or two are merged.
 
 **Eight deployments become five.** No new mechanism: ADR 0020 already says a
