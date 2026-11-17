@@ -237,7 +237,7 @@ describe('the config endpoints', () => {
           },
           body: JSON.stringify({
             meta: { type: 'entity', entity: 'configuration' },
-            data: { is_secret: false, value: '' },
+            data: { is_secret: false, value: '', revision: 1 },
           }),
         },
       );
