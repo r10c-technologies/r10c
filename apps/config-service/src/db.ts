@@ -346,6 +346,13 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // per-organization `tenant_<id>` resolved inside the request, so a name here
   // would create a database nothing writes — the phantom store ADR 0020 rules
   // out.
+  // How long a save's `Idempotency-Key` replays its first answer (ADR 0068).
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'marketplace-admin-service',
     group_name: 'mongo',
@@ -1240,6 +1247,13 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // oversight: a plane answers *who may read it*, and an `Agreement` is the
   // platform's own record about a vendor — the same character as `Entitlement`
   // (ADR 0022 §8).
+  // How long a save's `Idempotency-Key` replays its first answer (ADR 0068).
+  {
+    service: 'settlement-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'settlement-service',
     group_name: 'mongo',
@@ -1424,6 +1438,13 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // `catalog-reference` and `published-catalog` stores, both `single`, so unlike
   // the admin service it names a database at boot rather than resolving one per
   // request from the session.
+  // How long a save's `Idempotency-Key` replays its first answer (ADR 0068).
+  {
+    service: 'marketplace-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'marketplace-service',
     group_name: 'mongo',
@@ -1605,6 +1626,13 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // sales-service — how a vendor sells, per vendor. Tenant plane and
   // per-organization, so like stock-service it resolves a database handle inside
   // the request and names none at boot: `mongo.db` is absent on purpose.
+  // How long a save's `Idempotency-Key` replays its first answer (ADR 0068).
+  {
+    service: 'sales-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'sales-service',
     group_name: 'mongo',

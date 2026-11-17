@@ -6,6 +6,7 @@
  */
 export {
   makeAppLayer,
+  SALES_IDEMPOTENCY_DB,
   salesComposition,
   type SalesShellOptions,
 } from './app-layer.js';

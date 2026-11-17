@@ -86,7 +86,12 @@ describe('the configuration declaration', () => {
       overrides.update.handler(
         {
           params: { id: CONTRACT_SECRET.id },
-          payload: envelope({ id: 'elsewhere', is_secret: true, value: '' }),
+          payload: envelope({
+            id: 'elsewhere',
+            is_secret: true,
+            value: '',
+            revision: 1,
+          }),
         },
         context,
       ),
@@ -100,7 +105,7 @@ describe('the configuration declaration', () => {
       overrides.update.handler(
         {
           params: { id: CONTRACT_SECRET.id },
-          payload: envelope({ is_secret: false, value: '' }),
+          payload: envelope({ is_secret: false, value: '', revision: 1 }),
         },
         context,
       ),
@@ -109,6 +114,23 @@ describe('the configuration declaration', () => {
     expect(failure).toMatchObject({
       code: 'secretRequiresValue',
       category: 'invalid',
+    });
+  });
+
+  it('refuses an update that names no revision, at the field', async () => {
+    const failure = await refusal(
+      overrides.update.handler(
+        {
+          params: { id: CONTRACT_SECRET.id },
+          payload: envelope({ value: 'x' }),
+        },
+        context,
+      ),
+    );
+
+    expect(failure).toMatchObject({
+      code: 'invalid',
+      errors: [{ pointer: '/data/revision', code: 'required' }],
     });
   });
 

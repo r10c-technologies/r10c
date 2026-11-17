@@ -102,6 +102,66 @@ describe('createConfigProxyRoute', () => {
     });
   });
 
+  it("carries a save's idempotency key to the service", async () => {
+    const fetchMock = vi.fn((..._args: Parameters<typeof fetch>) =>
+      Promise.resolve(new Response('{}', { status: 200 })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await forward(
+      new Request('http://app.test/api/system/configuration/c-1', {
+        method: 'PUT',
+        headers: { 'Idempotency-Key': '"k-1"' },
+        body: '{}',
+      }),
+      params(['configuration', 'c-1']),
+    );
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: { 'Idempotency-Key': '"k-1"' },
+    });
+  });
+
+  it('answers with the content type the service answered with', async () => {
+    const problem = new Response('{"code":"staleRevision"}', {
+      status: 409,
+      headers: { 'content-type': 'application/problem+json' },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(problem)),
+    );
+
+    const response = await forward(
+      new Request('http://app.test/api/system/configuration/c-1', {
+        method: 'PUT',
+        body: '{}',
+      }),
+      params(['configuration', 'c-1']),
+    );
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get('content-type')).toBe(
+      'application/problem+json',
+    );
+  });
+
+  it('defaults to json when the service named no content type', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(new Response(new TextEncoder().encode('{"a":1}'))),
+      ),
+    );
+
+    const response = await forward(
+      new Request('http://app.test/api/system/configuration'),
+      params(['configuration']),
+    );
+
+    expect(response.headers.get('content-type')).toBe('application/json');
+  });
+
   it('passes an empty body through as a status-only response', async () => {
     // `json()` on an empty body throws, which is why the handler checks first.
     vi.stubGlobal(

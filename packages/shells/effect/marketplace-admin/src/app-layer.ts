@@ -8,6 +8,7 @@ import {
 import {
   fleetBusLayer,
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetOutboxLayer,
   fleetSecurityLayer,
   fleetTenantMongoLayer,
@@ -21,6 +22,8 @@ import { startRebuildWalk } from './rebuild-walk.js';
 const SERVICE_NAME = 'marketplace-admin-service';
 /** The slice publishing this process's events (ADR 0020, `tools/slices/`). */
 const SLICE_NAME = 'marketplace-admin';
+/** The database the saves' idempotency records live in (ADR 0068). */
+export const CATALOG_IDEMPOTENCY_DB = 'catalog-idempotency';
 
 /**
  * The `marketplace-admin` slice's composition, mounted by its service alone (ADR 0064). Resolves its own parameters
@@ -68,6 +71,14 @@ export const marketplaceAdminComposition =
         yield* fleetOutboxLayer(configuration, SLICE_NAME),
       );
 
+      // A key names no organization, so the records of an authored save's
+      // `Idempotency-Key` live in one database of their own, a name the tenant
+      // directory's `tenant_` prefix never matches.
+      const idempotency = yield* fleetIdempotencyLayer(
+        configuration,
+        CATALOG_IDEMPOTENCY_DB,
+      );
+
       return Layer.provideMerge(
         Layer.mergeAll(
           // ⚠️ **The rebuild is chained to the seed, not merged beside it.**
@@ -94,6 +105,7 @@ export const marketplaceAdminComposition =
           Layer.mergeAll(
             MongoOfferingCatalogLayer,
             MongoSpecificationCommandsLayer,
+            idempotency,
           ),
           connections,
         ),

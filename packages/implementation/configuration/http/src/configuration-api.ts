@@ -6,9 +6,11 @@ import {
 } from '@entifix/business';
 import {
   entityKey,
+  Invalid,
   makeEntityEnvelope,
   NotFound,
   readEntityEnvelope,
+  readRevision,
 } from '@entifix/core';
 import {
   Configuration,
@@ -41,6 +43,20 @@ const save =
       );
       // The route is `/:id` for an update, so the parameter is always there.
       if (verb === 'update') incoming.id = request.params?.id as string;
+      // An update names the revision it read, as the generic one answers it
+      // (ADR 0079 §4): never an overwrite, and not a stale save either.
+      if (verb === 'update' && readRevision(incoming) === undefined)
+        return yield* Effect.fail(
+          new Invalid({
+            errors: [
+              {
+                pointer: '/data/revision',
+                detail: 'An update names the revision it read.',
+                code: 'required',
+              },
+            ],
+          }),
+        );
       const writer = yield* ConfigurationWriterTag;
       const saved = yield* writer.save(incoming, actorOf(context));
       return makeEntityEnvelope(

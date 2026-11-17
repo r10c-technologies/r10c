@@ -48,6 +48,10 @@ export const createConfigProxyRoute = ({
     if (token !== undefined) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+    // A save's key rides through, or the service refuses it (ADR 0068): the
+    // revisioned update is idempotent at the edge.
+    const idempotencyKey = request.headers.get('idempotency-key');
+    if (idempotencyKey !== null) headers['Idempotency-Key'] = idempotencyKey;
 
     const hasBody = request.method !== 'GET' && request.method !== 'DELETE';
     const upstream = await fetch(`${baseUrl}/api/${path.join('/')}${search}`, {
@@ -63,7 +67,12 @@ export const createConfigProxyRoute = ({
       ? new NextResponse(null, { status: upstream.status })
       : new NextResponse(text, {
           status: upstream.status,
-          headers: { 'content-type': 'application/json' },
+          // The service's own type: a refusal is `application/problem+json`, and
+          // the client reads a conflict by it.
+          headers: {
+            'content-type':
+              upstream.headers.get('content-type') ?? 'application/json',
+          },
         });
   };
 

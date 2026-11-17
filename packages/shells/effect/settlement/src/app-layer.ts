@@ -4,6 +4,7 @@ import { MongoSettlementStoreLayer } from '@r10c/implementation-settlement-mongo
 import {
   fleetBusLayer,
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetSecurityLayer,
   fleetSingleMongoLayer,
   makeFleetServiceLayer,
@@ -94,8 +95,17 @@ export const settlementComposition =
       // an index can be created. Three of them are load-bearing rather than
       // performance work — the outbox's `eventId`, the inbox's
       // `(consumer, eventId)` claim, and the ledger's `(orderId, vendorId)`.
+      // The agreement's saves are idempotent at the edge (ADR 0068): their
+      // `Idempotency-Key` records live in this store's own database.
+      const idempotency = yield* fleetIdempotencyLayer(configuration);
+
       const indexed = Layer.provideMerge(
-        Layer.effectDiscard(Effect.flatMap(MongoDatabaseTag, ensureBusIndexes)),
+        Layer.mergeAll(
+          Layer.effectDiscard(
+            Effect.flatMap(MongoDatabaseTag, ensureBusIndexes),
+          ),
+          idempotency,
+        ),
         connections,
       );
 

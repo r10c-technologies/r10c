@@ -46,6 +46,7 @@ declaration as `bindingReason`.
 | Store                    | Plane    | Owner slice         | Slice status | Co-deployed with | Hosts                                                         | Partitioning     | Truth                    |
 | ------------------------ | -------- | ------------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------------- | ------------------------ |
 | `auth`                   | control  | `auth`              | active       | —                | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record         |
+| `catalog-idempotency`    | control  | `marketplace-admin` | active       | —                | —                                                             | single           | system-of-record         |
 | `catalog-reference`      | platform | `marketplace`       | active       | —                | `catalog-reference`                                           | single           | system-of-record         |
 | `catalog`                | tenant   | `marketplace-admin` | active       | —                | `product-configuration-management`                            | per-organization | system-of-record         |
 | `configuration`          | control  | `config`            | active       | —                | `config`                                                      | single           | system-of-record         |
@@ -56,6 +57,7 @@ declaration as `bindingReason`.
 | `payment`                | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record         |
 | `published-catalog`      | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog`  |
 | `published-vendor`       | platform | `marketplace`       | active       | —                | `marketplace-vendor`                                          | single           | `projection-of:auth`     |
+| `sales-idempotency`      | control  | `sales`             | active       | —                | —                                                             | single           | system-of-record         |
 | `sales`                  | tenant   | `sales`             | active       | —                | `sales-management`                                            | per-organization | system-of-record         |
 | `session`                | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record         |
 | `settlement`             | control  | `settlement`        | active       | —                | `settlement-management`                                       | single           | system-of-record         |
