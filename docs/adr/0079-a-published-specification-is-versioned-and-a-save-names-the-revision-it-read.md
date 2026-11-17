@@ -4,7 +4,7 @@
 - Date: 2026-11-16
 - Area: business
 - Read when: editing a specification something points at, two people saving one record, or a tenant needing its own field or step — a released version is never edited, an order line is a copy, and a stale `revision` answers `409`
-- Revised: 2026-11-17 — a missing `revision` answers `400 invalid`, not `invalidBody`, and a status move increments `revision`, as entifix's revision check decides
+- Revised: 2026-11-17 — a missing `revision` answers `400 invalid`, not `invalidBody`, and a status move increments `revision`, as entifix's revision check decides ([entifix ADR 0032](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0032-a-save-names-the-revision-it-read.md))
 
 ## Context
 

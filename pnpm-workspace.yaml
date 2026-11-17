@@ -87,6 +87,12 @@ overrides:
   # (#426), not on its own. `.github/dependabot.yml` holds the same line, and
   # both are lifted together.
   '@opentelemetry/api': 1.9.1
+  # entifix 0.22.4 declares i18next `>=26 <27` and react-i18next `>=17 <18`, and
+  # its `Translate` type does not accept i18next 27's `TFunction` (the
+  # storefront build fails TS2322). `autoInstallPeers` floated the projects
+  # that name neither onto 27; they ride entifix's range until it widens.
+  i18next: 26.6.0
+  react-i18next: 17.1.10
   # The one @effect package r10c never names: @effect/platform-node asks for
   # it on a caret range, which floats it onto 4.1 while entifix holds the
   # family on the 4.0 line — and 4.1's build imports modules effect 4.0 does
