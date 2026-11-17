@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CharacteristicSpecification,
+  EntitySpecification,
   ProductOffering,
   ProductOfferingPrice,
-  EntitySpecification,
-  CharacteristicSpecification,
   ProductSpecification,
 } from '../index.js';
 
