@@ -4822,7 +4822,7 @@ importers:
     devDependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.22.4(effect@4.0.7)
+        version: 0.23.1(effect@4.0.7)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
