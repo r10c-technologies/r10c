@@ -384,6 +384,9 @@ export const entity = {
       locale: 'Idioma',
       redactedAt: 'Datos personales eliminados el',
     },
+    useCases: {
+      sendAccessLink: 'Enviar un enlace de acceso',
+    },
   },
   'product-order': {
     // Un título de formulario para un registro que nadie crea a mano, igual que

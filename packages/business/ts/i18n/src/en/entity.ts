@@ -347,6 +347,9 @@ export const entity: EsEntity = {
       locale: 'Language',
       redactedAt: 'Personal details removed on',
     },
+    useCases: {
+      sendAccessLink: 'Send an access link',
+    },
   },
   'product-order': {
     // ⚠️ A form title for a record nobody creates by hand, exactly as

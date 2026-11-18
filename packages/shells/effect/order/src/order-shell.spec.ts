@@ -28,7 +28,10 @@ const CONFIGURATION = fleetConfigurationOf({
     publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
     keyId: 'spec-key',
   }),
-  service: configurationRows({ token: 'spec-crossing-token' }),
+  service: configurationRows({
+    token: 'spec-crossing-token',
+    storefrontToken: 'spec-storefront-token',
+  }),
   mongo: configurationRows({
     uri: 'mongodb://127.0.0.1:1/?directConnection=true',
     db: 'order',

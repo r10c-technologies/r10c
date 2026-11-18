@@ -61,6 +61,7 @@ export const transactionSlice: SliceDeclaration = {
     'POST /api/stock-restoration',
     'POST /api/checkout-group',
     'DELETE /api/checkout-group/:id',
+    'POST /api/checkout-group/:id/receipt-mail',
     'POST /api/product-order',
     'DELETE /api/product-order/:id',
     'POST|DELETE /api/product-order/:id/cancelling',

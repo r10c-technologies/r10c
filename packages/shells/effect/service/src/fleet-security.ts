@@ -5,7 +5,10 @@ import {
 } from '@entifix/authz';
 import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
-import { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import {
+  ServiceCrossingCallersTag,
+  ServiceCrossingTokenTag,
+} from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
   AUTH_TOKEN_AUDIENCE,
@@ -77,4 +80,27 @@ export const fleetPolicyLayer = ({ plain, store }: FleetConfiguration) =>
 export const crossingTokenLayer = ({ store }: FleetConfiguration) =>
   Effect.map(store.in('service').getString('token'), token =>
     Layer.succeed(ServiceCrossingTokenTag, token),
+  );
+
+/**
+ * The crossing tokens of **named callers** this service accepts, each from its
+ * own `service.<caller>Token` row: a route whose guard names a caller opens to
+ * that caller's token alone, never to `service.token` (ADR 0076 §6).
+ *
+ * ⚠️ Read at boot, so a declared caller with no row stops the process rather
+ * than failing every request to its route.
+ */
+export const crossingCallersLayer = (
+  { store }: FleetConfiguration,
+  callers: readonly string[],
+) =>
+  Effect.map(
+    Effect.forEach(callers, caller =>
+      Effect.map(
+        store.in('service').getString(`${caller}Token`),
+        token => [caller, token] as const,
+      ),
+    ),
+    entries =>
+      Layer.succeed(ServiceCrossingCallersTag, new Map(entries)),
   );

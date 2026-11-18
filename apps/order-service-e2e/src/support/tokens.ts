@@ -86,6 +86,13 @@ export const E2E_CROSSING_TOKEN =
   process.env['ORDER_CROSSING_TOKEN'] ?? 'e2e-crossing-token';
 
 /**
+ * The storefront's own crossing secret: it alone opens "find my order", and
+ * opens nothing else (ADR 0076 §6). Never {@link E2E_CROSSING_TOKEN}.
+ */
+export const E2E_STOREFRONT_TOKEN =
+  process.env['ORDER_STOREFRONT_TOKEN'] ?? 'e2e-storefront-token';
+
+/**
  * A valid access token for a principal carrying `roles`.
  *
  * `activeOrganizationId` takes **`null`**, not `undefined`, to mean "no tenant

@@ -7,6 +7,7 @@ import {
 } from '@r10c/business-ts-flow-contracts/testing';
 import {
   AccessLinkHours,
+  AccessLinkIntervalSeconds,
   BuyerNotifierTag,
   CancelWindowSeconds,
   CheckoutGroup,
@@ -586,5 +587,41 @@ describe('the receipt mail step (ADR 0076 §6)', () => {
 
     expect(answer).toEqual({ id: GROUP, outcome: 'sent' });
     expect(notifier.sent).toHaveLength(1);
+  });
+});
+
+describe('find my order (ADR 0076 §6)', () => {
+  const [sendLink] = checkoutGroupApi.options.useCases;
+
+  it('opens only to the storefront’s own crossing token', () => {
+    expect(sendLink?.guard).toEqual({
+      kind: 'crossing',
+      organization: false,
+      caller: 'storefront',
+    });
+    expect(sendLink?.accepted).toBe(true);
+  });
+
+  it('answers the same whatever matched', async () => {
+    const w = world();
+    await seeded(w);
+    const notifier = makeRecordingBuyerNotifier();
+
+    const answer = await w.run(
+      (
+        sendLink?.handler(
+          { payload: { number: 'ZZZZ-ZZZZ', email: 'x@y.z' } },
+          operator,
+        ) as Effect.Effect<unknown, never, never>
+      ).pipe(
+        Effect.provideService(BuyerNotifierTag, notifier),
+        Effect.provideService(AccessLinkHours, 24),
+        Effect.provideService(AccessLinkIntervalSeconds, 300),
+        Effect.provideService(StorefrontUrl, 'http://shop.test'),
+      ),
+    );
+
+    expect(answer).toEqual({ accepted: true });
+    expect(notifier.sent).toEqual([]);
   });
 });

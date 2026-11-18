@@ -354,6 +354,15 @@ export const r10c = {
       movedHeading: 'Este pedido se abrió en otro dispositivo',
       moved:
         'Alguien abrió este pedido con el enlace de tu correo, así que este navegador ya no puede mostrarlo. Si fuiste tú, sigue en ese dispositivo; si no, pide un enlace nuevo.',
+      find: {
+        heading: 'Encontrar mi pedido',
+        intro:
+          'Escribe el número de tu pedido (el de la compra o el de un vendedor) y el correo con el que compraste. Si coinciden, te enviamos un enlace para abrirlo.',
+        number: 'Número de pedido',
+        email: 'Correo electrónico',
+        submit: 'Enviarme un enlace',
+        sent: 'Si los datos coinciden con un pedido, te enviamos un enlace a ese correo. Puede tardar unos minutos.',
+      },
       access: {
         heading: 'Abrir tu pedido',
         intro:

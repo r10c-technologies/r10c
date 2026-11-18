@@ -917,6 +917,18 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'dev-order-crossing-token-change-me',
     is_secret: true,
   },
+  // ⚠️ **The storefront's own crossing secret, for one route.** "Find my order"
+  // (`POST /api/checkout-group/send-access-link`) names its caller, so it opens
+  // to this token alone — never to `service.token` above, which the
+  // coordinator holds — and this token opens nothing else here. It must match
+  // marketplace-app's `ORDER_LOOKUP_TOKEN` (ADR 0076 §6).
+  {
+    service: 'order-service',
+    group_name: 'service',
+    key: 'storefrontToken',
+    value: 'dev-storefront-lookup-token-change-me',
+    is_secret: true,
+  },
   // How long after placement a storefront buyer may still cancel their own
   // order, in seconds. The receipt cookie that carries the capability lives
   // as long as the receipt does (`receiptDays`, below), so this window only

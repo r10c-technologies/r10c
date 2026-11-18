@@ -46,6 +46,8 @@ import {
   ProductOrderStoreTag,
   ReceiptDays,
   redeemAccess,
+  sendAccessLink,
+  SendAccessLinkUC,
   sendReceiptMail,
 } from '@r10c/business-ts-order-management';
 import { Effect, Option, Schema } from 'effect';
@@ -78,6 +80,12 @@ const acceptedEnvelope = (accepted: FlowAccepted) =>
 
 /** The id every entity verb is bound to; the path always carries it. */
 const idOf = (request: EntityApiRequest) => request.params?.id as string;
+
+/** A string member of a body, or `undefined` for anything else. */
+const stringOf = (body: unknown, member: string) => {
+  const value = (body as Record<string, unknown> | undefined)?.[member];
+  return typeof value === 'string' ? value : undefined;
+};
 
 /** The lines a write carried, as sent — before a line's vendor is dropped. */
 const rawLinesOf = (payload: unknown): readonly unknown[] => {
@@ -212,6 +220,20 @@ export const checkoutGroupApi = defineEntityApi(CheckoutGroup, GROUP_KEY, {
         }),
     },
   },
+  useCases: [
+    // "Find my order" (ADR 0076 §6): reached only through the storefront,
+    // whose own crossing token alone opens it — never a session, never the
+    // coordinator's token. Always `202`, the same body whatever matched.
+    verbEndpoint(SendAccessLinkUC, {
+      guard: { kind: 'crossing', organization: false, caller: 'storefront' },
+      accepted: true,
+      handler: (request: EntityApiRequest) =>
+        sendAccessLink({
+          number: stringOf(request.payload, 'number'),
+          email: stringOf(request.payload, 'email'),
+        }),
+    }),
+  ],
 });
 
 const crossing = {
@@ -403,11 +425,6 @@ const closed = defineEndpoint({
   guard: crossing,
   idempotent: 'unit',
 });
-
-const stringOf = (body: unknown, member: string) => {
-  const value = (body as Record<string, unknown> | undefined)?.[member];
-  return typeof value === 'string' ? value : undefined;
-};
 
 /** Read an order back for a transition that did not move it. */
 const answerWithOrder = (orderId: string) =>

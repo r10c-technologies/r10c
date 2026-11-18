@@ -35,6 +35,15 @@ export const coordinatorCrossingToken = (): string =>
   'dev-flow-crossing-token-change-me';
 
 /**
+ * The storefront's own crossing token for order-service — it opens "find my
+ * order" and nothing else, and is never the coordinator's token above
+ * (ADR 0076 §6). The dev default matches config-service's seed row
+ * `order-service service.storefrontToken`, for the reason given above.
+ */
+export const orderLookupToken = (): string =>
+  process.env['ORDER_LOOKUP_TOKEN'] ?? 'dev-storefront-lookup-token-change-me';
+
+/**
  * order-service's API root, server-side — where a buyer's own cancel is
  * presented.
  *

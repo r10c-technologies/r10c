@@ -435,15 +435,25 @@ describe('ADR 0026 — declared use cases, their grants and their implementation
    * a literal: `business:policy` may depend only on `layer:entifix`/`layer:utils`,
    * so `role-permissions.ts` cannot import the constant a use case derives.
    */
-  const grantedActions = (): Map<string, string[]> => {
-    const file = join(
-      BUSINESS_ROOT,
-      'authz-grants',
-      'src',
-      'values',
+  // A verb is reached by a role's grant or, for the few a service makes on a
+  // person's behalf — "find my order", whose caller is the storefront
+  // (ADR 0076 §6) — by a line in the crossing allowlist. Either is somebody;
+  // only the role table is held to naming nothing but declared verbs, since
+  // most crossing lines name routes rather than verbs.
+  const grantedActions = (
+    { withCrossings } = { withCrossings: false },
+  ): Map<string, string[]> => {
+    const text = [
       'role-permissions.ts',
-    );
-    const text = readFileSync(file, 'utf8');
+      ...(withCrossings ? ['service-crossing-permissions.ts'] : []),
+    ]
+      .map(name =>
+        readFileSync(
+          join(BUSINESS_ROOT, 'authz-grants', 'src', 'values', name),
+          'utf8',
+        ),
+      )
+      .join('\n');
     const found = new Map<string, string[]>();
     for (const match of text.matchAll(
       /[`']\$?\{?[A-Za-z_]*\}?[^`':]*:[^`':]+:([A-Za-z*-]+)[`']/g,
@@ -492,12 +502,13 @@ describe('ADR 0026 — declared use cases, their grants and their implementation
   });
 
   it('grants every declared verb to somebody', () => {
-    const granted = grantedActions();
+    const granted = grantedActions({ withCrossings: true });
     for (const useCase of declaredUseCases()) {
       expect(
         granted.has(useCase.key),
         `${useCase.className} declares the verb '${useCase.key}', which no ` +
-          'ROLE_PERMISSIONS grant names. Nobody but super-admin can reach it, ' +
+          'ROLE_PERMISSIONS grant or crossing permission names. Nobody but ' +
+          'super-admin can reach it, ' +
           'and super-admin only because *:*:* covers everything.',
       ).toBe(true);
     }

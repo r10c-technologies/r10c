@@ -7,7 +7,10 @@ import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
 import { MongoUnitOfWorkLayer } from '@entifix/mongo/transactions';
-import { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import {
+  ServiceCrossingCallersTag,
+  ServiceCrossingTokenTag,
+} from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
   type RunningTestService,
@@ -56,7 +59,7 @@ import { httpFlowStarterLayer } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
-import { E2E_CROSSING_TOKEN } from './tokens';
+import { E2E_CROSSING_TOKEN, E2E_STOREFRONT_TOKEN } from './tokens';
 
 /**
  * Where this profile's cancellation entry routes would dispatch.
@@ -86,7 +89,10 @@ const CONFIGURATION = {
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
   ],
-  service: [{ key: 'token', value: E2E_CROSSING_TOKEN }],
+  service: [
+    { key: 'token', value: E2E_CROSSING_TOKEN },
+    { key: 'storefrontToken', value: E2E_STOREFRONT_TOKEN },
+  ],
   // The buyer's cancel window and how long the receipt can be read. Literals
   // here for the same reason every other row is: the fixture is the
   // config-service fetch, not a stub of the dial.
@@ -148,6 +154,11 @@ const connections = Layer.mergeAll(
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
+  // The storefront's own token, which alone opens "find my order".
+  Layer.succeed(
+    ServiceCrossingCallersTag,
+    new Map([['storefront', E2E_STOREFRONT_TOKEN]]),
+  ),
   // The crossing routes' `Idempotency-Key` records, in memory (ADR 0068).
   Layer.succeed(
     IdempotencyStoreTag,

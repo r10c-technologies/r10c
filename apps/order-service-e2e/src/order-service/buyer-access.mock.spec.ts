@@ -3,7 +3,12 @@ import { createHash } from 'node:crypto';
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { sentMail, startMockService } from '../support/mock-service';
-import { bearerFor, E2E_CROSSING_TOKEN, E2E_ORGANIZATION_ID } from '../support/tokens';
+import {
+  bearerFor,
+  E2E_CROSSING_TOKEN,
+  E2E_ORGANIZATION_ID,
+  E2E_STOREFRONT_TOKEN,
+} from '../support/tokens';
 
 /**
  * The buyer's way back to an order (ADR 0076 §6): the receipt mail a
@@ -129,8 +134,8 @@ describe('the receipt mail', () => {
     const groupId = await checkout('guard-nonce');
 
     const session = await mailReceipt(groupId, {
-      ...bearerFor(['admin']),
-      'idempotency-key': `"${crypto.randomUUID()}"`,
+      ...crossing(),
+      Authorization: await bearerFor(['admin']),
     });
     const wrong = await mailReceipt(groupId, {
       ...crossing(),
@@ -184,5 +189,79 @@ describe('redeeming the mailed link', () => {
 
     expect((await redeem(tokenOf(String(first?.text)), 'a')).status).toBe(401);
     expect((await redeem(tokenOf(String(second?.text)), 'b')).status).toBe(200);
+  });
+});
+
+describe('find my order', () => {
+  const lookup = (body: object, headers: object = storefront()) =>
+    service.client.post('/api/checkout-group/send-access-link', body, {
+      headers,
+    });
+  const storefront = () => ({
+    'x-crossing-token': E2E_STOREFRONT_TOKEN,
+    Authorization: undefined,
+  });
+  const numberOf = async (groupId: string) =>
+    String(
+      (await readReceipt(groupId, 'lookup-nonce')).data.group.data.number,
+    );
+
+  it('answers a match and a miss byte for byte alike, and mails only the match', async () => {
+    const groupId = await checkout('lookup-nonce');
+    const number = await numberOf(groupId);
+    const before = sentMail.sent.length;
+
+    const match = await lookup({ number, email: 'ANA@correo.com' });
+    const miss = await lookup({ number, email: 'someone@else.com' });
+    const unknown = await lookup({ number: 'ZZZZ-ZZZZ', email: 'a@b.c' });
+
+    expect(match.status).toBe(202);
+    for (const answer of [miss, unknown]) {
+      expect(answer.status).toBe(202);
+      expect(JSON.stringify(answer.data)).toBe(JSON.stringify(match.data));
+    }
+    const mails = sentMail.sent.slice(before);
+    expect(mails).toHaveLength(1);
+    expect(mails[0]?.to).toBe('ana@correo.com');
+  });
+
+  it('mails once per interval, however often it is asked', async () => {
+    const groupId = await checkout('lookup-nonce');
+    const number = await numberOf(groupId);
+    const before = sentMail.sent.length;
+
+    await lookup({ number, email: 'ana@correo.com' });
+    await lookup({ number, email: 'ana@correo.com' });
+
+    expect(sentMail.sent.length - before).toBe(1);
+  });
+
+  it('refuses the coordinator’s token, a session and no token at all', async () => {
+    const body = { number: 'ZZZZ-ZZZZ', email: 'a@b.c' };
+
+    const coordinator = await lookup(body, {
+      'x-crossing-token': E2E_CROSSING_TOKEN,
+      Authorization: undefined,
+    });
+    const session = await lookup(body, {
+      ...storefront(),
+      Authorization: await bearerFor(['admin']),
+    });
+    const none = await lookup(body, { Authorization: undefined });
+
+    expect([coordinator.status, session.status, none.status]).toEqual([
+      401, 401, 401,
+    ]);
+  });
+
+  it('is not a key the storefront can turn anywhere else', async () => {
+    const groupId = await checkout('other-nonce');
+
+    const res = await mailReceipt(groupId, {
+      ...storefront(),
+      'idempotency-key': `"${crypto.randomUUID()}"`,
+    });
+
+    expect(res.status).toBe(401);
   });
 });

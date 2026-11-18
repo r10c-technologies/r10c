@@ -69,6 +69,9 @@ export default defineEntifixTest({
     // here. What they decide is `access-redemption.ts` and `receipt-state.ts`,
     // covered here; `marketplace-app-e2e` redeems a link end to end.
     '**/lib/cart/access-action.ts',
+    // The lookup's action: one `fetch` and a `redirect`, deciding nothing —
+    // its answer is the same whatever happened. `marketplace-app-e2e` posts it.
+    '**/lib/cart/find-action.ts',
     '**/lib/cart/receipt-write.ts',
     '**/lib/cart/settle-cancel-action.ts',
     '**/lib/cart/flow-ticket-cookie.ts',

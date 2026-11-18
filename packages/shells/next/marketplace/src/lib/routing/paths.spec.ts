@@ -14,6 +14,7 @@ describe('storePaths', () => {
       '/order/access?failed=1',
     );
     expect(storePaths.orderFind()).toBe('/order/find');
+    expect(storePaths.orderFindSent()).toBe('/order/find/sent');
   });
 
   it('omits the query when there is no search term', () => {

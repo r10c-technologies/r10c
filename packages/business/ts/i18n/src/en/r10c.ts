@@ -331,6 +331,15 @@ export const r10c: EsR10c = {
       movedHeading: 'This order was opened on another device',
       moved:
         'Someone opened this order with the link from your email, so this browser can no longer show it. If that was you, carry on there; if not, ask for a new link.',
+      find: {
+        heading: 'Find my order',
+        intro:
+          'Enter your order number (the purchase’s or a seller’s) and the email you bought with. If they match, we will email you a link to open it.',
+        number: 'Order number',
+        email: 'Email',
+        submit: 'Email me a link',
+        sent: 'If the details match an order, we sent a link to that email. It may take a few minutes.',
+      },
       access: {
         heading: 'Open your order',
         intro:

@@ -104,6 +104,20 @@ for (const palette of PALETTES) {
       await gate('cancelled');
     });
 
+    await test.step('find my order', async () => {
+      await page.goto('/es/order/find');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await gate('find');
+    });
+
+    await test.step('access link', async () => {
+      await page.goto('/es/order/access?token=e2e-token-none');
+      await expect(
+        page.getByTestId('access-form').filter({ visible: true }),
+      ).toBeVisible();
+      await gate('access');
+    });
+
     await test.step('not-found', async () => {
       await page.goto('/es/p/no-such-offering');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

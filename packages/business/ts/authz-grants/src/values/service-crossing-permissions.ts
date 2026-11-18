@@ -83,6 +83,11 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // `write`: the coordinator that opens a group need not be the caller that
   // makes mail go out, and each crossing route is one reviewed line.
   `${ORDER_DOMAIN}:checkout-group:send-receipt`,
+  // "Find my order": a fresh access link mailed to the email on file
+  // (ADR 0076 §6). The one crossing a **browser-facing host** makes, so its
+  // route names its caller and opens only to the storefront's own token —
+  // never the coordinator's, which opens every other line here.
+  `${ORDER_DOMAIN}:checkout-group:send-access-link`,
   // Taking the money the order above was placed for — the checkout flow's
   // **pivot**, and the one crossing on this list that cannot be undone.
   //
