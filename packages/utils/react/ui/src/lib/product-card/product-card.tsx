@@ -64,6 +64,13 @@ export interface ProductCardAvailability {
 export interface ProductCardProps {
   /** Plain text: it names the card for assistive technology, and clamps at two lines. */
   readonly title: string;
+  /**
+   * The title's element id, which names the card. Pass one that is unique on
+   * the page when cards render in separate server passes — two cached regions
+   * each start `useId` at the same place, and a card labelled by another's id
+   * announces the wrong product (#726). Absent, `useId` picks one.
+   */
+  readonly titleId?: string;
   readonly price: ProductCardPrice;
   readonly brand?: ReactNode;
   /**
@@ -143,6 +150,7 @@ function CardMedia({
 
 export function ProductCard({
   title,
+  titleId: givenTitleId,
   price,
   brand,
   seller,
@@ -157,7 +165,8 @@ export function ProductCard({
   cta,
   density = 'comfortable',
 }: ProductCardProps) {
-  const titleId = useId();
+  const generatedTitleId = useId();
+  const titleId = givenTitleId ?? generatedTitleId;
   const gap = GAP[density];
 
   return (

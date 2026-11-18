@@ -35,10 +35,54 @@ export const usePalette = (page: Page, palette: string) =>
     document.cookie = `r10c-marketplace-theme=${encodeURIComponent(id)}; path=/; samesite=lax`;
   }, palette);
 
-/** The screen gate: axe against the baseline, then the keyboard walk. */
+/**
+ * Every id an ARIA reference names, used more than once on the page.
+ *
+ * ⚠️ **axe does not gate this.** Its `duplicate-id-aria` rule is
+ * `reviewOnFail`, so a duplicate lands among the *incomplete* results and
+ * never among the violations the baseline reads. That is how two cached home
+ * strips shipped cards announcing each other's names (#726): each strip ran
+ * `useId` from the same start.
+ */
+export const duplicateReferencedIds = (page: Page) =>
+  page.evaluate(() => {
+    const ATTRIBUTES = [
+      'aria-labelledby',
+      'aria-describedby',
+      'aria-controls',
+      'aria-owns',
+      'aria-activedescendant',
+      'for',
+    ];
+    // Rendered elements only: Next keeps earlier routes in the document under
+    // `display: none`, and a hidden page repeating an id is not on screen.
+    const rendered = (element: Element) => element.checkVisibility();
+    const referenced = new Set(
+      [...document.querySelectorAll('*')].filter(rendered).flatMap(element =>
+        ATTRIBUTES.flatMap(name =>
+          (element.getAttribute(name) ?? '').split(/\s+/).filter(Boolean),
+        ),
+      ),
+    );
+    return [...referenced].filter(
+      id =>
+        [...document.querySelectorAll(`[id="${CSS.escape(id)}"]`)].filter(
+          rendered,
+        ).length > 1,
+    );
+  });
+
+/**
+ * The screen gate: axe against the baseline, every ARIA reference resolving to
+ * one element, then the keyboard walk.
+ */
 export const expectAccessible = async (page: Page, screen: string) => {
   await expect(page.locator('main:visible')).toBeVisible();
   await expectNoNewA11yViolations(page, { screen, baselinePath: BASELINE });
+  expect(
+    await duplicateReferencedIds(page),
+    `${screen}: an ARIA reference names an id that is not unique`,
+  ).toEqual([]);
   await walkKeyboard(page, WALK);
 };
 

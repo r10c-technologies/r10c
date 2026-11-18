@@ -102,6 +102,7 @@ async function RelatedOfferings({
         <OfferingGrid
           locale={locale}
           layout="strip"
+          idScope="related"
           offerings={related}
           names={names}
           emptyLabel={t('storefront.category.empty')}

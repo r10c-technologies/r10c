@@ -80,6 +80,13 @@ export type OfferingGridLayout = 'strip' | 'listing';
 export interface OfferingGridProps {
   readonly locale: Locale;
   readonly layout: OfferingGridLayout;
+  /**
+   * What sets this grid's cards apart from every other grid on the page, so
+   * each card's title id is unique: `<idScope>-<offeringId>`. Required,
+   * because two grids rendered in separate cached passes cannot share
+   * `useId`'s counter (#726).
+   */
+  readonly idScope: string;
   readonly offerings: readonly PublishedOffering[];
   /** What `loadCardNames` read for these offerings. */
   readonly names: CardNames;
@@ -103,6 +110,7 @@ export interface OfferingGridProps {
 export function OfferingGrid({
   locale,
   layout,
+  idScope,
   offerings,
   names,
   returnTo,
@@ -131,6 +139,7 @@ export function OfferingGrid({
         return (
           <ProductCard
             key={offering.offeringId}
+            titleId={`${idScope}-${offering.offeringId}-title`}
             href={localeHref(locale, storePaths.offering(offering.offeringId))}
             {...card}
             // At the size the card shows it, through the optimizer when its

@@ -289,6 +289,7 @@ export async function OfferingListing({
           <OfferingGrid
             locale={locale}
             layout="listing"
+            idScope="listing"
             offerings={result.items}
             names={names}
             returnTo={searchHref(href, state, {})}

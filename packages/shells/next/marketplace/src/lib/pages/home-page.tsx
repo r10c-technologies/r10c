@@ -55,9 +55,12 @@ const STRIP_SIZE = 4;
  */
 async function OfferingStrip({
   locale,
+  idScope,
   query,
 }: {
   readonly locale: Locale;
+  /** Sets the strip's card ids apart from the other strip's (#726). */
+  readonly idScope: string;
   readonly query: OfferingQuery;
 }) {
   'use cache';
@@ -87,6 +90,7 @@ async function OfferingStrip({
     <OfferingGrid
       locale={locale}
       layout="strip"
+      idScope={idScope}
       offerings={page.items}
       names={names}
       returnTo={localeHref(locale, storePaths.home())}
@@ -186,6 +190,7 @@ export function HomePage({
             >
               <OfferingStrip
                 locale={locale}
+                idScope="newest"
                 query={{ sort: 'publishedAt', direction: 'desc' }}
               />
             </Suspense>
@@ -202,6 +207,7 @@ export function HomePage({
             >
               <OfferingStrip
                 locale={locale}
+                idScope="featured"
                 query={{ sort: 'name', availableOnly: true }}
               />
             </Suspense>

@@ -23,6 +23,31 @@ describe('ProductCard', () => {
     expect(within(card).getByText(FORMATTED)).toBeInTheDocument();
   });
 
+  it('takes the title id it is given, so two grids never share one (#726)', () => {
+    render(
+      <>
+        <ProductCard
+          title="Aurora Desk Lamp"
+          titleId="newest-o-1-title"
+          price={PRICE}
+        />
+        <ProductCard
+          title="Terra Mug"
+          titleId="featured-o-2-title"
+          price={PRICE}
+        />
+      </>,
+    );
+
+    expect(
+      screen.getByRole('article', { name: 'Aurora Desk Lamp' }),
+    ).toHaveAttribute('aria-labelledby', 'newest-o-1-title');
+    expect(screen.getByRole('article', { name: 'Terra Mug' })).toHaveAttribute(
+      'aria-labelledby',
+      'featured-o-2-title',
+    );
+  });
+
   it('renders every role it is given', () => {
     render(
       <ProductCard
