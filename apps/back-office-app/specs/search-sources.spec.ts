@@ -18,6 +18,7 @@ describe('SEARCH_SOURCES', () => {
       'product-offering-price',
       'product-brand',
       'product-category',
+      'device-model',
       'stock-item',
       'stock-movement',
       'reservation',

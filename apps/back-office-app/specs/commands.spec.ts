@@ -29,6 +29,7 @@ describe('the back office command list', () => {
       'new:product-offering-price',
       'new:product-brand',
       'new:product-category',
+      'new:device-model',
       'new:user-identity',
     ]);
   });
@@ -46,6 +47,7 @@ describe('the back office command list', () => {
       'product-configuration-management:product-offering-price:write',
       'catalog-reference:product-brand:write',
       'catalog-reference:product-category:write',
+      'catalog-reference:device-model:write',
       'authn:user-identity:write',
     ]);
   });

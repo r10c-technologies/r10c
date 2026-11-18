@@ -131,7 +131,7 @@ export function DeviceModelFitPicker({
         {translateKey(key('universalHint'))}
       </p>
       {isLoading ? (
-        <p role="status">{translateKey(key('loading'))}</p>
+        <p>{translateKey(key('loading'))}</p>
       ) : active.length === 0 ? (
         <p>{translateKey(key('none'))}</p>
       ) : (
