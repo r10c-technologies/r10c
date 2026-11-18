@@ -85,6 +85,13 @@ export class ProductOrderStoreTag extends Context.Service<
  * The `order` store's checkout groups — the buyer's receipt across sellers.
  * Opened before its orders, and deleted only as the checkout's compensation.
  */
+/** One mailed access link, as stored: its digest and its two stamps. */
+export interface AccessGrant {
+  readonly digest: string;
+  readonly expiresAt: Date;
+  readonly sentAt: Date;
+}
+
 export interface CheckoutGroupStore {
   readonly get: (
     groupId: string,
@@ -94,6 +101,32 @@ export interface CheckoutGroupStore {
     commandId: string | undefined,
   ) => Effect.Effect<GroupOpening, StoreFailure>;
   readonly remove: (groupId: string) => Effect.Effect<boolean, StoreFault>;
+  /**
+   * Store a fresh access link on a group, replacing any earlier one; with
+   * `notSentSince`, only when no link went out after it — one conditional
+   * write, so two racing lookups mail once. `undefined` when the group does
+   * not exist or the interval had not passed.
+   */
+  readonly issueAccess: (
+    groupId: string,
+    grant: AccessGrant,
+    notSentSince?: Date,
+  ) => Effect.Effect<CheckoutGroup | undefined, StoreFault>;
+  /**
+   * Redeem an access link: one conditional write that matches the digest and
+   * an unexpired link, replaces the cancel digest with `cancelDigest` and
+   * clears the link. The group's id, or `undefined` when nothing matched —
+   * so of two racing redemptions exactly one wins.
+   */
+  readonly redeemAccess: (
+    accessDigest: string,
+    cancelDigest: string,
+    now: Date,
+  ) => Effect.Effect<string | undefined, StoreFault>;
+  /** The group a number names: its own, or one of its vendor orders'. */
+  readonly findByNumber: (
+    number: string,
+  ) => Effect.Effect<CheckoutGroup | undefined, StoreFault>;
 }
 
 export class CheckoutGroupStoreTag extends Context.Service<

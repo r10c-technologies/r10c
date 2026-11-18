@@ -82,6 +82,75 @@ export const describeProductOrderStoreContract = (
       expect(await run(groups.get('grp-2'))).toBeUndefined();
     });
 
+    const AT = new Date('2026-10-26T09:00:00.000Z');
+    const later = (seconds: number) => new Date(AT.getTime() + seconds * 1000);
+    const grant = (digest: string, sentAt = AT) => ({
+      digest,
+      expiresAt: later(3600),
+      sentAt,
+    });
+
+    it('stores an access link, and lets the interval refuse a second one', async () => {
+      const { groups } = await make();
+      await run(groups.open(aGroup(), undefined));
+
+      const first = await run(groups.issueAccess(GROUP, grant('d-1')));
+      const tooSoon = await run(
+        groups.issueAccess(GROUP, grant('d-2', later(10)), later(-300)),
+      );
+      const afterInterval = await run(
+        groups.issueAccess(GROUP, grant('d-3', later(400)), later(100)),
+      );
+      const missing = await run(groups.issueAccess('nobody', grant('d-4')));
+
+      expect([first?.id, first?.accessDigest]).toEqual([GROUP, 'd-1']);
+      expect(tooSoon).toBeUndefined();
+      expect(afterInterval?.accessDigest).toBe('d-3');
+      expect(missing).toBeUndefined();
+      const stored = await run(groups.get(GROUP));
+      expect(stored?.accessDigest).toBe('d-3');
+      expect(stored?.accessSentAt?.getTime()).toBe(later(400).getTime());
+    });
+
+    it('redeems an access link once, before it expires, into a new cancel digest', async () => {
+      const { groups } = await make();
+      await run(groups.open(aGroup(), undefined));
+      await run(groups.issueAccess(GROUP, grant('d-1')));
+
+      const wrong = await run(groups.redeemAccess('d-x', 'c-new', later(1)));
+      const expired = await run(
+        groups.redeemAccess('d-1', 'c-new', later(3600)),
+      );
+      const redeemed = await run(groups.redeemAccess('d-1', 'c-new', later(1)));
+      const spent = await run(groups.redeemAccess('d-1', 'c-other', later(2)));
+
+      expect([wrong, expired, redeemed, spent]).toEqual([
+        undefined,
+        undefined,
+        GROUP,
+        undefined,
+      ]);
+      const group = await run(groups.get(GROUP));
+      expect(group?.cancelDigest).toBe('c-new');
+      expect(group?.accessDigest).toBeUndefined();
+      expect(group?.accessExpiresAt).toBeUndefined();
+      expect(group?.accessSentAt?.getTime()).toBe(AT.getTime());
+    });
+
+    it('finds a group by its own number or by one of its orders’', async () => {
+      const { orders, groups } = await placed();
+      const group = await run(groups.get(GROUP));
+      const order = await run(orders.get('ord-1'));
+
+      expect(
+        (await run(groups.findByNumber(String(group?.number))))?.id,
+      ).toBe(GROUP);
+      expect(
+        (await run(groups.findByNumber(String(order?.number))))?.id,
+      ).toBe(GROUP);
+      expect(await run(groups.findByNumber('ZZZZ-ZZZZ'))).toBeUndefined();
+    });
+
     it('places each vendor’s order into its group, and reads them back together', async () => {
       const { orders, groups } = await make();
       await run(groups.open(aGroup(), undefined));

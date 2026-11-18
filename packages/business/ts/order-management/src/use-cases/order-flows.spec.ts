@@ -15,7 +15,7 @@ import {
   ProductOrderStoreTag,
 } from '../ports/product-order-store.js';
 import { makeInMemoryOrderStores } from '../testing/in-memory-product-order-store.js';
-import { digestOf } from '../values/cancel-capability.js';
+import { AccessLinkHours, digestOf } from '../values/cancel-capability.js';
 import { OrderItem } from '../values/order-item.js';
 import type { OrderScope } from '../values/order-scope.js';
 import {
@@ -25,9 +25,11 @@ import {
   cancelOrderAsBuyer,
   cancelOrderAsStaff,
   foreignLinesProblem,
+  issueAccessLink,
   moveOrder,
   openGroup,
   placeOrder,
+  redeemAccess,
 } from './order-flows.js';
 
 const GROUP = '7b6f2b0e-6a0c-4b8e-9d55-0f0e6a3a1c11';
@@ -555,5 +557,81 @@ describe('an order number', () => {
       'cancelNotAuthorized',
       'cancelNotAuthorized',
     ]);
+  });
+});
+
+describe('the buyer’s way back: an access link', () => {
+  const issue = (groupId: string, notSentSince?: Date) =>
+    issueAccessLink({
+      groupId,
+      ...(notSentSince === undefined ? {} : { notSentSince }),
+    }).pipe(Effect.provideService(AccessLinkHours, 24));
+  const NEW = digestOf('the-new-nonce');
+
+  it('stores only the digest of a fresh token, valid for the configured hours', async () => {
+    const { run, placed } = world();
+    await placed();
+    const before = Date.now();
+
+    const issued = await run(issue(GROUP));
+
+    expect(issued?.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(issued?.group.accessDigest).toBe(digestOf(String(issued?.token)));
+    const lifetime =
+      (issued?.group.accessExpiresAt?.getTime() ?? 0) - before;
+    expect(lifetime).toBeGreaterThanOrEqual(24 * 3600 * 1000);
+    expect(lifetime).toBeLessThan(24 * 3600 * 1000 + 5000);
+  });
+
+  it('issues nothing for an unknown group, or inside the interval', async () => {
+    const { run, placed } = world();
+    await placed();
+    await run(issue(GROUP));
+
+    expect(await run(issue(crypto.randomUUID()))).toBeUndefined();
+    expect(
+      await run(issue(GROUP, new Date(Date.now() - 300_000))),
+    ).toBeUndefined();
+  });
+
+  it('redeems a token once into the new capability, and the old nonce stops reading', async () => {
+    const { run, refusal, placed } = world();
+    await placed();
+    const issued = await run(issue(GROUP));
+
+    const redeemed = await run(
+      redeemAccess({ token: issued?.token, capabilityDigest: NEW }),
+    );
+    const again = await refusal(
+      redeemAccess({ token: issued?.token, capabilityDigest: NEW }),
+    );
+    const old = await refusal(buyerReceipt({ groupId: GROUP, nonce: NONCE }));
+    const fresh = await run(
+      buyerReceipt({ groupId: GROUP, nonce: 'the-new-nonce' }),
+    );
+
+    expect(redeemed).toEqual({ id: GROUP });
+    expect(again.code).toBe('cancelNotAuthorized');
+    expect(old.code).toBe('cancelNotAuthorized');
+    expect(fresh.group.id).toBe(GROUP);
+  });
+
+  it('refuses a missing token, a wrong one, or a digest that is not one', async () => {
+    const { run, refusal, placed } = world();
+    await placed();
+    const issued = await run(issue(GROUP));
+
+    const refusals = await Promise.all([
+      refusal(redeemAccess({ token: undefined, capabilityDigest: NEW })),
+      refusal(redeemAccess({ token: '', capabilityDigest: NEW })),
+      refusal(redeemAccess({ token: 'guess', capabilityDigest: NEW })),
+      refusal(
+        redeemAccess({ token: issued?.token, capabilityDigest: 'not-hex' }),
+      ),
+    ]);
+
+    expect(refusals.map(answer => answer.code)).toEqual(
+      Array(4).fill('cancelNotAuthorized'),
+    );
   });
 });

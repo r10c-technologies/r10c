@@ -50,4 +50,13 @@ export const storePaths = {
    */
   orderStatus: (flowId: string) =>
     `/order/status/${encodeURIComponent(flowId)}`,
+  /**
+   * Where a mailed one-time access link lands (ADR 0076 §6). The token rides
+   * the query string, which the edge never logs; only a post spends it.
+   */
+  orderAccess: (extra: Readonly<Record<string, string>> = {}) =>
+    `/order/access${queryOf(extra)}`,
+  /** Where a buyer asks for a new access link by number and email. */
+  orderFind: (extra: Readonly<Record<string, string>> = {}) =>
+    `/order/find${queryOf(extra)}`,
 } as const;

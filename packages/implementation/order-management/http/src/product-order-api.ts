@@ -41,6 +41,7 @@ import {
   orderScopeFor,
   PaymentPending,
   placeOrder,
+  redeemAccess,
   ProductOrder,
   ProductOrderStoreTag,
   ReceiptDays,
@@ -260,6 +261,40 @@ const buyerReceiptRead = defineEndpoint({
 });
 
 /**
+ * `POST /api/checkout-group/access` — redeem a mailed one-time access link
+ * (ADR 0076 §6). The body carries the link's token and the digest of the
+ * nonce the storefront just minted; one conditional write swaps that digest
+ * in for the group's capability and spends the link. **The token and no
+ * session**, as `buyer-cancellation` takes the nonce: answers the group's id,
+ * which the storefront then reads the receipt back from with its new nonce.
+ */
+const accessRedemption = defineEndpoint({
+  name: 'access-redemption',
+  method: 'POST',
+  path: `${GROUP_BASE}/access`,
+  payload: JsonBody,
+  success: Schema.Struct({ id: Schema.String }),
+  errors: [CancelNotAuthorized],
+  guard: { kind: 'public' },
+});
+
+/**
+ * The group as its buyer reads it back: everything but the access link's
+ * members, which say when a link went out and which digest opens it — the
+ * receipt has no use for either, so it never carries them.
+ */
+const receiptGroup = (group: CheckoutGroup) => {
+  const envelope = makeEntityEnvelope(CheckoutGroup, group, []);
+  const {
+    accessDigest: _digest,
+    accessExpiresAt: _expires,
+    accessSentAt: _sent,
+    ...data
+  } = envelope.data as Record<string, unknown>;
+  return { ...envelope, data };
+};
+
+/**
  * `POST /:id/cancelling` — the cancellation's concurrency claim,
  * `paid | confirmed → cancelling`.
  *
@@ -384,10 +419,16 @@ export const productOrderEndpoints = [
   implement(buyerReceiptRead, ({ params: { id }, headers }) =>
     buyerReceipt({ groupId: id, nonce: headers['x-cancel-nonce'] }).pipe(
       Effect.map(({ group, orders }) => ({
-        group: makeEntityEnvelope(CheckoutGroup, group, []),
+        group: receiptGroup(group),
         orders: orders.map(order => envelopeOf(order, [])),
       })),
     ),
+  ),
+  implement(accessRedemption, ({ payload }) =>
+    redeemAccess({
+      token: stringOf(payload, 'token'),
+      capabilityDigest: stringOf(payload, 'capabilityDigest'),
+    }),
   ),
   implement(claimCancellation, ({ params: { id } }) =>
     Effect.gen(function* () {

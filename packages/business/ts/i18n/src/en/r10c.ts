@@ -297,9 +297,24 @@ export const r10c: EsR10c = {
         'Your payment is still being confirmed, so the order cannot be cancelled yet. Try again in a moment.',
       cancelFailed:
         'The order could not be cancelled. The window may have closed, or it may already be on its way.',
+      findLink: 'Find my order',
+      movedHeading: 'This order was opened on another device',
+      moved:
+        'Someone opened this order with the link from your email, so this browser can no longer show it. If that was you, carry on there; if not, ask for a new link.',
+      access: {
+        heading: 'Open your order',
+        intro:
+          'This link opens your order in this browser. It works once, and the browser you opened it in before will stop showing it.',
+        open: 'Open my order',
+        failed:
+          'This link was already used or has expired. You can ask for a new one with your order number and your email.',
+        missing:
+          'This link is incomplete. You can ask for a new one with your order number and your email.',
+      },
     },
     footer: {
       note: 'Demo catalog. No order is real.',
+      findOrder: 'Find my order',
     },
   },
   /**

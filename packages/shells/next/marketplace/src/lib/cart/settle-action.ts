@@ -1,22 +1,13 @@
 'use server';
 
-import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
-import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { cookies } from 'next/headers';
 
-import { runRead } from '../catalog/catalog-reads';
 import { CART_COOKIE } from './cart-state';
 import { realtimeServiceUrl } from './checkout-config';
 import { FLOW_COOKIE } from './flow-ticket';
 import { readFlowTicket } from './flow-ticket-cookie';
 import { readReceipt } from './receipt-cookie';
-import { readBuyerReceipt } from './receipt-read';
-import {
-  RECEIPT_COOKIE,
-  receiptCookieMaxAge,
-  receiptFromReadBack,
-  serializeReceipt,
-} from './receipt-state';
+import { receiptFor, writeReceiptCookie } from './receipt-write';
 import { settleDecision } from './settle-decision';
 
 /**
@@ -49,22 +40,11 @@ export async function settleCheckout(
   const decided = settleDecision(status);
   if (decided !== 'completed') return decided;
 
-  const readBack = await readBuyerReceipt(flowId, ticket.cancelNonce);
-  const vendors = await runRead(PublishedVendor, loadVendors(), []);
-  const receipt = receiptFromReadBack(
-    readBack,
-    ticket.cancelNonce,
-    new Map(vendors.map(vendor => [vendor.vendorId, vendor.displayName])),
-  );
+  const receipt = await receiptFor(flowId, ticket.cancelNonce);
   if (receipt === undefined) return 'pending';
 
+  await writeReceiptCookie(receipt);
   const jar = await cookies();
-  jar.set(RECEIPT_COOKIE, serializeReceipt(receipt), {
-    path: '/',
-    sameSite: 'lax',
-    httpOnly: true,
-    maxAge: receiptCookieMaxAge(receipt, new Date()),
-  });
   jar.set(CART_COOKIE, '', { path: '/', maxAge: 0 });
   jar.set(FLOW_COOKIE, '', { path: '/', maxAge: 0 });
   return 'settled';

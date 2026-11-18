@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { readBuyerReceipt } from './receipt-read';
+import { readBuyerReceipt, readBuyerReceiptAnswer } from './receipt-read';
 
 const answer = (response: Response) =>
   vi.stubGlobal(
@@ -39,5 +39,24 @@ describe('readBuyerReceipt', () => {
 
     unreachable();
     expect(await readBuyerReceipt('g-1', 'nonce')).toBeUndefined();
+  });
+});
+
+describe('readBuyerReceiptAnswer', () => {
+  it('tells a refused capability from a service that did not answer', async () => {
+    answer(new Response('{}', { status: 401 }));
+    expect(await readBuyerReceiptAnswer('g-1', 'nonce')).toEqual({
+      kind: 'refused',
+    });
+
+    answer(new Response('{}', { status: 503 }));
+    expect(await readBuyerReceiptAnswer('g-1', 'nonce')).toEqual({
+      kind: 'failed',
+    });
+
+    unreachable();
+    expect(await readBuyerReceiptAnswer('g-1', 'nonce')).toEqual({
+      kind: 'failed',
+    });
   });
 });

@@ -20,8 +20,12 @@ import {
   ProductOrderStoreTag,
 } from '../ports/product-order-store';
 import {
+  AccessLinkHours,
   type BuyerCapabilityHolder,
   type CapabilityRefusal,
+  digestOf,
+  isCapabilityDigest,
+  mintAccessToken,
   verifyCancelCapability,
   verifyReceiptCapability,
 } from '../values/cancel-capability';
@@ -32,7 +36,8 @@ import { CancelProductOrderUC } from './cancel-product-order';
 
 const MILLISECONDS = 1000;
 /** A day, in milliseconds: `order.receiptDays` is counted in whole days. */
-const DAY_MILLISECONDS = 24 * 60 * 60 * MILLISECONDS;
+const HOUR_MILLISECONDS = 60 * 60 * MILLISECONDS;
+const DAY_MILLISECONDS = 24 * HOUR_MILLISECONDS;
 
 /** The recipe a cancellation runs on the coordinator. */
 export const CANCELLATION_RECIPE = 'cancellation';
@@ -333,4 +338,62 @@ export const buyerReceipt = (input: {
     const store = yield* ProductOrderStoreTag;
     const orders = yield* store.forGroup(input.groupId);
     return { group, orders };
+  });
+
+/**
+ * Mint a fresh one-time access link for a group and store only its digest,
+ * replacing any earlier link (ADR 0076 §6). With `notSentSince`, only when no
+ * link went out after it. Answers the token **for the mail alone** — it must
+ * never reach a step outcome, the journal or a log — or `undefined` when the
+ * group does not exist or the interval had not passed.
+ */
+export const issueAccessLink = (input: {
+  readonly groupId: string;
+  readonly notSentSince?: Date;
+}) =>
+  Effect.gen(function* () {
+    const hours = yield* AccessLinkHours;
+    const groups = yield* CheckoutGroupStoreTag;
+    const token = mintAccessToken();
+    const now = new Date();
+    const group = yield* groups.issueAccess(
+      input.groupId,
+      {
+        digest: digestOf(token),
+        expiresAt: new Date(now.getTime() + hours * HOUR_MILLISECONDS),
+        sentAt: now,
+      },
+      input.notSentSince,
+    );
+    return group === undefined ? undefined : { group, token };
+  });
+
+/**
+ * Redeem a mailed access link into a fresh capability: the storefront minted
+ * a new nonce and sends its digest, and one conditional write swaps it in for
+ * the group's cancel digest and spends the link (ADR 0076 §6). The token is
+ * the whole credential — no session — so a wrong, spent or expired one is
+ * refused exactly as a bad nonce is.
+ */
+export const redeemAccess = (input: {
+  readonly token: unknown;
+  readonly capabilityDigest: unknown;
+}) =>
+  Effect.gen(function* () {
+    const { token, capabilityDigest } = input;
+    if (
+      typeof token !== 'string' ||
+      token === '' ||
+      !isCapabilityDigest(capabilityDigest)
+    ) {
+      return yield* new CancelNotAuthorized();
+    }
+    const groups = yield* CheckoutGroupStoreTag;
+    const groupId = yield* groups.redeemAccess(
+      digestOf(token),
+      capabilityDigest,
+      new Date(),
+    );
+    if (groupId === undefined) return yield* new CancelNotAuthorized();
+    return { id: groupId };
   });

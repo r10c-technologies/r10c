@@ -91,6 +91,7 @@ const [cancel] = productOrderApi.options.useCases;
 const [
   buyerCancellation,
   buyerReceiptRead,
+  accessRedemption,
   claim,
   release,
   confirm,
@@ -429,6 +430,49 @@ describe('the buyer', () => {
 
     expect(receipt.group.data.id).toBe(GROUP);
     expect(receipt.orders.map(order => order.data.id)).toEqual([orderId]);
+    expect(refused.code).toBe('cancelNotAuthorized');
+  });
+});
+
+describe('a mailed access link (ADR 0076 §6)', () => {
+  const NEW_NONCE = 'the-new-nonce';
+  const redeem = (payload: object) => at(accessRedemption, { payload });
+
+  it('is redeemed once into a new capability the receipt then reads by', async () => {
+    const w = world();
+    await seeded(w);
+    await w.run(
+      w.stores.groups.issueAccess(GROUP, {
+        digest: digestOf('the-token'),
+        expiresAt: new Date(Date.now() + 60_000),
+        sentAt: new Date(),
+      }),
+    );
+    const body = { token: 'the-token', capabilityDigest: digestOf(NEW_NONCE) };
+
+    const redeemed = await w.run(redeem(body));
+    const spent = await w.refusal(redeem(body));
+    const receipt = (await w.run(
+      at(buyerReceiptRead, {
+        params: { id: GROUP },
+        headers: { 'x-cancel-nonce': NEW_NONCE },
+      }),
+    )) as unknown as { group: { data: Record<string, unknown> } };
+
+    expect(redeemed).toEqual({ id: GROUP });
+    expect(spent.code).toBe('cancelNotAuthorized');
+    expect(receipt.group.data['id']).toBe(GROUP);
+    expect(receipt.group.data).not.toHaveProperty('accessSentAt');
+    expect(receipt.group.data).not.toHaveProperty('accessDigest');
+    expect(accessRedemption.descriptor.guard).toEqual({ kind: 'public' });
+  });
+
+  it('refuses a body with no token', async () => {
+    const w = world();
+    await seeded(w);
+
+    const refused = await w.refusal(redeem({}));
+
     expect(refused.code).toBe('cancelNotAuthorized');
   });
 });

@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 import { Context } from 'effect';
 
@@ -25,6 +25,43 @@ export class CancelWindowSeconds extends Context.Service<
 export class ReceiptDays extends Context.Service<ReceiptDays, number>()(
   'ReceiptDays',
 ) {}
+
+/**
+ * How many hours a mailed access link may still be redeemed
+ * (`order.accessLinkHours`). Read at boot, as every dial here is.
+ */
+export class AccessLinkHours extends Context.Service<AccessLinkHours, number>()(
+  'AccessLinkHours',
+) {}
+
+/**
+ * The fewest seconds between two access links mailed for one group
+ * (`order.accessLinkIntervalSeconds`): what keeps a stranger who knows a
+ * number and an email from flooding that inbox (ADR 0076 §6).
+ */
+export class AccessLinkIntervalSeconds extends Context.Service<
+  AccessLinkIntervalSeconds,
+  number
+>()('AccessLinkIntervalSeconds') {}
+
+/**
+ * The storefront's origin, which an access link is written against
+ * (`order.storefrontUrl`). No trailing slash.
+ */
+export class StorefrontUrl extends Context.Service<StorefrontUrl, string>()(
+  'StorefrontUrl',
+) {}
+
+/**
+ * A fresh access-link token: 256 random bits, URL-safe because it rides a
+ * query string. Only its {@link digestOf} is ever stored.
+ */
+export const mintAccessToken = (): string =>
+  randomBytes(32).toString('base64url');
+
+/** A capability digest as the storefront sends one: SHA-256, lower-case hex. */
+export const isCapabilityDigest = (value: unknown): value is string =>
+  typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 
 /**
  * What is stored for a nonce the browser holds.

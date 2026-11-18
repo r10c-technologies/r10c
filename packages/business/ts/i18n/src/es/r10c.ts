@@ -320,9 +320,24 @@ export const r10c = {
         'Tu pago todavía se está confirmando, así que aún no se puede cancelar el pedido. Inténtalo de nuevo en un momento.',
       cancelFailed:
         'No se pudo cancelar el pedido. Puede que el plazo haya terminado o que ya vaya en camino.',
+      findLink: 'Encontrar mi pedido',
+      movedHeading: 'Este pedido se abrió en otro dispositivo',
+      moved:
+        'Alguien abrió este pedido con el enlace de tu correo, así que este navegador ya no puede mostrarlo. Si fuiste tú, sigue en ese dispositivo; si no, pide un enlace nuevo.',
+      access: {
+        heading: 'Abrir tu pedido',
+        intro:
+          'Este enlace abre tu pedido en este navegador. Solo funciona una vez, y el navegador donde lo abrías antes dejará de mostrarlo.',
+        open: 'Abrir mi pedido',
+        failed:
+          'Este enlace ya se usó o venció. Puedes pedir uno nuevo con el número de tu pedido y tu correo.',
+        missing:
+          'Este enlace está incompleto. Puedes pedir uno nuevo con el número de tu pedido y tu correo.',
+      },
     },
     footer: {
       note: 'Catálogo de demostración. Ningún pedido es real.',
+      findOrder: 'Encontrar mi pedido',
     },
   },
   /**

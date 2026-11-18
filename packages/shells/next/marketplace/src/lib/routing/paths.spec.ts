@@ -9,6 +9,11 @@ describe('storePaths', () => {
     expect(storePaths.offering('offering-1')).toBe('/p/offering-1');
     expect(storePaths.cart()).toBe('/cart');
     expect(storePaths.orderStatus('f 1')).toBe('/order/status/f%201');
+    expect(storePaths.orderAccess()).toBe('/order/access');
+    expect(storePaths.orderAccess({ failed: '1' })).toBe(
+      '/order/access?failed=1',
+    );
+    expect(storePaths.orderFind()).toBe('/order/find');
   });
 
   it('omits the query when there is no search term', () => {

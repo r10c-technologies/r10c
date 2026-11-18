@@ -191,6 +191,48 @@ export const makeInMemoryOrderStores = (): {
         return { _tag: 'opened' as const, group: copyGroup(group) };
       }),
     remove: groupId => Effect.sync(() => groups.delete(groupId)),
+    issueAccess: (groupId, grant, notSentSince) =>
+      Effect.sync(() => {
+        const group = groups.get(groupId);
+        if (group === undefined) return undefined;
+        const lastSent = group.accessSentAt?.getTime();
+        if (
+          notSentSince !== undefined &&
+          lastSent !== undefined &&
+          lastSent >= notSentSince.getTime()
+        ) {
+          return undefined;
+        }
+        group.accessDigest = grant.digest;
+        group.accessExpiresAt = grant.expiresAt;
+        group.accessSentAt = grant.sentAt;
+        return copyGroup(group);
+      }),
+    redeemAccess: (accessDigest, cancelDigest, now) =>
+      Effect.sync(() => {
+        const group = Array.from(groups.values()).find(
+          candidate =>
+            candidate.accessDigest === accessDigest &&
+            // `NaN` for a group with no link, which is never later than now.
+            Number(candidate.accessExpiresAt) > now.getTime(),
+        );
+        if (group === undefined) return undefined;
+        group.cancelDigest = cancelDigest;
+        group.accessDigest = undefined;
+        group.accessExpiresAt = undefined;
+        return String(group.id);
+      }),
+    findByNumber: number =>
+      Effect.sync(() => {
+        const groupId =
+          Array.from(groups.values()).find(group => group.number === number)
+            ?.id ??
+          Array.from(orders.values()).find(order => order.number === number)
+            ?.groupId;
+        const group =
+          groupId === undefined ? undefined : groups.get(String(groupId));
+        return group === undefined ? undefined : copyGroup(group);
+      }),
   };
 
   return { orders: orderStore, groups: groupStore };

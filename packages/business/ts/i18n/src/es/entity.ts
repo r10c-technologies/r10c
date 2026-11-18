@@ -367,6 +367,9 @@ export const entity = {
       cancelDigest: 'Huella de cancelación',
       cancelWindowEndsAt: 'Fin del plazo de cancelación',
       receiptEndsAt: 'Recibo disponible hasta',
+      accessDigest: 'Huella del enlace de acceso',
+      accessExpiresAt: 'Enlace de acceso válido hasta',
+      accessSentAt: 'Enlace de acceso enviado',
       contact: 'Contacto y entrega',
       buyer: {
         name: 'Nombre',
