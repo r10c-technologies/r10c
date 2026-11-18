@@ -4918,6 +4918,9 @@ importers:
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../../packages/business/ts/flow-contracts
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/order-contracts
       '@r10c/business-ts-order-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/order-management

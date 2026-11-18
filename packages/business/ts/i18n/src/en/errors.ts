@@ -130,4 +130,12 @@ export const errors: EsErrors = {
   codOverLimit:
     'This order is over the cash-on-delivery limit. Pay this seller by card instead.',
   codNotEntitled: 'This seller does not accept cash on delivery.',
+  contactNameRequired: 'Enter your name.',
+  phoneNotGuatemalan:
+    'Enter a Guatemalan phone number of eight digits, for example 5555-1234.',
+  emailNotValid: 'Enter a valid email, for example name@example.com.',
+  departamentoUnknown: 'Choose a departamento.',
+  municipioOutsideDepartamento: 'Choose a municipio from the list.',
+  zonaOutOfRange: 'The zona is a number from 1 to 25.',
+  addressLineRequired: 'Enter the address: neighbourhood, street and number.',
 };
