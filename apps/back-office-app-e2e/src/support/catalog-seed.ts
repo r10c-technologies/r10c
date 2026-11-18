@@ -113,6 +113,21 @@ export const productSeed = [
   },
 ];
 
+/**
+ * The phones a product can fit (plan 1.17), as marketplace-service seeds a few
+ * of them. One retired, which the wizard's picker must not offer.
+ */
+export const deviceModelSeed = [
+  { id: 'device-model-1', name: 'Samsung Galaxy A15', maker: 'Samsung' },
+  { id: 'device-model-2', name: 'iPhone 15', maker: 'Apple' },
+  {
+    id: 'device-model-3',
+    name: 'Nokia 3310',
+    maker: 'Nokia',
+    status: 'retired',
+  },
+];
+
 export const brandSeed = Array.from({ length: 20 }, (_, index) => {
   const number = index + 1;
   const baseName = BASE_NAMES[index % BASE_NAMES.length];

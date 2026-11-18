@@ -296,6 +296,43 @@ test.describe('browsing the catalog', () => {
     ]);
   });
 
+  /**
+   * Plan 1.17: a buyer names their phone and sees what fits it — made for that
+   * model, or for every phone — and the choice comes back on a later visit.
+   */
+  test('choosing my phone keeps what fits it, and is remembered', async ({
+    page,
+  }) => {
+    await page.goto('/es/search');
+    const phone = page.getByRole('combobox', { name: 'Mi teléfono' });
+    await expect(
+      phone.getByRole('option', { name: 'Nokia 3310' }),
+    ).toHaveCount(0);
+
+    await phone.selectOption({ label: 'Samsung Galaxy A15' });
+    await page.getByRole('button', { name: 'Ver lo que le queda' }).click();
+
+    await page.waitForURL(/model=device-model-a15/);
+    await expect(page.getByText('2 productos')).toBeVisible();
+    await expect(
+      page.getByText('Mostrando lo que le queda a tu Samsung Galaxy A15.'),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('article', { name: 'Lino Napkin Set' }),
+    ).toHaveCount(2);
+
+    // A later visit: a new tab of the same browser starts unfiltered and is
+    // given the remembered phone back.
+    const later = await page.context().newPage();
+    await later.goto('/es/search');
+    await later.waitForURL(/model=device-model-a15/);
+    await later.close();
+
+    await page.getByRole('link', { name: 'Quitar' }).click();
+    await page.waitForURL(url => !url.search.includes('model='));
+    await expect(page.getByText('39 productos')).toBeVisible();
+  });
+
   test('a card whose seller cannot be read still renders, without a seller line', async ({
     page,
   }) => {

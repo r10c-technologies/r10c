@@ -30,6 +30,11 @@ const SCREENS = [
     path: '/es/catalog/product-brand',
     ready: { record: 'Acme 1' },
   },
+  {
+    screen: 'definiciones-device-model-list',
+    path: '/es/catalog/device-model',
+    ready: { record: 'Samsung Galaxy A15' },
+  },
   // The product workspace (#564): a form with three slices' regions under it.
   {
     screen: 'definiciones-product-workspace',

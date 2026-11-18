@@ -17,6 +17,7 @@ import {
 import type { Locator, Page } from '@playwright/test';
 import { UserDevice, UserIdentity } from '@r10c/business-ts-authn';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -46,7 +47,12 @@ import {
   StockMovement,
 } from '@r10c/business-ts-stock-management';
 
-import { brandSeed, categorySeed, productSeed } from './catalog-seed';
+import {
+  brandSeed,
+  categorySeed,
+  deviceModelSeed,
+  productSeed,
+} from './catalog-seed';
 import { publishedOfferingSeed, salesChannelSeed } from './sales-seed';
 import {
   agreementSeed,
@@ -101,6 +107,7 @@ export const CONFIG_SERVICE_URL = 'http://localhost:3190/api';
 
 export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
+export const DEVICE_MODEL_URL = `${REFERENCE_SERVICE_URL}/device-model`;
 export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
 
 /**
@@ -133,6 +140,10 @@ const { handlers, backend } = entityBackendHandlers(ProductBrand, {
 const categories = entityBackendHandlers(ProductCategory, {
   baseUrl: CATEGORY_URL,
   seed: categorySeed,
+});
+const deviceModels = entityBackendHandlers(DeviceModel, {
+  baseUrl: DEVICE_MODEL_URL,
+  seed: deviceModelSeed,
 });
 const products = entityBackendHandlers(ProductSpecification, {
   baseUrl: PRODUCT_URL,
@@ -702,6 +713,16 @@ const brandMetadataHandlers = [
       },
     }),
   ),
+  // The device models' screen reads the same document shape (plan 1.17).
+  http.get(`${APP_URL}/api/marketplace/device-model/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'device-model' },
+      data: {
+        actions: ['read', 'write'],
+        useCases: describeEntityUseCases(DeviceModel),
+      },
+    }),
+  ),
 ];
 
 /** Every brand verb the list ran in this run, with the ids it ran over. */
@@ -728,6 +749,23 @@ const brandVerbHandlers = [
     );
     return HttpResponse.json({
       meta: { type: 'bulkOutcome', entity: 'product-brand' },
+      data: selection.ids.map(id => ({ id, ok: true })),
+    });
+  }),  // The device models' verbs, the same shape over their own collection.
+  http.post(`${DEVICE_MODEL_URL}/:verb`, async ({ params, request }) => {
+    const { selection } = (await request.json()) as {
+      selection: { mode: 'ids'; ids: string[] };
+    };
+    const status = params['verb'] === 'retire' ? 'retired' : 'active';
+    deviceModels.backend.seed(
+      deviceModels.backend
+        .rows()
+        .map(row =>
+          selection.ids.includes(String(row['id'])) ? { ...row, status } : row,
+        ),
+    );
+    return HttpResponse.json({
+      meta: { type: 'bulkOutcome', entity: 'device-model' },
       data: selection.ids.map(id => ({ id, ok: true })),
     });
   }),
@@ -923,6 +961,7 @@ const base = defineEntifixE2eTest({
     ...brandMetadataHandlers,
     ...brandVerbHandlers,
     ...categories.handlers,
+    ...deviceModels.handlers,
     ...products.handlers,
     ...stockItems.handlers,
     ...stockMovements.handlers,
