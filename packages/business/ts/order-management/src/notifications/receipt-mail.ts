@@ -57,9 +57,7 @@ const render = (
     `${link.label}: ${link.href}`,
   ].join('\n\n'),
   html: [
-    ...paragraphs.map(
-      lines => `<p>${lines.map(escapeHtml).join('<br>')}</p>`,
-    ),
+    ...paragraphs.map(lines => `<p>${lines.map(escapeHtml).join('<br>')}</p>`),
     `<p><a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a></p>`,
   ].join('\n'),
 });
@@ -98,7 +96,9 @@ export const composeReceiptMail = (input: {
           amount: money(locale, item.amount, item.currency),
         }),
       ),
-      fillMailTemplate(copy.receipt.orderTotal, { amount: money(locale, total, currency) }),
+      fillMailTemplate(copy.receipt.orderTotal, {
+        amount: money(locale, total, currency),
+      }),
     ];
   });
   const totals = group.totals.map(total =>

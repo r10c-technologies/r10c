@@ -586,8 +586,7 @@ describe('the buyer’s way back: an access link', () => {
 
     expect(issued?.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(issued?.group.accessDigest).toBe(digestOf(String(issued?.token)));
-    const lifetime =
-      (issued?.group.accessExpiresAt?.getTime() ?? 0) - before;
+    const lifetime = (issued?.group.accessExpiresAt?.getTime() ?? 0) - before;
     expect(lifetime).toBeGreaterThanOrEqual(24 * 3600 * 1000);
     expect(lifetime).toBeLessThan(24 * 3600 * 1000 + 5000);
   });
@@ -743,7 +742,9 @@ describe('the buyer’s mail', () => {
     await storefront(w);
     notifier.failNext = 1;
 
-    const failed = await w.refusal(provide(sendReceiptMail({ groupId: GROUP })));
+    const failed = await w.refusal(
+      provide(sendReceiptMail({ groupId: GROUP })),
+    );
 
     expect(failed.code).toBe('unavailable');
   });
@@ -759,7 +760,9 @@ describe('the buyer’s mail', () => {
       ),
     );
     const again = await w.run(
-      provide(sendAccessLink({ number: order.number, email: 'ana@correo.com' })),
+      provide(
+        sendAccessLink({ number: order.number, email: 'ana@correo.com' }),
+      ),
     );
 
     expect(first).toEqual({ accepted: true });

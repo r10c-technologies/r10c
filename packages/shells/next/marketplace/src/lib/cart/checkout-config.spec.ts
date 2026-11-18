@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   checkoutServiceUrl,
   coordinatorCrossingToken,
+  orderLookupToken,
   orderServiceUrl,
   realtimeServiceUrl,
 } from './checkout-config';
@@ -12,6 +13,7 @@ const VARIABLES = [
   'COORDINATOR_CROSSING_TOKEN',
   'ORDER_SERVICE_URL',
   'REALTIME_SERVICE_URL',
+  'ORDER_LOOKUP_TOKEN',
 ] as const;
 
 afterEach(() => {
@@ -40,6 +42,18 @@ describe('checkout-config', () => {
     process.env['COORDINATOR_CROSSING_TOKEN'] = 'rotated';
 
     expect(coordinatorCrossingToken()).toBe('rotated');
+  });
+
+  it('reads the storefront’s own lookup token, never the coordinator’s', () => {
+    process.env['ORDER_LOOKUP_TOKEN'] = 'rotated-lookup';
+    process.env['COORDINATOR_CROSSING_TOKEN'] = 'rotated';
+
+    expect(orderLookupToken()).toBe('rotated-lookup');
+  });
+
+  it('falls back to the seeded lookup secret', () => {
+    // Matches config-service's `order-service service.storefrontToken` row.
+    expect(orderLookupToken()).toBe('dev-storefront-lookup-token-change-me');
   });
 
   it('falls back to the seeded development secret', () => {

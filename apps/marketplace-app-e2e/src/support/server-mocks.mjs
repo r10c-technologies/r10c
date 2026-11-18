@@ -444,7 +444,8 @@ const buyerReceiptHandler = http.get(
 );
 
 /** The digest order-service stores for a nonce. */
-const digestOf = nonce => createHash('sha256').update(nonce, 'utf8').digest('hex');
+const digestOf = nonce =>
+  createHash('sha256').update(nonce, 'utf8').digest('hex');
 
 /** The digest each redeemed group was re-keyed to, by group id. */
 const rekeyedTo = new Map();
@@ -481,8 +482,7 @@ const accessHandler = http.post(ACCESS_URL, async ({ request }) => {
  * answers it — but only to the storefront's own token, so a storefront that
  * sent the coordinator's would fail here as it would live.
  */
-const LOOKUP_URL =
-  'http://localhost:3105/api/checkout-group/send-access-link';
+const LOOKUP_URL = 'http://localhost:3105/api/checkout-group/send-access-link';
 const lookupHandler = http.post(LOOKUP_URL, ({ request }) =>
   request.headers.get('x-crossing-token') ===
   'dev-storefront-lookup-token-change-me'

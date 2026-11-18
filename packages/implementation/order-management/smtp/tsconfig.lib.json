@@ -8,14 +8,10 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../../business/ts/order-management/tsconfig.lib.json"

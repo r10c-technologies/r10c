@@ -76,9 +76,7 @@ export const digestOf = (nonce: string): string =>
 
 /** Why a capability was refused, or `undefined` when it was not. */
 export type CapabilityRefusal =
-  | 'noCapability'
-  | 'badCapability'
-  | 'windowClosed';
+  'noCapability' | 'badCapability' | 'windowClosed';
 
 /** As much of a group as verifying a buyer's capability needs. */
 export interface BuyerCapabilityHolder {

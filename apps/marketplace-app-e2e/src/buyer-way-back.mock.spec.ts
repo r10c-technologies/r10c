@@ -76,7 +76,9 @@ test.describe('the buyer’s way back', () => {
     await expect(other.getByTestId('order-id')).toBeVisible();
 
     await page.reload();
-    await expect(page.getByTestId('receipt-moved').filter({ visible: true })).toBeVisible();
+    await expect(
+      page.getByTestId('receipt-moved').filter({ visible: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole('link', { name: 'Encontrar mi pedido' }).first(),
     ).toBeVisible();
@@ -85,14 +87,16 @@ test.describe('the buyer’s way back', () => {
     const third = await another(browser, baseURL);
     await third.goto(`/es/order/access?token=e2e-token-${flowId}`);
     await third.getByRole('button', { name: 'Abrir mi pedido' }).click();
-    await expect(third.getByTestId('access-refused').filter({ visible: true })).toBeVisible();
+    await expect(
+      third.getByTestId('access-refused').filter({ visible: true }),
+    ).toBeVisible();
   });
 
   test('a link with no token says it is incomplete', async ({ page }) => {
     await page.goto('/es/order/access');
-    await expect(page.getByTestId('access-refused').filter({ visible: true })).toContainText(
-      'incompleto',
-    );
+    await expect(
+      page.getByTestId('access-refused').filter({ visible: true }),
+    ).toContainText('incompleto');
   });
 
   test('find my order works without script, and says the same whatever matched', async ({
@@ -109,8 +113,8 @@ test.describe('the buyer’s way back', () => {
     await page.getByRole('button', { name: 'Enviarme un enlace' }).click();
 
     await page.waitForURL(/\/es\/order\/find\/sent$/);
-    await expect(page.getByTestId('find-sent').filter({ visible: true })).toContainText(
-      'Si los datos coinciden',
-    );
+    await expect(
+      page.getByTestId('find-sent').filter({ visible: true }),
+    ).toContainText('Si los datos coinciden');
   });
 });

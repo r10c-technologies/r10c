@@ -57,7 +57,9 @@ export function OrderAccessPage({
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="token" value={token} />
                 <div>
-                  <SubmitButton>{t('storefront.order.access.open')}</SubmitButton>
+                  <SubmitButton>
+                    {t('storefront.order.access.open')}
+                  </SubmitButton>
                 </div>
               </Stack>
             </form>

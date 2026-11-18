@@ -26,7 +26,10 @@ describe('smtpBuyerNotifier', () => {
       smtpBuyerNotifier({ sendMail }, 'pedidos@r10c.test').send(MAIL),
     );
 
-    expect(sendMail).toHaveBeenCalledWith({ from: 'pedidos@r10c.test', ...MAIL });
+    expect(sendMail).toHaveBeenCalledWith({
+      from: 'pedidos@r10c.test',
+      ...MAIL,
+    });
   });
 
   it('answers a transport that failed as unavailable, never a defect', async () => {

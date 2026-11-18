@@ -101,6 +101,5 @@ export const crossingCallersLayer = (
         token => [caller, token] as const,
       ),
     ),
-    entries =>
-      Layer.succeed(ServiceCrossingCallersTag, new Map(entries)),
+    entries => Layer.succeed(ServiceCrossingCallersTag, new Map(entries)),
   );

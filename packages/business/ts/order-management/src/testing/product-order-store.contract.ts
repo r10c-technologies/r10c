@@ -142,12 +142,12 @@ export const describeProductOrderStoreContract = (
       const group = await run(groups.get(GROUP));
       const order = await run(orders.get('ord-1'));
 
-      expect(
-        (await run(groups.findByNumber(String(group?.number))))?.id,
-      ).toBe(GROUP);
-      expect(
-        (await run(groups.findByNumber(String(order?.number))))?.id,
-      ).toBe(GROUP);
+      expect((await run(groups.findByNumber(String(group?.number))))?.id).toBe(
+        GROUP,
+      );
+      expect((await run(groups.findByNumber(String(order?.number))))?.id).toBe(
+        GROUP,
+      );
       expect(await run(groups.findByNumber('ZZZZ-ZZZZ'))).toBeUndefined();
     });
 

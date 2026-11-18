@@ -202,9 +202,7 @@ describe('find my order', () => {
     Authorization: undefined,
   });
   const numberOf = async (groupId: string) =>
-    String(
-      (await readReceipt(groupId, 'lookup-nonce')).data.group.data.number,
-    );
+    String((await readReceipt(groupId, 'lookup-nonce')).data.group.data.number);
 
   it('answers a match and a miss byte for byte alike, and mails only the match', async () => {
     const groupId = await checkout('lookup-nonce');
