@@ -354,6 +354,9 @@ const ENGINES = {
   mongo: both(['@entifix/mongo', 'mongodb']),
   redis: both(['@entifix/redis', 'ioredis']),
   sql: both(['@entifix/sql', 'pg', '@effect/sql-pg']),
+  // Not a store but a transport, and the same shape: an smtp cell is its
+  // driver's adapter and nothing else (ADR 0076 §6).
+  smtp: both(['nodemailer']),
 };
 const otherEngines = own => [
   ...Object.entries(ENGINES)

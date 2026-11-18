@@ -1,6 +1,36 @@
 type EsR10c = typeof import('../es/r10c').r10c;
 
 export const r10c: EsR10c = {
+  /**
+   * The mail to a storefront buyer: the receipt and the one-time access link
+   * (ADR 0076 §6).
+   */
+  mail: {
+    receipt: {
+      subject: 'Your order {{number}}',
+      greeting: 'Hello {{name}},',
+      intro:
+        'Thank you for your purchase. Here is a summary of your order {{number}}.',
+      sellerOrder: 'Order {{number}} · {{tender}}',
+      line: '{{quantity}} × {{name}} — {{amount}}',
+      orderTotal: 'Total for this order: {{amount}}',
+      total: 'Total: {{amount}}',
+      deliveryHeading: 'Delivery',
+    },
+    access: {
+      subject: 'Your link to see order {{number}}',
+      intro: 'You asked for a link to see your order {{number}} again.',
+      link: 'Open your order on any device with this link. It works once and expires in {{hours}} hours:',
+      action: 'Open my order',
+      notYou:
+        'If you did not ask for this email, you can ignore it: nobody else received the link.',
+    },
+    tender: {
+      card: 'Card',
+      cod: 'Cash on delivery',
+      cash: 'Cash',
+    },
+  },
   auth: {
     nav: {
       identity: 'Identity',

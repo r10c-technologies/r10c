@@ -6,6 +6,8 @@ import {
   makeScriptedFlowStarter,
 } from '@r10c/business-ts-flow-contracts/testing';
 import {
+  AccessLinkHours,
+  BuyerNotifierTag,
   CancelWindowSeconds,
   CheckoutGroup,
   CheckoutGroupStoreTag,
@@ -14,8 +16,12 @@ import {
   ProductOrder,
   ProductOrderStoreTag,
   ReceiptDays,
+  StorefrontUrl,
 } from '@r10c/business-ts-order-management';
-import { makeInMemoryOrderStores } from '@r10c/business-ts-order-management/testing';
+import {
+  makeInMemoryOrderStores,
+  makeRecordingBuyerNotifier,
+} from '@r10c/business-ts-order-management/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -92,6 +98,7 @@ const [
   buyerCancellation,
   buyerReceiptRead,
   accessRedemption,
+  receiptMail,
   claim,
   release,
   confirm,
@@ -551,5 +558,33 @@ describe('the staff cancel verb', () => {
     expect(cancel.accepted).toBe(true);
     expect(hidden.code).toBe('notFound');
     expect(nobody.code).toBe('notFound');
+  });
+});
+
+describe('the receipt mail step (ADR 0076 §6)', () => {
+  it('is a crossing on its own permission, remembered at the edge', () => {
+    expect(receiptMail.descriptor.guard).toEqual({
+      kind: 'crossing',
+      permission: 'order-management:checkout-group:send-receipt',
+      organization: false,
+    });
+    expect(receiptMail.descriptor.idempotent).toBe('edge');
+  });
+
+  it('mails the buyer and answers the outcome alone', async () => {
+    const w = world();
+    await seeded(w);
+    const notifier = makeRecordingBuyerNotifier();
+
+    const answer = await w.run(
+      at(receiptMail, { params: { id: GROUP } }).pipe(
+        Effect.provideService(BuyerNotifierTag, notifier),
+        Effect.provideService(AccessLinkHours, 24),
+        Effect.provideService(StorefrontUrl, 'http://shop.test'),
+      ),
+    );
+
+    expect(answer).toEqual({ id: GROUP, outcome: 'sent' });
+    expect(notifier.sent).toHaveLength(1);
   });
 });

@@ -1,0 +1,53 @@
+{
+  "name": "@r10c/implementation-order-management-smtp",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "tech:smtp",
+      "scope:order"
+    ],
+    "sourceRoot": "packages/implementation/order-management/smtp/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/implementation/order-management/smtp/dist",
+          "main": "packages/implementation/order-management/smtp/src/index.ts",
+          "tsConfig": "packages/implementation/order-management/smtp/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/core": "catalog:",
+    "@r10c/business-ts-order-management": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.7",
+    "nodemailer": "10.3.1"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "8.0.2"
+  }
+}

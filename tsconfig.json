@@ -350,6 +350,9 @@
     },
     {
       "path": "./apps/fleet-e2e"
+    },
+    {
+      "path": "./packages/implementation/order-management/smtp"
     }
   ],
   "compilerOptions": {

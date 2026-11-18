@@ -10,12 +10,19 @@ import { describe, expect, it } from 'vitest';
 
 import { CheckoutGroup } from '../entities/checkout-group/index.js';
 import { ProductOrder } from '../entities/product-order/index.js';
+import { BuyerNotifierTag } from '../ports/buyer-notifier.js';
 import {
   CheckoutGroupStoreTag,
   ProductOrderStoreTag,
 } from '../ports/product-order-store.js';
 import { makeInMemoryOrderStores } from '../testing/in-memory-product-order-store.js';
-import { AccessLinkHours, digestOf } from '../values/cancel-capability.js';
+import { makeRecordingBuyerNotifier } from '../testing/recording-buyer-notifier.js';
+import {
+  AccessLinkHours,
+  AccessLinkIntervalSeconds,
+  digestOf,
+  StorefrontUrl,
+} from '../values/cancel-capability.js';
 import { OrderItem } from '../values/order-item.js';
 import type { OrderScope } from '../values/order-scope.js';
 import {
@@ -30,6 +37,8 @@ import {
   openGroup,
   placeOrder,
   redeemAccess,
+  sendAccessLink,
+  sendReceiptMail,
 } from './order-flows.js';
 
 const GROUP = '7b6f2b0e-6a0c-4b8e-9d55-0f0e6a3a1c11';
@@ -633,5 +642,154 @@ describe('the buyer’s way back: an access link', () => {
     expect(refusals.map(answer => answer.code)).toEqual(
       Array(4).fill('cancelNotAuthorized'),
     );
+  });
+});
+
+describe('the buyer’s mail', () => {
+  const CONTACT = {
+    name: 'Ana López',
+    phone: '5555-1234',
+    email: 'Ana@Correo.com',
+    destination: {
+      departamento: '01',
+      municipio: '0108',
+      addressLine: '5a avenida 12-34',
+    },
+  };
+  const mailing = () => {
+    const notifier = makeRecordingBuyerNotifier();
+    const provide = <A, E, R0>(effect: Effect.Effect<A, E, R0>) =>
+      effect.pipe(
+        Effect.provideService(BuyerNotifierTag, notifier),
+        Effect.provideService(AccessLinkHours, 24),
+        Effect.provideService(AccessLinkIntervalSeconds, 300),
+        Effect.provideService(StorefrontUrl, 'http://shop.test'),
+      );
+    return { notifier, provide };
+  };
+  /** A storefront group, with its contact, and one order in it. */
+  const storefront = async (w: ReturnType<typeof world>, locale = 'es') => {
+    await w.run(
+      openGroup({
+        group: aGroup({ cancelDigest: digestOf(NONCE), locale }),
+        contact: CONTACT,
+        commandId: undefined,
+        cancelWindowSeconds: 600,
+        receiptDays: 30,
+      }),
+    );
+    const placed = await w.run(
+      placeOrder({ order: anOrder(), rawLines: [], commandId: undefined }),
+    );
+    return placed.order;
+  };
+  const tokenIn = (text: string) =>
+    decodeURIComponent(/token=([^\s"]+)/.exec(text)?.[1] ?? '');
+
+  it('mails the receipt with a link only the stored digest opens, and answers no token', async () => {
+    const w = world();
+    const { notifier, provide } = mailing();
+    await storefront(w);
+
+    const answer = await w.run(provide(sendReceiptMail({ groupId: GROUP })));
+
+    expect(answer).toEqual({ id: GROUP, outcome: 'sent' });
+    expect(notifier.sent).toHaveLength(1);
+    const [mail] = notifier.sent;
+    expect(mail?.to).toBe('ana@correo.com');
+    expect(mail?.text).toContain('http://shop.test/es/order/access?token=');
+    const group = await w.run(
+      Effect.flatMap(CheckoutGroupStoreTag, groups => groups.get(GROUP)),
+    );
+    expect(group?.accessDigest).toBe(digestOf(tokenIn(String(mail?.text))));
+    expect(JSON.stringify(answer)).not.toContain(tokenIn(String(mail?.text)));
+  });
+
+  it('writes the link in the buyer’s locale', async () => {
+    const w = world();
+    const { notifier, provide } = mailing();
+    await storefront(w, 'en');
+
+    await w.run(provide(sendReceiptMail({ groupId: GROUP })));
+
+    expect(notifier.sent[0]?.text).toContain('http://shop.test/en/order/');
+  });
+
+  it('sends nothing for a group with no contact, and refuses an unknown one', async () => {
+    const w = world();
+    const { notifier, provide } = mailing();
+    await w.run(
+      openGroup({
+        group: aGroup(),
+        commandId: undefined,
+        cancelWindowSeconds: 600,
+        receiptDays: 30,
+      }),
+    );
+
+    const counter = await w.run(provide(sendReceiptMail({ groupId: GROUP })));
+    const unknown = await w.refusal(
+      provide(sendReceiptMail({ groupId: crypto.randomUUID() })),
+    );
+
+    expect(counter).toEqual({ id: GROUP, outcome: 'no-contact' });
+    expect(unknown.code).toBe('notFound');
+    expect(notifier.sent).toEqual([]);
+  });
+
+  it('fails a send the mail server did not take, so the step retries', async () => {
+    const w = world();
+    const { notifier, provide } = mailing();
+    await storefront(w);
+    notifier.failNext = 1;
+
+    const failed = await w.refusal(provide(sendReceiptMail({ groupId: GROUP })));
+
+    expect(failed.code).toBe('unavailable');
+  });
+
+  it('mails a lookup’s link to the email on file, once per interval, by either number', async () => {
+    const w = world();
+    const { notifier, provide } = mailing();
+    const order = await storefront(w);
+
+    const first = await w.run(
+      provide(
+        sendAccessLink({ number: order.number, email: ' ANA@correo.com ' }),
+      ),
+    );
+    const again = await w.run(
+      provide(sendAccessLink({ number: order.number, email: 'ana@correo.com' })),
+    );
+
+    expect(first).toEqual({ accepted: true });
+    expect(again).toEqual({ accepted: true });
+    expect(notifier.sent).toHaveLength(1);
+    expect(notifier.sent[0]?.to).toBe('ana@correo.com');
+    expect(notifier.sent[0]?.subject).toContain('Tu enlace');
+  });
+
+  it('answers a mismatch, an unknown or malformed number and a failed send alike', async () => {
+    const w = world();
+    const { notifier, provide } = mailing();
+    await storefront(w);
+    const group = await w.run(
+      Effect.flatMap(CheckoutGroupStoreTag, groups => groups.get(GROUP)),
+    );
+    notifier.failNext = 1;
+
+    const answers = await Promise.all(
+      [
+        { number: group?.number, email: 'someone@else.com' },
+        { number: 'ZZZZ-ZZZZ', email: 'ana@correo.com' },
+        { number: 'nonsense', email: 'ana@correo.com' },
+        { number: 7, email: 'ana@correo.com' },
+        { number: group?.number, email: 7 },
+        { number: group?.number, email: 'ana@correo.com' },
+      ].map(input => w.run(provide(sendAccessLink(input)))),
+    );
+
+    expect(answers).toEqual(Array(6).fill({ accepted: true }));
+    expect(notifier.sent).toEqual([]);
   });
 });

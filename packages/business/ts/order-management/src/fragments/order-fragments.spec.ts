@@ -17,6 +17,7 @@ describe('order fragments', () => {
       'order.confirm@2',
       'order.mark-dispatched@2',
       'order.close@2',
+      'order.notify-buyer@1',
     ]);
     expect(new Set(ORDER_FRAGMENTS.map(f => f.module))).toEqual(
       new Set(['order-management']),
@@ -37,6 +38,11 @@ describe('order fragments', () => {
   it('roll every move after the commit point forward rather than back', () => {
     expect(
       ORDER_FRAGMENTS.filter(f => f.kind === 'retriable').map(f => f.id),
-    ).toEqual(['order.confirm', 'order.mark-dispatched', 'order.close']);
+    ).toEqual([
+      'order.confirm',
+      'order.mark-dispatched',
+      'order.close',
+      'order.notify-buyer',
+    ]);
   });
 });

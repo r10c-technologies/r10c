@@ -1,7 +1,7 @@
 import { OrderAccessPage } from '@r10c/shells-next-marketplace/server';
 import type { Metadata } from 'next';
 
-import { requireLocale } from '../../../locale-param';
+import { requireLocale } from '../../locale-param';
 
 /**
  * Where a mailed one-time access link lands. The token is read from the query

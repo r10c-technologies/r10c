@@ -5,6 +5,7 @@ import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import {
   decodeBuyerContact,
   drawOrderNumber,
+  normalizeOrderNumber,
 } from '@r10c/business-ts-order-contracts';
 import { Effect, Option } from 'effect';
 
@@ -16,16 +17,23 @@ import {
   PaymentPending,
 } from '../failures/order-failures';
 import {
+  composeAccessLinkMail,
+  composeReceiptMail,
+} from '../notifications/receipt-mail';
+import { BuyerNotifierTag } from '../ports/buyer-notifier';
+import {
   CheckoutGroupStoreTag,
   ProductOrderStoreTag,
 } from '../ports/product-order-store';
 import {
   AccessLinkHours,
+  AccessLinkIntervalSeconds,
   type BuyerCapabilityHolder,
   type CapabilityRefusal,
   digestOf,
   isCapabilityDigest,
   mintAccessToken,
+  StorefrontUrl,
   verifyCancelCapability,
   verifyReceiptCapability,
 } from '../values/cancel-capability';
@@ -396,4 +404,93 @@ export const redeemAccess = (input: {
     );
     if (groupId === undefined) return yield* new CancelNotAuthorized();
     return { id: groupId };
+  });
+
+/** The address a mailed token opens, on the storefront, in the buyer's locale. */
+const accessLinkOf = (group: CheckoutGroup, token: string) =>
+  Effect.map(
+    StorefrontUrl,
+    origin =>
+      `${origin}/${group.locale === 'en' ? 'en' : 'es'}/order/access?token=${encodeURIComponent(token)}`,
+  );
+
+/**
+ * The last step of a storefront checkout (`order.notify-buyer`): mint a fresh
+ * access link, store its digest, and mail the buyer their receipt with it
+ * (ADR 0076 §6). A retry draws a new link and sends again — at-least-once,
+ * and only the latest link opens anything.
+ *
+ * ⚠️ **The answer carries no token.** It is a step outcome, so it lands in the
+ * workflow journal and in flow-status; the token exists only in the mail.
+ */
+export const sendReceiptMail = (input: { readonly groupId: string }) =>
+  Effect.gen(function* () {
+    const issued = yield* issueAccessLink({ groupId: input.groupId });
+    if (issued === undefined) {
+      return yield* new NotFound({ entity: 'checkout-group' });
+    }
+    // A counter sale, or a contact already removed: nobody to write to.
+    if (issued.group.contact.length === 0) {
+      return { id: input.groupId, outcome: 'no-contact' as const };
+    }
+    const orders = yield* (yield* ProductOrderStoreTag).forGroup(input.groupId);
+    const mail = composeReceiptMail({
+      group: issued.group,
+      orders,
+      link: yield* accessLinkOf(issued.group, issued.token),
+      linkHours: yield* AccessLinkHours,
+    }) as NonNullable<ReturnType<typeof composeReceiptMail>>;
+    yield* (yield* BuyerNotifierTag).send(mail);
+    return { id: input.groupId, outcome: 'sent' as const };
+  });
+
+/** An email as the contact stores it: trimmed and lower-cased. */
+const normalizedEmail = (email: unknown) =>
+  typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+/**
+ * "Find my order" (ADR 0076 §6): given a number — the group's or one seller's
+ * — and an email, mail a fresh access link **to the email on file** when the
+ * two match and no link went out within `order.accessLinkIntervalSeconds`.
+ *
+ * ⚠️ **It answers nothing about the match.** Whatever happened — no such
+ * number, another email, a link sent a minute ago, a mail server that did not
+ * answer — the caller receives the same thing, so the route is not an oracle
+ * for which numbers or emails exist. What happened is on the trace.
+ */
+export const sendAccessLink = (input: {
+  readonly number: unknown;
+  readonly email: unknown;
+}) =>
+  Effect.gen(function* () {
+    const number =
+      typeof input.number === 'string'
+        ? normalizeOrderNumber(input.number)
+        : undefined;
+    const email = normalizedEmail(input.email);
+    const outcome = yield* Effect.gen(function* () {
+      if (number === undefined || email === '') return 'malformed';
+      const groups = yield* CheckoutGroupStoreTag;
+      const group = yield* groups.findByNumber(number);
+      if (group === undefined || group.contact[0]?.email !== email) {
+        return 'no-match';
+      }
+      const interval = yield* AccessLinkIntervalSeconds;
+      const issued = yield* issueAccessLink({
+        groupId: String(group.id),
+        notSentSince: new Date(Date.now() - interval * MILLISECONDS),
+      });
+      if (issued === undefined) return 'too-soon';
+      const mail = composeAccessLinkMail({
+        group: issued.group,
+        link: yield* accessLinkOf(issued.group, issued.token),
+        linkHours: yield* AccessLinkHours,
+      }) as NonNullable<ReturnType<typeof composeAccessLinkMail>>;
+      return yield* (yield* BuyerNotifierTag).send(mail).pipe(
+        Effect.as('sent'),
+        Effect.catchTag('Unavailable', () => Effect.succeed('unsent')),
+      );
+    });
+    yield* Effect.annotateCurrentSpan({ 'checkout-group.lookup': outcome });
+    return { accepted: true as const };
   });

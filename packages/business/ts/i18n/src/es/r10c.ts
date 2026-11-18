@@ -7,6 +7,36 @@
  * product copy, so they are r10c's namespace (ADR 0060).
  */
 export const r10c = {
+  /**
+   * El correo al comprador de la tienda: el recibo y el enlace de acceso de un
+   * solo uso (ADR 0076 §6). Registro de «tú», como la tienda.
+   */
+  mail: {
+    receipt: {
+      subject: 'Tu pedido {{number}}',
+      greeting: 'Hola, {{name}}:',
+      intro:
+        'Gracias por tu compra. Este es el resumen de tu pedido {{number}}.',
+      sellerOrder: 'Pedido {{number}} · {{tender}}',
+      line: '{{quantity}} × {{name}} — {{amount}}',
+      orderTotal: 'Total de este pedido: {{amount}}',
+      total: 'Total: {{amount}}',
+      deliveryHeading: 'Entrega',
+    },
+    access: {
+      subject: 'Tu enlace para ver el pedido {{number}}',
+      intro: 'Pediste un enlace para volver a ver tu pedido {{number}}.',
+      link: 'Abre tu pedido en cualquier dispositivo con este enlace. Funciona una vez y vence en {{hours}} horas:',
+      action: 'Abrir mi pedido',
+      notYou:
+        'Si no pediste este correo, puedes ignorarlo: nadie más recibió el enlace.',
+    },
+    tender: {
+      card: 'Tarjeta',
+      cod: 'Contra entrega',
+      cash: 'Efectivo',
+    },
+  },
   auth: {
     nav: {
       identity: 'Identidad',

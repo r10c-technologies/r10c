@@ -37,9 +37,14 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import {
+  AccessLinkHours,
+  AccessLinkIntervalSeconds,
+  BuyerNotifierTag,
   CancelWindowSeconds,
   ReceiptDays,
+  StorefrontUrl,
 } from '@r10c/business-ts-order-management';
+import { makeRecordingBuyerNotifier } from '@r10c/business-ts-order-management/testing';
 import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
 import {
   endpoints,
@@ -88,6 +93,14 @@ const CONFIGURATION = {
   order: [
     { key: 'cancelWindowSeconds', value: '1800' },
     { key: 'receiptDays', value: '30' },
+    { key: 'accessLinkHours', value: '24' },
+    { key: 'accessLinkIntervalSeconds', value: '300' },
+    { key: 'storefrontUrl', value: 'http://shop.test' },
+  ],
+  smtp: [
+    { key: 'host', value: 'smtp.invalid' },
+    { key: 'port', value: '25' },
+    { key: 'from', value: 'r10c <pedidos@r10c.test>' },
   ],
   // Where this service starts a cancellation. The real composition root reads
   // both rows; this profile builds the two tags directly below, and the rows are
@@ -97,6 +110,9 @@ const CONFIGURATION = {
     { key: 'crossingToken', value: E2E_CROSSING_TOKEN },
   ],
 };
+
+/** What the buyer was mailed, read by the specs. */
+export const sentMail = makeRecordingBuyerNotifier();
 
 /** Matches the seeded rows. */
 const E2E_CANCEL_WINDOW_SECONDS = 1800;
@@ -138,6 +154,12 @@ const connections = Layer.mergeAll(
     makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
   ),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
+  Layer.succeed(AccessLinkHours, 24),
+  Layer.succeed(AccessLinkIntervalSeconds, 300),
+  Layer.succeed(StorefrontUrl, 'http://shop.test'),
+  // Every mail this profile sends, kept for the specs to read rather than
+  // handed to an SMTP server.
+  Layer.succeed(BuyerNotifierTag, sentMail),
   Layer.succeed(ReceiptDays, E2E_RECEIPT_DAYS),
   httpFlowStarterLayer({
     url: COORDINATOR_URL,

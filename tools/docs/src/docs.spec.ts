@@ -952,7 +952,7 @@ describe('Implementation cells declare one technology and a domain scope', () =>
   it('names every cell for its key and technology', () => {
     const misnamed = cells().filter(
       cell =>
-        !/^@r10c\/implementation-[a-z0-9-]+-(react|next|http|mongo|redis|sql)$/.test(
+        !/^@r10c\/implementation-[a-z0-9-]+-(react|next|http|mongo|redis|sql|smtp)$/.test(
           cell.name,
         ),
     );

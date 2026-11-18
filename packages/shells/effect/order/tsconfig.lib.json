@@ -23,6 +23,9 @@
       "path": "../../../implementation/order/mongo/tsconfig.lib.json"
     },
     {
+      "path": "../../../implementation/order-management/smtp/tsconfig.lib.json"
+    },
+    {
       "path": "../../../implementation/order-management/http/tsconfig.lib.json"
     },
     {

@@ -311,6 +311,18 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
         },
       ],
     },
+    {
+      // The storefront buyer's receipt and their way back to it, by mail —
+      // after the commit point, so a failed send retries rather than undoes a
+      // sale (ADR 0076 §6). A counter sale has nobody to write to.
+      name: 'notify',
+      steps: [
+        {
+          ref: 'order.notify-buyer@1',
+          when: (_context, start) => !atCounter(start),
+        },
+      ],
+    },
   ],
 };
 

@@ -17,6 +17,7 @@ import {
   makeEnvelope,
   NotFound,
   StaleRevision,
+  Unavailable,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import {
@@ -41,10 +42,11 @@ import {
   orderScopeFor,
   PaymentPending,
   placeOrder,
-  redeemAccess,
   ProductOrder,
   ProductOrderStoreTag,
   ReceiptDays,
+  redeemAccess,
+  sendReceiptMail,
 } from '@r10c/business-ts-order-management';
 import { Effect, Option, Schema } from 'effect';
 
@@ -279,6 +281,34 @@ const accessRedemption = defineEndpoint({
 });
 
 /**
+ * `POST /api/checkout-group/:id/receipt-mail` — the checkout's last step
+ * (`order.notify-buyer`): mail the buyer their receipt with a fresh one-time
+ * access link (ADR 0076 §6). A crossing, on its own narrow permission;
+ * remembered at the edge, so a redelivery of one command does not mail twice,
+ * while a retry after a failed send — a new command — draws a new link.
+ *
+ * ⚠️ Its answer is a step outcome and lands in the journal: it carries no
+ * token.
+ */
+const receiptMail = defineEndpoint({
+  name: 'receipt-mail',
+  method: 'POST',
+  path: `${GROUP_BASE}/:id/receipt-mail`,
+  params,
+  success: Schema.Struct({
+    id: Schema.String,
+    outcome: Schema.Literals(['sent', 'no-contact']),
+  }),
+  errors: [NotFound, Unavailable],
+  guard: {
+    kind: 'crossing',
+    permission: 'order-management:checkout-group:send-receipt',
+    organization: false,
+  },
+  idempotent: 'edge',
+});
+
+/**
  * The group as its buyer reads it back: everything but the access link's
  * members, which say when a link went out and which digest opens it — the
  * receipt has no use for either, so it never carries them.
@@ -429,6 +459,9 @@ export const productOrderEndpoints = [
       token: stringOf(payload, 'token'),
       capabilityDigest: stringOf(payload, 'capabilityDigest'),
     }),
+  ),
+  implement(receiptMail, ({ params: { id } }) =>
+    sendReceiptMail({ groupId: id }),
   ),
   implement(claimCancellation, ({ params: { id } }) =>
     Effect.gen(function* () {

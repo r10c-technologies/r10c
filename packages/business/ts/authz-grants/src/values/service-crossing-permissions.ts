@@ -78,6 +78,11 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // sellers, written on their behalf exactly as an order is (ADR 0069).
   `${ORDER_DOMAIN}:checkout-group:write`,
   `${ORDER_DOMAIN}:checkout-group:delete`,
+  // Mailing the buyer their receipt and a one-time access link, the
+  // checkout's last step (ADR 0076 §6). Its own permission rather than
+  // `write`: the coordinator that opens a group need not be the caller that
+  // makes mail go out, and each crossing route is one reviewed line.
+  `${ORDER_DOMAIN}:checkout-group:send-receipt`,
   // Taking the money the order above was placed for — the checkout flow's
   // **pivot**, and the one crossing on this list that cannot be undone.
   //

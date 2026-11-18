@@ -48,6 +48,7 @@
     "@r10c/business-ts-order-management": "workspace:*",
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/implementation-order-management-http": "workspace:*",
+    "@r10c/implementation-order-management-smtp": "workspace:*",
     "@r10c/implementation-order-mongo": "workspace:*",
     "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
