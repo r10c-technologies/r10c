@@ -40,3 +40,16 @@ export const ShippingStatusTones = {
 export const isShippingStatus = (value: unknown): value is ShippingStatus =>
   typeof value === 'string' &&
   (ShippingStatuses as readonly string[]).includes(value);
+
+/**
+ * The statuses a parcel's journey ends in, each with the stamp it ended at:
+ * what the retention sweep counts a shipment's `destination` from
+ * (ADR 0076 §4). A refused parcel is still on its way back, so it is not here.
+ */
+export const CLOSED_AT: Readonly<
+  Partial<Record<ShippingStatus, 'deliveredAt' | 'returnedAt' | 'withdrawnAt'>>
+> = {
+  delivered: 'deliveredAt',
+  returned: 'returnedAt',
+  withdrawn: 'withdrawnAt',
+};

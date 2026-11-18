@@ -127,6 +127,17 @@ export interface CheckoutGroupStore {
   readonly findByNumber: (
     number: string,
   ) => Effect.Effect<CheckoutGroup | undefined, StoreFault>;
+  /**
+   * The retention sweep's write (ADR 0076 §4): remove the buyer's `contact`
+   * from every group whose receipt window ended before `now` and whose every
+   * order is `fulfilled` or `cancelled`, stamping `redactedAt`. The copy the
+   * group's opening command remembered for a redelivery goes with it, or the
+   * data would leave the record and stay in the store. Answers how many
+   * groups it redacted; a group already redacted is not counted again.
+   */
+  readonly redactEndedReceipts: (
+    now: Date,
+  ) => Effect.Effect<number, StoreFault>;
 }
 
 export class CheckoutGroupStoreTag extends Context.Service<

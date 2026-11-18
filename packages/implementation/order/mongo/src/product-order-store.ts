@@ -7,6 +7,7 @@ import {
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
+  COMMAND_INBOX_COLLECTION,
   drainOutboxNow,
   mongoUnitFault,
   MongoUnitOfWorkTag,
@@ -29,6 +30,7 @@ import {
   CheckoutGroupStoreTag,
   type GroupOpening,
   type OrderPlacement,
+  type OrderStatus,
   orderStatusAfter,
   ProductOrder,
   ProductOrderStoreTag,
@@ -39,6 +41,42 @@ import type { ClientSession, Db } from 'mongodb';
 
 export const ORDER_COLLECTION = envelopeEntityName(ProductOrder);
 export const GROUP_COLLECTION = envelopeEntityName(CheckoutGroup);
+
+/**
+ * Removes `member` from the record each matching command claim remembered for
+ * a redelivery, so personal data leaves the store and not only the record. The
+ * replay is the record as the command wrote it, and a serialized record
+ * carries its number rather than its id. Rewritten whole rather than `$unset`
+ * on a dotted path, one claim at a time, inside the caller's unit.
+ */
+const forgetRemembered = async (
+  db: Db,
+  session: ClientSession,
+  claim: Readonly<Record<string, string>>,
+  member: string,
+) => {
+  const inbox = db.collection(COMMAND_INBOX_COLLECTION);
+  const remembered = await inbox
+    .find(claim, { projection: { _id: 0, commandId: 1, replay: 1 }, session })
+    .toArray();
+  for (const { commandId, replay } of remembered) {
+    const { record, ...rest } = replay as { record: Record<string, unknown> };
+    const kept = Object.fromEntries(
+      Object.entries(record).filter(([key]) => key !== member),
+    );
+    await inbox.updateOne(
+      { commandId },
+      { $set: { replay: { ...rest, record: kept } } },
+      { session },
+    );
+  }
+};
+
+/** How many ended receipts one retention pass takes; the next takes the rest. */
+const BATCH = 100;
+
+/** The statuses a group's contact waits for every order to reach. */
+const CLOSED_STATUSES: readonly OrderStatus[] = ['fulfilled', 'cancelled'];
 
 /** The members of a serialized order an event's audience is read from. */
 type SerializedOrder = Record<string, unknown> & {
@@ -626,6 +664,70 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
           return groupId === undefined
             ? undefined
             : yield* get(String(groupId));
+        }),
+
+      // ADR 0076 §4. Each group in a unit of its own: the contact and the copy
+      // its opening command remembered leave together, and one that fails
+      // leaves the rest to this pass and itself to the next. A `Date` bound,
+      // never its ISO string: the stamps are stored as dates.
+      redactEndedReceipts: now =>
+        Effect.gen(function* () {
+          const ended = yield* Effect.tryPromise({
+            try: () =>
+              groups
+                .find(
+                  {
+                    receiptEndsAt: { $lt: now },
+                    'contact.phone': { $exists: true },
+                  },
+                  { projection: { _id: 0, id: 1, number: 1 }, limit: BATCH },
+                )
+                .toArray(),
+            catch: storeUnavailable,
+          });
+          let redacted = 0;
+          for (const { id, number } of ended as unknown as ReadonlyArray<{
+            id: string;
+            number: string;
+          }>) {
+            const open = yield* Effect.tryPromise({
+              try: () =>
+                db
+                  .collection(ORDER_COLLECTION)
+                  .countDocuments(
+                    { groupId: id, status: { $nin: CLOSED_STATUSES } },
+                    { limit: 1 },
+                  ),
+              catch: storeUnavailable,
+            });
+            if (open > 0) continue;
+            const outcome = yield* units.run(unit =>
+              Effect.tryPromise({
+                try: async () => {
+                  const session = unit.handle.session;
+                  const written = await unit.handle.db
+                    .collection(GROUP_COLLECTION)
+                    .updateOne(
+                      { id, 'contact.phone': { $exists: true } },
+                      { $unset: { contact: '' }, $set: { redactedAt: now } },
+                      { session },
+                    );
+                  await forgetRemembered(
+                    unit.handle.db,
+                    session,
+                    { 'replay.record.number': number },
+                    'contact',
+                  );
+                  return written.modifiedCount;
+                },
+                catch: mongoUnitFault,
+              }),
+            );
+            // A unit with no claim and no refusal of its own only commits; a
+            // store fault fails the effect instead of reaching here.
+            redacted += (outcome as { readonly value: number }).value;
+          }
+          return redacted;
         }),
     };
   }),

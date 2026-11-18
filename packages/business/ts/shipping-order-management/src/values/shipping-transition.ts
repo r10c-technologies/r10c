@@ -73,9 +73,10 @@ export function statusesBefore(
 export const STAMP_OF: Partial<
   Record<
     ShippingTransition,
-    'dispatchedAt' | 'deliveredAt' | 'refusedAt' | 'returnedAt'
+    'withdrawnAt' | 'dispatchedAt' | 'deliveredAt' | 'refusedAt' | 'returnedAt'
   >
 > = {
+  withdraw: 'withdrawnAt',
   dispatch: 'dispatchedAt',
   'record-delivery': 'deliveredAt',
   'record-refusal': 'refusedAt',

@@ -10,4 +10,9 @@ export {
   fulfilmentComposition,
   makeAppLayer,
 } from './app-layer.js';
+export {
+  DestinationRetentionDays,
+  startDestinationRedactionSweep,
+  sweepClosedDestinations,
+} from './destination-redaction-sweep.js';
 export { endpoints, policy } from './endpoints.js';

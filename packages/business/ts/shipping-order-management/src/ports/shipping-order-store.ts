@@ -10,6 +10,17 @@ export type OpenOutcome =
   | { readonly _tag: 'opened'; readonly order: ShippingOrder }
   | { readonly _tag: 'replayed'; readonly order: ShippingOrder };
 
+/** What one pass of the destination retention sweep did (ADR 0076 §4). */
+export interface DestinationRedaction {
+  readonly redacted: number;
+  /** The shipments a redaction failed for, each with the failure it failed with. */
+  readonly failed: ReadonlyArray<{
+    readonly database: string;
+    readonly shippingOrderId: string;
+    readonly failure: unknown;
+  }>;
+}
+
 /**
  * What reaching an organization's store can fail with: the store, or an
  * organization id the tenant resolver refuses.
@@ -50,6 +61,18 @@ export interface ShippingOrderStore {
     ShippingOrder,
     NotFound | ShippingOrderNotTransitionable | ShippingStoreFailure
   >;
+  /**
+   * The retention sweep's write, across every organization's store: remove
+   * the `destination` of each shipment delivered, returned or withdrawn before
+   * `before`, stamping `redactedAt` with `at`. The copy its opening command
+   * remembered for a redelivery goes with it. Each shipment is its own write,
+   * so one that fails is reported and the rest still go; a pass that cannot
+   * list the stores fails.
+   */
+  readonly redactClosedBefore: (
+    before: Date,
+    at: Date,
+  ) => Effect.Effect<DestinationRedaction, StoreFailure>;
 }
 
 export class ShippingOrderStoreTag extends Context.Service<

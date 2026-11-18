@@ -1,0 +1,50 @@
+import { ShutdownRegistryTag } from '@entifix/business';
+import { CheckoutGroupStoreTag } from '@r10c/business-ts-order-management';
+import { logSliceOutcome } from '@r10c/shells-effect-service';
+import { Duration, Effect, Fiber } from 'effect';
+
+/**
+ * How often the sweep looks. A receipt window is counted in days, so an hour
+ * late is nothing, and a pass that finds nothing costs one indexed read.
+ */
+const SWEEP_INTERVAL = Duration.hours(1);
+
+/**
+ * One pass of the buyer-contact retention sweep (ADR 0076 §4): every group
+ * whose receipt window has ended and whose orders are all fulfilled or
+ * cancelled loses the buyer's contact. Logged here, because this is the fork
+ * site (ADR 0064). Never fails — the daemon around it must not end, and a
+ * failed pass leaves its groups to the next one.
+ */
+export const sweepEndedReceipts = Effect.gen(function* () {
+  const groups = yield* CheckoutGroupStoreTag;
+  const redacted = yield* groups.redactEndedReceipts(new Date());
+  if (redacted > 0) {
+    yield* logSliceOutcome('Debug', 'removed buyer contacts', { redacted });
+  }
+}).pipe(
+  Effect.catch(failure =>
+    logSliceOutcome('Error', 'buyer contact sweep failed', {}, failure),
+  ),
+);
+
+export const startReceiptRedactionSweep = Effect.gen(function* () {
+  const groups = yield* CheckoutGroupStoreTag;
+  const shutdown = yield* ShutdownRegistryTag;
+
+  const sweepOnce = sweepEndedReceipts.pipe(
+    Effect.provideService(CheckoutGroupStoreTag, groups),
+  );
+
+  const daemon = yield* Effect.forkDetach(
+    sweepOnce.pipe(Effect.delay(SWEEP_INTERVAL), Effect.forever),
+  );
+
+  // `flush`, so it stops after the handlers have: a redaction racing a live
+  // write to the same group would be a write nobody is waiting on.
+  yield* shutdown.register({
+    name: 'receipt-redaction-sweep',
+    phase: 'flush',
+    run: Fiber.interrupt(daemon),
+  });
+});

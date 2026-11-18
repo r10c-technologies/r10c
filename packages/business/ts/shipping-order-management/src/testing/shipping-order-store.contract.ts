@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import { ShippingOrder } from '../entities/shipping-order';
 import type { ShippingOrderStore } from '../ports/shipping-order-store';
+import { ShipmentDestination } from '../values/shipment-destination';
 import { ShippingLine } from '../values/shipping-line';
+import type { ShippingTransition } from '../values/shipping-transition';
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
 
@@ -20,6 +22,22 @@ const aShipment = (id: string) =>
     currency: 'GTQ',
     lines: [new ShippingLine('o-1', 'Lámpara Aurora', 2)],
   });
+
+const DESTINATION = Object.assign(new ShipmentDestination(), {
+  name: 'Ana López',
+  phone: '+50255551234',
+  departamento: '01',
+  municipio: '0108',
+  addressLine: '5a avenida 12-34',
+});
+
+/** A shipment with somewhere to go. */
+const addressed = (id: string) =>
+  Object.assign(aShipment(id), { destination: [DESTINATION] });
+
+const LATER = new Date('2026-11-10T10:00:00.000Z');
+const BEFORE = new Date('2026-11-05T00:00:00.000Z');
+const SWEPT_AT = new Date('2026-11-06T00:00:00.000Z');
 
 /** The code a refused move failed with. */
 const refusal = async <A, E>(effect: Effect.Effect<A, E>) =>
@@ -158,6 +176,59 @@ export const describeShippingOrderStoreContract = (
           'rejected',
         ]);
       }
+    });
+
+    it('removes the destination of a parcel whose journey ended before the dial, and its remembered copy', async () => {
+      const store = await make();
+      const move = (id: string, transition: ShippingTransition, at = AT) =>
+        run(store.transition(ORG, id, transition, at, undefined));
+      // Delivered, returned and withdrawn before the dial: each redacted.
+      await run(store.open(ORG, addressed('s-1'), 'open-1'));
+      await move('s-1', 'dispatch');
+      await move('s-1', 'record-delivery');
+      await run(store.open(ORG, addressed('s-2'), undefined));
+      await move('s-2', 'dispatch');
+      await move('s-2', 'record-refusal');
+      await move('s-2', 'record-return');
+      await run(store.open('org-2', addressed('s-3'), undefined));
+      await run(store.transition('org-2', 's-3', 'withdraw', AT, undefined));
+      // Still on its way, back, or closed after the dial: each kept.
+      await run(store.open(ORG, addressed('s-4'), undefined));
+      await move('s-4', 'dispatch');
+      await run(store.open(ORG, addressed('s-5'), undefined));
+      await move('s-5', 'dispatch');
+      await move('s-5', 'record-refusal');
+      await run(store.open(ORG, addressed('s-6'), undefined));
+      await move('s-6', 'dispatch', LATER);
+      await move('s-6', 'record-delivery', LATER);
+
+      const sweep = await run(store.redactClosedBefore(BEFORE, SWEPT_AT));
+
+      expect(sweep).toEqual({ redacted: 3, failed: [] });
+      for (const [organizationId, id] of [
+        [ORG, 's-1'],
+        [ORG, 's-2'],
+        ['org-2', 's-3'],
+      ] as const) {
+        const shipment = await run(store.get(organizationId, id));
+        expect(shipment?.destination).toEqual([]);
+        expect(new Date(shipment?.redactedAt as Date).toISOString()).toBe(
+          SWEPT_AT.toISOString(),
+        );
+      }
+      for (const id of ['s-4', 's-5', 's-6']) {
+        const shipment = await run(store.get(ORG, id));
+        expect(shipment?.destination).toHaveLength(1);
+        expect(shipment?.redactedAt).toBeUndefined();
+      }
+      // A redelivered opening is answered with the redacted copy.
+      const replayed = await run(store.open(ORG, addressed('s-1'), 'open-1'));
+      expect(replayed.order.destination).toEqual([]);
+      // A second pass finds nothing left to remove.
+      expect(await run(store.redactClosedBefore(BEFORE, SWEPT_AT))).toEqual({
+        redacted: 0,
+        failed: [],
+      });
     });
 
     it('answers a repeated command with the record its first delivery left', async () => {

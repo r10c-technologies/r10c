@@ -7,6 +7,7 @@
 - Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the buyer's fiscal identity is a third personal record, on the order, and it travels only on a fiscal-document event with `audience: 'none'`, never on `order.*`
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — payment evidence is personal data removed by the §4 sweep; the receipt capability authorizes one write; the review step offers `link`
 - Revised: 2026-11-18 — §6: the access page answers `Referrer-Policy: strict-origin`, not `no-referrer`, which made a browser post the redemption with `Origin: null` and Next refuse it without script (#725)
+- Revised: 2026-11-18 — §4: each sweep also clears the copy the record's opening command left in `command_inbox` for a redelivery, and a shipment gains a `withdrawnAt` stamp so a withdrawn one is counted from when its job ended (#581)
 
 ## Context
 
@@ -162,6 +163,10 @@ order that silently never moves.
 - Removal is an `$unset` plus a `redactedAt` stamp, so a screen can say "the
   buyer's details were removed on …" rather than render an empty field as if
   it had never been asked.
+- The copy each record's opening command remembered in `command_inbox`, which
+  answers a redelivery with the record as first written, loses the same
+  member in the same unit of work. Without it the data leaves the record and
+  stays in the store.
 
 Both dials are configuration rows with seeded defaults. They are product
 choices, not courier terms.

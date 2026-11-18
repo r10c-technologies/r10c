@@ -776,6 +776,7 @@ export const entity: EsEntity = {
       deliveredAt: 'Delivered at',
       refusedAt: 'Refused at',
       returnedAt: 'Returned at',
+      withdrawnAt: 'Withdrawn at',
     },
     values: {
       status: {

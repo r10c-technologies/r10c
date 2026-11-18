@@ -821,6 +821,7 @@ export const entity = {
       deliveredAt: 'Entregado el',
       refusedAt: 'Rechazado el',
       returnedAt: 'Devuelto el',
+      withdrawnAt: 'Retirado el',
     },
     values: {
       status: {

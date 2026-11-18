@@ -56,6 +56,7 @@ export class ShippingOrder implements Entity {
   #deliveredAt?: Date;
   #refusedAt?: Date;
   #returnedAt?: Date;
+  #withdrawnAt?: Date;
   // #endregion
 
   // #region accessors
@@ -291,6 +292,24 @@ export class ShippingOrder implements Entity {
   }
   set returnedAt(value: Date | undefined) {
     this.#returnedAt = value;
+  }
+
+  /**
+   * When a cancellation withdrew it before dispatch: the moment its job ended,
+   * which the retention sweep counts from (ADR 0076 §4). Server-owned and
+   * writable anyway, as the other stamps are.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:shipping-order.fields.withdrawnAt',
+    sortable: true,
+    filterable: true,
+  })
+  get withdrawnAt(): Date | undefined {
+    return this.#withdrawnAt;
+  }
+  set withdrawnAt(value: Date | undefined) {
+    this.#withdrawnAt = value;
   }
   // #endregion
 }

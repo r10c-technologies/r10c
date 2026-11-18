@@ -1245,6 +1245,17 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'retentionMs',
     value: '86400000',
   },
+  // How many days a shipment keeps the buyer's address after its journey ends
+  // — delivered, returned or withdrawn — before the retention sweep removes it
+  // ([ADR 0076](../../../docs/adr/0076-delivery-destination-buyer-contact-and-the-way-back.md) §4).
+  // A month: long enough for a vendor to answer "where did it go?", and a
+  // product choice rather than a courier term.
+  {
+    service: 'fulfilment-service',
+    group_name: 'fulfilment',
+    key: 'destinationRetentionDays',
+    value: '30',
+  },
   {
     service: 'fulfilment-service',
     group_name: 'jwt',
