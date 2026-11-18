@@ -23,6 +23,12 @@ import {
 
 const STATUS_PAGE = /\/es\/order\/status\/e2e-flow-/;
 
+/** How the receipt names a purchase: its readable number (ADR 0076 §5). */
+const ORDER_NUMBER = /Número de pedido: [0-9A-Z]{4}-[0-9A-Z]{4}$/;
+
+/** A UUID, which the receipt must never show a buyer. */
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
 /** The review step, reached with nothing on the query (ADR 0076 §7). */
 const REVIEW_PAGE = /\/es\/cart\/review\??$/;
 
@@ -79,9 +85,7 @@ test.describe('a checkout', () => {
 
     script.outcome = 'flow.completed';
 
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       '¡Gracias por tu compra!',
     );
@@ -92,6 +96,23 @@ test.describe('a checkout', () => {
       'Tarjeta',
     );
     await expect(page.getByTestId('order-total')).toBeVisible();
+
+    // #585: a number to quote and the seller's own, where the parcel goes
+    // with the phone masked, until when it can be read — and no UUID.
+    await expect(order.getByTestId('vendor-order-number')).toHaveText(
+      /^Pedido [0-9A-Z]{4}-[0-9A-Z]{4}$/,
+    );
+    const delivery = page.getByTestId('order-delivery');
+    await expect(delivery).toContainText('Ana López');
+    await expect(page.getByTestId('order-delivery-phone')).toHaveText(
+      'Teléfono: •••• 1234',
+    );
+    await expect(page.getByTestId('order-delivery-place')).toHaveText(
+      'Mixco, Guatemala',
+    );
+    await expect(delivery).not.toContainText('ana@correo.com');
+    await expect(page.getByTestId('receipt-until')).toContainText('2099');
+    expect(await page.locator('main:visible').innerText()).not.toMatch(UUID);
   });
 
   test('keeps its receipt across a reload, with the cart empty behind it', async ({
@@ -105,9 +126,7 @@ test.describe('a checkout', () => {
     await expect(page.getByTestId('order-id')).toBeVisible();
 
     await page.reload();
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
 
     // ⚠️ The cart was cleared on the path it was written with. Expiring it on
     // another path leaves the original cookie in place, and the basket comes
@@ -158,9 +177,7 @@ test.describe('a checkout', () => {
     );
     await page.reload();
 
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
   });
 
   test('offers cash on delivery only where the seller ships it, and the receipt names each choice', async ({
@@ -336,9 +353,7 @@ test.describe('the receipt', () => {
     ).toBeVisible();
     await expect(page.getByTestId('cancel-vendor-casa-solano')).toHaveCount(0);
     await expect(page.getByTestId('cancel-demo-organization')).toBeVisible();
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
     // One order of two is still standing, so the receipt still thanks.
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       '¡Gracias por tu compra!',

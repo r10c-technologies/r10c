@@ -284,6 +284,13 @@ export const r10c = {
       heading: '¡Gracias por tu compra!',
       placed: 'Tu pedido quedó registrado y el vendedor ya fue notificado.',
       reference: 'Número de pedido',
+      vendorNumber: 'Pedido {{number}}',
+      receiptUntil: 'Puedes volver a ver este recibo hasta el {{date}}.',
+      delivery: {
+        heading: 'Entrega',
+        phone: 'Teléfono: •••• {{ending}}',
+        zona: 'Zona {{zona}}',
+      },
       units: 'Cant. {{count}}',
       total: 'Total',
       tooManyLines:

@@ -266,6 +266,28 @@ const FAILING_OFFERING = 'offering-aurora-floor-lamp';
 
 /** What each started flow was asked to check out, by flow id. */
 const baskets = new Map();
+
+/**
+ * Each started flow's buyer contact, by flow id, stored the way order-service
+ * keeps it: one flat row, the phone normalized (ADR 0076 §1).
+ */
+const contacts = new Map();
+
+const contactRowOf = contact => ({
+  name: contact.name,
+  phone: `+502${String(contact.phone).replace(/\D/g, '').slice(-8)}`,
+  email: contact.email,
+  ...contact.destination,
+});
+
+/**
+ * A readable number for each flow, `7KQ4-0001`, and one for each seller's
+ * order in it, as order-service draws them (ADR 0076 §5).
+ */
+const numberOf = flowId =>
+  `7KQ4-${(flowId.split('-').at(-1) ?? '0').padStart(4, '0')}`;
+const orderNumberOf = (flowId, index) =>
+  `Q${String(index)}AW-${(flowId.split('-').at(-1) ?? '0').padStart(4, '0')}`;
 let started = 0;
 
 /**
@@ -317,6 +339,7 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
         : 'placed';
   const flowId = `e2e-flow-${kind}-${String(started)}`;
   baskets.set(flowId, vendors);
+  contacts.set(flowId, contactRowOf(body.contact));
   return HttpResponse.json(
     {
       meta: { type: 'flowAccepted' },
@@ -377,6 +400,8 @@ const buyerReceiptHandler = http.get(
         meta: { type: 'entity', entity: 'checkout-group' },
         data: {
           id: params.id,
+          number: numberOf(params.id),
+          contact: [contacts.get(params.id)],
           placedAt: '2026-11-03T00:00:00.000Z',
           // ⚠️ Server-stamped, and only for a group that brought a digest. It
           // is what turns the nonce the action minted into a capability the
@@ -388,10 +413,11 @@ const buyerReceiptHandler = http.get(
           orderIds: vendors.map(part => orderIdOf(params.id, part.vendorId)),
         },
       },
-      orders: vendors.map(part => ({
+      orders: vendors.map((part, index) => ({
         meta: { type: 'entity', entity: 'product-order' },
         data: {
           id: orderIdOf(params.id, part.vendorId),
+          number: orderNumberOf(params.id, index),
           groupId: params.id,
           vendorId: part.vendorId,
           paymentMethod: part.paymentMethod,

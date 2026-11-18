@@ -261,6 +261,13 @@ export const r10c: EsR10c = {
       heading: 'Thank you for your purchase',
       placed: 'Your order is placed, and the vendor has been notified.',
       reference: 'Order number',
+      vendorNumber: 'Order {{number}}',
+      receiptUntil: 'You can come back to this receipt until {{date}}.',
+      delivery: {
+        heading: 'Delivery',
+        phone: 'Phone: •••• {{ending}}',
+        zona: 'Zone {{zona}}',
+      },
       units: 'Qty {{count}}',
       total: 'Total',
       tooManyLines:

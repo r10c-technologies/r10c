@@ -14,6 +14,10 @@ import {
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import {
+  departamentoOf,
+  municipioOf,
+} from '@r10c/business-ts-order-contracts';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 
 import { cancelOrder } from '../cart/cancel-action';
@@ -25,7 +29,15 @@ import { checkout } from '../cart/checkout-action';
 import { readFlowTicket } from '../cart/flow-ticket-cookie';
 import { OrderStatusFlow } from '../cart/order-status-flow';
 import { readReceipt } from '../cart/receipt-cookie';
-import type { Receipt, ReceiptOrder } from '../cart/receipt-state';
+import { readBuyerReceipt } from '../cart/receipt-read';
+import {
+  lineNameKey,
+  type Receipt,
+  type ReceiptDelivery,
+  type ReceiptDetails,
+  receiptDetailsOf,
+  type ReceiptOrder,
+} from '../cart/receipt-state';
 import { settleCheckout } from '../cart/settle-action';
 import { settleCancellation } from '../cart/settle-cancel-action';
 import { runRead } from '../catalog/catalog-reads';
@@ -122,9 +134,24 @@ async function ReceiptView({
   readonly outcome?: CancelOutcome;
 }) {
   const t = getServerTFor(locale, 'r10c');
+  // What the cookie never keeps — where it goes, and each line's stored name —
+  // read from the server on every render by the receipt's own capability. A
+  // read that fails renders from the cookie alone (ADR 0076 §1, §6).
+  const details =
+    receipt.cancelNonce === undefined
+      ? undefined
+      : receiptDetailsOf(
+          await readBuyerReceipt(receipt.groupId, receipt.cancelNonce),
+        );
   // When the buyer may still cancel: the nonce has to be there and the window
   // open. A counter sale carries none.
   const cancelWindow = cancelWindowLabel(locale, receipt, new Date());
+  const readableUntil =
+    receipt.receiptEndsAt === undefined
+      ? undefined
+      : new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(
+          new Date(receipt.receiptEndsAt),
+        );
   // A cancellation this browser started and is waiting on, for an order on
   // this receipt; one at a time, so the other cancel buttons wait too.
   const ticket = await readCancelTicket();
@@ -153,13 +180,21 @@ async function ReceiptView({
               ? t('storefront.order.cancelledAll')
               : t('storefront.order.placed')}
           </Text>
-          <Text weight="semibold" data-testid="order-id">
-            {t('storefront.order.reference')}
-            {': '}
-            {receipt.groupId}
-          </Text>
+          {/* The number the buyer can read out, never the group's UUID
+              (ADR 0076 §5). */}
+          {receipt.number === undefined ? undefined : (
+            <Text weight="semibold" data-testid="order-id">
+              {t('storefront.order.reference')}
+              {': '}
+              {receipt.number}
+            </Text>
+          )}
         </Stack>
       </Card>
+
+      {details?.delivery === undefined ? undefined : (
+        <DeliveryCard locale={locale} delivery={details.delivery} />
+      )}
 
       {outcome === 'failed' ? (
         <Alert tone="danger" data-testid="cancel-failed">
@@ -203,6 +238,7 @@ async function ReceiptView({
           key={order.orderId}
           locale={locale}
           order={order}
+          details={details}
           cancellable={
             cancelWindow !== undefined &&
             order.cancelled !== true &&
@@ -241,6 +277,11 @@ async function ReceiptView({
           {t('storefront.order.cancelWindow', { time: cancelWindow })}
         </Text>
       )}
+      {readableUntil === undefined ? undefined : (
+        <Text muted data-testid="receipt-until">
+          {t('storefront.order.receiptUntil', { date: readableUntil })}
+        </Text>
+      )}
     </Stack>
   );
 }
@@ -249,23 +290,30 @@ async function ReceiptView({
 async function VendorOrderCard({
   locale,
   order,
+  details,
   cancellable,
 }: {
   readonly locale: Locale;
   readonly order: ReceiptOrder;
+  readonly details: ReceiptDetails | undefined;
   readonly cancellable: boolean;
 }) {
   const t = getServerTFor(locale, 'r10c');
-  // Names from the published catalog rather than the cookie: a name is long,
-  // the cookie is 4 KB, and this is the read every storefront page makes.
+  // Each line under the name it was sold as, read back with the receipt
+  // (#582); the live catalog's name only when that read failed. Never from
+  // the cookie: a name is long, and the cookie is 4 KB.
   const lines = await Promise.all(
     (order.lines ?? []).map(async line => ({
       line,
-      offering: await runRead(
-        PublishedOffering,
-        getOffering(line.offeringId),
-        undefined,
-      ),
+      name:
+        details?.lineNames.get(lineNameKey(order.orderId, line.offeringId)) ??
+        (
+          await runRead(
+            PublishedOffering,
+            getOffering(line.offeringId),
+            undefined,
+          )
+        )?.name,
     })),
   );
 
@@ -273,7 +321,14 @@ async function VendorOrderCard({
     <Card>
       <Stack gap="s" data-testid={`vendor-order-${order.vendorId}`}>
         <Cluster justify="between" gap="s">
-          <Text weight="semibold">{order.vendorName ?? order.vendorId}</Text>
+          <Stack gap="3xs">
+            <Text weight="semibold">{order.vendorName ?? order.vendorId}</Text>
+            {order.number === undefined ? undefined : (
+              <Text muted data-testid="vendor-order-number">
+                {t('storefront.order.vendorNumber', { number: order.number })}
+              </Text>
+            )}
+          </Stack>
           <Text muted data-testid="vendor-order-method">
             {t(
               `storefront.checkout.method.${order.method === 'cod' ? 'cod' : 'card'}`,
@@ -292,10 +347,12 @@ async function VendorOrderCard({
             {t('storefront.order.tooManyLines', { count: order.lineCount })}
           </Text>
         ) : (
-          lines.map(({ line, offering }) => (
+          lines.map(({ line, name }) => (
             <Cluster key={line.offeringId} justify="between" gap="s">
               <Stack gap="3xs">
-                <Text>{offering?.name ?? line.offeringId}</Text>
+                <Text data-testid="vendor-order-line">
+                  {name ?? line.offeringId}
+                </Text>
                 <Text muted>
                   {t('storefront.order.units', { count: line.quantity })}
                 </Text>
@@ -341,6 +398,50 @@ async function VendorOrderCard({
             </div>
           ) : undefined}
         </Cluster>
+      </Stack>
+    </Card>
+  );
+}
+
+/**
+ * Where the parcels go and who receives them, as the buyer gave it — the phone
+ * masked to its last four digits, so a receipt left open on a shared screen
+ * shows no whole number (ADR 0076 §1).
+ */
+function DeliveryCard({
+  locale,
+  delivery,
+}: {
+  readonly locale: Locale;
+  readonly delivery: ReceiptDelivery;
+}) {
+  const t = getServerTFor(locale, 'r10c');
+  const place = [
+    municipioOf(delivery.municipio)?.name,
+    departamentoOf(delivery.departamento)?.name,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  return (
+    <Card>
+      <Stack gap="3xs" data-testid="order-delivery">
+        <Text weight="semibold">{t('storefront.order.delivery.heading')}</Text>
+        <Text>{delivery.name}</Text>
+        <Text data-testid="order-delivery-phone">
+          {t('storefront.order.delivery.phone', {
+            ending: delivery.phoneEnding,
+          })}
+        </Text>
+        <Text>{delivery.addressLine}</Text>
+        {delivery.zona === undefined ? undefined : (
+          <Text>
+            {t('storefront.order.delivery.zona', { zona: delivery.zona })}
+          </Text>
+        )}
+        <Text data-testid="order-delivery-place">{place}</Text>
+        {delivery.reference === undefined ? undefined : (
+          <Text muted>{delivery.reference}</Text>
+        )}
       </Stack>
     </Card>
   );
