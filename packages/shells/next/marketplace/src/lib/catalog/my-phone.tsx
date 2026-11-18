@@ -1,4 +1,8 @@
-import { Cluster, SubmitButton, Text } from '@entifix/react-controls/primitives';
+import {
+  Cluster,
+  SubmitButton,
+  Text,
+} from '@entifix/react-controls/primitives';
 import type { DeviceModel } from '@r10c/business-ts-catalog-reference';
 import {
   hiddenSearchFields,

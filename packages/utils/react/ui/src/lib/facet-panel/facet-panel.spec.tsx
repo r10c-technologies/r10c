@@ -62,6 +62,22 @@ describe('FacetPanel', () => {
     expect(container.querySelector('details')).toBeNull();
   });
 
+  it('shows a control it is handed before the facets, inside the landmark', () => {
+    render(
+      <FacetPanel label="Filtrar" facets={FACETS}>
+        <button type="button">{'Mi teléfono'}</button>
+      </FacetPanel>,
+    );
+
+    const panel = screen.getByRole('complementary', { name: 'Filtrar' });
+    const control = within(panel).getByRole('button', { name: 'Mi teléfono' });
+    const firstFacet = within(panel).getByRole('region', { name: 'Marca' });
+    expect(
+      control.compareDocumentPosition(firstFacet) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('is a landmark named by its label, one section per facet', () => {
     render(<FacetPanel label="Filtrar" facets={FACETS} />);
 

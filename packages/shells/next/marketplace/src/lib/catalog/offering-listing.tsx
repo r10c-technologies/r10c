@@ -237,9 +237,7 @@ export async function OfferingListing({
             count: activeFilters,
           }),
         }}
-      />
-
-      <Stack gap="s">
+      >
         <MyPhone
           href={href}
           state={state}
@@ -257,6 +255,9 @@ export async function OfferingListing({
             forget: t('storefront.listing.myPhone.forget'),
           }}
         />
+      </FacetPanel>
+
+      <Stack gap="s">
         <Cluster gap="s" justify="between">
           <Text muted>
             {t('storefront.listing.results', { count: result.total })}

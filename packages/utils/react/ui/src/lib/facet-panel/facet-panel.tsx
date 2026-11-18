@@ -4,7 +4,7 @@ import {
   SubmitButton,
   Text,
 } from '@entifix/react-controls/primitives';
-import { useId } from 'react';
+import { type ReactNode, useId } from 'react';
 
 import { NarrowDisclosure } from '../narrow-disclosure/narrow-disclosure.js';
 
@@ -77,6 +77,12 @@ export interface FacetPanelProps {
    * Absent, the panel is always open.
    */
   readonly collapsible?: { readonly summary: string };
+  /**
+   * A control that narrows the listing but is not a facet — the buyer's phone,
+   * say — shown first in the panel, so it folds away with the facets on a
+   * small screen rather than taking a row above the results.
+   */
+  readonly children?: ReactNode;
 }
 
 /** A glyph, not copy: hidden from assistive technology, which hears `aria-current`. */
@@ -207,7 +213,12 @@ function RangeForm({ facet }: { readonly facet: RangeFacet }) {
  * and this renders whatever it is handed. A facet fed later from the
  * characteristic dictionary is one more definition.
  */
-export function FacetPanel({ label, facets, collapsible }: FacetPanelProps) {
+export function FacetPanel({
+  label,
+  facets,
+  collapsible,
+  children,
+}: FacetPanelProps) {
   const labelId = useId();
 
   const panel = (
@@ -216,6 +227,7 @@ export function FacetPanel({ label, facets, collapsible }: FacetPanelProps) {
         <Text id={labelId} weight="semibold" as="h2">
           {label}
         </Text>
+        {children}
         {facets.map(facet => (
           <Facet key={facet.id} facet={facet} />
         ))}
