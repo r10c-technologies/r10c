@@ -1,7 +1,7 @@
 import { ShutdownRegistryTag } from '@entifix/business';
 import { CheckoutGroupStoreTag } from '@r10c/business-ts-order-management';
 import { logSliceOutcome } from '@r10c/shells-effect-service';
-import { Duration, Effect, Fiber } from 'effect';
+import { Duration, Effect, Fiber, Schedule } from 'effect';
 
 /**
  * How often the sweep looks. A receipt window is counted in days, so an hour
@@ -36,8 +36,10 @@ export const startReceiptRedactionSweep = Effect.gen(function* () {
     Effect.provideService(CheckoutGroupStoreTag, groups),
   );
 
+  // Once at boot, then on the interval: a service restarted more often than
+  // the interval would otherwise never sweep at all.
   const daemon = yield* Effect.forkDetach(
-    sweepOnce.pipe(Effect.delay(SWEEP_INTERVAL), Effect.forever),
+    sweepOnce.pipe(Effect.repeat(Schedule.spaced(SWEEP_INTERVAL))),
   );
 
   // `flush`, so it stops after the handlers have: a redaction racing a live

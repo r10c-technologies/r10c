@@ -1,7 +1,7 @@
 import { ShutdownRegistryTag } from '@entifix/business';
 import { ShippingOrderStoreTag } from '@r10c/business-ts-shipping-order-management';
 import { logSliceOutcome } from '@r10c/shells-effect-service';
-import { Context, Duration, Effect, Fiber } from 'effect';
+import { Context, Duration, Effect, Fiber, Schedule } from 'effect';
 
 /**
  * How many days a shipment keeps its destination after its journey ends —
@@ -62,8 +62,10 @@ export const startDestinationRedactionSweep = Effect.gen(function* () {
     Effect.provideService(DestinationRetentionDays, days),
   );
 
+  // Once at boot, then on the interval: a service restarted more often than
+  // the interval would otherwise never sweep at all.
   const daemon = yield* Effect.forkDetach(
-    sweepOnce.pipe(Effect.delay(SWEEP_INTERVAL), Effect.forever),
+    sweepOnce.pipe(Effect.repeat(Schedule.spaced(SWEEP_INTERVAL))),
   );
 
   // `flush`, so it stops after the handlers have.
