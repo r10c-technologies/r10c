@@ -158,6 +158,13 @@ export const r10c: EsR10c = {
         max: 'To',
         apply: 'Apply',
       },
+      myPhone: {
+        label: 'My phone',
+        choose: 'Choose your model',
+        apply: 'Show what fits',
+        showing: 'Showing what fits your {{model}}.',
+        forget: 'Clear',
+      },
     },
     search: {
       heading: 'Search',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  hiddenSearchFields,
   parseSearch,
   SEARCH_PAGE_SIZE,
   type SearchContext,
@@ -30,6 +31,7 @@ describe('parseSearch', () => {
       brand: ['b-1', 'b-2'],
       category: ['c-1'],
       seller: ['org-1'],
+      model: [],
       min: ['100'],
       max: ['250.50'],
       available: ['1'],
@@ -177,5 +179,25 @@ describe('searchRequest', () => {
     expect(searchRequest(parseSearch({ sort }), flat).sorting).toEqual([
       { 0: { property, type } },
     ]);
+  });
+});
+
+describe('the buyer’s phone (plan 1.17)', () => {
+  it('asks for offerings made for it or for every phone', () => {
+    const state = parseSearch({ model: 'dm-1' });
+
+    expect(searchRequest(state, flat).filtering).toEqual([
+      {
+        property: 'fitsDeviceModelIds',
+        operator: 'in',
+        values: ['dm-1', 'universal'],
+      },
+    ]);
+  });
+
+  it('keeps every other value in a form’s hidden fields, but no page', () => {
+    const state = parseSearch({ q: 'funda', model: 'dm-1', page: '3' });
+
+    expect(hiddenSearchFields(state, ['model'])).toEqual([['q', 'funda']]);
   });
 });

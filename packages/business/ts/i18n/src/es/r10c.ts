@@ -176,6 +176,15 @@ export const r10c = {
         max: 'Hasta',
         apply: 'Aplicar',
       },
+      // "Mi teléfono" (plan 1.17): what fits the buyer's phone, made for it or
+      // universal.
+      myPhone: {
+        label: 'Mi teléfono',
+        choose: 'Elige tu modelo',
+        apply: 'Ver lo que le queda',
+        showing: 'Mostrando lo que le queda a tu {{model}}.',
+        forget: 'Quitar',
+      },
     },
     search: {
       heading: 'Buscar',

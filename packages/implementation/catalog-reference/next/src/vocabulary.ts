@@ -12,6 +12,7 @@ import {
 import {
   CATEGORY_KEYS,
   categorySubtree,
+  type DeviceModel,
   type ProductBrand,
   type ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -196,6 +197,18 @@ export const loadCategoryChildren = (
 export const loadBrands = (): VocabularyRead<EntityPage<ProductBrand>> =>
   load<ProductBrand>({
     sorting: brandsByName(),
+    pageSize: VOCABULARY_PAGE_SIZE,
+  });
+
+/**
+ * The phones a buyer can say they have, by name: the active models only, since
+ * "my phone" chooses for the future rather than naming an offering's past
+ * (plan 1.17). Reads `DeviceModel`.
+ */
+export const loadDeviceModels = (): VocabularyRead<EntityPage<DeviceModel>> =>
+  load<DeviceModel>({
+    filtering: [{ property: 'status', operator: 'eq', value: 'active' }],
+    sorting: [{ 0: { property: 'name', type: 'asc' } }],
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
