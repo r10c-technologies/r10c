@@ -105,6 +105,10 @@ const adapters = (): MarketplaceAdminAdapters => ({
   productWriter: settledWriter(
     Context.make(EntityRepositoryTag, repositories.product),
   ),
+  deviceModelRest: Context.make(EntityRepositoryTag, repositories.brand),
+  deviceModelWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.brand),
+  ),
   productBrandRest: Context.make(EntityRepositoryTag, repositories.brand),
   productBrandWriter: settledWriter(
     Context.make(EntityRepositoryTag, repositories.brand),
@@ -130,6 +134,7 @@ const adapters = (): MarketplaceAdminAdapters => ({
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,
   productBrandUseCases: real.productBrandUseCases,
+  deviceModelUseCases: real.deviceModelUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
 });

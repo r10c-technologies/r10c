@@ -81,6 +81,8 @@ const adapters = (): MarketplaceAdminAdapters => {
   return {
     productRest: specs,
     productWriter: writer(specs),
+    deviceModelRest: specs,
+    deviceModelWriter: writer(specs),
     productBrandRest: specs,
     productBrandWriter: writer(specs),
     productCategoryRest: specs,
@@ -93,6 +95,7 @@ const adapters = (): MarketplaceAdminAdapters => {
     referenceMetadata: real.referenceMetadata,
     catalogMetadata: real.catalogMetadata,
     productBrandUseCases: real.productBrandUseCases,
+    deviceModelUseCases: real.deviceModelUseCases,
     productCategoryUseCases: real.productCategoryUseCases,
     productOfferingUseCases: real.productOfferingUseCases,
   };

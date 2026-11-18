@@ -15,6 +15,7 @@ import {
 } from '@entifix/react-controls';
 import { entityQueryScope, useDataLoading } from '@entifix/react-integration';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -26,6 +27,7 @@ import {
 import type { ReactNode } from 'react';
 
 import {
+  DEVICE_MODEL_SURFACE,
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
   PRODUCT_OFFERING_PRICE_SURFACE,
@@ -70,6 +72,18 @@ export const productBrandCrud = makeEntityCrud(ProductBrand, {
   hiddenFields: ['id', 'code'],
   metadata: 'referenceMetadata',
   useCases: 'productBrandUseCases',
+});
+
+/** The phones a product can fit — operator vocabulary, like a brand. */
+export const deviceModelCrud = makeEntityCrud(DeviceModel, {
+  useAdapters: useMarketplaceAdminAdapters,
+  basePath: DEVICE_MODEL_SURFACE.basePath,
+  catalogKey: DEVICE_MODEL_SURFACE.entityKey,
+  repository: 'deviceModelRest',
+  write: 'deviceModelWriter',
+  hiddenFields: ['id', 'code'],
+  metadata: 'referenceMetadata',
+  useCases: 'deviceModelUseCases',
 });
 
 /**
@@ -350,6 +364,8 @@ export const productOfferingPriceCrud = makeEntityCrud(ProductOfferingPrice, {
   ],
 });
 
+export const DeviceModelListClientPage = deviceModelCrud.ListPage;
+export const DeviceModelSingleViewClientPage = deviceModelCrud.SingleViewPage;
 export const ProductBrandListClientPage = productBrandCrud.ListPage;
 export const ProductBrandSingleViewClientPage = productBrandCrud.SingleViewPage;
 export const ProductCategoryListClientPage = productCategoryCrud.ListPage;
@@ -384,4 +400,5 @@ export const MARKETPLACE_ADMIN_CRUDS = [
   productOfferingPriceCrud,
   productBrandCrud,
   productCategoryCrud,
+  deviceModelCrud,
 ] as const;

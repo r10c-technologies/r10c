@@ -14,6 +14,7 @@ describe('CATALOG_REFERENCE_LABELS', () => {
     );
 
     expect([...labels.entities.keys()].sort()).toEqual([
+      'catalog-reference:device-model',
       'catalog-reference:product-brand',
       'catalog-reference:product-category',
       'marketplace-vendor:published-vendor',

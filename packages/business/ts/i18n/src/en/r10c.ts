@@ -357,6 +357,7 @@ export const r10c: EsR10c = {
       catalog: 'Catalog',
       products: 'Products',
       brands: 'Brands',
+      deviceModels: 'Phone models',
       categories: 'Categories',
       offerings: 'Product offerings',
       offeringPrices: 'Offering prices',

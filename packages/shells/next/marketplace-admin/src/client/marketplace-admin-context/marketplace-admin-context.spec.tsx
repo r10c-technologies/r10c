@@ -37,6 +37,8 @@ const repository = () =>
 const adapters: MarketplaceAdminAdapters = {
   productRest: repository(),
   productWriter: settledWriter(repository()),
+  deviceModelRest: repository(),
+  deviceModelWriter: settledWriter(repository()),
   productBrandRest: repository(),
   productBrandWriter: settledWriter(repository()),
   productCategoryRest: repository(),
@@ -49,6 +51,7 @@ const adapters: MarketplaceAdminAdapters = {
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,
   productBrandUseCases: real.productBrandUseCases,
+  deviceModelUseCases: real.deviceModelUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
 };

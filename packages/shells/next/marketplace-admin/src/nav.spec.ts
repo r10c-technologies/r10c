@@ -14,6 +14,7 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       '/catalog/product-offering-price',
       '/catalog/product-brand',
       '/catalog/product-category',
+      '/catalog/device-model',
       '/wizards/product-setup',
     ]);
   });
@@ -27,6 +28,7 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       'product-configuration-management:product-offering-price:read',
       'catalog-reference:product-brand:read',
       'catalog-reference:product-category:read',
+      'catalog-reference:device-model:read',
       // `write`, because the flow's whole purpose is to create the record.
       // Offering it to someone who may only read is offering a dead end.
       'product-configuration-management:product-specification:write',
@@ -40,6 +42,7 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       'master:product-offering-price',
       'master:product-brand',
       'master:product-category',
+      'master:device-model',
       'wizard:product-setup',
     ]);
   });
@@ -51,6 +54,7 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       true,
       true,
       true,
+      undefined,
       undefined,
       undefined,
       // The wizard authors a record in the same tenant-plane domain, so it

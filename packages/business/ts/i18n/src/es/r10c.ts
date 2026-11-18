@@ -394,6 +394,7 @@ export const r10c = {
       catalog: 'Catálogo',
       products: 'Productos',
       brands: 'Marcas',
+      deviceModels: 'Modelos de teléfono',
       categories: 'Categorías',
       offerings: 'Ofertas comerciales',
       offeringPrices: 'Precios de oferta',

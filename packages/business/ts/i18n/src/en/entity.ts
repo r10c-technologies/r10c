@@ -48,6 +48,27 @@ export const entity: EsEntity = {
     active: 'Active',
     retired: 'Retired',
   },
+  'device-model': {
+    form: {
+      editTitle: 'Edit phone model',
+      newTitle: 'New phone model',
+    },
+    label: 'Phone model',
+    plural: 'Phone models',
+    fields: {
+      id: 'ID',
+      code: 'Code',
+      name: 'Name',
+      maker: 'Maker',
+      status: 'Status',
+    },
+    useCases: {
+      restore: 'Restore',
+      retire: 'Retire',
+      retireConfirm:
+        'These models will no longer be offered when classifying products. Offerings already published with them do not change.',
+    },
+  },
   'product-brand': {
     form: {
       editTitle: 'Edit brand',

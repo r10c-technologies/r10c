@@ -15,6 +15,7 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
       'new:product-offering-price',
       'new:product-brand',
       'new:product-category',
+      'new:device-model',
     ]);
   });
 
@@ -28,6 +29,7 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
       '/catalog/product-offering-price/new',
       '/catalog/product-brand/new',
       '/catalog/product-category/new',
+      '/catalog/device-model/new',
     ]);
   });
 
@@ -38,6 +40,7 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
       'product-configuration-management:product-offering-price:write',
       'catalog-reference:product-brand:write',
       'catalog-reference:product-category:write',
+      'catalog-reference:device-model:write',
     ]);
   });
 
@@ -51,6 +54,7 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
       'entity:product-offering-price.form.newTitle',
       'entity:product-brand.form.newTitle',
       'entity:product-category.form.newTitle',
+      'entity:device-model.form.newTitle',
     ]);
   });
 
