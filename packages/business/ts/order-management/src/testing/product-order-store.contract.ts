@@ -1,3 +1,4 @@
+import { ORDER_NUMBER } from '@r10c/business-ts-order-contracts';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -103,6 +104,83 @@ export const describeProductOrderStoreContract = (
         groupId: GROUP,
         paymentMethod: 'card',
         items: [{ offeringId: 'o-1', quantity: 2 }],
+      });
+    });
+
+    it('redraws a group or an order number another record already holds', async () => {
+      const { orders, groups } = await make();
+      const taken = 'AAAA-AAAA';
+
+      await run(
+        groups.open(Object.assign(aGroup(), { number: taken }), undefined),
+      );
+      const second = await run(
+        groups.open(
+          Object.assign(aGroup('grp-2'), { number: taken }),
+          undefined,
+        ),
+      );
+      await run(
+        orders.place(
+          Object.assign(anOrder('ord-1'), { number: taken }),
+          undefined,
+        ),
+      );
+      const other = await run(
+        orders.place(
+          Object.assign(anOrder('ord-2'), { number: taken }),
+          undefined,
+        ),
+      );
+
+      const groupNumbers = [
+        (await run(groups.get(GROUP)))?.number,
+        (await run(groups.get('grp-2')))?.number,
+      ];
+      const orderNumbers = (await run(orders.forGroup(GROUP))).map(
+        order => order.number,
+      );
+      expect(groupNumbers[0]).toBe(taken);
+      expect(groupNumbers[1]).toMatch(ORDER_NUMBER);
+      expect(groupNumbers[1]).not.toBe(taken);
+      expect(second._tag === 'opened' && second.group.number).toBe(
+        groupNumbers[1],
+      );
+      expect(orderNumbers).toHaveLength(2);
+      expect(new Set(orderNumbers).size).toBe(2);
+      expect(other._tag === 'placed' && other.order.number).not.toBe(taken);
+    });
+
+    it('answers a replayed command with the number it first drew', async () => {
+      const { orders, groups } = await make();
+
+      const opened = await run(
+        groups.open(Object.assign(aGroup(), { number: 'GRP0-0001' }), 'g-1'),
+      );
+      const reopened = await run(
+        groups.open(Object.assign(aGroup(), { number: 'GRP0-0002' }), 'g-1'),
+      );
+      await run(
+        orders.place(
+          Object.assign(anOrder('ord-1'), { number: '0RD0-0001' }),
+          'c-1',
+        ),
+      );
+      const replayed = await run(
+        orders.place(
+          Object.assign(anOrder('ord-9'), { number: '0RD0-0002' }),
+          'c-1',
+        ),
+      );
+
+      expect(opened).toMatchObject({ group: { number: 'GRP0-0001' } });
+      expect(reopened).toMatchObject({
+        _tag: 'replayed',
+        group: { number: 'GRP0-0001' },
+      });
+      expect(replayed).toMatchObject({
+        _tag: 'replayed',
+        order: { id: 'ord-1', number: '0RD0-0001' },
       });
     });
 

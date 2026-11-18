@@ -2,6 +2,7 @@ import { IdempotencyKeyTag } from '@entifix/business';
 import { NotFound } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import { drawOrderNumber } from '@r10c/business-ts-order-contracts';
 import { Effect, Option } from 'effect';
 
 import type { CheckoutGroup } from '../entities/checkout-group';
@@ -71,6 +72,7 @@ export const openGroup = (input: {
       });
     }
     group.orderIds = [];
+    group.number = drawOrderNumber();
     group.placedAt = new Date();
     group.cancelWindowEndsAt =
       group.cancelDigest === undefined || group.cancelDigest === ''
@@ -126,6 +128,7 @@ export const placeOrder = (input: {
       return yield* new InvalidBody({ reason: foreign });
 
     order.id = globalThis.crypto.randomUUID();
+    order.number = drawOrderNumber();
     order.status = 'pending';
     order.placedAt = new Date();
 

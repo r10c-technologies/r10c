@@ -286,11 +286,15 @@ const salesMetadataHandlers = [
 /** One paid vendor order: the one a cancel journey cancels. */
 export const PAID_ORDER_ID = 'product-order-paid-1';
 
+/** What that order is called: its number, never its id (ADR 0076 §5). */
+export const PAID_ORDER_NUMBER = '7KQ4-M2XD';
+
 const productOrders = entityBackendHandlers(ProductOrder, {
   baseUrl: `${ORDER_SERVICE_URL}/product-order`,
   seed: [
     {
       id: PAID_ORDER_ID,
+      number: PAID_ORDER_NUMBER,
       buyerId: 'buyer-1',
       vendorId: 'e2e-organization',
       groupId: 'group-1',
@@ -751,7 +755,7 @@ const brandVerbHandlers = [
       meta: { type: 'bulkOutcome', entity: 'product-brand' },
       data: selection.ids.map(id => ({ id, ok: true })),
     });
-  }),  // The device models' verbs, the same shape over their own collection.
+  }), // The device models' verbs, the same shape over their own collection.
   http.post(`${DEVICE_MODEL_URL}/:verb`, async ({ params, request }) => {
     const { selection } = (await request.json()) as {
       selection: { mode: 'ids'; ids: string[] };

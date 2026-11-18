@@ -355,6 +355,7 @@ export const entity = {
     plural: 'Compras',
     fields: {
       id: 'ID',
+      number: 'Número',
       buyerId: 'ID de comprador',
       orderIds: 'Pedidos',
       totals: 'Totales',
@@ -379,6 +380,7 @@ export const entity = {
     plural: 'Pedidos',
     fields: {
       id: 'ID',
+      number: 'Número',
       buyerId: 'ID de comprador',
       vendorId: 'Vendedor',
       groupId: 'Compra',

@@ -41,7 +41,7 @@ describe('the order surfaces', () => {
    * short id, until ADR 0076's order number names it (#552).
    */
   it('searches an order by its buyer, and lets the record name itself', () => {
-    expect(PRODUCT_ORDER_SURFACE.searchProperty).toBe('buyerId');
+    expect(PRODUCT_ORDER_SURFACE.searchProperty).toBe('number');
   });
 
   it('carries shell-namespaced nav copy', () => {

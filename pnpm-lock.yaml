@@ -2696,6 +2696,9 @@ importers:
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../flow-contracts
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../order-contracts
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary

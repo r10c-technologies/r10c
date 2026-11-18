@@ -4,6 +4,7 @@ import {
   acceptedAnswer,
   makeScriptedFlowStarter,
 } from '@r10c/business-ts-flow-contracts/testing';
+import { ORDER_NUMBER } from '@r10c/business-ts-order-contracts';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -406,6 +407,29 @@ describe('buyerReceipt', () => {
     expect(receipt.group.id).toBe(GROUP);
     expect(receipt.orders.map(order => order.id)).toEqual([orderId]);
     expect([guessed.code, unknown.code]).toEqual([
+      'cancelNotAuthorized',
+      'cancelNotAuthorized',
+    ]);
+  });
+});
+
+describe('an order number', () => {
+  it('is drawn for a group and an order, and opens neither a receipt nor a cancel', async () => {
+    const { run, refusal, placed, stores } = world();
+    const orderId = await placed('confirmed');
+    const group = await run(stores.groups.get(GROUP));
+    const order = await run(stores.orders.get(orderId));
+
+    expect(group?.number).toMatch(ORDER_NUMBER);
+    expect(order?.number).toMatch(ORDER_NUMBER);
+    expect(order?.number).not.toBe(group?.number);
+    const byGroupNumber = await refusal(
+      buyerReceipt({ groupId: String(group?.number), nonce: NONCE }),
+    );
+    const byOrderNumber = await refusal(
+      cancelOrderAsBuyer({ orderId: String(order?.number), nonce: NONCE }),
+    );
+    expect([byGroupNumber.code, byOrderNumber.code]).toEqual([
       'cancelNotAuthorized',
       'cancelNotAuthorized',
     ]);

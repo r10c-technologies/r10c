@@ -318,6 +318,7 @@ export const entity: EsEntity = {
     plural: 'Checkouts',
     fields: {
       id: 'ID',
+      number: 'Number',
       buyerId: 'Buyer ID',
       orderIds: 'Orders',
       totals: 'Totals',
@@ -344,6 +345,7 @@ export const entity: EsEntity = {
     plural: 'Orders',
     fields: {
       id: 'ID',
+      number: 'Number',
       buyerId: 'Buyer ID',
       vendorId: 'Vendor',
       groupId: 'Checkout',

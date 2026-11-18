@@ -81,8 +81,13 @@ describe('the geography', () => {
 describe('a delivery destination', () => {
   it('has no problem when it is deliverable, with or without a zona', () => {
     expect(destinationProblems(destination)).toEqual([]);
-    const { zona: _zona, reference: _reference, ...plain } = destination;
-    expect(destinationProblems(plain)).toEqual([]);
+    expect(
+      destinationProblems({
+        departamento: '01',
+        municipio: '0101',
+        addressLine: '5a avenida',
+      }),
+    ).toEqual([]);
   });
 
   it('refuses a municipio under the wrong departamento, at its field', () => {

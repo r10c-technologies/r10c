@@ -6,12 +6,11 @@ import { ORDER_SERVICE_URL } from './service-urls';
 /**
  * The declarations are validated against live entity metadata the moment this
  * module loads, so the import itself is most of the test: dropping
- * `filterable` from `ProductOrder.buyerId` fails *here*, loudly, rather than
+ * `filterable` from `ProductOrder.number` fails *here*, loudly, rather than
  * in a palette that quietly reports a group it could not reach.
  *
- * An order is matched by its buyer and named by nothing it holds: a buyer's id
- * is not what a person calls an order, so a result names itself — the noun and
- * a short id — until ADR 0076's order number gives it a name (#552).
+ * An order is matched and named by its number, the one thing about it a
+ * person reads out (ADR 0076 §5).
  */
 describe('ORDER_SEARCH_SOURCES', () => {
   it('declares the one searchable order record', () => {
@@ -29,9 +28,7 @@ describe('ORDER_SEARCH_SOURCES', () => {
   it('routes a result to a page this host serves', () => {
     const source = ORDER_SEARCH_SOURCES[0];
 
-    expect(source?.url('party-user-2', 5, 'es')).toContain(
-      '/api/product-order?',
-    );
+    expect(source?.url('7KQ4', 5, 'es')).toContain('/api/product-order?');
     expect(
       source?.read(
         {
@@ -43,7 +40,7 @@ describe('ORDER_SEARCH_SOURCES', () => {
     ).toBe('/order/product-order/ord-1');
   });
 
-  it('names a result itself, never by the buyer’s id', () => {
+  it('names a result by its number, never by an id', () => {
     const option = ORDER_SEARCH_SOURCES[0]?.read(
       {
         meta: { type: 'entityPage', entity: 'product-order' },
@@ -51,6 +48,7 @@ describe('ORDER_SEARCH_SOURCES', () => {
           items: [
             {
               id: '8a564966-0000-4000-8000-000000000000',
+              number: '7KQ4-M2XD',
               buyerId: 'party-user-2',
             },
           ],
@@ -60,7 +58,7 @@ describe('ORDER_SEARCH_SOURCES', () => {
       'es',
     )?.items[0];
 
-    expect(option).toMatchObject({ unnamed: true });
+    expect(option?.label).toBe('7KQ4-M2XD');
     expect(option?.label).not.toContain('party-user-2');
   });
 

@@ -26,12 +26,15 @@ import { GroupTotal } from '../../values/group-total';
   key: 'checkout-group',
   labelKey: 'entity:checkout-group.label',
   pluralKey: 'entity:checkout-group.plural',
+  // An order is called by its number, never by a UUID: ADR 0076 §5.
+  labelMember: 'number',
   // A checkout writes the group under its own flow id; nobody opens one.
   creatable: false,
 })
 export class CheckoutGroup implements Entity {
   // #region properties
   #id?: EntityId;
+  #number = '';
   #buyerId?: string;
   #orderIds: readonly string[] = [];
   #totals: readonly GroupTotal[] = [];
@@ -47,6 +50,27 @@ export class CheckoutGroup implements Entity {
   }
   set id(value: EntityId) {
     this.#id = value;
+  }
+
+  /**
+   * What a person reads out — eight Crockford characters, shown `7KQ4-M2XD`
+   * (ADR 0076 §5). Drawn at random by the domain when the record is written,
+   * unique in the store, which redraws on a collision. ⚠️ Server-owned and
+   * writable anyway (`readonly` would drop it from serialization), and never a
+   * credential: nothing is read or authorized by it.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:checkout-group.fields.number',
+    filterable: true,
+    // Sortable so a search result group has an order to list it in.
+    sortable: true,
+  })
+  get number(): string {
+    return this.#number;
+  }
+  set number(value: string) {
+    this.#number = value;
   }
 
   /**

@@ -114,6 +114,38 @@ describe('placing an order', () => {
     expect(isStoreFault(group)).toBe(true);
   });
 
+  it('gives up after five numbers in a row are taken, and treats any other duplicate as a fault', async () => {
+    const taken = Object.assign(new Error('E11000 duplicate key'), {
+      code: 11000,
+      keyPattern: { number: 1 },
+    });
+    const numbers = world();
+    await numbers.run(({ groups }) => groups.open(aGroup(), undefined));
+    numbers.fake.failOn('insertOne', taken);
+    const ids = world();
+    ids.fake.failOn(
+      'insertOne',
+      Object.assign(new Error('E11000 duplicate key'), {
+        code: 11000,
+        keyPattern: { id: 1 },
+      }),
+    );
+
+    const order = await numbers.run(({ orders }) =>
+      Effect.flip(orders.place(anOrder('ord-1'), undefined)),
+    );
+    const group = await numbers.run(({ groups }) =>
+      Effect.flip(groups.open(aGroup(), undefined)),
+    );
+    const sameId = await ids.run(({ groups }) =>
+      Effect.flip(groups.open(aGroup(), undefined)),
+    );
+
+    expect(isStoreFault(order)).toBe(true);
+    expect(isStoreFault(group)).toBe(true);
+    expect(isStoreFault(sameId)).toBe(true);
+  });
+
   it('reports writes and reads the driver failed as store failures', async () => {
     const writes = world();
     await writes.run(({ groups }) => groups.open(aGroup(), undefined));
