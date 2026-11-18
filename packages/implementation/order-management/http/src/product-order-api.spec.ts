@@ -609,10 +609,9 @@ describe('find my order (ADR 0076 §6)', () => {
 
     const answer = await w.run(
       (
-        sendLink?.handler(
-          { payload: { number: 'ZZZZ-ZZZZ', email: 'x@y.z' } },
-          operator,
-        ) as Effect.Effect<unknown, never, never>
+        sendLink?.handler({
+          payload: { number: 'ZZZZ-ZZZZ', email: 'x@y.z' },
+        }) as Effect.Effect<unknown, never, never>
       ).pipe(
         Effect.provideService(BuyerNotifierTag, notifier),
         Effect.provideService(AccessLinkHours, 24),
