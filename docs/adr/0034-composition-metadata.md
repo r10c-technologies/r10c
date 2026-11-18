@@ -5,6 +5,7 @@
 - Area: entities
 - Read when: an entity member holds an array — `composition`, `linkCollection` and `scalarCollection` are three different relations, and a collection declared sortable throws
 - Revised: 2026-09-02 by [ADR 0038](0038-master-detail-the-rows-a-record-owns.md) — four of its residuals are now built; the decisions are unchanged.
+- Revised: 2026-11-18 — §5 no longer holds for a `scalarCollection`: entifix 0.23.0 (#278) lets one be `filterable`, an equality or `in` matching when any element does, which the storefront's phone filter uses (#641). It is still never sortable, and a `composition` or `linkCollection` still throws on either flag.
 
 ## Context
 

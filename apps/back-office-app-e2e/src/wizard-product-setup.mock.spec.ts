@@ -118,6 +118,39 @@ test('walks the blank path and hands one create off', async ({
   await expect(page.getByTestId('pending-notice')).toHaveCount(0);
 });
 
+/**
+ * Plan 1.17: the classification step names the phones a product fits — by
+ * name, `universal` alone — and the create carries their ids.
+ */
+test('names the phones a product fits, and writes their ids', async ({
+  page,
+  network,
+}) => {
+  const captured = captureCreate(network);
+  await page.goto(WIZARD);
+  await page.getByRole('button', { name: /Desde cero/ }).click();
+  await next(page);
+  await fillIdentity(page, 'Funda TPU');
+  await next(page);
+
+  const phones = page.getByRole('group', { name: 'Teléfonos compatibles' });
+  await expect(
+    phones.getByRole('checkbox', { name: 'Nokia 3310' }),
+  ).toHaveCount(0);
+  await phones.getByRole('checkbox', { name: 'Samsung Galaxy A15' }).check();
+  await phones.getByRole('checkbox', { name: 'iPhone 15' }).check();
+  await next(page);
+
+  await expect(page.getByText('Samsung Galaxy A15, iPhone 15')).toBeVisible();
+  await page.getByTestId('wizard-next').click();
+  await page.waitForURL(url =>
+    url.pathname.endsWith(`${PRODUCT_LIST}/spec-created`),
+  );
+  expect(captured.record).toMatchObject({
+    fitsDeviceModelIds: ['device-model-1', 'device-model-2'],
+  });
+});
+
 test('re-shapes the stepper and seeds the forms from the product it duplicates', async ({
   page,
 }) => {

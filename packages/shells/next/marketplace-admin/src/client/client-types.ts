@@ -7,12 +7,14 @@ import type {
 import type { Context } from 'effect/Context';
 
 export interface MarketplaceAdminAdapters {
+  deviceModelWriter: EntityWriter;
   productBrandWriter: EntityWriter;
   productCategoryWriter: EntityWriter;
   productWriter: EntityWriter;
   productOfferingWriter: EntityWriter;
   productOfferingPriceWriter: EntityWriter;
   productCategoryRest: Context<EntityRepositoryTag>;
+  deviceModelRest: Context<EntityRepositoryTag>;
   productBrandRest: Context<EntityRepositoryTag>;
   productRest: Context<EntityRepositoryTag>;
   productOfferingRest: Context<EntityRepositoryTag>;
@@ -24,6 +26,7 @@ export interface MarketplaceAdminAdapters {
   /** The catalog service's served affordances, through `/api/admin`. */
   catalogMetadata: EntityMetadataSource;
   /** Each entity's verbs, posted to the path its service derives from the key. */
+  deviceModelUseCases: EntityUseCaseRunner;
   productBrandUseCases: EntityUseCaseRunner;
   productCategoryUseCases: EntityUseCaseRunner;
   productOfferingUseCases: EntityUseCaseRunner;

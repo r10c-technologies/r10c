@@ -5,8 +5,13 @@ import {
 } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
+import { DeviceModel } from '../entities/device-model/device-model.entity.js';
 import { ProductBrand } from '../entities/product-brand/product-brand.entity.js';
 import { ProductCategory } from '../entities/product-category/product-category.entity.js';
+import {
+  RETIRE_DEVICE_MODEL,
+  RetireDeviceModelUC,
+} from './retire-device-model/retire-device-model.uc.js';
 import {
   RETIRE_PRODUCT_BRAND,
   RetireProductBrandUC,
@@ -25,6 +30,7 @@ import { retireReferences } from './retire-reference/retire-reference.js';
 const RETIRABLE: Array<
   [string, EntityConstructor<Entity>, { run: () => unknown }, string]
 > = [
+  ['device-model', DeviceModel, RetireDeviceModelUC, RETIRE_DEVICE_MODEL],
   ['product-brand', ProductBrand, RetireProductBrandUC, RETIRE_PRODUCT_BRAND],
   [
     'product-category',

@@ -66,7 +66,7 @@ const fixture = name =>
   }).then(module => module.default);
 
 const [
-  { ProductBrand, ProductCategory },
+  { DeviceModel, ProductBrand, ProductCategory },
   { PublishedOffering },
   { PublishedVendor },
   { configurationHandler, entityBackendHandlers, http, HttpResponse },
@@ -129,19 +129,41 @@ const journeyOffering = (offeringId, vendorId, name, amount) => ({
   code: offeringId.toUpperCase(),
 });
 
+/**
+ * The phones "Mi teléfono" offers (plan 1.17), journey-only like the offerings
+ * below. One retired, which the storefront must not offer.
+ */
+const DEVICE_MODELS = [
+  { id: 'device-model-a15', name: 'Samsung Galaxy A15', status: 'active' },
+  { id: 'device-model-ip15', name: 'iPhone 15', status: 'active' },
+  { id: 'device-model-old', name: 'Nokia 3310', status: 'retired' },
+];
+
+/**
+ * The two napkin sets double as the phone journey's answer, so no count
+ * anywhere moves: one is made for the Galaxy A15 and one fits every phone, and
+ * every other offering never said which phones it fits — so choosing the A15
+ * leaves exactly these two.
+ */
 const JOURNEY_OFFERINGS = [
-  journeyOffering(
-    'offering-lino-napkins-demo',
-    'demo-organization',
-    'Lino Napkin Set',
-    4500,
-  ),
-  journeyOffering(
-    'offering-lino-napkins-solano',
-    'vendor-casa-solano',
-    'Lino Napkin Set',
-    4200,
-  ),
+  {
+    ...journeyOffering(
+      'offering-lino-napkins-demo',
+      'demo-organization',
+      'Lino Napkin Set',
+      4500,
+    ),
+    fitsDeviceModelIds: ['device-model-a15'],
+  },
+  {
+    ...journeyOffering(
+      'offering-lino-napkins-solano',
+      'vendor-casa-solano',
+      'Lino Napkin Set',
+      4200,
+    ),
+    fitsDeviceModelIds: ['universal'],
+  },
   {
     ...journeyOffering(
       'offering-eclipse-runner',
@@ -163,6 +185,10 @@ const collections = [
   entityBackendHandlers(ProductBrand, {
     baseUrl: `${SERVICE_URL}/product-brand`,
     seed: brands,
+  }),
+  entityBackendHandlers(DeviceModel, {
+    baseUrl: `${SERVICE_URL}/device-model`,
+    seed: DEVICE_MODELS,
   }),
   entityBackendHandlers(ProductCategory, {
     baseUrl: `${SERVICE_URL}/product-category`,

@@ -37,15 +37,26 @@ export const catalogReferenceCapabilities: readonly Capability[] = [
     status: 'implemented',
     verticals: 'all',
   },
-  // Planned (plan 1.17): the operator authors the device models a product may
-  // fit, in the platform plane. Nothing declares the entity yet.
+  // Plan 1.17 (#641): the operator authors the device models a product may
+  // fit, in the platform plane; the vendor's specification names them.
+  // Authoring is CRUD under `super-admin`'s `*:*:*` alone, as for a brand, and
+  // a CRUD entry needs a grant that names it, so only the verbs are written.
   {
-    id: 'catalog-reference:device-model:write',
+    id: 'catalog-reference:device-model:retire',
     oda: 'TMFC001',
     entities: ['catalog-reference:device-model'],
-    permissions: ['catalog-reference:device-model:write'],
+    permissions: ['catalog-reference:device-model:retire'],
     screens: ['master:device-model'],
-    status: 'planned',
+    status: 'implemented',
+    verticals: ['phone-accessories'],
+  },
+  {
+    id: 'catalog-reference:device-model:restore',
+    oda: 'TMFC001',
+    entities: ['catalog-reference:device-model'],
+    permissions: ['catalog-reference:device-model:restore'],
+    screens: ['master:device-model'],
+    status: 'implemented',
     verticals: ['phone-accessories'],
   },
 ];

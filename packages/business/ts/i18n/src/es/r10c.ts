@@ -176,6 +176,15 @@ export const r10c = {
         max: 'Hasta',
         apply: 'Aplicar',
       },
+      // "Mi teléfono" (plan 1.17): what fits the buyer's phone, made for it or
+      // universal.
+      myPhone: {
+        label: 'Mi teléfono',
+        choose: 'Elige tu modelo',
+        apply: 'Ver lo que le queda',
+        showing: 'Mostrando lo que le queda a tu {{model}}.',
+        forget: 'Quitar',
+      },
     },
     search: {
       heading: 'Buscar',
@@ -394,6 +403,7 @@ export const r10c = {
       catalog: 'Catálogo',
       products: 'Productos',
       brands: 'Marcas',
+      deviceModels: 'Modelos de teléfono',
       categories: 'Categorías',
       offerings: 'Ofertas comerciales',
       offeringPrices: 'Precios de oferta',
@@ -464,6 +474,14 @@ export const r10c = {
           empty: 'Sin definir',
         },
         recap: 'Ya había respondido:',
+        fits: {
+          universal: 'Universal: le queda a cualquier teléfono',
+          universalShort: 'Universal',
+          universalHint:
+            'Marque esta opción para cargadores, cables y soportes. No se combina con modelos.',
+          loading: 'Cargando modelos de teléfono…',
+          none: 'No hay modelos de teléfono cargados.',
+        },
       },
     },
   },

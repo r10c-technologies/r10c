@@ -16,6 +16,7 @@ import {
 } from '@entifix/core';
 import { EventSourceTag } from '@entifix/transactions';
 import {
+  DeviceModelUniversalNotAlone,
   MediaAltMissing,
   MediaNotHttps,
 } from '@r10c/business-ts-catalog-contracts';
@@ -27,6 +28,7 @@ import {
   ProductOfferingPrice,
   ProductSpecification,
   PublishProductOfferingUC,
+  refuseSpecificationFits,
   refuseSpecificationMedia,
   SpecificationCommandsTag,
   transitionOfferingFor,
@@ -54,14 +56,21 @@ export const productSpecificationApi = defineEntityApi(
     guard: { kind: 'organization' },
     // The update's half of the media rule; the create runs it itself.
     prepare: specification =>
-      Effect.as(refuseSpecificationMedia(specification), specification),
-    errors: [MediaNotHttps, MediaAltMissing],
+      Effect.as(
+        Effect.andThen(
+          refuseSpecificationMedia(specification),
+          refuseSpecificationFits(specification),
+        ),
+        specification,
+      ),
+    errors: [MediaNotHttps, MediaAltMissing, DeviceModelUniversalNotAlone],
     override: {
       create: {
         idempotent: 'unit',
         errors: [
           MediaNotHttps,
           MediaAltMissing,
+          DeviceModelUniversalNotAlone,
           Invalid,
           DuplicateKey,
           StaleRevision,
@@ -73,6 +82,7 @@ export const productSpecificationApi = defineEntityApi(
               request.payload,
             );
             yield* refuseSpecificationMedia(specification);
+            yield* refuseSpecificationFits(specification);
             const commands = yield* SpecificationCommandsTag;
             const created = yield* commands.create(
               organizationOf(context),

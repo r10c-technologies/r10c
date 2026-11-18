@@ -10,6 +10,7 @@ import {
 import {
   categoryName,
   categorySubtree,
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -18,6 +19,7 @@ import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import {
   loadBrands,
   loadCategories,
+  loadDeviceModels,
 } from '@r10c/implementation-catalog-reference-next';
 import {
   type CountedFacet,
@@ -39,6 +41,7 @@ import { cacheLife } from 'next/cache';
 import { CATALOG_CACHE } from './catalog-cache';
 import { emptyPage, runRead, runReadOutcome } from './catalog-reads';
 import { CatalogUnavailable } from './catalog-unavailable';
+import { MyPhone } from './my-phone';
 import { loadCardNames, OfferingGrid } from './offering-grid';
 
 /** Each order's label in the `storefront.listing.sorts` catalog. */
@@ -99,7 +102,7 @@ export async function OfferingListing({
   const t = getServerTFor(locale, 'r10c');
   const controls = getServerTFor(locale, 'controls');
 
-  const [categories, brands, vendors] = await Promise.all([
+  const [categories, brands, vendors, deviceModels] = await Promise.all([
     runRead(
       ProductCategory,
       loadCategories(locale),
@@ -107,6 +110,9 @@ export async function OfferingListing({
     ),
     runRead(ProductBrand, loadBrands(), emptyPage<ProductBrand>()),
     runRead(PublishedVendor, loadVendors(), []),
+    // A failed read leaves the listing without "my phone", never without
+    // products.
+    runRead(DeviceModel, loadDeviceModels(), emptyPage<DeviceModel>()),
   ]);
 
   const sort = (state.sort[0] as SearchSort | undefined) ?? DEFAULT_SORT;
@@ -216,6 +222,7 @@ export async function OfferingListing({
   const activeFilters =
     state.brand.length +
     state.seller.length +
+    state.model.length +
     (categoryId === undefined ? state.category.length : 0) +
     (state.min.length + state.max.length > 0 ? 1 : 0) +
     state.available.length;
@@ -230,7 +237,25 @@ export async function OfferingListing({
             count: activeFilters,
           }),
         }}
-      />
+      >
+        <MyPhone
+          href={href}
+          state={state}
+          models={deviceModels.items}
+          labels={{
+            label: t('storefront.listing.myPhone.label'),
+            choose: t('storefront.listing.myPhone.choose'),
+            apply: t('storefront.listing.myPhone.apply'),
+            showing: t('storefront.listing.myPhone.showing', {
+              model:
+                deviceModels.items.find(
+                  one => String(one.id) === state.model[0],
+                )?.name ?? '',
+            }),
+            forget: t('storefront.listing.myPhone.forget'),
+          }}
+        />
+      </FacetPanel>
 
       <Stack gap="s">
         <Cluster gap="s" justify="between">

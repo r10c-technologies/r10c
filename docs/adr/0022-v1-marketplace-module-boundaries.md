@@ -22,6 +22,7 @@
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — §5: a checkout writes a group and one order per vendor, not one order with vendor-tagged lines
 - Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the v1 inventory stays fixed and what comes after it is named: accounting, cost control, services and manufacturing join as `planned` slices that subscribe, and existing entities gain fiscal members
 - Revised: 2026-11-16 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — the inventory counts and the two tables below are the 2026-08-12 snapshot and are no longer kept by hand: the live register is generated into `docs/_shared/planes.md` and `docs/BUSINESS-ARCHITECTURE.md` from `tools/slices/`. The four planned slices (stock, order, payment, settlement) are built and active, and a tenant now has four databases, not two.
+- Revised: 2026-11-18 — `catalog-reference` gains `DeviceModel`, the phones a product fits (#641): an entity in an existing domain and store, so no domain, store or slice changes.
 
 ## Context
 

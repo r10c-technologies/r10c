@@ -9,13 +9,14 @@ import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from './search-sources';
  * quietly reports a group it could not reach.
  */
 describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
-  it('declares the catalog’s five searchable records, in order', () => {
+  it('declares the catalog’s six searchable records, in order', () => {
     expect(MARKETPLACE_ADMIN_SEARCH_SOURCES.map(source => source.key)).toEqual([
       'product-specification',
       'product-offering',
       'product-offering-price',
       'product-brand',
       'product-category',
+      'device-model',
     ]);
   });
 
@@ -28,6 +29,7 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
       'entity:product-offering-price.plural',
       'entity:product-brand.plural',
       'entity:product-category.plural',
+      'entity:device-model.plural',
     ]);
   });
 
@@ -39,6 +41,7 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
     ['product-offering-price', '/catalog/product-offering-price/x-1'],
     ['product-brand', '/catalog/product-brand/x-1'],
     ['product-category', '/catalog/product-category/x-1'],
+    ['device-model', '/catalog/device-model/x-1'],
   ])('routes a %s result to a page this host serves', (key, expected) => {
     const source = MARKETPLACE_ADMIN_SEARCH_SOURCES.find(
       candidate => candidate.key === key,

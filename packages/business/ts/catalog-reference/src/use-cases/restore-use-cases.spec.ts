@@ -5,8 +5,13 @@ import {
 } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
+import { DeviceModel } from '../entities/device-model/device-model.entity.js';
 import { ProductBrand } from '../entities/product-brand/product-brand.entity.js';
 import { ProductCategory } from '../entities/product-category/product-category.entity.js';
+import {
+  RESTORE_DEVICE_MODEL,
+  RestoreDeviceModelUC,
+} from './restore-device-model/restore-device-model.uc.js';
 import {
   RESTORE_PRODUCT_BRAND,
   RestoreProductBrandUC,
@@ -20,6 +25,7 @@ import { retireReferences } from './retire-reference/retire-reference.js';
 const RESTORABLE: Array<
   [string, EntityConstructor<Entity>, { run: () => unknown }, string]
 > = [
+  ['device-model', DeviceModel, RestoreDeviceModelUC, RESTORE_DEVICE_MODEL],
   ['product-brand', ProductBrand, RestoreProductBrandUC, RESTORE_PRODUCT_BRAND],
   [
     'product-category',

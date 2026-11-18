@@ -1,5 +1,6 @@
 import type { ReferenceLabelRegistration } from '@entifix/business';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -36,5 +37,6 @@ export const CATALOG_REFERENCE_LABELS: readonly ReferenceLabelRegistration[] = [
   [ProductSpecification, adapters.productRest],
   [ProductBrand, adapters.productBrandRest],
   [ProductCategory, adapters.productCategoryRest],
+  [DeviceModel, adapters.deviceModelRest],
   [PublishedVendor, adapters.publishedVendorRest],
 ];

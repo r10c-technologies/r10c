@@ -57,6 +57,7 @@ const specification = (
     brandId: string | undefined;
     categoryId: string | undefined;
     media: ProductSpecification['media'];
+    fitsDeviceModelIds: ProductSpecification['fitsDeviceModelIds'];
   }> = {},
 ) => {
   const one = new ProductSpecification(
@@ -70,6 +71,7 @@ const specification = (
   one.categoryId =
     'categoryId' in overrides ? overrides.categoryId : 'product-category-7';
   one.media = overrides.media;
+  one.fitsDeviceModelIds = overrides.fitsDeviceModelIds;
   return one;
 };
 
@@ -615,5 +617,21 @@ describe('the specification the snapshot copies from', () => {
     );
 
     expect(Object.keys(event.data)).not.toContain('media');
+  });
+
+  it('copies the phones the specification fits, and omits none as absent', () => {
+    const publish = (fitsDeviceModelIds: string[] | undefined) =>
+      publicationOf(
+        run(
+          [offering('1', 'draft')],
+          '1',
+          'publish',
+          [price('1')],
+          [specification('spec-1', { fitsDeviceModelIds })],
+        ).exit,
+      ).data;
+
+    expect(publish(['universal']).fitsDeviceModelIds).toEqual(['universal']);
+    expect(Object.keys(publish([]))).not.toContain('fitsDeviceModelIds');
   });
 });

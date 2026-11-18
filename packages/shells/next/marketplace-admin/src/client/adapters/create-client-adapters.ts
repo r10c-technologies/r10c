@@ -12,6 +12,7 @@ import {
   makeEntityRestUseCaseRunner,
 } from '@entifix/rest';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -78,6 +79,10 @@ const productCategoryRest = createRestRepositoryContext(
   ProductCategory,
   REFERENCE_SERVICE,
 );
+const deviceModelRest = createRestRepositoryContext(
+  DeviceModel,
+  REFERENCE_SERVICE,
+);
 const productBrandRest = createRestRepositoryContext(
   ProductBrand,
   REFERENCE_SERVICE,
@@ -139,6 +144,10 @@ const catalogMetadata = makeEntityMetadataSource({
  * `POST <entity>/<key>`, the paths the service derives from each
  * `@useCase()`, and a refusal arrives decoded from its problem body.
  */
+const deviceModelUseCases = makeEntityRestUseCaseRunner(
+  DeviceModel,
+  REFERENCE_SERVICE,
+);
 const productBrandUseCases = makeEntityRestUseCaseRunner(
   ProductBrand,
   REFERENCE_SERVICE,
@@ -158,6 +167,10 @@ const productOfferingUseCases = makeEntityRestUseCaseRunner(
  * one the server hands to a flow returns a pending flow the form waits on. The
  * server picks; the screen never branches on a status.
  */
+const deviceModelWriter = buildEntityRestAdapterWrite(
+  DeviceModel,
+  REFERENCE_SERVICE,
+);
 const productBrandWriter = buildEntityRestAdapterWrite(
   ProductBrand,
   REFERENCE_SERVICE,
@@ -181,12 +194,14 @@ const productOfferingPriceWriter = buildEntityRestAdapterWrite(
 
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {
+    deviceModelWriter,
     productBrandWriter,
     productCategoryWriter,
     productWriter,
     productOfferingWriter,
     productOfferingPriceWriter,
     productCategoryRest,
+    deviceModelRest,
     productBrandRest,
     productRest,
     productOfferingRest,
@@ -194,6 +209,7 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     publishedVendorRest,
     referenceMetadata,
     catalogMetadata,
+    deviceModelUseCases,
     productBrandUseCases,
     productCategoryUseCases,
     productOfferingUseCases,

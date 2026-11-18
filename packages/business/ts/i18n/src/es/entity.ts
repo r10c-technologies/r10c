@@ -47,6 +47,7 @@ export const entity = {
       brand: 'Marca',
       category: 'Categoría',
       media: 'Imágenes',
+      fitsDeviceModelIds: 'Teléfonos compatibles',
     },
   },
   'media-reference': {
@@ -63,6 +64,27 @@ export const entity = {
   'reference-status': {
     active: 'Activo',
     retired: 'Retirado',
+  },
+  'device-model': {
+    form: {
+      editTitle: 'Editar modelo de teléfono',
+      newTitle: 'Nuevo modelo de teléfono',
+    },
+    label: 'Modelo de teléfono',
+    plural: 'Modelos de teléfono',
+    fields: {
+      id: 'ID',
+      code: 'Código',
+      name: 'Nombre',
+      maker: 'Fabricante',
+      status: 'Estado',
+    },
+    useCases: {
+      restore: 'Restaurar',
+      retire: 'Retirar',
+      retireConfirm:
+        'Estos modelos dejarán de ofrecerse al clasificar productos. Las ofertas ya publicadas con ellos no cambian.',
+    },
   },
   'product-brand': {
     form: {
@@ -317,6 +339,7 @@ export const entity = {
       code: 'Referencia',
       description: 'Descripción',
       brandId: 'ID de marca',
+      fitsDeviceModelIds: 'Teléfonos compatibles',
       categoryId: 'ID de categoría',
       media: 'Imágenes',
     },

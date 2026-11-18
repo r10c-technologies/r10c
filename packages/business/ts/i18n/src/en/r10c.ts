@@ -158,6 +158,13 @@ export const r10c: EsR10c = {
         max: 'To',
         apply: 'Apply',
       },
+      myPhone: {
+        label: 'My phone',
+        choose: 'Choose your model',
+        apply: 'Show what fits',
+        showing: 'Showing what fits your {{model}}.',
+        forget: 'Clear',
+      },
     },
     search: {
       heading: 'Search',
@@ -357,6 +364,7 @@ export const r10c: EsR10c = {
       catalog: 'Catalog',
       products: 'Products',
       brands: 'Brands',
+      deviceModels: 'Phone models',
       categories: 'Categories',
       offerings: 'Product offerings',
       offeringPrices: 'Offering prices',
@@ -421,6 +429,14 @@ export const r10c: EsR10c = {
           empty: 'Not set',
         },
         recap: 'You had already answered:',
+        fits: {
+          universal: 'Universal: fits any phone',
+          universalShort: 'Universal',
+          universalHint:
+            'Choose this for chargers, cables and stands. It is not combined with models.',
+          loading: 'Loading phone models…',
+          none: 'No phone models are on file.',
+        },
       },
     },
   },

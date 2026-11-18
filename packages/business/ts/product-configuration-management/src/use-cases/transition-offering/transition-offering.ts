@@ -5,6 +5,7 @@ import {
   type CatalogPublication,
   catalogPublishedEvent,
   catalogUnpublishedEvent,
+  readDeviceModelIds,
   readMedia,
 } from '@r10c/business-ts-catalog-contracts';
 import { Context, Effect, Schema } from 'effect';
@@ -182,6 +183,9 @@ const merchandisingOf = (
   specification: ProductSpecification | undefined,
 ): Partial<CatalogPublication> => {
   const media = readMedia(specification?.media);
+  const fitsDeviceModelIds = readDeviceModelIds(
+    specification?.fitsDeviceModelIds,
+  );
   return {
     ...Object.fromEntries(
       MERCHANDISING.map(member => [member, specification?.[member]]).filter(
@@ -192,6 +196,7 @@ const merchandisingOf = (
     // no key, never `[]`. Read through `readMedia` so what is announced is
     // plain `{ url, alt }` values the save already accepted (ADR 0061).
     ...(media === undefined ? {} : { media }),
+    ...(fitsDeviceModelIds === undefined ? {} : { fitsDeviceModelIds }),
   };
 };
 

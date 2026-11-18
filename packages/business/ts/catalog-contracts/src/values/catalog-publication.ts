@@ -8,6 +8,7 @@ import {
 } from '@entifix/core';
 import { Effect, Schema } from 'effect';
 
+import { readDeviceModelIds } from './device-model-fit';
 import { type MediaReferenceValue, readMedia } from './media-reference';
 
 /**
@@ -57,7 +58,7 @@ export type CatalogEventName = (typeof CATALOG_EVENTS)[number];
  * member the specification does not carry is absent from a publication and an
  * unpublication alike.
  *
- * ⚠️ **The five optional members are optional as a safety property, not as
+ * ⚠️ **The six optional members are optional as a safety property, not as
  * laxity.** {@link readCatalogPublication} rejecting a payload classifies the
  * message **poison**, which `AmqpEventBusLayer` quarantines with zero retries
  * (ADR 0030) — so requiring a member the source may legitimately lack makes that
@@ -134,6 +135,13 @@ export interface CatalogPublication {
    * absent: an empty gallery is a slot that claims to hold something.
    */
   readonly media?: readonly MediaReferenceValue[];
+  /**
+   * The phones the pinned specification fits, as ids into `catalog-reference`'s
+   * `DeviceModel`, or the reserved `universal` alone (plan 1.17). The
+   * storefront filters on it, so it is copied rather than looked up. Absent,
+   * never `[]`, when the vendor has not said.
+   */
+  readonly fitsDeviceModelIds?: readonly string[];
 }
 
 /**
@@ -258,5 +266,6 @@ export const readCatalogPublication = (
       brandId: optionalString(raw['brandId']),
       categoryId: optionalString(raw['categoryId']),
       media: readMedia(raw['media']),
+      fitsDeviceModelIds: readDeviceModelIds(raw['fitsDeviceModelIds']),
     }),
   );

@@ -293,6 +293,24 @@ describe('readCatalogPublication', () => {
     expect(publication).toEqual(REQUIRED);
   });
 
+  it('reads the fitted phones, and null or empty as absent', () => {
+    expect(
+      Effect.runSync(
+        readCatalogPublication({
+          ...REQUIRED,
+          fitsDeviceModelIds: ['device-model-1', 'universal'],
+        }),
+      ).fitsDeviceModelIds,
+    ).toEqual(['device-model-1', 'universal']);
+    for (const fitsDeviceModelIds of [null, [], 'device-model-1']) {
+      expect(
+        Effect.runSync(
+          readCatalogPublication({ ...REQUIRED, fitsDeviceModelIds }),
+        ).fitsDeviceModelIds,
+      ).toBeUndefined();
+    }
+  });
+
   it('reads null or empty media as absent, never as a failure', () => {
     // The fifth optional member, and optional for the same anti-poison reason:
     // most specifications carry no pictures at all.

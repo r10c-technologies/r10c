@@ -2,6 +2,7 @@ import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -18,6 +19,7 @@ import {
   loadCategoryRoots,
   loadCategorySubtree,
   loadCategoryTrail,
+  loadDeviceModels,
   VOCABULARY_PAGE_SIZE,
 } from './vocabulary.js';
 
@@ -136,6 +138,26 @@ describe('the retired vocabulary (#327)', () => {
     expect(
       (await run(loadBrands(), BRANDS_WITH_RETIRED).result).items,
     ).toHaveLength(3);
+  });
+});
+
+describe('loadDeviceModels', () => {
+  it('returns the active phone models sorted by name', async () => {
+    const model = (id: string, name: string) => {
+      const one = new DeviceModel(name);
+      one.id = id;
+      return one;
+    };
+    const { result } = run(loadDeviceModels(), [
+      model('dm-2', 'iPhone 15'),
+      retired(model('dm-3', 'Nokia 3310')),
+      model('dm-1', 'Galaxy A15'),
+    ]);
+
+    expect((await result).items.map(item => item.name)).toEqual([
+      'Galaxy A15',
+      'iPhone 15',
+    ]);
   });
 });
 

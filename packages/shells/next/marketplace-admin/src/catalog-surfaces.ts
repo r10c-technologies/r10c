@@ -7,6 +7,7 @@ import type { Entity, EntityConstructor } from '@entifix/core';
 import { extractMetaEntity } from '@entifix/core';
 import type { EntityCatalogKey } from '@entifix/next-shell';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -196,6 +197,21 @@ export const PRODUCT_BRAND_SURFACE = catalogSurface(ProductBrand, {
   sublabelProperty: 'code',
 });
 
+/**
+ * The phones a product can fit (plan 1.17): operator vocabulary beside brand
+ * and category, served by marketplace-service.
+ */
+export const DEVICE_MODEL_SURFACE = catalogSurface(DeviceModel, {
+  entityKey: 'device-model',
+  basePath: '/catalog/device-model',
+  icon: '▯',
+  navLabelKey: 'r10c:marketplaceAdmin.nav.deviceModels',
+  service: 'marketplace',
+  searchProperty: 'name',
+  labelProperty: 'name',
+  sublabelProperty: 'maker',
+});
+
 export const PRODUCT_CATEGORY_SURFACE = catalogSurface(ProductCategory, {
   entityKey: 'product-category',
   basePath: '/catalog/product-category',
@@ -220,4 +236,5 @@ export const MARKETPLACE_ADMIN_CATALOG_SURFACES: readonly CatalogSurface[] = [
   PRODUCT_OFFERING_PRICE_SURFACE,
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
+  DEVICE_MODEL_SURFACE,
 ];

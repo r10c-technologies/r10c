@@ -5,6 +5,7 @@ import {
   defineUrlQuery,
   type UrlState,
 } from '@entifix/react-integration/url-query';
+import { UNIVERSAL_DEVICE_MODEL } from '@r10c/business-ts-catalog-contracts';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 
 import { assertQueryable } from './allowlist.js';
@@ -59,7 +60,7 @@ assertQueryable(
   'sortable',
   Object.values(SORTS).map(([member]) => member),
 );
-assertQueryable(PublishedOffering, 'filterable', ['name']);
+assertQueryable(PublishedOffering, 'filterable', ['name', 'fitsDeviceModelIds']);
 
 /**
  * The storefront's search address, one codec for every link that changes it.
@@ -78,6 +79,7 @@ export const searchQuery = defineUrlQuery<
   | 'brand'
   | 'category'
   | 'seller'
+  | 'model'
   | 'min'
   | 'max'
   | 'available'
@@ -97,6 +99,18 @@ export const searchQuery = defineUrlQuery<
       }),
     },
     seller: { condition: anyOf('vendorId') },
+    // The buyer's phone (plan 1.17): an offering made for it, or one that fits
+    // every phone. `in` on an array member matches when any element does
+    // (entifix 0.23.0), so one condition says both. An offering whose vendor
+    // never said which phones it fits is left out, which is the point.
+    model: {
+      single: true,
+      condition: ([modelId]) => ({
+        property: 'fitsDeviceModelIds',
+        operator: 'in',
+        values: [modelId as string, UNIVERSAL_DEVICE_MODEL],
+      }),
+    },
     min: {
       single: true,
       condition: ([price]) => ({
@@ -176,6 +190,19 @@ const toSearchString = (params: SearchParams): string => {
   }
   return query.toString();
 };
+
+/**
+ * Every value in force except `omit`, as the `[name, value]` pairs a GET form
+ * carries in hidden inputs, so submitting one control keeps the others. The
+ * page always goes: a changed filter starts again at page 1.
+ */
+export const hiddenSearchFields = (
+  state: SearchState,
+  omit: readonly SearchKey[],
+): ReadonlyArray<readonly [SearchKey, string]> =>
+  (Object.entries(state) as [SearchKey, string[]][])
+    .filter(([key]) => key !== 'page' && !omit.includes(key))
+    .flatMap(([key, values]) => values.map(value => [key, value] as const));
 
 /** The search a page's `searchParams` ask for, with every value checked. */
 export const parseSearch = (params: SearchParams): SearchState =>

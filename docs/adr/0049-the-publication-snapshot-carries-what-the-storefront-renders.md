@@ -11,6 +11,7 @@
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — a rejected publication payload is quarantined because its failure is in the business family or `protocol`, not because of its class; the zero-attempt quarantine is unchanged
 - Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — "optional is a safety property" is scoped to members a consumer renders; a member a consumer keeps a record from may be required, and a widening is cut over by a reset
 - Revised: 2026-11-16 by [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md) — a specification gains a lifecycle, `lifecycleStatus` in place of a `released` boolean, so the `PUT` that blanks `code` cannot reach a released version; the snapshot gains `specificationId` and `specificationVersion`, both required
+- Revised: 2026-11-18 — the snapshot gains an optional `fitsDeviceModelIds`, the phones the pinned specification fits (#641): rendered by the storefront's filter, so optional, and absent rather than `[]` when the vendor has not said.
 
 ## Context
 

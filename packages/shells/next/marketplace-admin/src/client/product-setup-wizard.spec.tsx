@@ -11,6 +11,7 @@ import { useDraftsState } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -85,6 +86,13 @@ const makeBrand = () => {
   return brand;
 };
 
+const makeDeviceModel = (id: string, name: string, retired = false) => {
+  const model = new DeviceModel(name);
+  model.id = id;
+  if (retired) model.status = 'retired';
+  return model;
+};
+
 const makeCategory = () => {
   const category = new ProductCategory('C-1', {
     es: 'Herramientas',
@@ -98,12 +106,17 @@ let repositories: {
   product: ReturnType<typeof makeInMemoryEntityRepository>;
   brand: ReturnType<typeof makeInMemoryEntityRepository>;
   category: ReturnType<typeof makeInMemoryEntityRepository>;
+  deviceModel: ReturnType<typeof makeInMemoryEntityRepository>;
 };
 
 const adapters = (): MarketplaceAdminAdapters => ({
   productRest: Context.make(EntityRepositoryTag, repositories.product),
   productWriter: settledWriter(
     Context.make(EntityRepositoryTag, repositories.product),
+  ),
+  deviceModelRest: Context.make(EntityRepositoryTag, repositories.deviceModel),
+  deviceModelWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.deviceModel),
   ),
   productBrandRest: Context.make(EntityRepositoryTag, repositories.brand),
   productBrandWriter: settledWriter(
@@ -130,6 +143,7 @@ const adapters = (): MarketplaceAdminAdapters => ({
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,
   productBrandUseCases: real.productBrandUseCases,
+  deviceModelUseCases: real.deviceModelUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
 });
@@ -163,6 +177,11 @@ beforeEach(() => {
     ] as Entity[]),
     brand: makeInMemoryEntityRepository([makeBrand()] as Entity[]),
     category: makeInMemoryEntityRepository([makeCategory()] as Entity[]),
+    deviceModel: makeInMemoryEntityRepository([
+      makeDeviceModel('dm-1', 'Galaxy A15'),
+      makeDeviceModel('dm-2', 'iPhone 15'),
+      makeDeviceModel('dm-3', 'Nokia 3310', true),
+    ] as Entity[]),
   };
 });
 
@@ -386,6 +405,107 @@ describe('the duplicate path', () => {
 
     await waitFor(() => expect(screen.getByText('Acme')).toBeInTheDocument());
     expect(screen.queryByText('b-1')).not.toBeInTheDocument();
+  });
+});
+
+describe('the phones a product fits (plan 1.17)', () => {
+  const reachClassification = async () => {
+    renderWizard();
+    await click(/Desde cero/);
+    await click('Continuar');
+    await type(/Nombre/, 'Funda');
+    await click('Continuar');
+    await screen.findByRole('heading', { name: 'Clasificación' });
+  };
+
+  it('offers the active models by name, and universal stands alone', async () => {
+    await reachClassification();
+
+    const group = await screen.findByRole('group', {
+      name: 'Teléfonos compatibles',
+    });
+    const a15 = await within(group).findByRole('checkbox', {
+      name: 'Galaxy A15',
+    });
+    // A retired model is not offered for new classifications.
+    expect(
+      within(group).queryByRole('checkbox', { name: 'Nokia 3310' }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(a15);
+    await userEvent.click(
+      within(group).getByRole('checkbox', { name: 'iPhone 15' }),
+    );
+    const universal = within(group).getByRole('checkbox', {
+      name: /^Universal/,
+    });
+    await userEvent.click(universal);
+
+    expect(universal).toBeChecked();
+    expect(a15).not.toBeChecked();
+
+    await userEvent.click(a15);
+    expect(universal).not.toBeChecked();
+    await userEvent.click(a15);
+    expect(a15).not.toBeChecked();
+  });
+
+  it('names the phones in the summary and writes their ids', async () => {
+    const onFinished = vi.fn();
+    renderWizard({ onFinished });
+    await click(/Desde cero/);
+    await click('Continuar');
+    await type(/Nombre/, 'Funda');
+    await click('Continuar');
+    const group = await screen.findByRole('group', {
+      name: 'Teléfonos compatibles',
+    });
+    await userEvent.click(
+      await within(group).findByRole('checkbox', { name: 'Galaxy A15' }),
+    );
+    await userEvent.click(
+      within(group).getByRole('checkbox', { name: 'iPhone 15' }),
+    );
+    await click('Continuar');
+
+    expect(
+      await screen.findByText('Galaxy A15, iPhone 15'),
+    ).toBeInTheDocument();
+
+    await click('Finalizar');
+    await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
+    const saved = repositories.product.items.find(
+      item => (item as ProductSpecification).name === 'Funda',
+    ) as ProductSpecification;
+    expect(saved.fitsDeviceModelIds).toEqual(['dm-1', 'dm-2']);
+  });
+
+  it('recaps universal by its name, and an unknown id as itself', async () => {
+    useDraftsState.getState().setDraft(ADDRESS, {
+      activeStep: 'summary',
+      history: ['start', 'identity', 'classification'],
+      steps: {
+        start: { kind: 'choice', option: 'blank' },
+        identity: { kind: 'form', values: { name: 'Cable' } },
+        classification: {
+          kind: 'form',
+          values: { fitsDeviceModelIds: 'universal' },
+        },
+      },
+    });
+    renderWizard();
+
+    const recap = await screen.findByTestId('wizard-recap');
+    await waitFor(() => expect(recap).toHaveTextContent('Universal'));
+  });
+
+  it('says so when no model is on file', async () => {
+    repositories.deviceModel = makeInMemoryEntityRepository([]);
+    await reachClassification();
+
+    expect(
+      await screen.findByText('No hay modelos de teléfono cargados.'),
+    ).toBeInTheDocument();
   });
 });
 

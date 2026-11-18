@@ -49,6 +49,7 @@ const recordOf = (publication: CatalogPublication, at: Date) => {
   projected.brandId = publication.brandId;
   projected.categoryId = publication.categoryId;
   projected.media = publication.media;
+  projected.fitsDeviceModelIds = publication.fitsDeviceModelIds;
   // The offering's own id, so republishing replaces rather than accumulates.
   projected.id = publication.offeringId;
   // `serializeEntity`, never a literal: it keys by `alias ?? name`, the keys

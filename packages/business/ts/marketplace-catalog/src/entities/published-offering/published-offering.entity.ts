@@ -67,6 +67,7 @@ export class PublishedOffering implements Entity {
   #brandId?: string;
   #categoryId?: string;
   #media?: readonly MediaReferenceValue[];
+  #fitsDeviceModelIds?: readonly string[];
   // #endregion
 
   // #region constructors
@@ -307,6 +308,28 @@ export class PublishedOffering implements Entity {
   }
   set media(value: readonly MediaReferenceValue[] | undefined) {
     this.#media = value;
+  }
+
+  /**
+   * The phones this offering fits, as ids into `catalog-reference`'s
+   * `DeviceModel`, or `universal` alone (plan 1.17).
+   *
+   * `filterable` — the storefront's "my phone" is
+   * `fitsDeviceModelIds=in=(<model>,universal)`, and the flag is the allowlist
+   * that query is checked against. Legal on a `scalarCollection` since entifix
+   * 0.23.0: an equality or `in` matches when **any** element does, which on
+   * Mongo is the array semantics `$in` already has. Never sortable.
+   */
+  @accessor({
+    type: 'scalarCollection',
+    labelKey: 'entity:published-offering.fields.fitsDeviceModelIds',
+    filterable: true,
+  })
+  get fitsDeviceModelIds(): readonly string[] | undefined {
+    return this.#fitsDeviceModelIds;
+  }
+  set fitsDeviceModelIds(value: readonly string[] | undefined) {
+    this.#fitsDeviceModelIds = value;
   }
   // #endregion
 }
