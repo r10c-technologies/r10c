@@ -15,6 +15,7 @@ import { BUSINESS_ROOT, sourceFiles } from './source-scan.js';
  * `source-scan.ts` gives: an entity never exported would pass vacuously.
  */
 const AUTHORED = [
+  'DeviceModel',
   'ProductBrand',
   'ProductCategory',
   'DictionaryTerm',

@@ -2,6 +2,7 @@ import { MongoDatabaseTag } from '@entifix/mongo';
 import { revised, seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
+import { deviceModelTempData } from './device-model-temp-data';
 import { dictionaryTermTempData } from './dictionary-term-temp-data';
 import { productBrandTempData } from './product-brand-temp-data';
 import { productCategoryTempData } from './product-category-temp-data';
@@ -22,6 +23,7 @@ export const seedCatalogReference = Effect.gen(function* () {
 
   yield* Effect.all(
     [
+      seedCollection(db, 'device-model', revised(deviceModelTempData)),
       seedCollection(db, 'dictionary-term', revised(dictionaryTermTempData)),
       seedCollection(db, 'product-brand', revised(productBrandTempData)),
       seedCollection(db, 'product-category', revised(productCategoryTempData)),

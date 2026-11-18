@@ -1,5 +1,6 @@
 import { entityApi } from '@entifix/service-shell';
 import {
+  deviceModelApi,
   dictionaryTermApi,
   productBrandApi,
   productCategoryApi,
@@ -34,6 +35,7 @@ export const endpoints = [
   entityApi(publishedOfferingApi),
   entityApi(publishedVendorApi),
   entityApi(dictionaryTermApi),
+  entityApi(deviceModelApi),
   entityApi(productBrandApi),
   entityApi(productCategoryApi),
 ] as const;

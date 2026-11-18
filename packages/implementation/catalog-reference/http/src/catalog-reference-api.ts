@@ -22,12 +22,15 @@ import {
   categoryRetireGuard,
   CategoryTooDeep,
   checkCategorySave,
+  DeviceModel,
   DictionaryTerm,
   ProductBrand,
   ProductCategory,
+  RestoreDeviceModelUC,
   RestoreProductBrandUC,
   RestoreProductCategoryUC,
   type RetirableReference,
+  RetireDeviceModelUC,
   RetireProductBrandUC,
   RetireProductCategoryUC,
   retireSelection,
@@ -79,6 +82,12 @@ const bulkStatus =
       };
     });
 
+const retireDeviceModels = verbEndpoint(RetireDeviceModelUC, {
+  handler: bulkStatus(DeviceModel, true),
+});
+const restoreDeviceModels = verbEndpoint(RestoreDeviceModelUC, {
+  handler: bulkStatus(DeviceModel, false),
+});
 const retireBrands = verbEndpoint(RetireProductBrandUC, {
   handler: bulkStatus(ProductBrand, true),
 });
@@ -98,6 +107,20 @@ export const dictionaryTermApi = defineEntityApi(
   {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: vocabularyGuard,
+  },
+);
+
+/**
+ * The phones a product can fit (plan 1.17): operator-authored like a brand,
+ * retired rather than deleted because a specification holds the bare id.
+ */
+export const deviceModelApi = defineEntityApi(
+  DeviceModel,
+  entityKey(DeviceModel, 'device-model'),
+  {
+    verbs: ['list', 'get', 'create', 'update', 'delete'],
+    guard: vocabularyGuard,
+    useCases: [retireDeviceModels, restoreDeviceModels],
   },
 );
 
