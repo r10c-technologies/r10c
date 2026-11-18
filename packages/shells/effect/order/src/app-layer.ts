@@ -5,11 +5,16 @@ import {
 } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
 import {
+  AccessLinkHours,
+  AccessLinkIntervalSeconds,
   CancelWindowSeconds,
   ReceiptDays,
+  StorefrontUrl,
 } from '@r10c/business-ts-order-management';
+import { smtpBuyerNotifierLayer } from '@r10c/implementation-order-management-smtp';
 import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
 import {
+  crossingCallersLayer,
   crossingTokenLayer,
   fleetBusLayer,
   type FleetConfiguration,
@@ -79,6 +84,25 @@ export const orderComposition = (configuration: FleetConfiguration) =>
     // the receipt outlives the cancel window (ADR 0076 §6). Read at boot for
     // the same reason as the window above.
     const receiptDays = yield* store.in('order').getNumber('receiptDays');
+    // The buyer's way back (ADR 0076 §6): how long a mailed access link may be
+    // redeemed, how often a lookup may mail one, and the storefront origin a
+    // link is written against — read at boot for the reason above.
+    const accessLinkHours = yield* store
+      .in('order')
+      .getNumber('accessLinkHours');
+    const accessLinkIntervalSeconds = yield* store
+      .in('order')
+      .getNumber('accessLinkIntervalSeconds');
+    const storefrontUrl = yield* store.in('order').getString('storefrontUrl');
+    // Where the buyer's mail goes out: Mailpit in the lab. Not dialled at
+    // boot — a mail server that is down fails the notify step, which retries,
+    // and never stops orders being taken.
+    const smtp = store.in('smtp');
+    const smtpOptions = {
+      host: yield* smtp.getString('host'),
+      port: yield* smtp.getNumber('port'),
+      from: yield* smtp.getString('from'),
+    };
 
     // Where the cancellation coordinator answers, and the secret this service
     // presents to start a flow through it.
@@ -105,9 +129,15 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       yield* fleetBusLayer(configuration),
       yield* fleetSecurityLayer(configuration),
       yield* crossingTokenLayer(configuration),
+      // The storefront's own token, for "find my order" alone (ADR 0076 §6).
+      yield* crossingCallersLayer(configuration, ['storefront']),
       yield* fleetOutboxLayer(configuration, ORDER_SLICE),
       Layer.succeed(CancelWindowSeconds, cancelWindowSeconds),
       Layer.succeed(ReceiptDays, receiptDays),
+      Layer.succeed(AccessLinkHours, accessLinkHours),
+      Layer.succeed(AccessLinkIntervalSeconds, accessLinkIntervalSeconds),
+      Layer.succeed(StorefrontUrl, storefrontUrl.replace(/\/+$/, '')),
+      smtpBuyerNotifierLayer(smtpOptions),
       httpFlowStarterLayer({
         url: coordinatorUrl,
         crossingToken: coordinatorToken,

@@ -368,6 +368,19 @@ sales-service. The cycle is deliberate: a cancellation's authority is verifiable
 only where the order lives, and handing the digest and the window to a slice that
 declares no domain would put an order's authorization rule outside the order.
 
+⚠️ **The buyer's way back is three routes here, each on its own credential**
+([ADR 0076](../adr/0076-delivery-destination-buyer-contact-and-the-way-back.md) §6).
+A storefront checkout ends with `order.notify-buyer`, a crossing to `POST
+/api/checkout-group/:id/receipt-mail` on `checkout-group:send-receipt` that mails
+the receipt and a one-time access link through the `tech:smtp` cell — Mailpit
+in the lab, so **a checkout now depends on Mailpit**, which the health ladder
+already probes. `POST /api/checkout-group/access` redeems that link with the
+token alone, no session, as `buyer-cancellation` takes the nonce. And `POST
+/api/checkout-group/send-access-link` ("find my order") is the storefront's one
+crossing into this slice: its guard names its caller, so it opens only to
+`service.storefrontToken`, never to the coordinator's `service.token`, and
+answers `202` alike whatever matched.
+
 The cart is **not** here. It is a cookie, so the storefront's first response is
 correct without a round trip, and the fleet keeps zero anonymous write surfaces.
 

@@ -23,6 +23,17 @@ export const orderManagementCapabilities: readonly Capability[] = [
     status: 'implemented',
     verticals: 'all',
   },
+  // "Find my order" (ADR 0076 §6): a crossing only the storefront's own token
+  // opens. The mailed link it sends is redeemed on the access page.
+  {
+    id: 'order-management:checkout-group:send-access-link',
+    oda: 'TMFC002',
+    entities: ['order-management:checkout-group'],
+    permissions: ['order-management:checkout-group:send-access-link'],
+    screens: ['storefront:orderFind', 'storefront:orderAccess'],
+    status: 'implemented',
+    verticals: 'all',
+  },
   {
     id: 'order-management:product-order:cancel',
     oda: 'TMFC002',

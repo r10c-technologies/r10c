@@ -42,6 +42,7 @@
  *
  * Nothing in the application bundle knows this exists.
  */
+import { createHash } from 'node:crypto';
 import { register } from 'node:module';
 
 register('./ts-loader.mjs', import.meta.url);
@@ -392,8 +393,21 @@ const buyerReceiptHandler = http.get(
   BUYER_RECEIPT_URL,
   ({ request, params }) => {
     const vendors = baskets.get(params.id);
-    if (!request.headers.get('x-cancel-nonce') || vendors === undefined) {
+    const nonce = request.headers.get('x-cancel-nonce');
+    if (!nonce || vendors === undefined) {
       return notFound();
+    }
+    // A group an access link re-keyed answers only the nonce it was re-keyed
+    // to: the browser that held the old one is refused, as order-service
+    // refuses it (ADR 0076 §6).
+    const rekeyed = rekeyedTo.get(params.id);
+    if (rekeyed !== undefined && rekeyed !== digestOf(nonce)) {
+      return problem(
+        'CancelNotAuthorized',
+        'cancelNotAuthorized',
+        'unauthenticated',
+        401,
+      );
     }
     return HttpResponse.json({
       group: {
@@ -427,6 +441,53 @@ const buyerReceiptHandler = http.get(
       })),
     });
   },
+);
+
+/** The digest order-service stores for a nonce. */
+const digestOf = nonce =>
+  createHash('sha256').update(nonce, 'utf8').digest('hex');
+
+/** The digest each redeemed group was re-keyed to, by group id. */
+const rekeyedTo = new Map();
+
+/** Tokens already spent: a link opens a receipt once. */
+const spentTokens = new Set();
+
+/**
+ * Where a mailed access link is redeemed. A token in this suite is
+ * `e2e-token-<flowId>`, so the journey that mails nothing can still hold one;
+ * it works once, for a flow that was started, and re-keys that group to the
+ * digest the storefront sent.
+ */
+const ACCESS_URL = 'http://localhost:3105/api/checkout-group/access';
+const accessHandler = http.post(ACCESS_URL, async ({ request }) => {
+  const body = await request.json().catch(() => undefined);
+  const token = typeof body?.token === 'string' ? body.token : '';
+  const flowId = token.startsWith('e2e-token-') ? token.slice(10) : '';
+  if (!baskets.has(flowId) || spentTokens.has(token)) {
+    return problem(
+      'CancelNotAuthorized',
+      'cancelNotAuthorized',
+      'unauthenticated',
+      401,
+    );
+  }
+  spentTokens.add(token);
+  rekeyedTo.set(flowId, String(body.capabilityDigest));
+  return HttpResponse.json({ id: flowId });
+});
+
+/**
+ * "Find my order": answered `202` whatever was asked, as order-service
+ * answers it — but only to the storefront's own token, so a storefront that
+ * sent the coordinator's would fail here as it would live.
+ */
+const LOOKUP_URL = 'http://localhost:3105/api/checkout-group/send-access-link';
+const lookupHandler = http.post(LOOKUP_URL, ({ request }) =>
+  request.headers.get('x-crossing-token') ===
+  'dev-storefront-lookup-token-change-me'
+    ? HttpResponse.json({ accepted: true }, { status: 202 })
+    : problem('Unauthenticated', 'unauthenticated', 'unauthenticated', 401),
 );
 
 /**
@@ -526,6 +587,8 @@ setupServer(
   sellerDownHandler,
   buyerCancelHandler,
   buyerReceiptHandler,
+  accessHandler,
+  lookupHandler,
   configurationHandler(CONFIG_URL, CONFIGURATION),
   checkoutHandler,
   flowStatusHandler,

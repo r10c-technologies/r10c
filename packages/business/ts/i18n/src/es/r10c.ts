@@ -7,6 +7,36 @@
  * product copy, so they are r10c's namespace (ADR 0060).
  */
 export const r10c = {
+  /**
+   * El correo al comprador de la tienda: el recibo y el enlace de acceso de un
+   * solo uso (ADR 0076 §6). Registro de «tú», como la tienda.
+   */
+  mail: {
+    receipt: {
+      subject: 'Tu pedido {{number}}',
+      greeting: 'Hola, {{name}}:',
+      intro:
+        'Gracias por tu compra. Este es el resumen de tu pedido {{number}}.',
+      sellerOrder: 'Pedido {{number}} · {{tender}}',
+      line: '{{quantity}} × {{name}} — {{amount}}',
+      orderTotal: 'Total de este pedido: {{amount}}',
+      total: 'Total: {{amount}}',
+      deliveryHeading: 'Entrega',
+    },
+    access: {
+      subject: 'Tu enlace para ver el pedido {{number}}',
+      intro: 'Pediste un enlace para volver a ver tu pedido {{number}}.',
+      link: 'Abre tu pedido en cualquier dispositivo con este enlace. Funciona una vez y vence en {{hours}} horas:',
+      action: 'Abrir mi pedido',
+      notYou:
+        'Si no pediste este correo, puedes ignorarlo: nadie más recibió el enlace.',
+    },
+    tender: {
+      card: 'Tarjeta',
+      cod: 'Contra entrega',
+      cash: 'Efectivo',
+    },
+  },
   auth: {
     nav: {
       identity: 'Identidad',
@@ -320,9 +350,33 @@ export const r10c = {
         'Tu pago todavía se está confirmando, así que aún no se puede cancelar el pedido. Inténtalo de nuevo en un momento.',
       cancelFailed:
         'No se pudo cancelar el pedido. Puede que el plazo haya terminado o que ya vaya en camino.',
+      findLink: 'Encontrar mi pedido',
+      movedHeading: 'Este pedido se abrió en otro dispositivo',
+      moved:
+        'Alguien abrió este pedido con el enlace de tu correo, así que este navegador ya no puede mostrarlo. Si fuiste tú, sigue en ese dispositivo; si no, pide un enlace nuevo.',
+      find: {
+        heading: 'Encontrar mi pedido',
+        intro:
+          'Escribe el número de tu pedido (el de la compra o el de un vendedor) y el correo con el que compraste. Si coinciden, te enviamos un enlace para abrirlo.',
+        number: 'Número de pedido',
+        email: 'Correo electrónico',
+        submit: 'Enviarme un enlace',
+        sent: 'Si los datos coinciden con un pedido, te enviamos un enlace a ese correo. Puede tardar unos minutos.',
+      },
+      access: {
+        heading: 'Abrir tu pedido',
+        intro:
+          'Este enlace abre tu pedido en este navegador. Solo funciona una vez, y el navegador donde lo abrías antes dejará de mostrarlo.',
+        open: 'Abrir mi pedido',
+        failed:
+          'Este enlace ya se usó o venció. Puedes pedir uno nuevo con el número de tu pedido y tu correo.',
+        missing:
+          'Este enlace está incompleto. Puedes pedir uno nuevo con el número de tu pedido y tu correo.',
+      },
     },
     footer: {
       note: 'Catálogo de demostración. Ningún pedido es real.',
+      findOrder: 'Encontrar mi pedido',
     },
   },
   /**

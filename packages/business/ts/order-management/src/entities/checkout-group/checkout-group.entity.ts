@@ -43,6 +43,9 @@ export class CheckoutGroup implements Entity {
   #cancelDigest?: string;
   #cancelWindowEndsAt?: Date;
   #receiptEndsAt?: Date;
+  #accessDigest?: string;
+  #accessExpiresAt?: Date;
+  #accessSentAt?: Date;
   #contact: readonly CheckoutContact[] = [];
   #locale?: string;
   #redactedAt?: Date;
@@ -198,6 +201,60 @@ export class CheckoutGroup implements Entity {
   }
   set receiptEndsAt(value: Date | undefined) {
     this.#receiptEndsAt = value;
+  }
+
+  /**
+   * The SHA-256 digest of the one-time access link the buyer was last mailed,
+   * until it is redeemed or expires — **the digest, never the token**, which
+   * exists only in that email (ADR 0076 §6). Redeeming it replaces
+   * {@link cancelDigest} and clears it, so one link opens the receipt once.
+   *
+   * ⚠️ `filterable` and `sortable` are written `false`, not omitted, for the
+   * reason {@link cancelDigest} gives; `hidden` because no screen shows it.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:checkout-group.fields.accessDigest',
+    sortable: false,
+    filterable: false,
+  })
+  get accessDigest(): string | undefined {
+    return this.#accessDigest;
+  }
+  set accessDigest(value: string | undefined) {
+    this.#accessDigest = value;
+  }
+
+  /** Until when {@link accessDigest} may be redeemed (`order.accessLinkHours`). */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:checkout-group.fields.accessExpiresAt',
+    sortable: false,
+    filterable: false,
+  })
+  get accessExpiresAt(): Date | undefined {
+    return this.#accessExpiresAt;
+  }
+  set accessExpiresAt(value: Date | undefined) {
+    this.#accessExpiresAt = value;
+  }
+
+  /**
+   * When the last access link went out. Kept past a redemption, because it is
+   * what bounds a lookup to one mail per `order.accessLinkIntervalSeconds` —
+   * the only rate limit on the one route a stranger can make send mail.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:checkout-group.fields.accessSentAt',
+    sortable: false,
+    filterable: false,
+  })
+  get accessSentAt(): Date | undefined {
+    return this.#accessSentAt;
+  }
+  set accessSentAt(value: Date | undefined) {
+    this.#accessSentAt = value;
   }
   /**
    * The buyer's contact and where the parcels go — **the platform's one record

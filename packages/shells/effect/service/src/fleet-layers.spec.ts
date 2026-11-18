@@ -14,7 +14,10 @@ import {
   type ConfigurationPlain,
 } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
-import { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import {
+  ServiceCrossingCallersTag,
+  ServiceCrossingTokenTag,
+} from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import { EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import { Duration, Effect, Layer } from 'effect';
@@ -26,6 +29,7 @@ import {
   fleetRedeliveryBackoffLayer,
 } from './fleet-bus.js';
 import {
+  crossingCallersLayer,
   crossingTokenLayer,
   fleetPolicyLayer,
   fleetSecurityLayer,
@@ -53,7 +57,10 @@ const FLEET = configurationOf({
     publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
     keyId: 'spec-key',
   }),
-  service: rows({ token: 'spec-crossing-token' }),
+  service: rows({
+    token: 'spec-crossing-token',
+    storefrontToken: 'spec-storefront-token',
+  }),
   mongo: rows({
     uri: 'mongodb://127.0.0.1:1/?directConnection=true',
     db: 'spec',
@@ -119,6 +126,31 @@ describe('crossingTokenLayer', () => {
     );
 
     expect(token).toBe('spec-crossing-token');
+  });
+});
+
+describe('crossingCallersLayer', () => {
+  it('provides each named caller’s token from its own row', async () => {
+    const callers = await Effect.runPromise(
+      Effect.flatMap(crossingCallersLayer(FLEET, ['storefront']), layer =>
+        Effect.provide(
+          Effect.gen(function* () {
+            return yield* ServiceCrossingCallersTag;
+          }),
+          layer,
+        ),
+      ),
+    );
+
+    expect(callers.get('storefront')).toBe('spec-storefront-token');
+  });
+
+  it('refuses at boot a caller with no row', async () => {
+    const exit = await Effect.runPromiseExit(
+      crossingCallersLayer(FLEET, ['ghost']),
+    );
+
+    expect(exit._tag).toBe('Failure');
   });
 });
 

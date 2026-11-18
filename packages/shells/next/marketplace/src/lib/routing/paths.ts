@@ -50,4 +50,20 @@ export const storePaths = {
    */
   orderStatus: (flowId: string) =>
     `/order/status/${encodeURIComponent(flowId)}`,
+  /**
+   * Where a mailed one-time access link lands (ADR 0076 §6). The token rides
+   * the query string, which the edge never logs; only a post spends it.
+   */
+  orderAccess: (extra: Readonly<Record<string, string>> = {}) =>
+    `/order/access${queryOf(extra)}`,
+  /**
+   * Where a buyer asks for a new access link by number and email.
+   *
+   * ⚠️ **Static, and its answer is a second static page** rather than a query
+   * the page reads: under partial prerendering anything read from the query
+   * streams in, and with scripting off a streamed part never leaves its
+   * hidden container — so the lookup would not work for the buyer it is for.
+   */
+  orderFind: () => '/order/find',
+  orderFindSent: () => '/order/find/sent',
 } as const;

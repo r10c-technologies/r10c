@@ -121,6 +121,12 @@ export const ensureProductOrderIndexes = (db: Db) =>
         { number: 1 },
         { name: NUMBER_INDEX, unique: true },
       );
+      // A redemption finds its group by the link's digest alone; only groups
+      // holding a live link carry one.
+      await groups.createIndex(
+        { accessDigest: 1 },
+        { name: 'accessDigest_1', sparse: true },
+      );
     },
     catch: storeUnavailable,
   });
@@ -515,16 +521,18 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
         } as GroupOpening;
       });
 
-    return {
-      get: groupId =>
-        Effect.tryPromise({
-          try: () => groups.findOne({ id: groupId }, WITHOUT_ID),
-          catch: storeUnavailable,
-        }).pipe(
-          Effect.flatMap(document =>
-            document === null ? Effect.succeed(undefined) : revive(document),
-          ),
+    const get = (groupId: string) =>
+      Effect.tryPromise({
+        try: () => groups.findOne({ id: groupId }, WITHOUT_ID),
+        catch: storeUnavailable,
+      }).pipe(
+        Effect.flatMap(document =>
+          document === null ? Effect.succeed(undefined) : revive(document),
         ),
+      );
+
+    return {
+      get,
 
       open: (group, commandId) =>
         Effect.gen(function* () {
@@ -545,6 +553,80 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
           try: () => groups.deleteOne({ id: groupId }),
           catch: storeUnavailable,
         }).pipe(Effect.map(result => result.deletedCount > 0)),
+
+      // One conditional write: two racing lookups mail once. A `Date`, never
+      // its ISO string — the stamps are stored as dates, and Mongo never
+      // orders a string against one.
+      issueAccess: (groupId, grant, notSentSince) =>
+        Effect.tryPromise({
+          try: () =>
+            groups.findOneAndUpdate(
+              {
+                id: groupId,
+                ...(notSentSince === undefined
+                  ? {}
+                  : {
+                      $or: [
+                        { accessSentAt: null },
+                        { accessSentAt: { $lt: notSentSince } },
+                      ],
+                    }),
+              },
+              {
+                $set: {
+                  accessDigest: grant.digest,
+                  accessExpiresAt: grant.expiresAt,
+                  accessSentAt: grant.sentAt,
+                },
+              },
+              { returnDocument: 'after', ...WITHOUT_ID },
+            ),
+          catch: storeUnavailable,
+        }).pipe(
+          Effect.flatMap(document =>
+            document === null ? Effect.succeed(undefined) : revive(document),
+          ),
+        ),
+
+      // Exactly one of two racing redemptions matches: the winner clears the
+      // digest the loser's filter needs (ADR 0076 §6).
+      redeemAccess: (accessDigest, cancelDigest, now) =>
+        Effect.tryPromise({
+          try: () =>
+            groups.findOneAndUpdate(
+              { accessDigest, accessExpiresAt: { $gt: now } },
+              {
+                $set: { cancelDigest },
+                $unset: { accessDigest: '', accessExpiresAt: '' },
+              },
+              { returnDocument: 'after', projection: { _id: 0, id: 1 } },
+            ),
+          catch: storeUnavailable,
+        }).pipe(
+          Effect.map(document =>
+            document === null ? undefined : String(document['id']),
+          ),
+        ),
+
+      // A number is the group's own or one of its orders'; both are unique,
+      // so at most one of the two reads names a group.
+      findByNumber: number =>
+        Effect.gen(function* () {
+          const [own, order] = yield* Effect.tryPromise({
+            try: () =>
+              Promise.all([
+                groups.findOne({ number }, { projection: { _id: 0, id: 1 } }),
+                db
+                  .collection(ORDER_COLLECTION)
+                  .findOne({ number }, { projection: { _id: 0, groupId: 1 } }),
+              ]),
+            catch: storeUnavailable,
+          });
+          const groupId = own?.['id'] ?? order?.['groupId'];
+          return groupId === undefined
+            ? undefined
+            : yield* get(String(groupId));
+        }),
     };
   }),
 );

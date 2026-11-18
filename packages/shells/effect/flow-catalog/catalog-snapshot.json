@@ -1417,6 +1417,119 @@
       "fingerprint": "0a8ea1f52627fb"
     },
     {
+      "ref": "order.notify-buyer@1",
+      "id": "order.notify-buyer",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/checkout-group/:groupId/receipt-mail"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {
+        "groupId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "groupId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "groupId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "sent",
+                  "no-contact"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "outcome"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "notFound"
+                    ]
+                  }
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "04a623c264a6f3"
+    },
+    {
       "ref": "order.open-group@3",
       "id": "order.open-group",
       "version": 3,

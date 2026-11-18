@@ -28,7 +28,10 @@ const CONFIGURATION = fleetConfigurationOf({
     publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
     keyId: 'spec-key',
   }),
-  service: configurationRows({ token: 'spec-crossing-token' }),
+  service: configurationRows({
+    token: 'spec-crossing-token',
+    storefrontToken: 'spec-storefront-token',
+  }),
   mongo: configurationRows({
     uri: 'mongodb://127.0.0.1:1/?directConnection=true',
     db: 'order',
@@ -37,7 +40,18 @@ const CONFIGURATION = fleetConfigurationOf({
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
   idempotency: configurationRows({ retentionMs: 60_000 }),
-  order: configurationRows({ cancelWindowSeconds: 1800, receiptDays: 30 }),
+  order: configurationRows({
+    cancelWindowSeconds: 1800,
+    receiptDays: 30,
+    accessLinkHours: 24,
+    accessLinkIntervalSeconds: 300,
+    storefrontUrl: 'http://localhost:3000/',
+  }),
+  smtp: configurationRows({
+    host: '127.0.0.1',
+    port: 30825,
+    from: 'pedidos@r10c.test',
+  }),
   transaction: configurationRows({
     url: 'http://coordinator.invalid/api',
     crossingToken: 'spec-coordinator-token',

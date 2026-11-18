@@ -111,6 +111,57 @@ describe('a next cell', () => {
   }, 60_000);
 });
 
+/** A file that does not exist, placed where a `tech:smtp` cell's source lives. */
+const IN_AN_SMTP_CELL = join(
+  REPO_ROOT,
+  'packages/implementation/order-management/smtp/src/planted.ts',
+);
+
+/**
+ * An smtp cell is its driver's adapter and nothing else (ADR 0076 §6): it may
+ * not reach a store's engine, render, or serve — and the engine cells may not
+ * reach for its driver either.
+ */
+describe('an smtp cell', () => {
+  const errorsIn = async (code: string, filePath = IN_AN_SMTP_CELL) => {
+    const eslint = new ESLint({ cwd: REPO_ROOT });
+    const [result] = await eslint.lintText(code, { filePath });
+    return (result?.messages ?? [])
+      .filter(message => message.ruleId === BOUNDARY_RULE)
+      .map(message => message.message);
+  };
+
+  it.each([
+    ["import { MongoDatabaseTag } from '@entifix/mongo';", 'a store engine'],
+    ["import { MongoClient } from 'mongodb';", 'a store driver'],
+    ["import { buildApi } from '@entifix/service-shell';", 'the service shell'],
+    ["import { createElement } from 'react';", 'a renderer'],
+  ])(
+    'may not import %s (%s)',
+    async source => {
+      expect(await errorsIn(`${source}\nexport {};\n`)).toHaveLength(1);
+    },
+    60_000,
+  );
+
+  it('may import its own driver and its domain', async () => {
+    expect(
+      await errorsIn(
+        "import { createTransport } from 'nodemailer';\nimport { BuyerNotifierTag } from '@r10c/business-ts-order-management';\nexport {};\n",
+      ),
+    ).toEqual([]);
+  }, 60_000);
+
+  it('is not a driver a mongo cell may reach for', async () => {
+    expect(
+      await errorsIn(
+        "import { createTransport } from 'nodemailer';\nexport {};\n",
+        join(REPO_ROOT, 'packages/implementation/order/mongo/src/planted.ts'),
+      ),
+    ).toHaveLength(1);
+  }, 60_000);
+});
+
 /** A file that does not exist, placed where a `tech:http` cell's source lives. */
 const IN_AN_HTTP_CELL = join(
   REPO_ROOT,

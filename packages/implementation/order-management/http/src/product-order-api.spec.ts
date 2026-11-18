@@ -6,6 +6,9 @@ import {
   makeScriptedFlowStarter,
 } from '@r10c/business-ts-flow-contracts/testing';
 import {
+  AccessLinkHours,
+  AccessLinkIntervalSeconds,
+  BuyerNotifierTag,
   CancelWindowSeconds,
   CheckoutGroup,
   CheckoutGroupStoreTag,
@@ -14,8 +17,12 @@ import {
   ProductOrder,
   ProductOrderStoreTag,
   ReceiptDays,
+  StorefrontUrl,
 } from '@r10c/business-ts-order-management';
-import { makeInMemoryOrderStores } from '@r10c/business-ts-order-management/testing';
+import {
+  makeInMemoryOrderStores,
+  makeRecordingBuyerNotifier,
+} from '@r10c/business-ts-order-management/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -91,6 +98,8 @@ const [cancel] = productOrderApi.options.useCases;
 const [
   buyerCancellation,
   buyerReceiptRead,
+  accessRedemption,
+  receiptMail,
   claim,
   release,
   confirm,
@@ -433,6 +442,49 @@ describe('the buyer', () => {
   });
 });
 
+describe('a mailed access link (ADR 0076 §6)', () => {
+  const NEW_NONCE = 'the-new-nonce';
+  const redeem = (payload: object) => at(accessRedemption, { payload });
+
+  it('is redeemed once into a new capability the receipt then reads by', async () => {
+    const w = world();
+    await seeded(w);
+    await w.run(
+      w.stores.groups.issueAccess(GROUP, {
+        digest: digestOf('the-token'),
+        expiresAt: new Date(Date.now() + 60_000),
+        sentAt: new Date(),
+      }),
+    );
+    const body = { token: 'the-token', capabilityDigest: digestOf(NEW_NONCE) };
+
+    const redeemed = await w.run(redeem(body));
+    const spent = await w.refusal(redeem(body));
+    const receipt = (await w.run(
+      at(buyerReceiptRead, {
+        params: { id: GROUP },
+        headers: { 'x-cancel-nonce': NEW_NONCE },
+      }),
+    )) as unknown as { group: { data: Record<string, unknown> } };
+
+    expect(redeemed).toEqual({ id: GROUP });
+    expect(spent.code).toBe('cancelNotAuthorized');
+    expect(receipt.group.data['id']).toBe(GROUP);
+    expect(receipt.group.data).not.toHaveProperty('accessSentAt');
+    expect(receipt.group.data).not.toHaveProperty('accessDigest');
+    expect(accessRedemption.descriptor.guard).toEqual({ kind: 'public' });
+  });
+
+  it('refuses a body with no token', async () => {
+    const w = world();
+    await seeded(w);
+
+    const refused = await w.refusal(redeem({}));
+
+    expect(refused.code).toBe('cancelNotAuthorized');
+  });
+});
+
 describe('the receipt outlives the cancel window (ADR 0076 §6)', () => {
   const read = () =>
     at(buyerReceiptRead, {
@@ -507,5 +559,68 @@ describe('the staff cancel verb', () => {
     expect(cancel.accepted).toBe(true);
     expect(hidden.code).toBe('notFound');
     expect(nobody.code).toBe('notFound');
+  });
+});
+
+describe('the receipt mail step (ADR 0076 §6)', () => {
+  it('is a crossing on its own permission, remembered at the edge', () => {
+    expect(receiptMail.descriptor.guard).toEqual({
+      kind: 'crossing',
+      permission: 'order-management:checkout-group:send-receipt',
+      organization: false,
+    });
+    expect(receiptMail.descriptor.idempotent).toBe('edge');
+  });
+
+  it('mails the buyer and answers the outcome alone', async () => {
+    const w = world();
+    await seeded(w);
+    const notifier = makeRecordingBuyerNotifier();
+
+    const answer = await w.run(
+      at(receiptMail, { params: { id: GROUP } }).pipe(
+        Effect.provideService(BuyerNotifierTag, notifier),
+        Effect.provideService(AccessLinkHours, 24),
+        Effect.provideService(StorefrontUrl, 'http://shop.test'),
+      ),
+    );
+
+    expect(answer).toEqual({ id: GROUP, outcome: 'sent' });
+    expect(notifier.sent).toHaveLength(1);
+  });
+});
+
+describe('find my order (ADR 0076 §6)', () => {
+  const [sendLink] = checkoutGroupApi.options.useCases;
+
+  it('opens only to the storefront’s own crossing token', () => {
+    expect(sendLink?.guard).toEqual({
+      kind: 'crossing',
+      organization: false,
+      caller: 'storefront',
+    });
+    expect(sendLink?.accepted).toBe(true);
+  });
+
+  it('answers the same whatever matched', async () => {
+    const w = world();
+    await seeded(w);
+    const notifier = makeRecordingBuyerNotifier();
+
+    const answer = await w.run(
+      (
+        sendLink?.handler({
+          payload: { number: 'ZZZZ-ZZZZ', email: 'x@y.z' },
+        }) as Effect.Effect<unknown, never, never>
+      ).pipe(
+        Effect.provideService(BuyerNotifierTag, notifier),
+        Effect.provideService(AccessLinkHours, 24),
+        Effect.provideService(AccessLinkIntervalSeconds, 300),
+        Effect.provideService(StorefrontUrl, 'http://shop.test'),
+      ),
+    );
+
+    expect(answer).toEqual({ accepted: true });
+    expect(notifier.sent).toEqual([]);
   });
 });

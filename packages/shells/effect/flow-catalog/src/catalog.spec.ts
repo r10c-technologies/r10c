@@ -165,6 +165,7 @@ describe('the checkout recipe', () => {
       'v-2/cod:v-2-o-1:stock.convert',
       'v-2/cod:order.confirm',
       'v-2/cod:fulfilment.open',
+      'order.notify-buyer',
     ]);
     const capture = slipSteps(slip).find(
       step => step.step === 'payment.capture',
@@ -206,6 +207,7 @@ describe('the checkout recipe', () => {
       'v-1/cash:order.mark-dispatched',
       'v-1/cash:order.close',
     ]);
+    expect(refsOf(slip)).not.toContain('order.notify-buyer');
     expect(
       slipSteps(slip).find(step => step.step === 'v-1/cash:order.write')
         ?.parameters,

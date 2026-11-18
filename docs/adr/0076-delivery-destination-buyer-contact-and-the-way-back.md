@@ -250,12 +250,23 @@ is at-least-once. order-service sends through a `BuyerNotifierTag` port in
 `order-management`, implemented by a new `tech:smtp` cell. In the lab that
 cell points at Mailpit.
 
+The step calls `POST /api/checkout-group/:id/receipt-mail`, a crossing on its
+own permission, `order-management:checkout-group:send-receipt`, rather than
+the `write` that opens a group. The link lives `order.accessLinkHours` (24) and
+is written against `order.storefrontUrl`; the server is the `smtp.host`,
+`smtp.port` and `smtp.from` rows (#587).
+
 **Find my order.** The buyer enters a number (group or seller order) and an
 email. The storefront's server action calls
-`POST /api/checkout-group/access-link` on order-service. The call carries a
+`POST /api/checkout-group/send-access-link` on order-service — the path the
+collection verb `send-access-link` derives. The call carries a
 **storefront crossing token** plus the derived permission
 `order-management:checkout-group:send-access-link`, and has its own
-`is_secret` row. The route behaves as follows:
+`is_secret` row (`service.storefrontToken`, marketplace-app's
+`ORDER_LOOKUP_TOKEN`). The route's guard **names its caller**: it opens to the
+storefront's token alone, never to the coordinator's `service.token`, and the
+storefront's token opens no other route — entifix's crossing guard gained a
+`caller` for exactly this (#588). The route behaves as follows:
 
 - It answers `202` the same way whether or not anything matched, so it is not
   an oracle for numbers or emails.

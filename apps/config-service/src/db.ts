@@ -917,6 +917,18 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'dev-order-crossing-token-change-me',
     is_secret: true,
   },
+  // ⚠️ **The storefront's own crossing secret, for one route.** "Find my order"
+  // (`POST /api/checkout-group/send-access-link`) names its caller, so it opens
+  // to this token alone — never to `service.token` above, which the
+  // coordinator holds — and this token opens nothing else here. It must match
+  // marketplace-app's `ORDER_LOOKUP_TOKEN` (ADR 0076 §6).
+  {
+    service: 'order-service',
+    group_name: 'service',
+    key: 'storefrontToken',
+    value: 'dev-storefront-lookup-token-change-me',
+    is_secret: true,
+  },
   // How long after placement a storefront buyer may still cancel their own
   // order, in seconds. The receipt cookie that carries the capability lives
   // as long as the receipt does (`receiptDays`, below), so this window only
@@ -941,6 +953,50 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'order',
     key: 'receiptDays',
     value: '30',
+  },
+  // The buyer's way back (ADR 0076 §6). A mailed access link is redeemable for
+  // a day; a lookup ("find my order") mails one at most every five minutes per
+  // group, the only rate limit on the one route a stranger can make send mail;
+  // and a link is written against the storefront's origin — the edge's, never
+  // Next's own port.
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'accessLinkHours',
+    value: '24',
+  },
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'accessLinkIntervalSeconds',
+    value: '300',
+  },
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'storefrontUrl',
+    value: 'http://localhost:3000',
+  },
+  // Where the buyer's mail goes out: Mailpit in the lab (SMTP on 30825, read at
+  // http://localhost:30826). Plain SMTP, no credentials — a production server
+  // is a change of these rows, plus a secret row for its password.
+  {
+    service: 'order-service',
+    group_name: 'smtp',
+    key: 'host',
+    value: '127.0.0.1',
+  },
+  {
+    service: 'order-service',
+    group_name: 'smtp',
+    key: 'port',
+    value: '30825',
+  },
+  {
+    service: 'order-service',
+    group_name: 'smtp',
+    key: 'from',
+    value: 'r10c <pedidos@r10c.test>',
   },
   // Where the cancellation coordinator answers, and the secret this service
   // presents to start a flow through it.

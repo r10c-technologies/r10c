@@ -187,6 +187,32 @@ export const orderClose = defineFragment({
   },
 });
 
+/**
+ * Mail a storefront buyer their receipt with a one-time access link — the
+ * checkout's last step, after its commit point, so a failure retries rather
+ * than compensates (ADR 0076 §6). Each attempt draws a fresh link, and the
+ * outcome carries no token: it lands in the journal.
+ */
+export const orderNotifyBuyer = defineFragment({
+  id: 'order.notify-buyer',
+  version: 1,
+  module: 'order-management',
+  kind: 'retriable',
+  participant: PARTICIPANT,
+  call: { method: 'POST', path: '/api/checkout-group/:groupId/receipt-mail' },
+  cardinality: 'one',
+  isolation: 'reRead',
+  consumes: { groupId: GroupId },
+  contract: {
+    input: openStruct({ groupId: GroupId }),
+    output: openStruct({
+      id: GroupId,
+      outcome: Schema.Literals(['sent', 'no-contact']),
+    }),
+    failure: participantRefusal(['notFound']),
+  },
+});
+
 /** Every fragment order-management contributes. */
 export const ORDER_FRAGMENTS = [
   orderOpenGroup,
@@ -195,4 +221,5 @@ export const ORDER_FRAGMENTS = [
   orderConfirm,
   orderMarkDispatched,
   orderClose,
+  orderNotifyBuyer,
 ] as const;

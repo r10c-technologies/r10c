@@ -26,7 +26,7 @@ import { checkout } from '../cart/checkout-action';
 import { readFlowTicket } from '../cart/flow-ticket-cookie';
 import { OrderStatusFlow } from '../cart/order-status-flow';
 import { readReceipt } from '../cart/receipt-cookie';
-import { readBuyerReceipt } from '../cart/receipt-read';
+import { readBuyerReceiptAnswer } from '../cart/receipt-read';
 import {
   lineNameKey,
   type Receipt,
@@ -108,15 +108,46 @@ export async function OrderStatusPage({
         <EmptyState
           data-testid="receipt-expired"
           action={
-            <ButtonLink href={localeHref(locale, storePaths.home())}>
-              {t('storefront.order.keepShopping')}
-            </ButtonLink>
+            <Cluster gap="s">
+              <ButtonLink href={localeHref(locale, storePaths.orderFind())}>
+                {t('storefront.order.findLink')}
+              </ButtonLink>
+              <ButtonLink
+                variant="secondary"
+                href={localeHref(locale, storePaths.home())}
+              >
+                {t('storefront.order.keepShopping')}
+              </ButtonLink>
+            </Cluster>
           }
         >
           {t('storefront.order.expired')}
         </EmptyState>
       </Stack>
     </StoreShell>
+  );
+}
+
+/**
+ * A receipt whose capability was re-keyed elsewhere: say so, and offer the
+ * lookup rather than a receipt nothing behind it will read or cancel.
+ */
+function ReceiptMoved({ locale }: { readonly locale: Locale }) {
+  const t = getServerTFor(locale, 'r10c');
+  return (
+    <Stack gap="l">
+      <HeadingOne>{t('storefront.order.movedHeading')}</HeadingOne>
+      <EmptyState
+        data-testid="receipt-moved"
+        action={
+          <ButtonLink href={localeHref(locale, storePaths.orderFind())}>
+            {t('storefront.order.findLink')}
+          </ButtonLink>
+        }
+      >
+        {t('storefront.order.moved')}
+      </EmptyState>
+    </Stack>
   );
 }
 
@@ -134,12 +165,15 @@ async function ReceiptView({
   // What the cookie never keeps — where it goes, and each line's stored name —
   // read from the server on every render by the receipt's own capability. A
   // read that fails renders from the cookie alone (ADR 0076 §1, §6).
-  const details =
+  const answer =
     receipt.cancelNonce === undefined
       ? undefined
-      : receiptDetailsOf(
-          await readBuyerReceipt(receipt.groupId, receipt.cancelNonce),
-        );
+      : await readBuyerReceiptAnswer(receipt.groupId, receipt.cancelNonce);
+  // The nonce no longer opens this group: an access link re-keyed it on
+  // another device, and this browser's receipt is spent (ADR 0076 §6).
+  if (answer?.kind === 'refused') return <ReceiptMoved locale={locale} />;
+  const details =
+    answer?.kind === 'read' ? receiptDetailsOf(answer.body) : undefined;
   // When the buyer may still cancel: the nonce has to be there and the window
   // open. A counter sale carries none.
   const cancelWindow = cancelWindowLabel(locale, receipt, new Date());

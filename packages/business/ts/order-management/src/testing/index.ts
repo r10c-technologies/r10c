@@ -5,3 +5,4 @@
  */
 export * from './in-memory-product-order-store';
 export * from './product-order-store.contract';
+export * from './recording-buyer-notifier';

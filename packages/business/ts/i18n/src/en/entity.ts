@@ -330,6 +330,9 @@ export const entity: EsEntity = {
       cancelDigest: 'Cancel digest',
       cancelWindowEndsAt: 'Cancel window ends at',
       receiptEndsAt: 'Receipt available until',
+      accessDigest: 'Access link digest',
+      accessExpiresAt: 'Access link valid until',
+      accessSentAt: 'Access link sent',
       contact: 'Contact and delivery',
       buyer: {
         name: 'Name',
@@ -343,6 +346,9 @@ export const entity: EsEntity = {
       },
       locale: 'Language',
       redactedAt: 'Personal details removed on',
+    },
+    useCases: {
+      sendAccessLink: 'Send an access link',
     },
   },
   'product-order': {

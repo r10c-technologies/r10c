@@ -1,6 +1,36 @@
 type EsR10c = typeof import('../es/r10c').r10c;
 
 export const r10c: EsR10c = {
+  /**
+   * The mail to a storefront buyer: the receipt and the one-time access link
+   * (ADR 0076 §6).
+   */
+  mail: {
+    receipt: {
+      subject: 'Your order {{number}}',
+      greeting: 'Hello {{name}},',
+      intro:
+        'Thank you for your purchase. Here is a summary of your order {{number}}.',
+      sellerOrder: 'Order {{number}} · {{tender}}',
+      line: '{{quantity}} × {{name}} — {{amount}}',
+      orderTotal: 'Total for this order: {{amount}}',
+      total: 'Total: {{amount}}',
+      deliveryHeading: 'Delivery',
+    },
+    access: {
+      subject: 'Your link to see order {{number}}',
+      intro: 'You asked for a link to see your order {{number}} again.',
+      link: 'Open your order on any device with this link. It works once and expires in {{hours}} hours:',
+      action: 'Open my order',
+      notYou:
+        'If you did not ask for this email, you can ignore it: nobody else received the link.',
+    },
+    tender: {
+      card: 'Card',
+      cod: 'Cash on delivery',
+      cash: 'Cash',
+    },
+  },
   auth: {
     nav: {
       identity: 'Identity',
@@ -297,9 +327,33 @@ export const r10c: EsR10c = {
         'Your payment is still being confirmed, so the order cannot be cancelled yet. Try again in a moment.',
       cancelFailed:
         'The order could not be cancelled. The window may have closed, or it may already be on its way.',
+      findLink: 'Find my order',
+      movedHeading: 'This order was opened on another device',
+      moved:
+        'Someone opened this order with the link from your email, so this browser can no longer show it. If that was you, carry on there; if not, ask for a new link.',
+      find: {
+        heading: 'Find my order',
+        intro:
+          'Enter your order number (the purchase’s or a seller’s) and the email you bought with. If they match, we will email you a link to open it.',
+        number: 'Order number',
+        email: 'Email',
+        submit: 'Email me a link',
+        sent: 'If the details match an order, we sent a link to that email. It may take a few minutes.',
+      },
+      access: {
+        heading: 'Open your order',
+        intro:
+          'This link opens your order in this browser. It works once, and the browser you opened it in before will stop showing it.',
+        open: 'Open my order',
+        failed:
+          'This link was already used or has expired. You can ask for a new one with your order number and your email.',
+        missing:
+          'This link is incomplete. You can ask for a new one with your order number and your email.',
+      },
     },
     footer: {
       note: 'Demo catalog. No order is real.',
+      findOrder: 'Find my order',
     },
   },
   /**

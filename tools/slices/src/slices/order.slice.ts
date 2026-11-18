@@ -70,6 +70,12 @@ export const orderSlice: SliceDeclaration = {
     'GET|DELETE /api/checkout-group/:id',
     'GET /api/checkout-group/$metadata',
     'GET /api/checkout-group/:id/buyer-receipt',
+    // The buyer's way back (ADR 0076 §6): the checkout's receipt mail, a
+    // mailed link's redemption, and "find my order", the storefront's one
+    // crossing into this slice.
+    'POST /api/checkout-group/:id/receipt-mail',
+    'POST /api/checkout-group/access',
+    'POST /api/checkout-group/send-access-link',
   ],
   dependantAPIs: [
     'GET /api/config/:service',

@@ -7,7 +7,10 @@ import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
 import { MongoUnitOfWorkLayer } from '@entifix/mongo/transactions';
-import { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import {
+  ServiceCrossingCallersTag,
+  ServiceCrossingTokenTag,
+} from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
   type RunningTestService,
@@ -37,9 +40,14 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import {
+  AccessLinkHours,
+  AccessLinkIntervalSeconds,
+  BuyerNotifierTag,
   CancelWindowSeconds,
   ReceiptDays,
+  StorefrontUrl,
 } from '@r10c/business-ts-order-management';
+import { makeRecordingBuyerNotifier } from '@r10c/business-ts-order-management/testing';
 import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
 import {
   endpoints,
@@ -51,7 +59,7 @@ import { httpFlowStarterLayer } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
-import { E2E_CROSSING_TOKEN } from './tokens';
+import { E2E_CROSSING_TOKEN, E2E_STOREFRONT_TOKEN } from './tokens';
 
 /**
  * Where this profile's cancellation entry routes would dispatch.
@@ -81,13 +89,24 @@ const CONFIGURATION = {
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
   ],
-  service: [{ key: 'token', value: E2E_CROSSING_TOKEN }],
+  service: [
+    { key: 'token', value: E2E_CROSSING_TOKEN },
+    { key: 'storefrontToken', value: E2E_STOREFRONT_TOKEN },
+  ],
   // The buyer's cancel window and how long the receipt can be read. Literals
   // here for the same reason every other row is: the fixture is the
   // config-service fetch, not a stub of the dial.
   order: [
     { key: 'cancelWindowSeconds', value: '1800' },
     { key: 'receiptDays', value: '30' },
+    { key: 'accessLinkHours', value: '24' },
+    { key: 'accessLinkIntervalSeconds', value: '300' },
+    { key: 'storefrontUrl', value: 'http://shop.test' },
+  ],
+  smtp: [
+    { key: 'host', value: 'smtp.invalid' },
+    { key: 'port', value: '25' },
+    { key: 'from', value: 'r10c <pedidos@r10c.test>' },
   ],
   // Where this service starts a cancellation. The real composition root reads
   // both rows; this profile builds the two tags directly below, and the rows are
@@ -97,6 +116,9 @@ const CONFIGURATION = {
     { key: 'crossingToken', value: E2E_CROSSING_TOKEN },
   ],
 };
+
+/** What the buyer was mailed, read by the specs. */
+export const sentMail = makeRecordingBuyerNotifier();
 
 /** Matches the seeded rows. */
 const E2E_CANCEL_WINDOW_SECONDS = 1800;
@@ -132,12 +154,23 @@ const connections = Layer.mergeAll(
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
+  // The storefront's own token, which alone opens "find my order".
+  Layer.succeed(
+    ServiceCrossingCallersTag,
+    new Map([['storefront', E2E_STOREFRONT_TOKEN]]),
+  ),
   // The crossing routes' `Idempotency-Key` records, in memory (ADR 0068).
   Layer.succeed(
     IdempotencyStoreTag,
     makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
   ),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
+  Layer.succeed(AccessLinkHours, 24),
+  Layer.succeed(AccessLinkIntervalSeconds, 300),
+  Layer.succeed(StorefrontUrl, 'http://shop.test'),
+  // Every mail this profile sends, kept for the specs to read rather than
+  // handed to an SMTP server.
+  Layer.succeed(BuyerNotifierTag, sentMail),
   Layer.succeed(ReceiptDays, E2E_RECEIPT_DAYS),
   httpFlowStarterLayer({
     url: COORDINATOR_URL,

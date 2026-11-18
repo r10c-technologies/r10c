@@ -64,6 +64,15 @@ export default defineEntifixTest({
     // covered here.
     '**/lib/cart/priced-cart.ts',
     '**/lib/cart/settle-action.ts',
+    // The access link's redemption and the receipt write it shares with the
+    // settle above: `fetch`, `cookies()` and `redirect`, like the actions
+    // here. What they decide is `access-redemption.ts` and `receipt-state.ts`,
+    // covered here; `marketplace-app-e2e` redeems a link end to end.
+    '**/lib/cart/access-action.ts',
+    // The lookup's action: one `fetch` and a `redirect`, deciding nothing —
+    // its answer is the same whatever happened. `marketplace-app-e2e` posts it.
+    '**/lib/cart/find-action.ts',
+    '**/lib/cart/receipt-write.ts',
     '**/lib/cart/settle-cancel-action.ts',
     '**/lib/cart/flow-ticket-cookie.ts',
     '**/lib/cart/cancel-ticket-cookie.ts',

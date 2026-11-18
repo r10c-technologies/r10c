@@ -17,6 +17,7 @@ import {
   makeEnvelope,
   NotFound,
   StaleRevision,
+  Unavailable,
 } from '@entifix/core';
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import {
@@ -44,6 +45,10 @@ import {
   ProductOrder,
   ProductOrderStoreTag,
   ReceiptDays,
+  redeemAccess,
+  sendAccessLink,
+  SendAccessLinkUC,
+  sendReceiptMail,
 } from '@r10c/business-ts-order-management';
 import { Effect, Option, Schema } from 'effect';
 
@@ -75,6 +80,12 @@ const acceptedEnvelope = (accepted: FlowAccepted) =>
 
 /** The id every entity verb is bound to; the path always carries it. */
 const idOf = (request: EntityApiRequest) => request.params?.id as string;
+
+/** A string member of a body, or `undefined` for anything else. */
+const stringOf = (body: unknown, member: string) => {
+  const value = (body as Record<string, unknown> | undefined)?.[member];
+  return typeof value === 'string' ? value : undefined;
+};
 
 /** The lines a write carried, as sent — before a line's vendor is dropped. */
 const rawLinesOf = (payload: unknown): readonly unknown[] => {
@@ -209,6 +220,20 @@ export const checkoutGroupApi = defineEntityApi(CheckoutGroup, GROUP_KEY, {
         }),
     },
   },
+  useCases: [
+    // "Find my order" (ADR 0076 §6): reached only through the storefront,
+    // whose own crossing token alone opens it — never a session, never the
+    // coordinator's token. Always `202`, the same body whatever matched.
+    verbEndpoint(SendAccessLinkUC, {
+      guard: { kind: 'crossing', organization: false, caller: 'storefront' },
+      accepted: true,
+      handler: (request: EntityApiRequest) =>
+        sendAccessLink({
+          number: stringOf(request.payload, 'number'),
+          email: stringOf(request.payload, 'email'),
+        }),
+    }),
+  ],
 });
 
 const crossing = {
@@ -258,6 +283,68 @@ const buyerReceiptRead = defineEndpoint({
   errors: [CancelNotAuthorized],
   guard: { kind: 'public' },
 });
+
+/**
+ * `POST /api/checkout-group/access` — redeem a mailed one-time access link
+ * (ADR 0076 §6). The body carries the link's token and the digest of the
+ * nonce the storefront just minted; one conditional write swaps that digest
+ * in for the group's capability and spends the link. **The token and no
+ * session**, as `buyer-cancellation` takes the nonce: answers the group's id,
+ * which the storefront then reads the receipt back from with its new nonce.
+ */
+const accessRedemption = defineEndpoint({
+  name: 'access-redemption',
+  method: 'POST',
+  path: `${GROUP_BASE}/access`,
+  payload: JsonBody,
+  success: Schema.Struct({ id: Schema.String }),
+  errors: [CancelNotAuthorized],
+  guard: { kind: 'public' },
+});
+
+/**
+ * `POST /api/checkout-group/:id/receipt-mail` — the checkout's last step
+ * (`order.notify-buyer`): mail the buyer their receipt with a fresh one-time
+ * access link (ADR 0076 §6). A crossing, on its own narrow permission;
+ * remembered at the edge, so a redelivery of one command does not mail twice,
+ * while a retry after a failed send — a new command — draws a new link.
+ *
+ * ⚠️ Its answer is a step outcome and lands in the journal: it carries no
+ * token.
+ */
+const receiptMail = defineEndpoint({
+  name: 'receipt-mail',
+  method: 'POST',
+  path: `${GROUP_BASE}/:id/receipt-mail`,
+  params,
+  success: Schema.Struct({
+    id: Schema.String,
+    outcome: Schema.Literals(['sent', 'no-contact']),
+  }),
+  errors: [NotFound, Unavailable],
+  guard: {
+    kind: 'crossing',
+    permission: 'order-management:checkout-group:send-receipt',
+    organization: false,
+  },
+  idempotent: 'edge',
+});
+
+/**
+ * The group as its buyer reads it back: everything but the access link's
+ * members, which say when a link went out and which digest opens it — the
+ * receipt has no use for either, so it never carries them.
+ */
+const receiptGroup = (group: CheckoutGroup) => {
+  const envelope = makeEntityEnvelope(CheckoutGroup, group, []);
+  const {
+    accessDigest: _digest,
+    accessExpiresAt: _expires,
+    accessSentAt: _sent,
+    ...data
+  } = envelope.data as Record<string, unknown>;
+  return { ...envelope, data };
+};
 
 /**
  * `POST /:id/cancelling` — the cancellation's concurrency claim,
@@ -339,11 +426,6 @@ const closed = defineEndpoint({
   idempotent: 'unit',
 });
 
-const stringOf = (body: unknown, member: string) => {
-  const value = (body as Record<string, unknown> | undefined)?.[member];
-  return typeof value === 'string' ? value : undefined;
-};
-
 /** Read an order back for a transition that did not move it. */
 const answerWithOrder = (orderId: string) =>
   Effect.gen(function* () {
@@ -384,10 +466,19 @@ export const productOrderEndpoints = [
   implement(buyerReceiptRead, ({ params: { id }, headers }) =>
     buyerReceipt({ groupId: id, nonce: headers['x-cancel-nonce'] }).pipe(
       Effect.map(({ group, orders }) => ({
-        group: makeEntityEnvelope(CheckoutGroup, group, []),
+        group: receiptGroup(group),
         orders: orders.map(order => envelopeOf(order, [])),
       })),
     ),
+  ),
+  implement(accessRedemption, ({ payload }) =>
+    redeemAccess({
+      token: stringOf(payload, 'token'),
+      capabilityDigest: stringOf(payload, 'capabilityDigest'),
+    }),
+  ),
+  implement(receiptMail, ({ params: { id } }) =>
+    sendReceiptMail({ groupId: id }),
   ),
   implement(claimCancellation, ({ params: { id } }) =>
     Effect.gen(function* () {

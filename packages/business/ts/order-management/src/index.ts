@@ -43,5 +43,6 @@ export * from './ports';
  * barrel reaches every declaration.
  */
 export * from './fragments';
+export * from './notifications';
 export * from './use-cases';
 export * from './values';

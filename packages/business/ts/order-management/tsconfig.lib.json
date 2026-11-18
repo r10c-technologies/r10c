@@ -20,6 +20,9 @@
       "path": "../order-contracts/tsconfig.lib.json"
     },
     {
+      "path": "../i18n/tsconfig.lib.json"
+    },
+    {
       "path": "../flow-contracts/tsconfig.lib.json"
     },
     {

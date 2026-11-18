@@ -24,7 +24,17 @@ const imageHosts = (process.env.STOREFRONT_IMAGE_HOSTS ?? 'picsum.photos')
   .map(entry => entry.trim().toLowerCase())
   .filter(entry => HOSTNAME.test(entry));
 
+/**
+ * The page a mailed access link opens carries its one-time token in the query
+ * string, so nothing it loads may send that address on as a `Referer`
+ * (ADR 0076 §6). The page's own metadata says the same for the document.
+ */
+const NO_REFERRER = [{ key: 'Referrer-Policy', value: 'no-referrer' }];
+
 const nextConfig = {
+  headers: async () => [
+    { source: '/:locale/order/access', headers: NO_REFERRER },
+  ],
   // Partial prerendering (#346): each route's static shell is prerendered and
   // what reads the catalog, a cookie or the query streams into it. The
   // catalog's cache lifetime is the shell's `CATALOG_CACHE`, short enough
