@@ -7,12 +7,17 @@ import {
   Text,
   TextInput,
 } from '@entifix/react-controls/primitives';
-import { GUATEMALA_DEPARTAMENTOS } from '@r10c/business-ts-order-contracts';
-import { useActionState } from 'react';
+import {
+  FILLED_INPUT_PATTERN,
+  GUATEMALA_DEPARTAMENTOS,
+  PHONE_INPUT_PATTERN,
+} from '@r10c/business-ts-order-contracts';
+import { useActionState, useSyncExternalStore } from 'react';
 
 import { placeOrder } from './checkout-action';
 import { type Tender, tenderField } from './checkout-start';
 import {
+  type CheckoutFormState,
   type ContactField,
   contactFieldName,
   EMPTY_CHECKOUT_FORM,
@@ -74,6 +79,31 @@ const INPUT_TYPE: Readonly<Partial<Record<ContactField, string>>> = {
 
 const OPTIONAL: ReadonlySet<ContactField> = new Set(['zona', 'reference']);
 
+/**
+ * What the browser checks on its own when the form posts without script: the
+ * same rules `contactProblems` applies, as patterns (#725). The email's is its
+ * `type`, and the municipio's its `required`.
+ */
+const PATTERN: Readonly<Partial<Record<ContactField, string>>> = {
+  name: FILLED_INPUT_PATTERN,
+  phone: PHONE_INPUT_PATTERN,
+  addressLine: FILLED_INPUT_PATTERN,
+};
+
+const subscribeNever = () => () => undefined;
+
+/**
+ * `false` in the server's HTML, `true` once React runs in the browser. Read
+ * through `useSyncExternalStore`, so the first client render agrees with the
+ * server's and hydration does not warn.
+ */
+const useHydrated = () =>
+  useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
+
 const idOf = (field: ContactField) => `delivery-${field}`;
 
 /**
@@ -91,6 +121,7 @@ export function DeliveryForm({
   sellers,
   retry,
   labels,
+  initial = EMPTY_CHECKOUT_FORM,
 }: {
   readonly locale: string;
   readonly reviewed: string;
@@ -98,8 +129,15 @@ export function DeliveryForm({
   /** The review was reached from a failed start, whose ticket it reuses. */
   readonly retry: boolean;
   readonly labels: DeliveryFormLabels;
+  /**
+   * Where the form starts: empty, or — after a post without script that the
+   * browser let through and the server refused — each field's error with
+   * nothing typed, since the values are never carried back (`refusedReview`).
+   */
+  readonly initial?: CheckoutFormState;
 }) {
-  const [state, action] = useActionState(placeOrder, EMPTY_CHECKOUT_FORM);
+  const [state, action] = useActionState(placeOrder, initial);
+  const hydrated = useHydrated();
 
   const field = (name: ContactField) => {
     const error = state.errors[name];
@@ -119,6 +157,11 @@ export function DeliveryForm({
       'aria-invalid': error === undefined ? undefined : true,
       'aria-describedby': described === '' ? undefined : described,
       required: !OPTIONAL.has(name),
+      ...(PATTERN[name] === undefined
+        ? {}
+        : // The hint, when there is one, is what the browser's own message
+          // adds; it says what a valid value looks like.
+          { pattern: PATTERN[name], ...(hint === undefined ? {} : { title: hint }) }),
     } as const;
     return (
       <div key={name} className="flex min-w-0 flex-col gap-3xs">
@@ -239,7 +282,11 @@ export function DeliveryForm({
   };
 
   return (
-    <form action={action} noValidate data-testid="delivery-form">
+    // Validated by the browser until React runs, by the server after (#725).
+    // Without script the action's state never comes back — Next renders the
+    // page after a native post through a resume that takes no form state — so
+    // the browser's own check is what keeps what was typed beside its error.
+    <form action={action} noValidate={hydrated} data-testid="delivery-form">
       <Stack gap="m">
         {sellers.map(payment)}
         {/* A fieldset defaults to `min-inline-size: min-content`, so the

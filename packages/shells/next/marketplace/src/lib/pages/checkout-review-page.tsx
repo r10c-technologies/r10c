@@ -17,7 +17,7 @@ import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { redirect } from 'next/navigation';
 
 import { tendersOffered } from '../cart/checkout-start';
-import { CONTACT_FIELDS } from '../cart/delivery-contact';
+import { CONTACT_FIELDS, refusedState } from '../cart/delivery-contact';
 import { DeliveryForm } from '../cart/delivery-form';
 import { readPricedCart } from '../cart/priced-cart';
 import { reviewedTotalsOf } from '../cart/priced-cart-state';
@@ -46,6 +46,7 @@ export async function CheckoutReviewPage({
   locale,
   changed = false,
   retry = false,
+  refused,
 }: {
   readonly locale: Locale;
   /**
@@ -58,6 +59,11 @@ export async function CheckoutReviewPage({
    * order then reuses that start's ticket, so it names the same flow.
    */
   readonly retry?: boolean;
+  /**
+   * The error codes a post made without script was refused with, as the
+   * address carried them back (`refusalQuery`); never anything typed.
+   */
+  readonly refused?: unknown;
 }) {
   const t = getServerTFor(locale, 'r10c');
   const tErrors = getServerTFor(locale, 'errors');
@@ -196,6 +202,11 @@ export async function CheckoutReviewPage({
               offered: tendersOffered(vendors.get(part.vendorId)),
             }))}
             retry={retry}
+            initial={refusedState(
+              refused,
+              CONTACT_ERROR_CODES,
+              parts.map(part => part.vendorId),
+            )}
             labels={{
               legend: t('storefront.review.delivery.legend'),
               intro: t('storefront.review.delivery.intro'),

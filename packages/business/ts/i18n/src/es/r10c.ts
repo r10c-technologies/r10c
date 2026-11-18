@@ -311,6 +311,9 @@ export const r10c = {
       failed:
         'No se pudo registrar tu pedido y no se cobró nada. Tu carrito sigue aquí.',
       retry: 'Intentar de nuevo',
+      checkNow: 'Ver si ya está listo',
+      checkNowHint:
+        'Tu navegador no actualiza esta página por sí solo. Usa el botón para ver si tu pedido ya quedó registrado.',
       heading: '¡Gracias por tu compra!',
       placed: 'Tu pedido quedó registrado y el vendedor ya fue notificado.',
       reference: 'Número de pedido',

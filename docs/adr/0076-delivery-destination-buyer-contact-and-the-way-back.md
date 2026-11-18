@@ -6,6 +6,7 @@
 - Read when: storing a buyer's address or contact, numbering an order, or letting a buyer find an order again — contact data lives on the group and the shipment only, a buyer's tax id on the order, and a number never authorizes
 - Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the buyer's fiscal identity is a third personal record, on the order, and it travels only on a fiscal-document event with `audience: 'none'`, never on `order.*`
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — payment evidence is personal data removed by the §4 sweep; the receipt capability authorizes one write; the review step offers `link`
+- Revised: 2026-11-18 — §6: the access page answers `Referrer-Policy: strict-origin`, not `no-referrer`, which made a browser post the redemption with `Origin: null` and Next refuse it without script (#725)
 
 ## Context
 
@@ -234,7 +235,9 @@ The link opens a page whose button **posts** the redemption, and the `GET`
 alone redeems nothing. Mail scanners that pre-fetch links therefore cannot
 spend it. The token rides the **query string**, which the edge's access log is
 already forbidden to write (`@r10c/docs-check`), and the page answers with
-`Referrer-Policy: no-referrer`.
+`Referrer-Policy: strict-origin` — the origin and never the path, because
+`no-referrer` makes a browser post the redemption with `Origin: null`, which
+Next's Server Action CSRF check refuses.
 
 **The receipt email.** The checkout recipe gains a final stage, `notify`, with
 one retriable step, `order.notify-buyer@1`. The step runs after the commit

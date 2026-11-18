@@ -91,6 +91,21 @@ const nationalDigits = (value: unknown): string | undefined => {
     : undefined;
 };
 
+/**
+ * The phone rule as an HTML `pattern` (anchored by the browser, compiled with
+ * the `v` flag), so a form without script refuses what `normalizePhone`
+ * refuses before anything is posted (#725). Any separators, an optional `+`
+ * and `502`, then eight digits. The spec holds the two to the same answers.
+ */
+export const PHONE_INPUT_PATTERN =
+  '[\\s\\-.\\(\\)]*\\+?(?:502)?(?:[\\s\\-.\\(\\)]*\\d){8}[\\s\\-.\\(\\)]*';
+
+/**
+ * A required text field as an HTML `pattern`: something other than spaces,
+ * as `isFilled` asks of the name and the address.
+ */
+export const FILLED_INPUT_PATTERN = '.*\\S.*';
+
 /** A phone as E.164 (`+50255551234`), or `undefined` when it is not one. */
 export const normalizePhone = (value: unknown): string | undefined => {
   const digits = nationalDigits(value);

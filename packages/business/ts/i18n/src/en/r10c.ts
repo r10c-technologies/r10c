@@ -288,6 +288,9 @@ export const r10c: EsR10c = {
       failed:
         'Your order could not be placed, and nothing was charged. Your cart is still here.',
       retry: 'Try again',
+      checkNow: 'See if it is ready',
+      checkNowHint:
+        'Your browser does not update this page on its own. Use the button to see whether your order is placed.',
       heading: 'Thank you for your purchase',
       placed: 'Your order is placed, and the vendor has been notified.',
       reference: 'Order number',

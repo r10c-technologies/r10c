@@ -10,7 +10,7 @@ import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { postFlow } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { runRead } from '../catalog/catalog-reads';
@@ -33,6 +33,8 @@ import {
   contactOf,
   contactValuesOf,
   namesNoContact,
+  refusalQuery,
+  REFUSED_PARAM,
 } from './delivery-contact';
 import {
   FLOW_COOKIE,
@@ -113,7 +115,7 @@ export async function placeOrder(
   const choice = await tendered(parts, formData);
   const tendersMissing = 'missing' in choice ? choice.missing : [];
   if (Object.keys(errors).length > 0 || tendersMissing.length > 0) {
-    return {
+    const refused: CheckoutFormState = {
       values,
       errors,
       tenders: Object.fromEntries(
@@ -124,6 +126,20 @@ export async function placeOrder(
       ),
       tendersMissing,
     };
+    // A post made without script never gets this state back: Next renders
+    // the page after it through a resume that takes no form state (#725). The
+    // browser's own validation stops nearly every such post first; what still
+    // arrives goes back to the review with its codes alone.
+    if (!(await headers()).has('next-action')) {
+      const locale = String(formData.get('locale') ?? '');
+      redirect(
+        `/${locale}${storePaths.checkoutReview({
+          [REFUSED_PARAM]: refusalQuery(refused),
+          ...(formData.get('retry') === null ? {} : { retry: '1' }),
+        })}`,
+      );
+    }
+    return refused;
   }
   return start(formData, contactOf(values));
 }

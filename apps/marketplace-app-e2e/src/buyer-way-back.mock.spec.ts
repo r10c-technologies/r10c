@@ -63,7 +63,9 @@ test.describe('the buyer’s way back', () => {
   }) => {
     test.setTimeout(120_000);
     const flowId = await checkedOut(page, network);
-    const other = await another(browser, baseURL);
+    // Without script, as a mail client's browser may well be (#725): the
+    // access page and the receipt it leads to render in the first response.
+    const other = await another(browser, baseURL, false);
 
     // Opening the link spends nothing: only the button's post redeems it.
     await other.goto(`/es/order/access?token=e2e-token-${flowId}`);

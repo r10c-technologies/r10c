@@ -10,7 +10,9 @@ import {
   decodeBuyerContact,
   EMAIL_NOT_VALID,
   EmailNotValid,
+  FILLED_INPUT_PATTERN,
   normalizePhone,
+  PHONE_INPUT_PATTERN,
   PHONE_NOT_GUATEMALAN,
   PhoneNotGuatemalan,
 } from './buyer-contact.js';
@@ -224,5 +226,39 @@ describe('a buyer contact', () => {
       [ZONA_OUT_OF_RANGE, 'the zona is an integer from 1 to 25'],
       [ADDRESS_LINE_REQUIRED, 'the address line is required'],
     ]);
+  });
+});
+
+describe('the input patterns', () => {
+  // How a browser applies `pattern`: anchored, under the `v` flag.
+  const browser = (pattern: string) => new RegExp(`^(?:${pattern})$`, 'v');
+
+  it('refuses in the browser exactly the phones normalizePhone refuses', () => {
+    const phone = browser(PHONE_INPUT_PATTERN);
+    for (const typed of [
+      '5555-1234',
+      '55551234',
+      '+502 5555 1234',
+      '50255551234',
+      '(502) 5555-1234',
+      '50212345',
+      ' 5555.1234 ',
+      '12',
+      '5555-123',
+      '5025555123',
+      '+1 555 555 1234',
+      '5555-12345',
+      'cinco',
+      '',
+    ]) {
+      expect(phone.test(typed), typed).toBe(normalizePhone(typed) !== undefined);
+    }
+  });
+
+  it('asks a required text field for something other than spaces', () => {
+    const filled = browser(FILLED_INPUT_PATTERN);
+    expect(filled.test('Ana')).toBe(true);
+    expect(filled.test('   ')).toBe(false);
+    expect(filled.test('')).toBe(false);
   });
 });
