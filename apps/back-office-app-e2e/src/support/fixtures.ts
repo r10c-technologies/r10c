@@ -304,6 +304,7 @@ const productOrders = entityBackendHandlers(ProductOrder, {
       items: [
         {
           offeringId: 'product-offering-1',
+          name: 'Aurora Desk Lamp',
           quantity: 2,
           amount: 25,
           currency: 'GTQ',
@@ -388,7 +389,9 @@ const shipment = (
   paymentMethod: 'cod',
   amountDue: 50,
   currency: 'GTQ',
-  lines: [{ offeringId: 'product-offering-1', quantity: 2 }],
+  lines: [
+    { offeringId: 'product-offering-1', name: 'Aurora Desk Lamp', quantity: 2 },
+  ],
   status,
 });
 

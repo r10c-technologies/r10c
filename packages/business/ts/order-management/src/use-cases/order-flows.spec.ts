@@ -38,7 +38,7 @@ const anOrder = (vendorId = 'v-1', groupId = GROUP) =>
     vendorId,
     groupId,
     paymentMethod: 'card',
-    items: [new OrderItem('o-1', 2, 10, 'GTQ')],
+    items: [new OrderItem('o-1', 'Lámpara Aurora', 2, 10, 'GTQ')],
   });
 
 const aGroup = (extra: Partial<CheckoutGroup> = {}) =>
@@ -346,7 +346,7 @@ describe('cancellationInput', () => {
       vendorId: 'v-9',
       paymentMethod: 'cash',
       channel: { id: 'c-1', name: 'Till', type: 'counter' },
-      items: [new OrderItem('o-1', 1, 10, 'GTQ')],
+      items: [new OrderItem('o-1', 'Lámpara Aurora', 1, 10, 'GTQ')],
     });
 
     expect(cancellationInput(order)).toMatchObject({ shipped: false });

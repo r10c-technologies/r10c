@@ -2,11 +2,13 @@ import type { Overloaded, UpstreamUnavailable } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
- * What a sale is priced from: the published offering's vendor and unit price,
- * as the storefront shows it.
+ * What a sale is priced from: the published offering's vendor, name and unit
+ * price, as the storefront shows them. The name is copied onto the sale's
+ * line, so the order keeps what was sold after a rename (#582).
  */
 export interface PublishedPrice {
   readonly offeringId: string;
+  readonly name: string;
   readonly vendorId: string;
   readonly amount: number;
   readonly currency: string;
@@ -43,18 +45,21 @@ export class PublishedPriceReaderTag extends Context.Service<
 
 /**
  * The price a published-offering record carries, or `undefined` when the
- * record is missing or any of the three members a sale needs is not there.
+ * record is missing or any of the four members a sale needs is not there.
  */
 export const publishedPriceOf = (
   offeringId: string,
   record: Readonly<Record<string, unknown>> | undefined,
 ): PublishedPrice | undefined => {
   const vendorId = record?.['vendorId'];
+  const name = record?.['name'];
   const amount = record?.['amount'];
   const currency = record?.['currency'];
   return typeof vendorId === 'string' &&
+    typeof name === 'string' &&
+    name !== '' &&
     typeof amount === 'number' &&
     typeof currency === 'string'
-    ? { offeringId, vendorId, amount, currency }
+    ? { offeringId, name, vendorId, amount, currency }
     : undefined;
 };

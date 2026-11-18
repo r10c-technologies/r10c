@@ -33,7 +33,7 @@ const MOVE_REFUSAL = participantRefusal([
  */
 export const fulfilmentOpen = defineFragment({
   id: 'fulfilment.open',
-  version: 3,
+  version: 4,
   module: 'shipping-order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -62,7 +62,14 @@ export const fulfilmentOpen = defineFragment({
       paymentMethod: Schema.NonEmptyString,
       amountDue: Schema.Number,
       currency: Schema.NonEmptyString,
-      lines: Schema.Array(Schema.Unknown),
+      // What goes in the parcel, under the name it was sold as (#582).
+      lines: Schema.Array(
+        openStruct({
+          offeringId: Schema.NonEmptyString,
+          name: Schema.NonEmptyString,
+          quantity: Schema.Number,
+        }),
+      ),
     }),
     output: SHIPMENT,
     failure: participantRefusal(['invalidBody', 'invalid']),

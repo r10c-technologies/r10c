@@ -66,7 +66,7 @@ const basket = {
     {
       vendorId: 'v-1',
       paymentMethod: 'card',
-      lines: [{ offeringId: 'o-1', quantity: 1, amount: 500, currency: 'GTQ' }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1, amount: 500, currency: 'GTQ' }],
       // What a caller says it holds is never what the coordinator believes.
       entitlements: ['everything'],
     },
@@ -205,7 +205,7 @@ describe('the flow start routes', () => {
       orderId: 'ord-1',
       vendorId: 'v-1',
       paymentMethod: 'card',
-      lines: [{ offeringId: 'o-1', quantity: 1 }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
       shipped: true,
     });
 
@@ -231,7 +231,7 @@ describe('the flow start routes', () => {
       orderId: 'ord-1',
       vendorId: 'v-1',
       paymentMethod: 'cod',
-      lines: [{ offeringId: 'o-1', quantity: 1 }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
       shipped: true,
     });
 
@@ -256,7 +256,7 @@ describe('the flow start routes', () => {
       paymentMethod: 'cod',
       amountDue: 1000,
       currency: 'GTQ',
-      lines: [{ offeringId: 'o-1', quantity: 1 }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
       // A caller that could set these would decide when a delivery gives up.
       awaitDeliveryMs: 1,
       awaitReturnMs: 1,

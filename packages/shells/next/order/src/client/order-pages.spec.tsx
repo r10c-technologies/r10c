@@ -42,7 +42,7 @@ const makeOrder = () => {
   order.status = 'pending';
   order.vendorId = 'demo-organization';
   order.groupId = 'group-1';
-  order.items = [new OrderItem('product-offering-1', 2, 1999, 'GTQ')];
+  order.items = [new OrderItem('product-offering-1', 'Lámpara Aurora', 2, 1999, 'GTQ')];
   return order;
 };
 

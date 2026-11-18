@@ -44,7 +44,7 @@ const aShipment = (id: string, status: ShippingStatus) =>
     paymentMethod: 'cod',
     amountDue: 2500,
     currency: 'GTQ',
-    lines: [new ShippingLine('offering-1', 2)],
+    lines: [new ShippingLine('offering-1', 'Lámpara Aurora', 2)],
     status,
   });
 

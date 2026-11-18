@@ -44,7 +44,7 @@ const anOrder = (vendorId = 'v-1') =>
     vendorId,
     groupId: GROUP,
     paymentMethod: 'card',
-    items: [new OrderItem('offering-1', 1, 10, 'GTQ')],
+    items: [new OrderItem('offering-1', 'Lámpara Aurora', 1, 10, 'GTQ')],
   });
 
 /**

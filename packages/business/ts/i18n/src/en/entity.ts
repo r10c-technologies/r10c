@@ -374,6 +374,7 @@ export const entity: EsEntity = {
        */
       item: {
         offeringId: 'Offering ID',
+        name: 'Sold as',
         quantity: 'Quantity',
         amount: 'Amount',
         currency: 'Currency',
@@ -761,6 +762,7 @@ export const entity: EsEntity = {
       lines: 'Lines',
       line: {
         offeringId: 'Product',
+        name: 'Sold as',
         quantity: 'Quantity',
       },
       status: 'Status',

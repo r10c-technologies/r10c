@@ -39,9 +39,14 @@ export const PAYMENT_METHODS = OrderTenders;
 /** The entitlement a vendor holds to ship what it sells. */
 const SHIPPING = 'shipping-order-management';
 
-/** One priced line: the offering, how many, and its unit price. */
+/**
+ * One priced line: the offering, what it is sold as, how many, and its unit
+ * price. The name and the price are both copied from the projection the caller
+ * priced from, so the order and the shipment keep what was sold (#582).
+ */
 const Line = openStruct({
   offeringId: Schema.NonEmptyString,
+  name: Schema.NonEmptyString,
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
   amount: Schema.Number,
   currency: Schema.NonEmptyString,
@@ -210,7 +215,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           }),
         },
         {
-          ref: 'order.write@4',
+          ref: 'order.write@5',
           parameters: (_context, start, segment) => {
             const part = partOf(start.vendors, segment);
             return {
@@ -265,7 +270,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
         },
         { ref: 'order.confirm@2' },
         {
-          ref: 'fulfilment.open@3',
+          ref: 'fulfilment.open@4',
           when: (_context, start, segment) =>
             !atCounter(start) && holds(segment, SHIPPING),
           parameters: (_context, start, segment) => {
@@ -289,6 +294,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
               currency: part.lines[0]?.currency,
               lines: part.lines.map(line => ({
                 offeringId: line.offeringId,
+                name: line.name,
                 quantity: line.quantity,
               })),
             };

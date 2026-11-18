@@ -40,6 +40,8 @@ export const validateSalesChannel = (
 /** One priced counter line, as a checkout's start input carries it. */
 interface PricedLine {
   readonly offeringId: string;
+  /** What it is sold as, from the same projection as its price (#582). */
+  readonly name: string;
   readonly quantity: number;
   readonly amount: number;
   readonly currency: string;
@@ -109,6 +111,7 @@ export const sellAtCounter = (input: {
       }
       priced.push({
         offeringId: line.offeringId,
+        name: price.name,
         quantity: line.quantity,
         amount: price.amount,
         currency: price.currency,

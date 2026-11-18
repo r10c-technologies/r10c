@@ -20,9 +20,16 @@ const channelOf = (id: string, status: string, type = 'counter') =>
   Object.assign(new SalesChannel(), { id, name: `Till ${id}`, type, status });
 
 const prices: Record<string, PublishedPrice> = {
-  mine: { offeringId: 'mine', vendorId: 'org-1', amount: 500, currency: 'GTQ' },
+  mine: {
+    offeringId: 'mine',
+    name: 'Taza de cerámica',
+    vendorId: 'org-1',
+    amount: 500,
+    currency: 'GTQ',
+  },
   theirs: {
     offeringId: 'theirs',
+    name: 'Plato',
     vendorId: 'org-2',
     amount: 9,
     currency: 'GTQ',
@@ -105,6 +112,8 @@ describe('sellAtCounter', () => {
               lines: [
                 {
                   offeringId: 'mine',
+                  // Sold under the projection's name, like its price (#582).
+                  name: 'Taza de cerámica',
                   quantity: 2,
                   amount: 500,
                   currency: 'GTQ',

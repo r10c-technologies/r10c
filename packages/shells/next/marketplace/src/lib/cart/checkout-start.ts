@@ -17,6 +17,8 @@ export const tenderField = (vendorId: string) => `${TENDER_PREFIX}${vendorId}`;
 /** One cart line priced from the published offering. */
 export interface PricedLine {
   readonly offeringId: string;
+  /** What it is sold as: the order and the shipment keep it (#582). */
+  readonly name: string;
   readonly vendorId: string;
   readonly quantity: number;
   readonly amount: number;

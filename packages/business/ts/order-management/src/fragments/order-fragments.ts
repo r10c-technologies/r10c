@@ -60,7 +60,7 @@ export const orderOpenGroup = defineFragment({
  */
 export const orderWrite = defineFragment({
   id: 'order.write',
-  version: 4,
+  version: 5,
   module: 'order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -75,7 +75,14 @@ export const orderWrite = defineFragment({
       groupId: GroupId,
       vendorId: Schema.NonEmptyString,
       paymentMethod: Schema.NonEmptyString,
-      items: Schema.Array(Schema.Unknown),
+      // Each line names what it was sold as, copied from the projection it
+      // was priced from and never updated (#582).
+      items: Schema.Array(
+        openStruct({
+          offeringId: Schema.NonEmptyString,
+          name: Schema.NonEmptyString,
+        }),
+      ),
     }),
     output: openStruct({
       id: OrderId,

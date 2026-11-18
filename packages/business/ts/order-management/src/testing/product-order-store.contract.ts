@@ -30,7 +30,7 @@ const anOrder = (id: string, vendorId = 'v-1', groupId = GROUP) =>
     groupId,
     paymentMethod: 'card',
     status: 'pending',
-    items: [new OrderItem('o-1', 2, 10, 'GTQ')],
+    items: [new OrderItem('o-1', 'Lámpara Aurora', 2, 10, 'GTQ')],
   });
 
 const paid = { consumer: 'order', eventId: 'e-1' };
@@ -103,7 +103,7 @@ export const describeProductOrderStoreContract = (
         vendorId: 'v-1',
         groupId: GROUP,
         paymentMethod: 'card',
-        items: [{ offeringId: 'o-1', quantity: 2 }],
+        items: [{ offeringId: 'o-1', name: 'Lámpara Aurora', quantity: 2 }],
       });
     });
 
@@ -243,6 +243,10 @@ export const describeProductOrderStoreContract = (
       expect(confirmed?.status).toBe('confirmed');
       expect(replayed?.status).toBe('confirmed');
       expect(fulfilled?.status).toBe('fulfilled');
+      // Each line keeps the name it was sold under through every move (#582).
+      expect(fulfilled?.items.map(item => item.name)).toEqual([
+        'Lámpara Aurora',
+      ]);
       expect(
         await run(orders.move('nope', 'confirm', undefined)),
       ).toBeUndefined();

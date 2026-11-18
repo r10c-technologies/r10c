@@ -45,6 +45,7 @@ export function pricedCartOf(
   );
   const priced: PricedLine[] = present.map(({ line, offering }) => ({
     offeringId: line.offeringId,
+    name: offering.name,
     vendorId: offering.vendorId,
     quantity: line.quantity,
     amount: offering.amount,

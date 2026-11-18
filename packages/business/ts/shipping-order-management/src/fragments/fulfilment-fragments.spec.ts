@@ -11,7 +11,7 @@ import {
 describe('FULFILMENT_FRAGMENTS', () => {
   it('declares the seven steps a delivery or a cancellation takes', () => {
     expect(FULFILMENT_FRAGMENTS.map(fragmentRef)).toEqual([
-      'fulfilment.open@3',
+      'fulfilment.open@4',
       'fulfilment.hold@2',
       'fulfilment.release@2',
       'fulfilment.withdraw@2',

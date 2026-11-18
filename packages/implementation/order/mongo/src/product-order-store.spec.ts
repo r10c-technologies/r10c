@@ -58,7 +58,7 @@ const anOrder = (id: string) =>
     groupId: GROUP,
     paymentMethod: 'card',
     status: 'pending',
-    items: [new OrderItem('o-1', 2, 10, 'GTQ')],
+    items: [new OrderItem('o-1', 'Lámpara Aurora', 2, 10, 'GTQ')],
   });
 
 const eventsOf = (fake: Fake) =>

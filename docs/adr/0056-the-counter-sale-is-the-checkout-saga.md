@@ -7,6 +7,7 @@
 - Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — the counter sale answers `202 { flowId }` with a flow capability, as the storefront does
 - Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — the till's write is the derived `sell` verb, `POST /api/sales-channel/:id/sell`, no longer `POST /api/counter-sale`
 - Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — a counter sale is `POST /api/flow/checkout`, answered `202`; the till waits on the flow, and `sagaResult` and `StockUnavailable` are gone (#486)
+- Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — the till's re-pricing also copies each offering's published name onto the line, so a counter sale's order keeps what was sold (#582)
 
 ## Context
 

@@ -37,7 +37,7 @@ const basket = (vendorId = PROVISIONED_VENDOR) => ({
     {
       vendorId,
       paymentMethod: 'card',
-      lines: [{ offeringId: 'o-1', quantity: 1, amount: 500, currency: 'GTQ' }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1, amount: 500, currency: 'GTQ' }],
     },
   ],
   totals: [{ currency: 'GTQ', amount: 500 }],
@@ -159,7 +159,7 @@ describe('POST /api/flow/cancellation', () => {
         orderId: 'ord-1',
         vendorId: PROVISIONED_VENDOR,
         paymentMethod: 'card',
-        lines: [{ offeringId: 'o-1', quantity: 1 }],
+        lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
         shipped: true,
       },
       { headers: crossing() },
@@ -188,7 +188,7 @@ describe('POST /api/flow/delivery', () => {
         paymentMethod,
         amountDue: paymentMethod === 'cod' ? 500 : 0,
         currency: 'GTQ',
-        lines: [{ offeringId: 'o-1', quantity: 1 }],
+        lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
       },
       { headers: crossing() },
     );
