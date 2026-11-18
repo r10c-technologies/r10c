@@ -36,6 +36,7 @@ export const entity: EsEntity = {
       brand: 'Brand',
       category: 'Category',
       media: 'Images',
+      fitsDeviceModelIds: 'Compatible phones',
     },
   },
   'media-reference': {

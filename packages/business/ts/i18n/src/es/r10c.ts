@@ -465,6 +465,14 @@ export const r10c = {
           empty: 'Sin definir',
         },
         recap: 'Ya había respondido:',
+        fits: {
+          universal: 'Universal: le queda a cualquier teléfono',
+          universalShort: 'Universal',
+          universalHint:
+            'Marque esta opción para cargadores, cables y soportes. No se combina con modelos.',
+          loading: 'Cargando modelos de teléfono…',
+          none: 'No hay modelos de teléfono cargados.',
+        },
       },
     },
   },

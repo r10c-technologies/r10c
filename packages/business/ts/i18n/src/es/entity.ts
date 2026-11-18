@@ -47,6 +47,7 @@ export const entity = {
       brand: 'Marca',
       category: 'Categoría',
       media: 'Imágenes',
+      fitsDeviceModelIds: 'Teléfonos compatibles',
     },
   },
   'media-reference': {

@@ -57,6 +57,12 @@ import { useCallback, useEffect, useRef } from 'react';
 import { PRODUCT_SURFACE } from '../catalog-surfaces';
 import { PRODUCT_SETUP_SURFACE, wizardAddress } from '../wizard-surfaces';
 import type { MarketplaceAdminAdapters } from './client-types';
+import {
+  DeviceModelFitPicker,
+  fitNames,
+  readFitIds,
+  useDeviceModels,
+} from './device-model-fit-picker';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 
 /**
@@ -133,7 +139,14 @@ function pickersFor(
  * it, show it in the summary, and then discard it.
  */
 const IDENTITY_FIELDS = ['name', 'description'] as const;
-const CLASSIFICATION_FIELDS = ['brandId', 'categoryId'] as const;
+const CLASSIFICATION_FIELDS = [
+  'brandId',
+  'categoryId',
+  'fitsDeviceModelIds',
+] as const;
+
+/** The member r10c's own picker edits, since entifix has no list-of-ids control. */
+const FITS_FIELD = 'fitsDeviceModelIds';
 
 /**
  * The guided alta of a product.
@@ -652,6 +665,18 @@ function FormStep({
       {hidden.map(name => (
         <EntityField<ProductSpecification> key={name} field={name} hidden />
       ))}
+      {fields.includes(FITS_FIELD) ? (
+        <EntityField<ProductSpecification>
+          field={FITS_FIELD}
+          render={({ value, setField, id }) => (
+            <DeviceModelFitPicker
+              id={id}
+              value={value}
+              onChange={next => setField(FITS_FIELD, next)}
+            />
+          )}
+        />
+      ) : null}
     </EntityForm>
   );
 }
@@ -690,6 +715,10 @@ function SummaryStep({
     values,
     selection: {},
   });
+  const { models } = useDeviceModels();
+  const universal = translateKey(
+    'r10c:marketplaceAdmin.wizard.productSetup.fits.universalShort',
+  );
 
   return (
     <Card>
@@ -712,7 +741,7 @@ function SummaryStep({
               )}
               value={
                 sources[field]?.selected.label ??
-                readValue(values, field) ??
+                readShown(values, field, models, universal) ??
                 translateKey(key('empty'))
               }
             />
@@ -731,6 +760,22 @@ function SummaryStep({
  */
 function labelLeafOf(field: string): string {
   return field.endsWith('Id') ? field.slice(0, -2) : field;
+}
+
+/**
+ * A member's value as a person reads it: the fitted phones by name rather than
+ * by id, everything else as the draft holds it.
+ */
+function readShown(
+  values: EntityDraft,
+  field: string,
+  models: ReturnType<typeof useDeviceModels>['models'],
+  universal: string,
+): string | undefined {
+  const value = readValue(values, field);
+  return field === FITS_FIELD && value !== undefined
+    ? fitNames(readFitIds(value), models, universal)
+    : value;
 }
 
 function readValue(values: EntityDraft, field: string): string | undefined {
@@ -769,13 +814,19 @@ function Recap({
   // recap exists because a returning operator cannot remember what they chose,
   // and `product-brand-3` is not a reminder of anything.
   const sources = useEntityLinkSources(links, { values, selection: {} });
+  const { models } = useDeviceModels();
+  const universal = translateKey(
+    'r10c:marketplaceAdmin.wizard.productSetup.fits.universalShort',
+  );
   // Paired before filtering, so the render reads the value it already has — a
   // second `readValue` there would need a fallback for a case the filter has
   // already removed.
   const answered = [...IDENTITY_FIELDS, ...CLASSIFICATION_FIELDS]
     .map(field => ({
       field: field as string,
-      value: sources[field]?.selected.label ?? readValue(values, field),
+      value:
+        sources[field]?.selected.label ??
+        readShown(values, field, models, universal),
     }))
     .filter(
       (entry): entry is { field: string; value: string } =>

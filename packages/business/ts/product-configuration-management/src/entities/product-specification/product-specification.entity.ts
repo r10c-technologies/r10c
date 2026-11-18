@@ -40,6 +40,7 @@ export class ProductSpecification implements Entity {
   #brandId?: string;
   #categoryId?: string;
   #media?: readonly MediaReferenceValue[];
+  #fitsDeviceModelIds?: readonly string[];
   #revision?: number;
   // #endregion
 
@@ -201,6 +202,32 @@ export class ProductSpecification implements Entity {
   }
   set media(value: readonly MediaReferenceValue[] | undefined) {
     this.#media = value;
+  }
+
+  /**
+   * The phones this thing fits, as **plain ids into `catalog-reference`'s
+   * `DeviceModel`** — or the one reserved id `universal`, alone, for a charger
+   * or a cable that fits every phone (plan 1.17, r10c #641). Empty or absent
+   * means the vendor has not said.
+   *
+   * A `scalarCollection` of ids for the reason `brandId` is a plain id: the
+   * target is another slice's store. It cannot declare `references` — entifix
+   * holds a reference to one record's id — so the back office's picker is a
+   * control of r10c's own, and `universal` beside another id is refused on both
+   * write paths by `refuseSpecificationFits`.
+   *
+   * Not queryable here: the vendor's list never filters by it. The storefront
+   * does, on the published snapshot, where the same member is `filterable`.
+   */
+  @accessor({
+    type: 'scalarCollection',
+    labelKey: 'entity:product-specification.fields.fitsDeviceModelIds',
+  })
+  get fitsDeviceModelIds(): readonly string[] | undefined {
+    return this.#fitsDeviceModelIds;
+  }
+  set fitsDeviceModelIds(value: readonly string[] | undefined) {
+    this.#fitsDeviceModelIds = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

@@ -188,7 +188,11 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   // Hiding it keeps it out of the form without keeping it out of the draft, so
   // an update carries it back — and the operator is not asked to type a value
   // the service overwrites.
-  hiddenFields: ['id', 'code'],
+  // `fitsDeviceModelIds` is edited by the guided alta's own picker: entifix has
+  // no control for a list of ids into another record, and the generic form
+  // would offer a text box of raw ids. Hidden keeps it in the draft, so an
+  // update carries it back unchanged.
+  hiddenFields: ['id', 'code', 'fitsDeviceModelIds'],
   /**
    * The way into the guided alta, from the list it starts from.
    *

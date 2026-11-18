@@ -164,6 +164,36 @@ describe('a specification', () => {
       ),
     ).toMatchObject({ failure: { code: 'mediaAltMissing' } });
   });
+
+  it('refuses universal beside a model, on create and on update', async () => {
+    const run = world();
+    const fits = ['device-model-1', 'universal'];
+    const handler = productSpecificationApi.options.override.create.handler(
+      {
+        payload: makeEntityEnvelope(
+          ProductSpecification,
+          Object.assign(new ProductSpecification(), {
+            name: 'A case',
+            fitsDeviceModelIds: fits,
+          }),
+        ),
+      },
+      context,
+    );
+
+    expect(await run(handler)).toMatchObject({
+      failure: { code: 'deviceModelUniversalNotAlone' },
+    });
+    expect(
+      await run(
+        productSpecificationApi.options.prepare(
+          Object.assign(new ProductSpecification(), {
+            fitsDeviceModelIds: fits,
+          }),
+        ),
+      ),
+    ).toMatchObject({ failure: { code: 'deviceModelUniversalNotAlone' } });
+  });
 });
 
 describe('an offering', () => {

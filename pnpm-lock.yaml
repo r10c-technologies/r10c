@@ -4517,6 +4517,9 @@ importers:
       '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.23.1(effect@4.0.7)
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/catalog-contracts
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
