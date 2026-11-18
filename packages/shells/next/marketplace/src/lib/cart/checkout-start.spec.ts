@@ -148,6 +148,8 @@ describe('refusedSeller', () => {
     expect(
       refusedSeller(400, problemOf(new Invalid({ errors: [] }))),
     ).toBeUndefined();
-    expect(refusedSeller(202, { meta: { type: 'flowAccepted' } })).toBeUndefined();
+    expect(
+      refusedSeller(202, { meta: { type: 'flowAccepted' } }),
+    ).toBeUndefined();
   });
 });

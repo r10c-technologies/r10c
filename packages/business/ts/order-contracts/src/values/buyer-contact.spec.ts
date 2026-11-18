@@ -251,7 +251,9 @@ describe('the input patterns', () => {
       'cinco',
       '',
     ]) {
-      expect(phone.test(typed), typed).toBe(normalizePhone(typed) !== undefined);
+      expect(phone.test(typed), typed).toBe(
+        normalizePhone(typed) !== undefined,
+      );
     }
   });
 

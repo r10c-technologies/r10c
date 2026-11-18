@@ -161,7 +161,10 @@ export function DeliveryForm({
         ? {}
         : // The hint, when there is one, is what the browser's own message
           // adds; it says what a valid value looks like.
-          { pattern: PATTERN[name], ...(hint === undefined ? {} : { title: hint }) }),
+          {
+            pattern: PATTERN[name],
+            ...(hint === undefined ? {} : { title: hint }),
+          }),
     } as const;
     return (
       <div key={name} className="flex min-w-0 flex-col gap-3xs">

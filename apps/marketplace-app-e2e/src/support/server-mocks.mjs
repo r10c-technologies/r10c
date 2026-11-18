@@ -338,8 +338,8 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
   // (ADR 0076 §3). The fixture's `acceptsCod` stands for that entitlement.
   const stranded = vendors.find(
     part =>
-      SELLERS.find(vendor => vendor.vendorId === part?.vendorId)
-        ?.acceptsCod === false,
+      SELLERS.find(vendor => vendor.vendorId === part?.vendorId)?.acceptsCod ===
+      false,
   );
   if (stranded !== undefined) {
     return problem('VendorDoesNotShip', 'vendorDoesNotShip', 'declined', 422, {

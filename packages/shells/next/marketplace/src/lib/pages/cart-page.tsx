@@ -74,9 +74,7 @@ export async function CartPage({
   // The seller a refused checkout names, when nothing left in the cart is
   // theirs any more: read by id, so the address never supplies copy.
   const refusedVendor =
-    outcome === 'doesNotShip' &&
-    seller !== undefined &&
-    !vendors.has(seller)
+    outcome === 'doesNotShip' && seller !== undefined && !vendors.has(seller)
       ? await runRead(PublishedVendor, getVendor(seller), undefined)
       : undefined;
 

@@ -51,8 +51,7 @@ const registry = (hooks: Hook[]) =>
 
 const groupsThat = (
   redactEndedReceipts: CheckoutGroupStore['redactEndedReceipts'],
-) =>
-  ({ redactEndedReceipts }) as unknown as CheckoutGroupStore;
+) => ({ redactEndedReceipts }) as unknown as CheckoutGroupStore;
 
 const pass = (groups: CheckoutGroupStore) =>
   sweepEndedReceipts.pipe(Effect.provideService(CheckoutGroupStoreTag, groups));

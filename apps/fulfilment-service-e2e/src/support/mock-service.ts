@@ -3,9 +3,16 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
+import {
+  IdempotencyStoreTag,
+  TenantDirectoryTag,
+  TokenServiceTag,
+} from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
-import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
+import {
+  MongoDatabaseTag,
+  MongoTenantRepositoryFactoryLayer,
+} from '@entifix/mongo';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
@@ -48,9 +55,9 @@ import {
 } from '@r10c/fulfilment-service';
 import { MongoShippingOrderStoreLayer } from '@r10c/implementation-fulfilment-mongo';
 import { fleetToken } from '@r10c/utils-ts-fleet';
-import { Layer } from 'effect';
+import { Effect, Layer } from 'effect';
 
-import { E2E_CROSSING_TOKEN } from './tokens';
+import { E2E_CROSSING_TOKEN, E2E_ORGANIZATION_ID } from './tokens';
 
 /**
  * The configuration the service would otherwise fetch from config-service at
@@ -114,12 +121,22 @@ const MockAppLayer = (() => {
     ),
   );
 
+  // The directory the retention sweep walks: the fake's one store, as the demo
+  // organization's. The shipped one lists `fulfilment_*` databases.
+  const directory = Layer.effect(
+    TenantDirectoryTag,
+    Effect.map(MongoDatabaseTag, handle => ({
+      list: () =>
+        Effect.succeed([{ organizationId: E2E_ORGANIZATION_ID, handle }]),
+    })),
+  );
+
   return Layer.provideMerge(
     Layer.mergeAll(
       MongoShippingOrderStoreLayer,
       MongoTenantRepositoryFactoryLayer,
     ),
-    connections,
+    Layer.provideMerge(directory, connections),
   ).pipe(Layer.orDie);
 })();
 

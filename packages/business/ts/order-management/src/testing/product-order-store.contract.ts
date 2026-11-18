@@ -176,7 +176,12 @@ export const describeProductOrderStoreContract = (
     it('removes the contact of an ended receipt whose orders are all closed, and its remembered copy', async () => {
       const { orders, groups } = await make();
       await run(groups.open(aContactedGroup(ENDED), 'open-1'));
-      await run(orders.place(anOrder('ord-1'), undefined));
+      // Other remembered commands, which the sweep must leave as they are: an
+      // order's placement, and another group's opening.
+      await run(orders.place(anOrder('ord-1'), 'place-1'));
+      await run(
+        groups.open(aContactedGroup(new Date('2026-12-01'), 'grp-2'), 'open-2'),
+      );
       await run(orders.move('ord-1', 'confirm', undefined));
       await run(orders.move('ord-1', 'mark-dispatched', undefined));
       await run(orders.move('ord-1', 'close-fulfilled', undefined));
@@ -189,10 +194,10 @@ export const describeProductOrderStoreContract = (
       );
       // A redelivered opening is answered with the redacted copy.
       const replayed = await run(groups.open(aContactedGroup(ENDED), 'open-1'));
-      expect(replayed._tag).toBe('replayed');
-      expect(
-        replayed._tag === 'replayed' ? replayed.group.contact : undefined,
-      ).toEqual([]);
+      expect(replayed).toMatchObject({ _tag: 'replayed' });
+      expect((replayed as { group: CheckoutGroup }).group.contact).toEqual([]);
+      const other = await run(groups.open(aContactedGroup(ENDED), 'open-2'));
+      expect((other as { group: CheckoutGroup }).group.contact).toHaveLength(1);
       // A second pass finds nothing left to remove.
       expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toBe(0);
     });

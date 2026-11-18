@@ -52,8 +52,7 @@ const registry = (hooks: Hook[]) =>
 
 const storeThat = (
   redactClosedBefore: ShippingOrderStore['redactClosedBefore'],
-) =>
-  ({ redactClosedBefore }) as unknown as ShippingOrderStore;
+) => ({ redactClosedBefore }) as unknown as ShippingOrderStore;
 
 const pass = (store: ShippingOrderStore, days = 30) =>
   sweepClosedDestinations.pipe(
@@ -83,9 +82,9 @@ describe('one destination sweep pass', () => {
       ),
     );
 
-    expect(
-      (bounds?.at.getTime() ?? 0) - (bounds?.before.getTime() ?? 0),
-    ).toBe(7 * 86_400_000);
+    expect((bounds?.at.getTime() ?? 0) - (bounds?.before.getTime() ?? 0)).toBe(
+      7 * 86_400_000,
+    );
     expect(logged.map(entry => entry.level)).toEqual(['Error', 'Debug']);
     expect(logged[0]?.annotations).toMatchObject({
       database: 'fulfilment_a',

@@ -306,9 +306,7 @@ test.describe('browsing the catalog', () => {
     // Nor from a card: the same read decides the grid's Add.
     await page.goto('/es/c/lighting');
     await expect(
-      page
-        .getByRole('main')
-        .getByRole('button', { name: /Cobalto Arc Lamp/ }),
+      page.getByRole('main').getByRole('button', { name: /Cobalto Arc Lamp/ }),
     ).toHaveCount(0);
   });
 
