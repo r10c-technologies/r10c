@@ -1,6 +1,7 @@
 import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
 import { participantRefusal } from '@r10c/business-ts-flow-contracts';
+import { DeliveryDestinationSchema } from '@r10c/business-ts-order-contracts';
 import { Schema } from 'effect';
 
 import { SHIPPING_ORDER_NOT_TRANSITIONABLE } from '../failures/shipping-failures';
@@ -32,7 +33,7 @@ const MOVE_REFUSAL = participantRefusal([
  */
 export const fulfilmentOpen = defineFragment({
   id: 'fulfilment.open',
-  version: 2,
+  version: 3,
   module: 'shipping-order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -40,19 +41,31 @@ export const fulfilmentOpen = defineFragment({
   cardinality: 'perVendor',
   isolation: 'none',
   requires: REQUIRES,
-  consumes: { orderId: Schema.String, groupId: Schema.String },
+  consumes: {
+    orderId: Schema.String,
+    orderNumber: Schema.String,
+    groupId: Schema.String,
+  },
   provides: { shippingOrderId: ShippingOrderId },
   contract: {
     input: openStruct({
       orderId: Schema.NonEmptyString,
+      orderNumber: Schema.NonEmptyString,
       groupId: Schema.NonEmptyString,
+      // Who receives the parcel and where: the buyer's contact less the email
+      // (ADR 0076 §1). Checked again where the shipment is written.
+      destination: openStruct({
+        name: Schema.String,
+        phone: Schema.String,
+        destination: DeliveryDestinationSchema,
+      }),
       paymentMethod: Schema.NonEmptyString,
       amountDue: Schema.Number,
       currency: Schema.NonEmptyString,
       lines: Schema.Array(Schema.Unknown),
     }),
     output: SHIPMENT,
-    failure: participantRefusal(['invalidBody']),
+    failure: participantRefusal(['invalidBody', 'invalid']),
   },
 });
 

@@ -18,6 +18,7 @@ import {
   OutboxMaxAttempts,
 } from '@entifix/transactions';
 import {
+  drawOrderNumber,
   ORDER_CANCELLED,
   ORDER_PLACED,
   orderAudience,
@@ -49,6 +50,45 @@ const WITHOUT_ID = { projection: { _id: 0 } } as const;
 
 const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
+/** The unique index an order or a group number is held to (ADR 0076 §5). */
+const NUMBER_INDEX = 'number_1';
+
+/** A number another record already holds: the write redraws and runs again. */
+class NumberTaken {
+  readonly _tag = 'NumberTaken';
+}
+
+/**
+ * How many numbers a write draws before it gives up. At 32⁸ a second collision
+ * in a row is already a sign the index or the drawer is wrong, not bad luck.
+ */
+const MAX_DRAWS = 5;
+
+/**
+ * A duplicate key on the number index, read from `keyPattern` where the
+ * server gives one and from the message's `dup key: { number: … }` otherwise —
+ * a duplicate on anything else (an `id`) is a fault, never a redraw.
+ */
+const isNumberTaken = (error: unknown) => {
+  const fault = error as {
+    readonly code?: unknown;
+    readonly keyPattern?: Record<string, unknown>;
+    readonly message?: unknown;
+  } | null;
+  if (fault?.code !== 11000) return false;
+  if (fault.keyPattern !== undefined)
+    return fault.keyPattern['number'] !== undefined;
+  return /dup key: \{\s*"?number"?\s*:/.test(String(fault.message));
+};
+
+/** An insert whose number collision is a redraw rather than a fault. */
+const insertNumbered = (insert: () => Promise<unknown>) =>
+  Effect.tryPromise({
+    try: insert,
+    catch: error =>
+      isNumberTaken(error) ? new NumberTaken() : mongoUnitFault(error),
+  });
+
 /**
  * The indexes every scoped read rides: each read of this store is narrowed by
  * a predicate rather than by a handle, so without them a scope is a collection
@@ -68,12 +108,19 @@ export const ensureProductOrderIndexes = (db: Db) =>
         { name: 'vendorId_1_placedAt_-1' },
       );
       await orders.createIndex({ groupId: 1 }, { name: 'groupId_1' });
-      await db
-        .collection(GROUP_COLLECTION)
-        .createIndex(
-          { buyerId: 1, placedAt: -1 },
-          { name: 'buyerId_1_placedAt_-1' },
-        );
+      await orders.createIndex(
+        { number: 1 },
+        { name: NUMBER_INDEX, unique: true },
+      );
+      const groups = db.collection(GROUP_COLLECTION);
+      await groups.createIndex(
+        { buyerId: 1, placedAt: -1 },
+        { name: 'buyerId_1_placedAt_-1' },
+      );
+      await groups.createIndex(
+        { number: 1 },
+        { name: NUMBER_INDEX, unique: true },
+      );
     },
     catch: storeUnavailable,
   });
@@ -174,6 +221,78 @@ export const MongoProductOrderStoreLayer = Layer.effect(
         catch: storeUnavailable,
       }).pipe(Effect.flatMap(reviveOrNone));
 
+    /** One placing, under the number the order holds now. */
+    const placeOnce = (order: ProductOrder, commandId: string | undefined) =>
+      Effect.gen(function* () {
+        const orderId = String(order.id);
+        const document = {
+          ...serializeEntity(ProductOrder, order),
+          id: orderId,
+        };
+        const placed = event(
+          ORDER_PLACED,
+          orderId,
+          serializeEntity(ProductOrder, order),
+        );
+        const outcome = yield* units.run(
+          unit =>
+            Effect.gen(function* () {
+              const { db: handle, session } = unit.handle;
+              // The order joins its group with an atomic `$addToSet`, so the
+              // vendors' concurrent writes into one group never lose each
+              // other; a group nobody opened refuses the order rather than
+              // leaving it orphaned.
+              const joined = yield* Effect.tryPromise({
+                try: () =>
+                  handle
+                    .collection(GROUP_COLLECTION)
+                    .updateOne(
+                      { id: order.groupId },
+                      { $addToSet: { orderIds: orderId } },
+                      { session },
+                    ),
+                catch: mongoUnitFault,
+              });
+              if (joined.matchedCount === 0) {
+                return yield* Effect.fail(
+                  new NotFound({ entity: 'checkout-group' }),
+                );
+              }
+              yield* insertNumbered(() =>
+                handle
+                  .collection(ORDER_COLLECTION)
+                  .insertOne(document, { session }),
+              );
+              unit.emit(placed);
+            }),
+          {
+            ...claimFor(commandId),
+            replay: () => ({ record: serializeEntity(ProductOrder, order) }),
+            afterCommit,
+          },
+        );
+        if (outcome._tag === 'committed') {
+          return { _tag: 'placed', order } as OrderPlacement;
+        }
+        if (outcome._tag === 'aborted') {
+          if (outcome.reason instanceof NumberTaken)
+            return 'numberTaken' as const;
+          return yield* outcome.reason;
+        }
+        const remembered = yield* units.replay(commandId as string);
+        // Every claim this store takes remembers its order; a duplicate with
+        // none is a collision, never a replay.
+        if (Option.isNone(remembered)) {
+          return yield* Effect.fail(storeUnavailable());
+        }
+        return {
+          _tag: 'replayed',
+          order: yield* revive(
+            (remembered.value as { record: unknown }).record,
+          ),
+        } as OrderPlacement;
+      });
+
     return {
       get: current,
 
@@ -193,71 +312,16 @@ export const MongoProductOrderStoreLayer = Layer.effect(
 
       place: (order, commandId) =>
         Effect.gen(function* () {
-          const orderId = String(order.id);
-          const document = {
-            ...serializeEntity(ProductOrder, order),
-            id: orderId,
-          };
-          const placed = event(
-            ORDER_PLACED,
-            orderId,
-            serializeEntity(ProductOrder, order),
-          );
-          const outcome = yield* units.run(
-            unit =>
-              Effect.gen(function* () {
-                const { db: handle, session } = unit.handle;
-                // The order joins its group with an atomic `$addToSet`, so the
-                // vendors' concurrent writes into one group never lose each
-                // other; a group nobody opened refuses the order rather than
-                // leaving it orphaned.
-                const joined = yield* Effect.tryPromise({
-                  try: () =>
-                    handle
-                      .collection(GROUP_COLLECTION)
-                      .updateOne(
-                        { id: order.groupId },
-                        { $addToSet: { orderIds: orderId } },
-                        { session },
-                      ),
-                  catch: mongoUnitFault,
-                });
-                if (joined.matchedCount === 0) {
-                  return yield* Effect.fail(
-                    new NotFound({ entity: 'checkout-group' }),
-                  );
-                }
-                yield* Effect.tryPromise({
-                  try: () =>
-                    handle
-                      .collection(ORDER_COLLECTION)
-                      .insertOne(document, { session }),
-                  catch: mongoUnitFault,
-                });
-                unit.emit(placed);
-              }),
-            {
-              ...claimFor(commandId),
-              replay: () => ({ record: serializeEntity(ProductOrder, order) }),
-              afterCommit,
-            },
-          );
-          if (outcome._tag === 'committed') {
-            return { _tag: 'placed', order } as OrderPlacement;
+          if (order.number === '') order.number = drawOrderNumber();
+          let draws = 1;
+          for (;;) {
+            const placing = yield* placeOnce(order, commandId);
+            if (placing !== 'numberTaken') return placing;
+            if (draws === MAX_DRAWS)
+              return yield* Effect.fail(storeUnavailable());
+            draws += 1;
+            order.number = drawOrderNumber();
           }
-          if (outcome._tag === 'aborted') return yield* outcome.reason;
-          const remembered = yield* units.replay(commandId as string);
-          // Every claim this store takes remembers its order; a duplicate with
-          // none is a collision, never a replay.
-          if (Option.isNone(remembered)) {
-            return yield* Effect.fail(storeUnavailable());
-          }
-          return {
-            _tag: 'replayed',
-            order: yield* revive(
-              (remembered.value as { record: unknown }).record,
-            ),
-          } as OrderPlacement;
         }),
 
       remove: orderId =>
@@ -414,6 +478,43 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
         Effect.mapError(storeUnavailable),
       );
 
+    /** One opening, under the number the group holds now. */
+    const openOnce = (group: CheckoutGroup, commandId: string | undefined) =>
+      Effect.gen(function* () {
+        const document = {
+          ...serializeEntity(CheckoutGroup, group),
+          id: group.id,
+        };
+        const outcome = yield* units.run(
+          unit =>
+            insertNumbered(() =>
+              unit.handle.db
+                .collection(GROUP_COLLECTION)
+                .insertOne(document, { session: unit.handle.session }),
+            ),
+          {
+            ...(commandId === undefined
+              ? {}
+              : { claim: { kind: 'command' as const, commandId } }),
+            replay: () => ({ record: serializeEntity(CheckoutGroup, group) }),
+          },
+        );
+        if (outcome._tag === 'committed') {
+          return { _tag: 'opened', group } as GroupOpening;
+        }
+        if (outcome._tag === 'aborted') return 'numberTaken' as const;
+        const remembered = yield* units.replay(commandId as string);
+        if (Option.isNone(remembered)) {
+          return yield* Effect.fail(storeUnavailable());
+        }
+        return {
+          _tag: 'replayed',
+          group: yield* revive(
+            (remembered.value as { record: unknown }).record,
+          ),
+        } as GroupOpening;
+      });
+
     return {
       get: groupId =>
         Effect.tryPromise({
@@ -427,39 +528,16 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
 
       open: (group, commandId) =>
         Effect.gen(function* () {
-          const document = {
-            ...serializeEntity(CheckoutGroup, group),
-            id: group.id,
-          };
-          const outcome = yield* units.run(
-            unit =>
-              Effect.tryPromise({
-                try: () =>
-                  unit.handle.db
-                    .collection(GROUP_COLLECTION)
-                    .insertOne(document, { session: unit.handle.session }),
-                catch: mongoUnitFault,
-              }),
-            {
-              ...(commandId === undefined
-                ? {}
-                : { claim: { kind: 'command' as const, commandId } }),
-              replay: () => ({ record: serializeEntity(CheckoutGroup, group) }),
-            },
-          );
-          if (outcome._tag === 'committed') {
-            return { _tag: 'opened', group } as GroupOpening;
+          if (group.number === '') group.number = drawOrderNumber();
+          let draws = 1;
+          for (;;) {
+            const opening = yield* openOnce(group, commandId);
+            if (opening !== 'numberTaken') return opening;
+            if (draws === MAX_DRAWS)
+              return yield* Effect.fail(storeUnavailable());
+            draws += 1;
+            group.number = drawOrderNumber();
           }
-          const remembered = yield* units.replay(commandId as string);
-          if (Option.isNone(remembered)) {
-            return yield* Effect.fail(storeUnavailable());
-          }
-          return {
-            _tag: 'replayed',
-            group: yield* revive(
-              (remembered.value as { record: unknown }).record,
-            ),
-          } as GroupOpening;
         }),
 
       remove: groupId =>

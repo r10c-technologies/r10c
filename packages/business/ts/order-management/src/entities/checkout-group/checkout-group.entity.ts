@@ -1,6 +1,7 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 
+import { CheckoutContact } from '../../values/checkout-contact';
 import { GroupTotal } from '../../values/group-total';
 
 /**
@@ -26,18 +27,24 @@ import { GroupTotal } from '../../values/group-total';
   key: 'checkout-group',
   labelKey: 'entity:checkout-group.label',
   pluralKey: 'entity:checkout-group.plural',
+  // An order is called by its number, never by a UUID: ADR 0076 §5.
+  labelMember: 'number',
   // A checkout writes the group under its own flow id; nobody opens one.
   creatable: false,
 })
 export class CheckoutGroup implements Entity {
   // #region properties
   #id?: EntityId;
+  #number = '';
   #buyerId?: string;
   #orderIds: readonly string[] = [];
   #totals: readonly GroupTotal[] = [];
   #placedAt?: Date;
   #cancelDigest?: string;
   #cancelWindowEndsAt?: Date;
+  #contact: readonly CheckoutContact[] = [];
+  #locale?: string;
+  #redactedAt?: Date;
   // #endregion
 
   // #region accessors
@@ -47,6 +54,27 @@ export class CheckoutGroup implements Entity {
   }
   set id(value: EntityId) {
     this.#id = value;
+  }
+
+  /**
+   * What a person reads out — eight Crockford characters, shown `7KQ4-M2XD`
+   * (ADR 0076 §5). Drawn at random by the domain when the record is written,
+   * unique in the store, which redraws on a collision. ⚠️ Server-owned and
+   * writable anyway (`readonly` would drop it from serialization), and never a
+   * credential: nothing is read or authorized by it.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:checkout-group.fields.number',
+    filterable: true,
+    // Sortable so a search result group has an order to list it in.
+    sortable: true,
+  })
+  get number(): string {
+    return this.#number;
+  }
+  set number(value: string) {
+    this.#number = value;
   }
 
   /**
@@ -150,6 +178,59 @@ export class CheckoutGroup implements Entity {
   }
   set cancelWindowEndsAt(value: Date | undefined) {
     this.#cancelWindowEndsAt = value;
+  }
+  /**
+   * The buyer's contact and where the parcels go — **the platform's one record
+   * of a storefront buyer** (ADR 0076 §1). At most one row: none at a counter,
+   * and none once the retention sweep removed it. Read back by the buyer's
+   * capability and by an operator; a vendor never reads a group, and it never
+   * reaches the bus.
+   *
+   * ⚠️ `filterable` and `sortable` are written `false`, not omitted: a
+   * queryable phone or email lets a caller confirm a guess one request at a
+   * time.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => CheckoutContact,
+    labelKey: 'entity:checkout-group.fields.contact',
+    filterable: false,
+    sortable: false,
+  })
+  get contact(): readonly CheckoutContact[] {
+    return this.#contact;
+  }
+  set contact(value: readonly CheckoutContact[]) {
+    this.#contact = value;
+  }
+
+  /** The locale the buyer checked out in, which their mail is written in. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:checkout-group.fields.locale',
+    filterable: false,
+    sortable: false,
+  })
+  get locale(): string | undefined {
+    return this.#locale;
+  }
+  set locale(value: string | undefined) {
+    this.#locale = value;
+  }
+
+  /**
+   * When the retention sweep removed {@link contact}, so a screen can say the
+   * details were removed rather than render a field that was never asked.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:checkout-group.fields.redactedAt',
+  })
+  get redactedAt(): Date | undefined {
+    return this.#redactedAt;
+  }
+  set redactedAt(value: Date | undefined) {
+    this.#redactedAt = value;
   }
   // #endregion
 }

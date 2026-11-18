@@ -6,6 +6,7 @@
 - Revised: 2026-11-04 — the dispatch worklist (#489): a vendor's `dispatch` settles when the flow parks on the courier's report, through `flow.waiting`, rather than when the flow ends
 - Revised: 2026-11-13 — a vendor's shipment verbs are offered only from the statuses the transition table allows them, `dispatch`, `record-refusal` and `record-return` confirm first, and `dispatch` also runs over a selection of the worklist, one delivery flow per shipment (#534)
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — a `link` checkout commits like `cod` and then waits for the seller's confirmation; the dials gain the payment window; the courier is a dictionary, and dispatch requires a recorded guide
+- Revised: 2026-11-17 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — `fulfilment.open@3` copies the recipient, the destination and the order's number onto the shipment, which is named by that number, and a `shipping-order.*` event carries an explicit pick of non-personal members rather than the shipment (#580)
 - Area: business
 - Read when: an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout
 

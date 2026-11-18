@@ -3,6 +3,7 @@ import {
   NotFound,
   serializeEntity,
 } from '@entifix/core';
+import { drawOrderNumber } from '@r10c/business-ts-order-contracts';
 import { Effect } from 'effect';
 
 import { CheckoutGroup } from '../entities/checkout-group';
@@ -30,6 +31,18 @@ export const makeInMemoryOrderStores = (): {
   const claimedFrom = new Map<string, OrderStatus>();
   const commands = new Map<string, unknown>();
   const events = new Set<string>();
+
+  /**
+   * A number unique among `taken`: the one drawn, or a fresh draw while it
+   * collides — the redraw the Mongo store makes on its unique index. A record
+   * written with none is given one, as the Mongo store gives it.
+   */
+  const unique = (number: string, taken: Iterable<{ number: string }>) => {
+    const used = new Set(Array.from(taken, record => record.number));
+    let candidate = number === '' ? drawOrderNumber() : number;
+    while (used.has(candidate)) candidate = drawOrderNumber();
+    return candidate;
+  };
 
   const copyOrder = (order: ProductOrder) =>
     Effect.runSync(
@@ -94,6 +107,7 @@ export const makeInMemoryOrderStores = (): {
           return Effect.fail(new NotFound({ entity: 'checkout-group' }));
         }
         group.orderIds = [...group.orderIds, String(order.id)];
+        order.number = unique(order.number, orders.values());
         orders.set(String(order.id), copyOrder(order));
         if (commandId !== undefined) commands.set(commandId, copyOrder(order));
         return Effect.succeed({ _tag: 'placed' as const, order });
@@ -171,6 +185,7 @@ export const makeInMemoryOrderStores = (): {
         if (first instanceof CheckoutGroup) {
           return { _tag: 'replayed' as const, group: copyGroup(first) };
         }
+        group.number = unique(group.number, groups.values());
         groups.set(String(group.id), copyGroup(group));
         if (commandId !== undefined) commands.set(commandId, copyGroup(group));
         return { _tag: 'opened' as const, group: copyGroup(group) };

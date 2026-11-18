@@ -6,6 +6,7 @@ import {
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { CheckoutContact } from '../../values/checkout-contact.js';
 import { GroupTotal } from '../../values/group-total.js';
 import { CheckoutGroup } from './checkout-group.entity.js';
 
@@ -66,5 +67,53 @@ describe('CheckoutGroup', () => {
         currencyMember: 'currency',
       });
     }
+  });
+
+  it('round-trips the buyer’s contact, the locale and when the contact was removed', async () => {
+    const contact = Object.assign(new CheckoutContact(), {
+      name: 'Ana',
+      phone: '+50255551234',
+      email: 'ana@correo.com',
+      departamento: '01',
+      municipio: '0101',
+      zona: 10,
+      addressLine: '5a avenida',
+      reference: 'portón negro',
+    });
+    const revived = await Effect.runPromise(
+      deserializeSingleEntity(CheckoutGroup, {
+        ...serializeEntity(
+          CheckoutGroup,
+          Object.assign(aGroup(), {
+            contact: [contact],
+            locale: 'es',
+            redactedAt: ENDS,
+          }),
+        ),
+        id: 'group-1',
+      }),
+    );
+
+    expect(revived?.contact).toEqual([
+      expect.objectContaining({
+        name: 'Ana',
+        phone: '+50255551234',
+        email: 'ana@correo.com',
+        departamento: '01',
+        municipio: '0101',
+        zona: 10,
+        addressLine: '5a avenida',
+        reference: 'portón negro',
+      }),
+    ]);
+    expect(revived?.locale).toBe('es');
+    expect(revived?.redactedAt).toEqual(ENDS);
+  });
+
+  it('keeps the contact out of every filter and sort', () => {
+    const contact = describeEntityColumns(CheckoutGroup).find(
+      column => column.name === 'contact',
+    );
+    expect(contact).toMatchObject({ filterable: false, sortable: false });
   });
 });

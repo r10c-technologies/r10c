@@ -116,10 +116,17 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
             rawLines: rawLinesOf(request.payload),
             commandId: yield* commandId,
           });
-          return envelopeOf(
-            placement.order,
-            context.links.record(String(placement.order.id)),
-          );
+          // The flow binds two keys from this answer, and a step providing
+          // more than one is answered each by its own name: the shipment the
+          // flow opens next quotes the number (ADR 0076 §3).
+          return {
+            ...envelopeOf(
+              placement.order,
+              context.links.record(String(placement.order.id)),
+            ),
+            orderId: String(placement.order.id),
+            orderNumber: placement.order.number,
+          };
         }),
     },
     // Remembered at the edge: removing an order claims nothing in its write.
@@ -169,9 +176,16 @@ export const checkoutGroupApi = defineEntityApi(CheckoutGroup, GROUP_KEY, {
       errors: [InvalidBody, Invalid, DuplicateKey, StaleRevision],
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         Effect.gen(function* () {
-          const group = yield* readStepRecord(CheckoutGroup, request.payload);
+          // The contact travels nested, as the buyer gave it; the group
+          // stores it as one checked row, so it is read apart.
+          const { contact, ...members } = request.payload as Record<
+            string,
+            unknown
+          >;
+          const group = yield* readStepRecord(CheckoutGroup, members);
           const opening = yield* openGroup({
             group,
+            contact,
             commandId: yield* commandId,
             cancelWindowSeconds: yield* CancelWindowSeconds,
           });

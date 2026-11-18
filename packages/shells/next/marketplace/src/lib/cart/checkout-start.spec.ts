@@ -51,13 +51,21 @@ describe('checkoutStartBody', () => {
     const parts = sellerParts([line('a', 'v-1', 100), line('b', 'v-2', 50)]);
 
     expect(
-      checkoutStartBody({ parts, cancelDigest: 'cd', capabilityDigest: 'fd' }),
+      checkoutStartBody({
+        parts,
+        cancelDigest: 'cd',
+        capabilityDigest: 'fd',
+        contact: { name: 'Ana' },
+        locale: 'es',
+      }),
     ).toEqual({
       channel: { type: 'storefront' },
       vendors: parts,
       totals: [{ currency: 'GTQ', amount: 300 }],
       cancelDigest: 'cd',
       capabilityDigest: 'fd',
+      contact: { name: 'Ana' },
+      locale: 'es',
     });
   });
 });

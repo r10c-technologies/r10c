@@ -227,6 +227,29 @@ export const r10c = {
       codNote: 'Pagas a {{seller}} en efectivo cuando llegue el paquete.',
       edit: 'Editar carrito',
       place: 'Confirmar pedido',
+      // Entrega y contacto (ADR 0076 §2). Sin código postal ni país: se
+      // entrega dentro de Guatemala, por departamento, municipio y zona.
+      delivery: {
+        legend: 'Entrega y contacto',
+        intro:
+          'Lo usamos para entregarte el pedido y avisarte cómo va. Solo lo ven los vendedores que lo envían, y lo borramos cuando ya no hace falta.',
+        optional: '(opcional)',
+        chooseMunicipio: 'Elige tu municipio',
+        fields: {
+          name: 'Nombre de quien recibe',
+          phone: 'Teléfono',
+          email: 'Correo electrónico',
+          municipio: 'Municipio',
+          zona: 'Zona',
+          addressLine: 'Dirección',
+          reference: 'Referencia',
+        },
+        hints: {
+          phone: 'Ocho dígitos. El repartidor te llama a este número.',
+          email: 'Te enviamos el recibo y cómo volver a tu pedido.',
+          reference: 'Por ejemplo: frente al parque, portón negro.',
+        },
+      },
     },
     checkout: {
       empty: 'Ninguno de estos productos sigue a la venta.',

@@ -11,8 +11,8 @@ import {
 describe('order fragments', () => {
   it('are pinned and owned by order-management', () => {
     expect(ORDER_FRAGMENTS.map(fragmentRef)).toEqual([
-      'order.open-group@2',
-      'order.write@3',
+      'order.open-group@3',
+      'order.write@4',
       'order.claim-cancel@3',
       'order.confirm@2',
       'order.mark-dispatched@2',
@@ -27,7 +27,10 @@ describe('order fragments', () => {
     expect(Object.keys(orderOpenGroup.provides ?? {})).toEqual(['groupId']);
     expect(orderWrite.cardinality).toBe('perVendor');
     expect(Object.keys(orderWrite.consumes ?? {})).toEqual(['groupId']);
-    expect(Object.keys(orderWrite.provides ?? {})).toEqual(['orderId']);
+    expect(Object.keys(orderWrite.provides ?? {})).toEqual([
+      'orderId',
+      'orderNumber',
+    ]);
     expect(orderClaimCancel.isolation).toBe('semanticLock');
   });
 

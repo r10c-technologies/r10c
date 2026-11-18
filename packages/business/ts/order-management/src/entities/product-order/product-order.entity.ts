@@ -47,12 +47,15 @@ import type { RelatedChannel } from '../../values/related-channel';
   key: 'product-order',
   labelKey: 'entity:product-order.label',
   pluralKey: 'entity:product-order.plural',
+  // An order is called by its number, never by a UUID: ADR 0076 §5.
+  labelMember: 'number',
   // Only a checkout writes an order per ADR 0069, so no list offers "New".
   creatable: false,
 })
 export class ProductOrder implements Entity {
   // #region properties
   #id?: EntityId;
+  #number = '';
   #buyerId?: string;
   #vendorId = '';
   #groupId = '';
@@ -79,6 +82,27 @@ export class ProductOrder implements Entity {
   }
   set id(value: EntityId) {
     this.#id = value;
+  }
+
+  /**
+   * What a person reads out — eight Crockford characters, shown `7KQ4-M2XD`
+   * (ADR 0076 §5). Drawn at random by the domain when the record is written,
+   * unique in the store, which redraws on a collision. ⚠️ Server-owned and
+   * writable anyway (`readonly` would drop it from serialization), and never a
+   * credential: nothing is read or authorized by it.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.number',
+    filterable: true,
+    // Sortable so a search result group has an order to list it in.
+    sortable: true,
+  })
+  get number(): string {
+    return this.#number;
+  }
+  set number(value: string) {
+    this.#number = value;
   }
 
   /**

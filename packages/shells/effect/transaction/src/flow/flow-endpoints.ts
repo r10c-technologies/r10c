@@ -19,6 +19,7 @@ import {
   UpstreamUnavailable,
 } from '@entifix/core';
 import { FlowEngineTag } from '@entifix/transactions';
+import { VendorDoesNotShip } from '@r10c/business-ts-flow-contracts';
 import {
   cancellationRecipe,
   checkoutRecipe,
@@ -61,6 +62,11 @@ interface FlowStart {
     flowId: string,
     dials: DeliveryDials,
   ) => Body;
+  /** A refusal the verified entitlements decide before anything is composed. */
+  readonly refusal?: (
+    input: Body,
+    entitlements: ReadonlyMap<string, readonly string[]>,
+  ) => VendorDoesNotShip | undefined;
 }
 
 const vendorPartsOf = (input: Body): readonly Body[] =>
@@ -93,6 +99,23 @@ export const FLOW_STARTS = {
         entitlements: entitlements.get(String(part['vendorId'])) ?? [],
       })),
     }),
+    // A storefront sale is shipped, so a seller who does not ship is refused
+    // here rather than becoming an order nothing will move (ADR 0076 §3).
+    refusal: (input, entitlements) => {
+      if (recordOf(input['channel'])?.['type'] !== 'storefront')
+        return undefined;
+      // A part naming no vendor is the start's decoding to refuse, not this.
+      const stranded = vendorPartsOf(input)
+        .map(part => part['vendorId'])
+        .filter(isString)
+        .find(
+          vendorId =>
+            !(entitlements.get(vendorId) ?? []).includes(SHIPPING_ENTITLEMENT),
+        );
+      return stranded === undefined
+        ? undefined
+        : new VendorDoesNotShip({ vendorId: stranded });
+    },
   },
   cancellation: {
     recipe: cancellationRecipe,
@@ -168,6 +191,7 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         // A store's answer to a registration it could not make twice.
         DuplicateKey,
         StaleRevision,
+        VendorDoesNotShip,
       ],
       guard: {
         kind: 'crossing',
@@ -188,6 +212,8 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         const entitlements = yield* facts.entitlementsOf(
           start.vendorsOf(input),
         );
+        const refused = start.refusal?.(input, entitlements);
+        if (refused !== undefined) return yield* refused;
         const flowId = globalThis.crypto.randomUUID();
         const slip = yield* compose(
           start.recipe,

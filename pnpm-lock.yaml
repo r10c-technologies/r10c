@@ -2696,6 +2696,9 @@ importers:
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../flow-contracts
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../order-contracts
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary
@@ -2894,6 +2897,9 @@ importers:
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../flow-contracts
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../order-contracts
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary
@@ -3840,6 +3846,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.23.1(effect@4.0.7)
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/order-contracts
       '@r10c/business-ts-order-management':
         specifier: workspace:*
         version: link:../../../business/ts/order-management
@@ -4334,6 +4343,9 @@ importers:
       '@entifix/workflow':
         specifier: 'catalog:'
         version: 0.23.1(@effect/platform-node@4.0.7(effect@4.0.7)(redis@6.3.0(@node-rs/xxhash@1.7.8)(@opentelemetry/api@1.9.1)))(effect@4.0.7)
+      '@r10c/business-ts-flow-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/flow-contracts
       '@r10c/shells-effect-flow-catalog':
         specifier: workspace:*
         version: link:../flow-catalog
@@ -4471,6 +4483,9 @@ importers:
       '@r10c/business-ts-marketplace-vendor':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-vendor
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/order-contracts
       '@r10c/implementation-catalog-reference-next':
         specifier: workspace:*
         version: link:../../../implementation/catalog-reference/next
@@ -4918,6 +4933,9 @@ importers:
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../../packages/business/ts/flow-contracts
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/order-contracts
       '@r10c/business-ts-order-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/order-management

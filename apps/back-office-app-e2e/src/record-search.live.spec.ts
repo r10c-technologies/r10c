@@ -89,3 +89,21 @@ test('finds a vendor’s agreement and payouts by the vendor’s name', async ({
     expect(label).toBe(VENDOR_NAME);
   }
 });
+
+test('finds a vendor’s order by its number, and calls it by that number', async ({
+  page,
+}) => {
+  const list = await page.request.get('/api/order/product-order?limit=1');
+  expect(list.status()).toBe(200);
+  const body = (await list.json()) as {
+    data: { items: readonly { number?: string }[] };
+  };
+  const number = body.data.items[0]?.number;
+  test.skip(number === undefined, 'the demo organization has no order yet');
+
+  const groups = await search(page, String(number), 'product-order');
+  const labels = groups.flatMap(group => group.items.map(item => item.label));
+
+  expect(labels).toContain(number);
+  for (const label of labels) expect(label).not.toMatch(RAW_ID);
+});

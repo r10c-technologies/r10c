@@ -33,6 +33,41 @@ describe('shippingOrderEvent', () => {
     ).toBe('s-2');
   });
 
+  it('carries a picked set of members, and nothing personal the shipment holds', () => {
+    const event = shippingOrderEvent(
+      SHIPPING_ORDER_DELIVERED,
+      'org-1',
+      {
+        id: 's-1',
+        orderId: 'o-1',
+        orderNumber: '7KQ4-M2XD',
+        groupId: 'g-1',
+        status: 'delivered',
+        paymentMethod: 'cod',
+        amountDue: 100,
+        currency: 'GTQ',
+        destination: [
+          { name: 'Ana', phone: '+50255551234', addressLine: '5a avenida' },
+        ],
+        redactedAt: undefined,
+      },
+      'fulfilment',
+    );
+
+    expect(event.data).toEqual({
+      id: 's-1',
+      orderId: 'o-1',
+      groupId: 'g-1',
+      status: 'delivered',
+      paymentMethod: 'cod',
+      amountDue: 100,
+      currency: 'GTQ',
+    });
+    expect(JSON.stringify(event)).not.toMatch(
+      /destination|phone|email|Ana|5a avenida|7KQ4/,
+    );
+  });
+
   it('announces exactly the four moves past dispatch', () => {
     expect(Object.values(EVENT_OF)).toEqual([...SHIPPING_ORDER_EVENTS]);
   });

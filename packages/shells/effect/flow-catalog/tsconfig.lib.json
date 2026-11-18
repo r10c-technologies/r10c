@@ -27,6 +27,9 @@
     },
     {
       "path": "../../../business/ts/order-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/order-contracts/tsconfig.lib.json"
     }
   ],
   "exclude": [

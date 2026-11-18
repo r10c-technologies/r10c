@@ -51,6 +51,7 @@
     "@entifix/sql": "catalog:",
     "@entifix/transactions": "catalog:",
     "@entifix/workflow": "catalog:",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
     "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",

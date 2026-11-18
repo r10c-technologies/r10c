@@ -4,6 +4,7 @@ import {
   acceptedAnswer,
   makeScriptedFlowStarter,
 } from '@r10c/business-ts-flow-contracts/testing';
+import { ORDER_NUMBER } from '@r10c/business-ts-order-contracts';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -128,6 +129,76 @@ describe('openGroup', () => {
         (online.group.placedAt as Date).getTime(),
     ).toBe(60_000);
     expect(counter.group.cancelWindowEndsAt).toBeUndefined();
+  });
+
+  it('stores a storefront buyer’s contact as one checked row, and none at a counter', async () => {
+    const { run } = world();
+
+    const online = await run(
+      openGroup({
+        group: aGroup(),
+        contact: {
+          name: ' Ana López ',
+          phone: '5555-1234',
+          email: 'Ana@Correo.com',
+          destination: {
+            departamento: '01',
+            municipio: '0108',
+            zona: 4,
+            addressLine: '5a avenida 12-34',
+          },
+        },
+        commandId: undefined,
+        cancelWindowSeconds: 60,
+      }),
+    );
+    const counter = await run(
+      openGroup({
+        group: aGroup({ id: crypto.randomUUID() }),
+        commandId: undefined,
+        cancelWindowSeconds: 60,
+      }),
+    );
+
+    expect(online.group.contact).toHaveLength(1);
+    expect(online.group.contact[0]).toMatchObject({
+      name: 'Ana López',
+      phone: '+50255551234',
+      email: 'ana@correo.com',
+      departamento: '01',
+      municipio: '0108',
+      zona: 4,
+      addressLine: '5a avenida 12-34',
+      reference: undefined,
+    });
+    expect(counter.group.contact).toEqual([]);
+  });
+
+  it('refuses a contact it cannot deliver to, pointing at each field', async () => {
+    const { run } = world();
+
+    const failure = await run(
+      Effect.flip(
+        openGroup({
+          group: aGroup(),
+          contact: { name: 'Ana', phone: '123', email: 'ana@correo.com' },
+          commandId: undefined,
+          cancelWindowSeconds: 60,
+        }),
+      ),
+    );
+
+    expect(failure).toMatchObject({ code: 'invalid' });
+    expect(
+      (failure as unknown as { errors: { pointer: string }[] }).errors.map(
+        error => error.pointer,
+      ),
+    ).toEqual([
+      '/contact/phone',
+      '/contact/destination/departamento',
+      '/contact/destination/municipio',
+      '/contact/destination/addressLine',
+    ]);
   });
 
   it('refuses a group whose id is not a flow’s', async () => {
@@ -406,6 +477,29 @@ describe('buyerReceipt', () => {
     expect(receipt.group.id).toBe(GROUP);
     expect(receipt.orders.map(order => order.id)).toEqual([orderId]);
     expect([guessed.code, unknown.code]).toEqual([
+      'cancelNotAuthorized',
+      'cancelNotAuthorized',
+    ]);
+  });
+});
+
+describe('an order number', () => {
+  it('is drawn for a group and an order, and opens neither a receipt nor a cancel', async () => {
+    const { run, refusal, placed, stores } = world();
+    const orderId = await placed('confirmed');
+    const group = await run(stores.groups.get(GROUP));
+    const order = await run(stores.orders.get(orderId));
+
+    expect(group?.number).toMatch(ORDER_NUMBER);
+    expect(order?.number).toMatch(ORDER_NUMBER);
+    expect(order?.number).not.toBe(group?.number);
+    const byGroupNumber = await refusal(
+      buyerReceipt({ groupId: String(group?.number), nonce: NONCE }),
+    );
+    const byOrderNumber = await refusal(
+      cancelOrderAsBuyer({ orderId: String(order?.number), nonce: NONCE }),
+    );
+    expect([byGroupNumber.code, byOrderNumber.code]).toEqual([
       'cancelNotAuthorized',
       'cancelNotAuthorized',
     ]);

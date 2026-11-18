@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { http, HttpResponse } from 'msw';
 
+import { fillDelivery } from './support/delivery';
 import {
   expect,
   FLOW_STATUS_URL,
@@ -39,6 +40,7 @@ const addToCart = async (page: Page, offeringId: string) => {
 const startCheckout = async (page: Page) => {
   await page.getByTestId('review').filter({ visible: true }).click();
   await page.waitForURL(/\/es\/cart\/review/);
+  await fillDelivery(page);
   // A review page an earlier navigation left hidden can still be in the DOM.
   await page.getByTestId('checkout').filter({ visible: true }).click();
   await page.waitForURL(STATUS_PAGE);
@@ -277,6 +279,7 @@ test('reviews and places an order through native form submissions', async ({
     .evaluate(button => (button as HTMLButtonElement).form?.submit());
   await page.waitForURL(/\/es\/cart\/review\?method%3Avendor-casa-solano=cod/);
 
+  await fillDelivery(page);
   await page
     .getByTestId('checkout')
     .filter({ visible: true })
@@ -425,5 +428,63 @@ test.describe('the receipt', () => {
 
     await expect(page.getByTestId('receipt-expired')).toBeVisible();
     await expect(page.getByTestId('order-pending')).toHaveCount(0);
+  });
+});
+
+/**
+ * The review step asks where to deliver and how to reach the buyer (#583,
+ * ADR 0076 §2). A refused contact comes back with what was typed and an error
+ * tied to its field, and nothing the buyer typed ever reaches an address.
+ */
+const PERSONAL = /Ana|5555|correo|avenida/i;
+
+const reachReview = async (page: Page) => {
+  await addToCart(page, 'offering-solano-clip-light');
+  await page.getByTestId('review').filter({ visible: true }).click();
+  await page.waitForURL(/\/es\/cart\/review/);
+};
+
+const refusesAnEmptyPhone = async (page: Page, submit: () => Promise<void>) => {
+  await reachReview(page);
+  await fillDelivery(page);
+  const form = page.getByTestId('delivery-form').filter({ visible: true });
+  const phone = form.getByLabel('Teléfono', { exact: true });
+  await phone.fill('');
+
+  await submit();
+
+  const error = form.getByTestId('delivery-error-phone');
+  await expect(error).toBeVisible();
+  await expect(phone).toHaveAttribute('aria-invalid', 'true');
+  await expect(phone).toHaveAttribute(
+    'aria-describedby',
+    new RegExp(String(await error.getAttribute('id'))),
+  );
+  // Nothing typed is lost to the refusal.
+  await expect(
+    form.getByLabel('Nombre de quien recibe', { exact: true }),
+  ).toHaveValue('Ana López');
+  await expect(form.getByLabel('Municipio', { exact: true })).toHaveValue(
+    '0108',
+  );
+  expect(page.url()).not.toMatch(PERSONAL);
+
+  await phone.fill('5555-1234');
+};
+
+test.describe('the delivery and contact fields', () => {
+  test('answer an empty phone beside the field, then place the order', async ({
+    page,
+  }) => {
+    const visited: string[] = [];
+    page.on('framenavigated', frame => visited.push(frame.url()));
+
+    await refusesAnEmptyPhone(page, () =>
+      page.getByTestId('checkout').filter({ visible: true }).click(),
+    );
+    await page.getByTestId('checkout').filter({ visible: true }).click();
+    await page.waitForURL(STATUS_PAGE);
+
+    expect(visited.filter(url => PERSONAL.test(url))).toEqual([]);
   });
 });

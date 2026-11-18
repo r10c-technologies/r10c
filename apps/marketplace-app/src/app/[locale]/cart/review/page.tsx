@@ -14,7 +14,8 @@ export async function generateMetadata({ params }: LocaleRouteProps) {
  * The review step between the cart and the checkout. `searchParams` carries
  * the tender the buyer picked for each seller, from the cart's `GET` form, and
  * `changed` when the checkout sent the buyer back because the cart re-priced
- * differently from what they reviewed.
+ * differently from what they reviewed, and `retry` when a failed start sent
+ * them back to state their contact again under the same ticket.
  */
 export default async function CheckoutReviewRoute({
   params,
@@ -30,6 +31,7 @@ export default async function CheckoutReviewRoute({
       locale={await requireLocale(params)}
       tenders={parseTenderChoice(query)}
       changed={query?.['changed'] === '1'}
+      retry={query?.['retry'] === '1'}
     />
   );
 }

@@ -15,8 +15,8 @@ import { ORDER_SERVICE_URL } from './service-urls';
  * `basePath` the screens are generated at, so a result cannot route to a page
  * this host does not serve.
  *
- * No label member: a result names itself, the entity's noun and a short id,
- * because nothing an order holds is what a person calls it (#552).
+ * An order is searched and named by its number, the one thing about it a
+ * person reads out (ADR 0076 §5).
  */
 const searchSourceFor = (surface: OrderSurface): RecordSearchSource =>
   defineRecordSearchSource({

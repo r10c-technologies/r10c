@@ -305,9 +305,9 @@ test.describe('browsing the catalog', () => {
   }) => {
     await page.goto('/es/search');
     const phone = page.getByRole('combobox', { name: 'Mi teléfono' });
-    await expect(
-      phone.getByRole('option', { name: 'Nokia 3310' }),
-    ).toHaveCount(0);
+    await expect(phone.getByRole('option', { name: 'Nokia 3310' })).toHaveCount(
+      0,
+    );
 
     await phone.selectOption({ label: 'Samsung Galaxy A15' });
     await page.getByRole('button', { name: 'Ver lo que le queda' }).click();

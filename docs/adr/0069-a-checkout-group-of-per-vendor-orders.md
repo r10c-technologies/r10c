@@ -4,6 +4,7 @@
 - Date: 2026-10-28
 - Revised: 2026-11-13 — the storefront's checkout starts from a review step that shows each seller's lines, tender and the total; the cart no longer starts it (#534)
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — money the vendor collected, by courier or by link, settles `collectedBy: 'vendor'`, and an unpaid link order voids its join
+- Revised: 2026-11-17 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — the group holds the storefront buyer's contact and a readable number, each vendor order a number of its own, `order.open-group@3` and `order.write@4` carry them, and a storefront basket from a seller who does not ship is refused at start (`vendorDoesNotShip`) (#577, #578)
 - Area: business
 - Read when: a basket spans vendors, a vendor acts on their part of a sale, or a refund is partial — a checkout writes one group and one order per vendor, and one capture is allocated per order
 

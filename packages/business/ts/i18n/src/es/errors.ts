@@ -158,4 +158,17 @@ export const errors = {
   codOverLimit:
     'Este pedido supera el límite de pago contra entrega. Paga a este vendedor con tarjeta.',
   codNotEntitled: 'Este vendedor no acepta pago contra entrega.',
+  // Los datos de entrega y contacto de una compra en la tienda (ADR 0076).
+  // Cada uno nombra un campo del formulario, que los muestra junto a él.
+  vendorDoesNotShip:
+    'Este vendedor todavía no hace envíos, así que no se le puede comprar en la tienda. Quita sus productos del carrito.',
+  contactNameRequired: 'Escribe tu nombre.',
+  phoneNotGuatemalan:
+    'Escribe un teléfono de Guatemala de ocho dígitos, por ejemplo 5555-1234.',
+  emailNotValid: 'Escribe un correo válido, por ejemplo nombre@correo.com.',
+  departamentoUnknown: 'Elige un departamento.',
+  municipioOutsideDepartamento: 'Elige un municipio de la lista.',
+  zonaOutOfRange: 'La zona es un número del 1 al 25.',
+  addressLineRequired:
+    'Escribe la dirección: colonia, calle o avenida y número.',
 };

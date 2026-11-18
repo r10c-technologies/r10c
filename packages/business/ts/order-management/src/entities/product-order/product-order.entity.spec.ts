@@ -36,6 +36,7 @@ describe('ProductOrder', () => {
   it('serializes one vendor’s order: its vendor, its group, its tender and its lines', () => {
     expect(serializeEntity(ProductOrder, anOrder())).toEqual({
       id: 'order-1',
+      number: '',
       buyerId: 'buyer-1',
       vendorId: 'vendor-a',
       groupId: 'group-1',

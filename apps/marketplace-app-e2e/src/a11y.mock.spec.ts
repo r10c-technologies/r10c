@@ -5,6 +5,7 @@ import {
   PALETTES,
   usePalette,
 } from './a11y';
+import { fillDelivery } from './support/delivery';
 import { expect, scriptStream, test } from './support/stream-fixture';
 
 /**
@@ -75,6 +76,8 @@ for (const palette of PALETTES) {
     });
 
     await test.step('receipt', async () => {
+      await fillDelivery(page);
+      await fillDelivery(page);
       await page.getByTestId('checkout').filter({ visible: true }).click();
       await page.waitForURL(/\/es\/order\/status\/e2e-flow-/);
       script.outcome = 'flow.completed';

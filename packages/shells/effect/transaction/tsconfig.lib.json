@@ -18,6 +18,9 @@
     },
     {
       "path": "../flow-catalog/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/flow-contracts/tsconfig.lib.json"
     }
   ],
   "exclude": [

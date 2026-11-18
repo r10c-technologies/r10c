@@ -67,18 +67,26 @@ export interface CheckoutStartBody {
   readonly cancelDigest: string;
   /** The digest of the nonce that lets an anonymous buyer hear the flow. */
   readonly capabilityDigest: string;
+  /** Who bought and where it goes, nested as the coordinator reads it. */
+  readonly contact: unknown;
+  /** The locale the buyer checked out in, which their mail is written in. */
+  readonly locale: string;
 }
 
 export const checkoutStartBody = (input: {
   readonly parts: readonly SellerPart[];
   readonly cancelDigest: string;
   readonly capabilityDigest: string;
+  readonly contact: unknown;
+  readonly locale: string;
 }): CheckoutStartBody => ({
   channel: { type: 'storefront' },
   vendors: input.parts,
   totals: totalsByCurrency(input.parts.flatMap(part => part.lines)),
   cancelDigest: input.cancelDigest,
   capabilityDigest: input.capabilityDigest,
+  contact: input.contact,
+  locale: input.locale,
 });
 
 const decodeAccepted = Schema.decodeUnknownOption(FlowAccepted);

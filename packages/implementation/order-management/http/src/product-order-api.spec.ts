@@ -99,20 +99,34 @@ const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
   (makeEntityEnvelope(...args) as unknown as { data: Record<string, unknown> })
     .data;
 
-const open = () =>
-  checkoutGroupApi.options.override.create.handler(
-    {
-      payload: flatOf(
-        CheckoutGroup,
-        Object.assign(new CheckoutGroup(), {
-          id: GROUP,
-          buyerId: 'buyer-1',
-          cancelDigest: digestOf(NONCE),
-        }),
-      ),
-    },
+/** The buyer's contact as the checkout step carries it: nested. */
+const CONTACT = {
+  name: 'Ana López',
+  phone: '5555-1234',
+  email: 'ana@correo.com',
+  destination: {
+    departamento: '01',
+    municipio: '0108',
+    addressLine: '5a avenida 12-34',
+  },
+};
+
+/** `null` opens a counter sale's group, which names no contact. */
+const open = (contact: unknown = CONTACT) => {
+  // The step carries the group's own members flat, and the contact nested.
+  const { contact: _rows, ...members } = flatOf(
+    CheckoutGroup,
+    Object.assign(new CheckoutGroup(), {
+      id: GROUP,
+      buyerId: 'buyer-1',
+      cancelDigest: digestOf(NONCE),
+    }),
+  );
+  return checkoutGroupApi.options.override.create.handler(
+    { payload: contact === null ? members : { ...members, contact } },
     operator,
   );
+};
 
 const place = (order: ProductOrder, extraLines: unknown[] = []) => {
   const payload = flatOf(ProductOrder, order);
@@ -157,7 +171,29 @@ describe('a checkout', () => {
 
     expect(group.data.id).toBe(GROUP);
     expect(first.data).toMatchObject({ vendorId: 'v-1', status: 'pending' });
-    expect((await w.run(w.stores.groups.get(GROUP)))?.orderIds).toHaveLength(2);
+    // The flow binds both from the answer, each by its own name.
+    expect(first).toMatchObject({
+      orderId: first.data.id,
+      orderNumber: (first.data as { number?: string }).number,
+    });
+    const stored = await w.run(w.stores.groups.get(GROUP));
+    expect(stored?.orderIds).toHaveLength(2);
+    expect(stored?.contact).toEqual([
+      expect.objectContaining({ name: 'Ana López', phone: '+50255551234' }),
+    ]);
+  });
+
+  it('opens a counter sale’s group with no contact, and refuses one it cannot deliver to', async () => {
+    const counter = world();
+    const refused = world();
+
+    await counter.run(open(null));
+    const invalid = await refused.refusal(open({ name: 'Ana' }));
+
+    expect(
+      (await counter.run(counter.stores.groups.get(GROUP)))?.contact,
+    ).toEqual([]);
+    expect(invalid.code).toBe('invalid');
   });
 
   it('refuses a write whose lines name another vendor', async () => {

@@ -1,6 +1,7 @@
 import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
 import { participantRefusal } from '@r10c/business-ts-flow-contracts';
+import { BuyerContactSchema } from '@r10c/business-ts-order-contracts';
 import { Schema } from 'effect';
 
 import { ORDER_NOT_CANCELLABLE } from '../failures/order-failures';
@@ -30,7 +31,7 @@ const MOVE_REFUSAL = participantRefusal(['notFound', 'orderNotTransitionable']);
  */
 export const orderOpenGroup = defineFragment({
   id: 'order.open-group',
-  version: 2,
+  version: 3,
   module: 'order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -44,9 +45,12 @@ export const orderOpenGroup = defineFragment({
       id: Schema.NonEmptyString,
       totals: Schema.Array(Schema.Unknown),
       cancelDigest: Schema.optional(Schema.String),
+      // The buyer's contact, nested as they gave it; absent at a counter.
+      contact: Schema.optional(BuyerContactSchema),
+      locale: Schema.optional(Schema.String),
     }),
     output: openStruct({ id: GroupId }),
-    failure: participantRefusal(['invalidBody']),
+    failure: participantRefusal(['invalidBody', 'invalid']),
   },
 });
 
@@ -56,7 +60,7 @@ export const orderOpenGroup = defineFragment({
  */
 export const orderWrite = defineFragment({
   id: 'order.write',
-  version: 3,
+  version: 4,
   module: 'order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -65,7 +69,7 @@ export const orderWrite = defineFragment({
   cardinality: 'perVendor',
   isolation: 'none',
   consumes: { groupId: GroupId },
-  provides: { orderId: OrderId },
+  provides: { orderId: OrderId, orderNumber: Schema.String },
   contract: {
     input: openStruct({
       groupId: GroupId,
@@ -73,7 +77,12 @@ export const orderWrite = defineFragment({
       paymentMethod: Schema.NonEmptyString,
       items: Schema.Array(Schema.Unknown),
     }),
-    output: ORDER,
+    output: openStruct({
+      id: OrderId,
+      status: Schema.String,
+      orderId: OrderId,
+      orderNumber: Schema.String,
+    }),
     failure: participantRefusal(['invalidBody', 'notFound']),
   },
 });

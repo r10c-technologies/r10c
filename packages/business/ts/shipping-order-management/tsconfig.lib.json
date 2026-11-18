@@ -17,6 +17,9 @@
       "path": "../sales-vocabulary/tsconfig.lib.json"
     },
     {
+      "path": "../order-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../flow-contracts/tsconfig.lib.json"
     },
     {

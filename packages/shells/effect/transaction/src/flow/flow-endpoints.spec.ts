@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { DeliveryDialsTag } from './delivery-dials.js';
-import { flowStartEndpoints } from './flow-endpoints.js';
+import { FLOW_STARTS, flowStartEndpoints } from './flow-endpoints.js';
 import { VendorFactsTag } from './vendor-facts.js';
 
 const [checkout, cancellation, delivery] = flowStartEndpoints;
@@ -73,6 +73,16 @@ const basket = {
   ],
   totals: [{ currency: 'GTQ', amount: 500 }],
   capabilityDigest: 'cap',
+  contact: {
+    name: 'Ana López',
+    phone: '+50255551234',
+    email: 'ana@correo.com',
+    destination: {
+      departamento: '01',
+      municipio: '0108',
+      addressLine: '5a avenida 12-34',
+    },
+  },
 };
 
 describe('the flow start routes', () => {
@@ -140,12 +150,36 @@ describe('the flow start routes', () => {
   });
 
   it('refuses a vendor the coordinator finds unprovisioned, whatever the caller claimed', async () => {
-    const { flows, run } = world();
+    const { flows, run } = world({ 'v-1': ['shipping-order-management'] });
 
     expect(await run(checkout, basket)).toMatchObject({
       failure: { _tag: 'FlowRequirementsUnmet' },
     });
     expect(flows.started).toEqual([]);
+  });
+
+  it('treats a vendor nothing is known about as one that does not ship', () => {
+    expect(FLOW_STARTS.checkout.refusal(basket, new Map())).toMatchObject({
+      _tag: 'VendorDoesNotShip',
+      vendorId: 'v-1',
+    });
+  });
+
+  it('refuses a storefront seller who does not ship before anything is composed, and not a counter sale', async () => {
+    const storefront = world({ 'v-1': ['stock-management'] });
+    const counter = world({ 'v-1': ['stock-management'] });
+
+    const refused = await storefront.run(checkout, basket);
+    await counter.run(checkout, {
+      ...basket,
+      channel: { type: 'counter', id: 'ch-1', name: 'Front desk' },
+    });
+
+    expect(refused).toMatchObject({
+      failure: { _tag: 'VendorDoesNotShip', vendorId: 'v-1' },
+    });
+    expect(storefront.flows.started).toEqual([]);
+    expect(counter.flows.started).toHaveLength(1);
   });
 
   it.each([

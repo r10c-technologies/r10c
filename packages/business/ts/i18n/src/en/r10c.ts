@@ -206,6 +206,27 @@ export const r10c: EsR10c = {
       codNote: 'You pay {{seller}} in cash when the parcel arrives.',
       edit: 'Edit cart',
       place: 'Place order',
+      delivery: {
+        legend: 'Delivery and contact',
+        intro:
+          'We use this to deliver your order and tell you how it is going. Only the sellers who ship it see it, and we delete it once it is no longer needed.',
+        optional: '(optional)',
+        chooseMunicipio: 'Choose your municipio',
+        fields: {
+          name: 'Name of who receives it',
+          phone: 'Phone',
+          email: 'Email',
+          municipio: 'Municipio',
+          zona: 'Zona',
+          addressLine: 'Address',
+          reference: 'Landmark',
+        },
+        hints: {
+          phone: 'Eight digits. The courier calls you on this number.',
+          email: 'We send your receipt and how to get back to your order.',
+          reference: 'For example: across from the park, black gate.',
+        },
+      },
     },
     checkout: {
       empty: 'Nothing here is still on sale.',

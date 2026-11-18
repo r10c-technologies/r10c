@@ -479,9 +479,9 @@
       "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "fulfilment.open@2",
+      "ref": "fulfilment.open@3",
       "id": "fulfilment.open",
-      "version": 2,
+      "version": 3,
       "module": "shipping-order-management",
       "kind": "retriable",
       "cardinality": "perVendor",
@@ -513,6 +513,13 @@
             "type": "string"
           },
           "definitions": {}
+        },
+        "orderNumber": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
         }
       },
       "provides": {
@@ -534,9 +541,78 @@
                 "type": "string",
                 "minLength": 1
               },
+              "orderNumber": {
+                "type": "string",
+                "minLength": 1
+              },
               "groupId": {
                 "type": "string",
                 "minLength": 1
+              },
+              "destination": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "destination": {
+                    "type": "object",
+                    "properties": {
+                      "departamento": {
+                        "type": "string"
+                      },
+                      "municipio": {
+                        "type": "string"
+                      },
+                      "zona": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Infinity",
+                              "-Infinity",
+                              "NaN"
+                            ]
+                          }
+                        ]
+                      },
+                      "addressLine": {
+                        "type": "string"
+                      },
+                      "reference": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "departamento",
+                      "municipio",
+                      "addressLine"
+                    ],
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "phone",
+                  "destination"
+                ],
+                "allOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                ]
               },
               "paymentMethod": {
                 "type": "string",
@@ -567,7 +643,9 @@
             },
             "required": [
               "orderId",
+              "orderNumber",
               "groupId",
+              "destination",
               "paymentMethod",
               "amountDue",
               "currency",
@@ -613,13 +691,10 @@
             "type": "object",
             "properties": {
               "code": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": [
-                      "invalidBody"
-                    ]
-                  }
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "invalid"
                 ]
               },
               "category": {
@@ -640,7 +715,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0e6e38c327a57a"
+      "fingerprint": "12546a8da16000"
     },
     {
       "ref": "fulfilment.release@2",
@@ -1303,9 +1378,9 @@
       "fingerprint": "0a8ea1f52627fb"
     },
     {
-      "ref": "order.open-group@2",
+      "ref": "order.open-group@3",
       "id": "order.open-group",
-      "version": 2,
+      "version": 3,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "one",
@@ -1347,6 +1422,92 @@
                 "type": "array"
               },
               "cancelDigest": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "contact": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "phone": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "destination": {
+                        "type": "object",
+                        "properties": {
+                          "departamento": {
+                            "type": "string"
+                          },
+                          "municipio": {
+                            "type": "string"
+                          },
+                          "zona": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "Infinity",
+                                  "-Infinity",
+                                  "NaN"
+                                ]
+                              }
+                            ]
+                          },
+                          "addressLine": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "departamento",
+                          "municipio",
+                          "addressLine"
+                        ],
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "phone",
+                      "email",
+                      "destination"
+                    ],
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "locale": {
                 "anyOf": [
                   {
                     "type": "string"
@@ -1397,13 +1558,10 @@
             "type": "object",
             "properties": {
               "code": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": [
-                      "invalidBody"
-                    ]
-                  }
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "invalid"
                 ]
               },
               "category": {
@@ -1424,12 +1582,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1fcc19a3b7447e"
+      "fingerprint": "10fcc91164045e"
     },
     {
-      "ref": "order.write@3",
+      "ref": "order.write@4",
       "id": "order.write",
-      "version": 3,
+      "version": 4,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "perVendor",
@@ -1458,6 +1616,13 @@
       },
       "provides": {
         "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "orderNumber": {
           "dialect": "draft-2020-12",
           "schema": {
             "type": "string"
@@ -1511,11 +1676,19 @@
               },
               "status": {
                 "type": "string"
+              },
+              "orderId": {
+                "type": "string"
+              },
+              "orderNumber": {
+                "type": "string"
               }
             },
             "required": [
               "id",
-              "status"
+              "status",
+              "orderId",
+              "orderNumber"
             ],
             "allOf": [
               {
@@ -1556,7 +1729,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "11e0a95db0cfdd"
+      "fingerprint": "1bb0e5a01dec5c"
     },
     {
       "ref": "payment.capture@3",

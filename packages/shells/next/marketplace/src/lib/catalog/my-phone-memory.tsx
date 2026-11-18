@@ -74,7 +74,7 @@ export function ForgetMyPhoneLink({
   return (
     <Link
       href={href}
-      className="focus-ring text-primary underline"
+      className="text-primary underline focus-ring"
       onClick={() => safely(() => localStorage.removeItem(MY_PHONE_KEY))}
     >
       {children}
