@@ -4,6 +4,7 @@ import {
   parseReceipt,
   type Receipt,
   RECEIPT_LINE_CAP,
+  receiptCookieMaxAge,
   receiptFromReadBack,
   serializeReceipt,
   withCancelled,
@@ -40,6 +41,7 @@ const receipt: Receipt = {
   totals: [{ currency: 'GTQ', amount: 250 }],
   cancelNonce: 'nonce',
   cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
+  receiptEndsAt: '2026-12-03T10:00:00.000Z',
 };
 
 describe('the group receipt', () => {
@@ -95,8 +97,12 @@ describe('the group receipt', () => {
     expect(parsed?.cancelNonce).toBeUndefined();
   });
 
-  it('keeps a receipt whose cancel window was never stamped', () => {
-    const { cancelWindowEndsAt: _, ...unstamped } = receipt;
+  it('keeps a receipt whose windows were never stamped', () => {
+    const {
+      cancelWindowEndsAt: _window,
+      receiptEndsAt: _ends,
+      ...unstamped
+    } = receipt;
     expect(parseReceipt(serializeReceipt(unstamped))).toEqual(unstamped);
   });
 
@@ -120,6 +126,7 @@ describe('receiptFromReadBack', () => {
       id: 'g-1',
       placedAt: '2026-11-03T10:00:00.000Z',
       cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
+      receiptEndsAt: '2026-12-03T10:00:00.000Z',
     }),
     orders,
   });
@@ -149,6 +156,7 @@ describe('receiptFromReadBack', () => {
       placedAt: '2026-11-03T10:00:00.000Z',
       cancelNonce: 'nonce',
       cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
+      receiptEndsAt: '2026-12-03T10:00:00.000Z',
       totals: [{ currency: 'GTQ', amount: 2800 }],
     });
     expect(built?.orders[0]).toMatchObject({
@@ -206,5 +214,28 @@ describe('receiptFromReadBack', () => {
 
     expect(built?.placedAt).toBeUndefined();
     expect(built?.cancelWindowEndsAt).toBeUndefined();
+  });
+});
+
+describe('receiptCookieMaxAge', () => {
+  const NOW = new Date('2026-11-03T10:00:00.000Z');
+
+  it('lives until the group’s own receiptEndsAt, past the cancel window', () => {
+    // 30 days, though the cancel window closed after 30 minutes.
+    expect(receiptCookieMaxAge(receipt, NOW)).toBe(30 * 24 * 60 * 60);
+  });
+
+  it('is nought with no stamp, a broken one, or one already past', () => {
+    const { receiptEndsAt: _, ...unstamped } = receipt;
+    expect(receiptCookieMaxAge(unstamped, NOW)).toBe(0);
+    expect(
+      receiptCookieMaxAge({ ...receipt, receiptEndsAt: 'nope' }, NOW),
+    ).toBe(0);
+    expect(
+      receiptCookieMaxAge(
+        { ...receipt, receiptEndsAt: '2026-11-03T09:00:00.000Z' },
+        NOW,
+      ),
+    ).toBe(0);
   });
 });

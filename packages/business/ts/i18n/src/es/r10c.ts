@@ -281,9 +281,9 @@ export const r10c = {
       expired:
         'El comprobante de tu última compra ya no está disponible en este navegador. Si acabas de comprar, revisa el correo de confirmación.',
       // El plazo se nombra en vez de dejar que el botón deje de funcionar solo:
-      // el comprobante lleva la fecha que el servidor selló, y las dos
-      // concuerdan porque `RECEIPT_TTL_SECONDS` y el ajuste del servicio son un
-      // solo número (ADR 0058 §5).
+      // el comprobante lleva la fecha que el servidor selló, y el botón se va
+      // cuando pasa, mientras el comprobante se sigue leyendo hasta su propio
+      // `receiptEndsAt` (ADR 0076 §6).
       cancel: 'Cancelar pedido',
       cancelTitle: '¿Cancelar el pedido de {{seller}}?',
       cancelMessage:

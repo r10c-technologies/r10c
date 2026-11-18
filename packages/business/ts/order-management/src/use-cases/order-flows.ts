@@ -19,13 +19,20 @@ import {
   CheckoutGroupStoreTag,
   ProductOrderStoreTag,
 } from '../ports/product-order-store';
-import { verifyCancelCapability } from '../values/cancel-capability';
+import {
+  type BuyerCapabilityHolder,
+  type CapabilityRefusal,
+  verifyCancelCapability,
+  verifyReceiptCapability,
+} from '../values/cancel-capability';
 import { checkoutContactOf } from '../values/checkout-contact';
 import type { OrderScope } from '../values/order-scope';
 import type { OrderTransition } from '../values/order-transition';
 import { CancelProductOrderUC } from './cancel-product-order';
 
 const MILLISECONDS = 1000;
+/** A day, in milliseconds: `order.receiptDays` is counted in whole days. */
+const DAY_MILLISECONDS = 24 * 60 * 60 * MILLISECONDS;
 
 /** The recipe a cancellation runs on the coordinator. */
 export const CANCELLATION_RECIPE = 'cancellation';
@@ -58,10 +65,10 @@ const orderInScope = (orderId: string, scope: OrderScope) =>
 
 /**
  * Open a checkout group — the checkout's first write, before any vendor's
- * order. The id is the flow's, handed in; the placing time and the buyer's
- * cancel window are this domain's to stamp, and the window opens only for a
- * group that carries a capability digest: a counter sale has no buyer to hold
- * one.
+ * order. The id is the flow's, handed in; the placing time, the buyer's
+ * cancel window and how long their receipt can be read are this domain's to
+ * stamp, and both windows open only for a group that carries a capability digest: a counter
+ * sale has no buyer to hold one.
  */
 export const openGroup = (input: {
   readonly group: CheckoutGroup;
@@ -73,6 +80,8 @@ export const openGroup = (input: {
   readonly contact?: unknown;
   readonly commandId: string | undefined;
   readonly cancelWindowSeconds: number;
+  /** How long the buyer's capability may still read the receipt, in days. */
+  readonly receiptDays: number;
 }) =>
   Effect.gen(function* () {
     const { group } = input;
@@ -89,12 +98,15 @@ export const openGroup = (input: {
     group.orderIds = [];
     group.number = drawOrderNumber();
     group.placedAt = new Date();
-    group.cancelWindowEndsAt =
-      group.cancelDigest === undefined || group.cancelDigest === ''
-        ? undefined
-        : new Date(
-            group.placedAt.getTime() + input.cancelWindowSeconds * MILLISECONDS,
-          );
+    const placedAt = group.placedAt.getTime();
+    const capable =
+      group.cancelDigest !== undefined && group.cancelDigest !== '';
+    group.cancelWindowEndsAt = capable
+      ? new Date(placedAt + input.cancelWindowSeconds * MILLISECONDS)
+      : undefined;
+    group.receiptEndsAt = capable
+      ? new Date(placedAt + input.receiptDays * DAY_MILLISECONDS)
+      : undefined;
     const groups = yield* CheckoutGroupStoreTag;
     return yield* groups.open(group, input.commandId);
   });
@@ -253,14 +265,20 @@ export const cancelOrderAsStaff = (input: {
  * every capability failure answers alike, because saying which part was wrong
  * would teach a caller how to forge the rest.
  */
-const groupForBuyer = (groupId: string, nonce: string | undefined) =>
+const groupForBuyer = (
+  groupId: string,
+  nonce: string | undefined,
+  verify: (
+    group: BuyerCapabilityHolder,
+    nonce: string | undefined,
+    now: Date,
+  ) => CapabilityRefusal | undefined,
+) =>
   Effect.gen(function* () {
     const groups = yield* CheckoutGroupStoreTag;
     const group = yield* groups.get(groupId);
     const refusal =
-      group === undefined
-        ? 'noCapability'
-        : verifyCancelCapability(group, nonce, new Date());
+      group === undefined ? 'noCapability' : verify(group, nonce, new Date());
     if (group === undefined || refusal !== undefined) {
       // On the trace rather than in a log: the failure is the answer, and only
       // the slice shell logs (ADR 0064).
@@ -287,7 +305,7 @@ export const cancelOrderAsBuyer = (input: {
     const store = yield* ProductOrderStoreTag;
     const order = yield* store.get(input.orderId);
     if (order === undefined) return yield* new CancelNotAuthorized();
-    yield* groupForBuyer(order.groupId, input.nonce);
+    yield* groupForBuyer(order.groupId, input.nonce, verifyCancelCapability);
     // The payment is not confirmed yet: a state the buyer can wait out.
     if (order.status === 'pending') {
       return yield* new PaymentPending({ orderId: input.orderId });
@@ -307,7 +325,11 @@ export const buyerReceipt = (input: {
   readonly nonce: string | undefined;
 }) =>
   Effect.gen(function* () {
-    const group = yield* groupForBuyer(input.groupId, input.nonce);
+    const group = yield* groupForBuyer(
+      input.groupId,
+      input.nonce,
+      verifyReceiptCapability,
+    );
     const store = yield* ProductOrderStoreTag;
     const orders = yield* store.forGroup(input.groupId);
     return { group, orders };

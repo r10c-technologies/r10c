@@ -4,7 +4,10 @@ import {
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
-import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
+import {
+  CancelWindowSeconds,
+  ReceiptDays,
+} from '@r10c/business-ts-order-management';
 import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
 import {
   crossingTokenLayer,
@@ -72,6 +75,10 @@ export const orderComposition = (configuration: FleetConfiguration) =>
     const cancelWindowSeconds = yield* store
       .in('order')
       .getNumber('cancelWindowSeconds');
+    // How long the buyer's capability may still read the receipt, in days —
+    // the receipt outlives the cancel window (ADR 0076 §6). Read at boot for
+    // the same reason as the window above.
+    const receiptDays = yield* store.in('order').getNumber('receiptDays');
 
     // Where the cancellation coordinator answers, and the secret this service
     // presents to start a flow through it.
@@ -100,6 +107,7 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       yield* crossingTokenLayer(configuration),
       yield* fleetOutboxLayer(configuration, ORDER_SLICE),
       Layer.succeed(CancelWindowSeconds, cancelWindowSeconds),
+      Layer.succeed(ReceiptDays, receiptDays),
       httpFlowStarterLayer({
         url: coordinatorUrl,
         crossingToken: coordinatorToken,

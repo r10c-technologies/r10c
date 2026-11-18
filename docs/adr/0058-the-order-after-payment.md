@@ -12,6 +12,7 @@
 - Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — a person's cancel is the derived `POST /api/product-order/:id/cancel`, no longer `/cancellation`; the saga's `/cancelling` and `/cancelled` are crossing endpoints
 - Revised: 2026-11-04 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — cancellation is a composed slip started through `FlowStarterTag` and answered `202`; its instance read `GET /api/saga/:id` is deleted, and a flow's progress is read from flow-status (#487, #490)
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — §2: an `awaiting-payment` order is withdrawn by one conditional write with no refund; §5: the buyer's capability also authorizes attaching payment evidence, for the receipt's read lifetime
+- Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — §5: the capability reads the receipt until the group's own `receiptEndsAt` (`order.receiptDays`) and cancels only until `cancelWindowEndsAt`; the receipt cookie lives until `receiptEndsAt`, so `RECEIPT_TTL_SECONDS` and its two-numbers warning are gone (#579)
 
 ## Context
 
@@ -160,10 +161,13 @@ nothing to tabulate. It is the shape `RedisOneTimeTokenStore` already uses.
 stamped server-side at placement, which makes the window _revocable_ — clearing
 either member ends it — where a signed expiry can only be waited out.
 
-⚠️ **`RECEIPT_TTL_SECONDS` and `order.cancelWindowSeconds` are one number in two
-places that cannot import each other.** A window wider than the cookie is a
-capability nobody can present; a cookie that outlives the window is a Cancel
-button that quietly stops working.
+⚠️ **The cookie lives as long as the receipt, not as long as the cancel.** The
+capability does two jobs with two ends, both stamped on the group: it cancels
+until `cancelWindowEndsAt` and reads the receipt back until `receiptEndsAt`,
+days later (`order.receiptDays`). The storefront sizes the cookie from the
+group's own `receiptEndsAt`, read back once on settle, so no number lives in
+two places, and the receipt offers Cancel only while the stamped window is
+open, so no button quietly stops working ([ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) §6).
 
 ⚠️ **An order with no digest refuses every nonce, including an absent one.** A
 counter sale carries none — at a till there is no browser to hold one — and "no

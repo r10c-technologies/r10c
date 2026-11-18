@@ -6,12 +6,29 @@ import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
  *
  * ⚠️ **It carries the cancel nonce**, the one credential that lets an
  * anonymous buyer cancel their own orders and read the group back, so it lives
- * where no script reaches it and expires with the cancel window.
+ * where no script reaches it and expires when the group says the receipt does
+ * — see {@link receiptCookieMaxAge}.
  */
 export const RECEIPT_COOKIE = 'r10c_receipt';
 
-/** The receipt lives exactly as long as the cancel window it can open. */
-export const RECEIPT_TTL_SECONDS = 30 * 60;
+const SECOND = 1000;
+
+/**
+ * How long the receipt cookie may live, in seconds: until the group's own
+ * `receiptEndsAt`, the moment order-service stops reading the receipt back by
+ * this nonce. The service stamps it from its own dial, so the storefront holds
+ * no copy of that number (ADR 0076 §6).
+ *
+ * ⚠️ **No stamp, an unparseable one or one already past is `0`**, which
+ * deletes the cookie. Everything in a receipt is untrusted, and a cookie with
+ * no end it can name would outlive the only thing that makes it useful.
+ */
+export const receiptCookieMaxAge = (receipt: Receipt, now: Date): number => {
+  if (receipt.receiptEndsAt === undefined) return 0;
+  const endsAt = new Date(receipt.receiptEndsAt).getTime();
+  if (Number.isNaN(endsAt)) return 0;
+  return Math.max(0, Math.floor((endsAt - now.getTime()) / SECOND));
+};
 
 /**
  * Past this many lines in one order its lines are left out and only its count
@@ -54,6 +71,8 @@ export interface Receipt {
   /** The nonce whose digest the group holds: the buyer's cancel and read. */
   readonly cancelNonce?: string;
   readonly cancelWindowEndsAt?: string;
+  /** Until when the nonce reads the receipt back; the cookie lives as long. */
+  readonly receiptEndsAt?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -128,8 +147,15 @@ export const parseReceipt = (
     return undefined;
   }
   if (!isRecord(parsed)) return undefined;
-  const { groupId, placedAt, orders, totals, cancelNonce, cancelWindowEndsAt } =
-    parsed;
+  const {
+    groupId,
+    placedAt,
+    orders,
+    totals,
+    cancelNonce,
+    cancelWindowEndsAt,
+    receiptEndsAt,
+  } = parsed;
   if (!filled(groupId) || !Array.isArray(orders) || !Array.isArray(totals)) {
     return undefined;
   }
@@ -151,6 +177,7 @@ export const parseReceipt = (
     totals: readTotals,
     ...(filled(cancelNonce) ? { cancelNonce } : {}),
     ...(filled(cancelWindowEndsAt) ? { cancelWindowEndsAt } : {}),
+    ...(filled(receiptEndsAt) ? { receiptEndsAt } : {}),
   };
 };
 
@@ -201,7 +228,7 @@ export const receiptFromReadBack = (
     return undefined;
   }
   const readOrders = read as ReceiptOrder[];
-  const { placedAt, cancelWindowEndsAt } = group;
+  const { placedAt, cancelWindowEndsAt, receiptEndsAt } = group;
   return {
     groupId: group['id'],
     ...(filled(placedAt) ? { placedAt } : {}),
@@ -211,6 +238,7 @@ export const receiptFromReadBack = (
     ),
     cancelNonce,
     ...(filled(cancelWindowEndsAt) ? { cancelWindowEndsAt } : {}),
+    ...(filled(receiptEndsAt) ? { receiptEndsAt } : {}),
   };
 };
 

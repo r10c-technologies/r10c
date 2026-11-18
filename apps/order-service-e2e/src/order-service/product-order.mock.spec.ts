@@ -475,14 +475,18 @@ describe('the checkout group', () => {
     expect(res.status).toBe(200);
     const placedAt = Date.parse(String(res.data.data.placedAt));
     const endsAt = Date.parse(String(res.data.data.cancelWindowEndsAt));
-    // 30 minutes, the same number the storefront's receipt cookie lives for.
+    // 30 minutes to cancel, and 30 days to read the receipt back.
     expect(endsAt - placedAt).toBe(1800 * 1000);
+    expect(
+      Date.parse(String(res.data.data.receiptEndsAt)) - placedAt,
+    ).toBe(30 * 24 * 60 * 60 * 1000);
   });
 
   it('stamps no window for a counter sale, which brings no digest', async () => {
     const res = await openGroup(crypto.randomUUID());
 
     expect(res.data.data.cancelWindowEndsAt).toBeUndefined();
+    expect(res.data.data.receiptEndsAt).toBeUndefined();
   });
 
   it('owns the window whatever the body says', async () => {

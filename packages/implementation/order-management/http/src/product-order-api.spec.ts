@@ -13,6 +13,7 @@ import {
   OrderItem,
   ProductOrder,
   ProductOrderStoreTag,
+  ReceiptDays,
 } from '@r10c/business-ts-order-management';
 import { makeInMemoryOrderStores } from '@r10c/business-ts-order-management/testing';
 import { Effect, Layer } from 'effect';
@@ -48,9 +49,10 @@ const anOrder = (vendorId = 'v-1') =>
 
 /**
  * One pair of stores per case; the coordinator accepts every cancellation and
- * answers the flow to follow.
+ * answers the flow to follow. The windows are the two dials the group is
+ * stamped from; a window of nought has closed by the time anyone asks.
  */
-const world = () => {
+const world = (windows = { cancelWindowSeconds: 600, receiptDays: 30 }) => {
   const stores = makeInMemoryOrderStores();
   const started: { recipe: string; input: unknown }[] = [];
   const flows = makeScriptedFlowStarter((recipe, input) => {
@@ -61,13 +63,15 @@ const world = () => {
     Layer.succeed(ProductOrderStoreTag, stores.orders),
     Layer.succeed(CheckoutGroupStoreTag, stores.groups),
     Layer.succeed(FlowStarterTag, flows),
-    Layer.succeed(CancelWindowSeconds, 600),
+    Layer.succeed(CancelWindowSeconds, windows.cancelWindowSeconds),
+    Layer.succeed(ReceiptDays, windows.receiptDays),
   );
   type R =
     | ProductOrderStoreTag
     | CheckoutGroupStoreTag
     | FlowStarterTag
-    | CancelWindowSeconds;
+    | CancelWindowSeconds
+    | ReceiptDays;
   return {
     stores,
     started,
@@ -113,8 +117,9 @@ const CONTACT = {
 
 /** `null` opens a counter sale's group, which names no contact. */
 const open = (contact: unknown = CONTACT) => {
-  // The step carries the group's own members flat, and the contact nested.
-  const { contact: _rows, ...members } = flatOf(
+  // The step carries the group's own members flat, and the contact nested:
+  // the serialized empty `contact` rows are not what a step sends.
+  const members = flatOf(
     CheckoutGroup,
     Object.assign(new CheckoutGroup(), {
       id: GROUP,
@@ -122,6 +127,7 @@ const open = (contact: unknown = CONTACT) => {
       cancelDigest: digestOf(NONCE),
     }),
   );
+  delete members['contact'];
   return checkoutGroupApi.options.override.create.handler(
     { payload: contact === null ? members : { ...members, contact } },
     operator,
@@ -424,6 +430,49 @@ describe('the buyer', () => {
     expect(receipt.group.data.id).toBe(GROUP);
     expect(receipt.orders.map(order => order.data.id)).toEqual([orderId]);
     expect(refused.code).toBe('cancelNotAuthorized');
+  });
+});
+
+describe('the receipt outlives the cancel window (ADR 0076 §6)', () => {
+  const read = () =>
+    at(buyerReceiptRead, {
+      params: { id: GROUP },
+      headers: { 'x-cancel-nonce': NONCE },
+    });
+  const cancelling = (orderId: string) =>
+    at(buyerCancellation, {
+      params: { id: orderId },
+      payload: { cancelNonce: NONCE },
+    });
+
+  it('reads past the cancel window, and no longer cancels', async () => {
+    const w = world({ cancelWindowSeconds: 0, receiptDays: 30 });
+    const orderId = await seeded(w);
+
+    const receipt = (await w.run(read())) as unknown as {
+      group: { data: { id: string; receiptEndsAt: string } };
+    };
+    const refused = await w.refusal(cancelling(orderId));
+
+    expect(receipt.group.data.id).toBe(GROUP);
+    expect(Date.parse(receipt.group.data.receiptEndsAt)).toBeGreaterThan(
+      Date.now(),
+    );
+    expect(refused.code).toBe('cancelNotAuthorized');
+    expect(w.started).toEqual([]);
+  });
+
+  it('does neither once the receipt window has ended', async () => {
+    const w = world({ cancelWindowSeconds: 0, receiptDays: 0 });
+    const orderId = await seeded(w);
+
+    const refusals = [
+      (await w.refusal(read())).code,
+      (await w.refusal(cancelling(orderId))).code,
+    ];
+
+    expect(refusals).toEqual(['cancelNotAuthorized', 'cancelNotAuthorized']);
+    expect(w.started).toEqual([]);
   });
 });
 

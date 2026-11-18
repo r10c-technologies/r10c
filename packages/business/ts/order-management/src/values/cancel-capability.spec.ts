@@ -2,7 +2,11 @@ import { randomBytes } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
-import { digestOf, verifyCancelCapability } from './cancel-capability.js';
+import {
+  digestOf,
+  verifyCancelCapability,
+  verifyReceiptCapability,
+} from './cancel-capability.js';
 
 const NOW = new Date('2026-09-11T12:00:00.000Z');
 const OPEN = new Date('2026-09-11T12:20:00.000Z');
@@ -109,5 +113,41 @@ describe('verifyCancelCapability', () => {
       'badCapability',
     );
     expect(verifyCancelCapability(order(), '', NOW)).toBe('badCapability');
+  });
+});
+
+describe('verifyReceiptCapability', () => {
+  const group = (overrides: Record<string, unknown> = {}) => ({
+    cancelDigest: digestOf(nonce),
+    cancelWindowEndsAt: CLOSED,
+    receiptEndsAt: OPEN,
+    ...overrides,
+  });
+
+  it('reads past the cancel window while the receipt window is open', () => {
+    expect(verifyReceiptCapability(group(), nonce, NOW)).toBeUndefined();
+    expect(verifyCancelCapability(group(), nonce, NOW)).toBe('windowClosed');
+  });
+
+  it('refuses once the receipt window has ended, or never opened', () => {
+    expect(
+      verifyReceiptCapability(group({ receiptEndsAt: CLOSED }), nonce, NOW),
+    ).toBe('windowClosed');
+    expect(
+      verifyReceiptCapability(
+        group({ receiptEndsAt: undefined }),
+        nonce,
+        NOW,
+      ),
+    ).toBe('noCapability');
+  });
+
+  it('refuses a wrong nonce and a group with no digest, as the cancel does', () => {
+    expect(verifyReceiptCapability(group(), 'not-the-nonce', NOW)).toBe(
+      'badCapability',
+    );
+    expect(
+      verifyReceiptCapability({ receiptEndsAt: OPEN }, nonce, NOW),
+    ).toBe('noCapability');
   });
 });

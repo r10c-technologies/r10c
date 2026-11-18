@@ -42,6 +42,7 @@ export class CheckoutGroup implements Entity {
   #placedAt?: Date;
   #cancelDigest?: string;
   #cancelWindowEndsAt?: Date;
+  #receiptEndsAt?: Date;
   #contact: readonly CheckoutContact[] = [];
   #locale?: string;
   #redactedAt?: Date;
@@ -163,9 +164,8 @@ export class CheckoutGroup implements Entity {
 
   /**
    * When the buyer's own cancel stops being possible. Server-owned, stamped at
-   * opening from {@link placedAt}, and matched to the receipt cookie's own
-   * lifetime: a window wider than the cookie is a capability nobody can
-   * present.
+   * opening from {@link placedAt}. Always inside {@link receiptEndsAt}: the
+   * cookie that carries the capability lives as long as the receipt does.
    */
   @accessor({
     type: 'date',
@@ -178,6 +178,26 @@ export class CheckoutGroup implements Entity {
   }
   set cancelWindowEndsAt(value: Date | undefined) {
     this.#cancelWindowEndsAt = value;
+  }
+
+  /**
+   * Until when the buyer's capability may still **read** the receipt — days
+   * past the cancel window, because a parcel takes days and the receipt is how
+   * the buyer follows it (ADR 0076 §6). Server-owned, stamped at opening from
+   * {@link placedAt} and only for a group that carries a digest; the
+   * storefront sizes the receipt cookie from it.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:checkout-group.fields.receiptEndsAt',
+    sortable: true,
+    filterable: true,
+  })
+  get receiptEndsAt(): Date | undefined {
+    return this.#receiptEndsAt;
+  }
+  set receiptEndsAt(value: Date | undefined) {
+    this.#receiptEndsAt = value;
   }
   /**
    * The buyer's contact and where the parcels go — **the platform's one record

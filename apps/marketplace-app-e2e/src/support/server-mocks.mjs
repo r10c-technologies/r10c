@@ -241,6 +241,20 @@ const BUYER_CANCEL_URL =
 const CANCEL_WINDOW_ENDS_AT = '2099-01-01T00:30:00.000Z';
 
 /**
+ * How long the receipt can be read back: days past the cancel window
+ * (ADR 0076 §6). The storefront sizes the receipt cookie from it.
+ */
+const RECEIPT_ENDS_AT = '2099-01-31T00:00:00.000Z';
+
+/**
+ * The basket whose receipt is read after its cancel window closed (#579): the
+ * group is stamped with a window already past and a receipt still open, so the
+ * receipt renders and offers no Cancel.
+ */
+const CANCEL_CLOSED_OFFERING = 'offering-terra-dinner-plate';
+const CANCEL_CLOSED_AT = '2026-01-01T00:30:00.000Z';
+
+/**
  * The basket whose cancel arrives before its payment was confirmed (#387): an
  * order turns `paid` only once `payment.captured` is consumed off the bus, and
  * until then order-service answers a buyer's cancel with `409 paymentPending`.
@@ -298,7 +312,9 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
     ? 'failing'
     : holds(vendors, PAYMENT_PENDING_OFFERING)
       ? 'payment-pending'
-      : 'placed';
+      : holds(vendors, CANCEL_CLOSED_OFFERING)
+        ? 'cancel-closed'
+        : 'placed';
   const flowId = `e2e-flow-${kind}-${String(started)}`;
   baskets.set(flowId, vendors);
   return HttpResponse.json(
@@ -365,7 +381,10 @@ const buyerReceiptHandler = http.get(
           // ⚠️ Server-stamped, and only for a group that brought a digest. It
           // is what turns the nonce the action minted into a capability the
           // receipt may offer.
-          cancelWindowEndsAt: CANCEL_WINDOW_ENDS_AT,
+          cancelWindowEndsAt: params.id.startsWith('e2e-flow-cancel-closed-')
+            ? CANCEL_CLOSED_AT
+            : CANCEL_WINDOW_ENDS_AT,
+          receiptEndsAt: RECEIPT_ENDS_AT,
           orderIds: vendors.map(part => orderIdOf(params.id, part.vendorId)),
         },
       },
