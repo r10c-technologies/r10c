@@ -116,11 +116,16 @@ describePublishedPriceReaderContract('the HTTP price reader', catalog => {
 describe('httpPublishedPriceReaderLayer', () => {
   it('reads the price off the first published record', async () => {
     respond(200, {
-      data: { items: [{ vendorId: 'v-1', amount: 7, currency: 'GTQ' }] },
+      data: {
+        items: [
+          { vendorId: 'v-1', name: 'Lámpara', amount: 7, currency: 'GTQ' },
+        ],
+      },
     });
 
     expect(await Effect.runPromise(priceOf('o-1'))).toEqual({
       offeringId: 'o-1',
+      name: 'Lámpara',
       vendorId: 'v-1',
       amount: 7,
       currency: 'GTQ',
@@ -151,7 +156,14 @@ describe('httpPublishedPriceReaderLayer', () => {
             status: 200,
             body: {
               data: {
-                items: [{ vendorId: 'v-1', amount: 7, currency: 'GTQ' }],
+                items: [
+                  {
+                    vendorId: 'v-1',
+                    name: 'Lámpara',
+                    amount: 7,
+                    currency: 'GTQ',
+                  },
+                ],
               },
             },
           };

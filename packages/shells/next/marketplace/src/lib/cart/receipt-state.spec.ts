@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  lineNameKey,
   parseReceipt,
   type Receipt,
   RECEIPT_LINE_CAP,
   receiptCookieMaxAge,
+  receiptDetailsOf,
   receiptFromReadBack,
   serializeReceipt,
   withCancelled,
@@ -18,6 +20,7 @@ const line = (offeringId = 'o-1', quantity = 2, amount = 100) => ({
 });
 
 const receipt: Receipt = {
+  number: '7KQ4-M2XD',
   groupId: 'g-1',
   placedAt: '2026-11-03T10:00:00.000Z',
   orders: [
@@ -236,6 +239,119 @@ describe('receiptCookieMaxAge', () => {
         { ...receipt, receiptEndsAt: '2026-11-03T09:00:00.000Z' },
         NOW,
       ),
+    ).toBe(0);
+  });
+});
+
+describe('the receipt’s numbers (ADR 0076 §5)', () => {
+  it('keeps the purchase’s number and each seller’s, and drops a blank one', () => {
+    const numbered: Receipt = {
+      ...receipt,
+      number: '7KQ4-M2XD',
+      orders: receipt.orders.map((order, index) =>
+        index === 0 ? { ...order, number: 'Q3AW-37H5' } : order,
+      ),
+    };
+
+    expect(parseReceipt(serializeReceipt(numbered))).toEqual(numbered);
+    expect(
+      parseReceipt(JSON.stringify({ ...numbered, number: '' }))?.number,
+    ).toBeUndefined();
+  });
+
+  it('reads them off the group and its orders as order-service answers them', () => {
+    const built = receiptFromReadBack(
+      {
+        group: { data: { id: 'g-1', number: '7KQ4-M2XD' } },
+        orders: [
+          {
+            data: {
+              id: 'o-a',
+              number: 'Q3AW-37H5',
+              vendorId: 'v-1',
+              items: [line('o-1', 1, 100)],
+            },
+          },
+        ],
+      },
+      'nonce',
+      new Map(),
+    );
+
+    expect(built?.number).toBe('7KQ4-M2XD');
+    expect(built?.orders[0]?.number).toBe('Q3AW-37H5');
+  });
+});
+
+describe('receiptDetailsOf', () => {
+  const readBack = (contact: unknown, items: unknown[]) => ({
+    group: { data: { id: 'g-1', contact } },
+    orders: [{ data: { id: 'o-a', items } }, { data: {} }, 'junk'],
+  });
+  const CONTACT = {
+    name: 'Ana López',
+    phone: '+50255551234',
+    email: 'ana@correo.com',
+    departamento: '01',
+    municipio: '0108',
+    zona: 4,
+    addressLine: '5a avenida 12-34',
+    reference: 'portón negro',
+  };
+
+  it('reads where it goes with the phone cut to its last four, and each line’s stored name', () => {
+    const details = receiptDetailsOf(
+      readBack(
+        [CONTACT],
+        [
+          { offeringId: 'o-1', name: 'Lámpara Aurora' },
+          { offeringId: 'o-2' },
+          'junk',
+        ],
+      ),
+    );
+
+    expect(details?.delivery).toEqual({
+      name: 'Ana López',
+      phoneEnding: '1234',
+      departamento: '01',
+      municipio: '0108',
+      zona: 4,
+      addressLine: '5a avenida 12-34',
+      reference: 'portón negro',
+    });
+    // The email never reaches the page.
+    expect(JSON.stringify(details?.delivery)).not.toContain('correo');
+    expect(details?.lineNames.get(lineNameKey('o-a', 'o-1'))).toBe(
+      'Lámpara Aurora',
+    );
+    expect(details?.lineNames.size).toBe(1);
+  });
+
+  it('has no delivery for a counter sale, a redacted contact or a partial one', () => {
+    const { zona: _zona, reference: _reference, ...bare } = CONTACT;
+    expect(receiptDetailsOf(readBack([], []))?.delivery).toBeUndefined();
+    expect(receiptDetailsOf(readBack(undefined, []))?.delivery).toBeUndefined();
+    expect(receiptDetailsOf(readBack(['junk'], []))?.delivery).toBeUndefined();
+    expect(
+      receiptDetailsOf(readBack([{ ...CONTACT, name: '' }], []))?.delivery,
+    ).toBeUndefined();
+    expect(receiptDetailsOf(readBack([bare], []))?.delivery).toEqual({
+      name: 'Ana López',
+      phoneEnding: '1234',
+      departamento: '01',
+      municipio: '0108',
+      addressLine: '5a avenida 12-34',
+    });
+  });
+
+  it('answers nothing for an answer that is not a read-back', () => {
+    expect(receiptDetailsOf(undefined)).toBeUndefined();
+    expect(receiptDetailsOf({ group: 7, orders: [] })).toBeUndefined();
+    expect(receiptDetailsOf({ group: { data: {} } })).toBeUndefined();
+    expect(
+      receiptDetailsOf({ group: { data: {} }, orders: [{ data: { id: 'o' } }] })
+        ?.lineNames.size,
     ).toBe(0);
   });
 });

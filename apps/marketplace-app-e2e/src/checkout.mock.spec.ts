@@ -23,6 +23,15 @@ import {
 
 const STATUS_PAGE = /\/es\/order\/status\/e2e-flow-/;
 
+/** How the receipt names a purchase: its readable number (ADR 0076 §5). */
+const ORDER_NUMBER = /Número de pedido: [0-9A-Z]{4}-[0-9A-Z]{4}$/;
+
+/** A UUID, which the receipt must never show a buyer. */
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+/** The review step, reached with nothing on the query (ADR 0076 §7). */
+const REVIEW_PAGE = /\/es\/cart\/review\??$/;
+
 const addToCart = async (page: Page, offeringId: string) => {
   await page.goto(`/es/p/${offeringId}`);
   await page
@@ -76,9 +85,7 @@ test.describe('a checkout', () => {
 
     script.outcome = 'flow.completed';
 
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       '¡Gracias por tu compra!',
     );
@@ -89,6 +96,23 @@ test.describe('a checkout', () => {
       'Tarjeta',
     );
     await expect(page.getByTestId('order-total')).toBeVisible();
+
+    // #585: a number to quote and the seller's own, where the parcel goes
+    // with the phone masked, until when it can be read — and no UUID.
+    await expect(order.getByTestId('vendor-order-number')).toHaveText(
+      /^Pedido [0-9A-Z]{4}-[0-9A-Z]{4}$/,
+    );
+    const delivery = page.getByTestId('order-delivery');
+    await expect(delivery).toContainText('Ana López');
+    await expect(page.getByTestId('order-delivery-phone')).toHaveText(
+      'Teléfono: •••• 1234',
+    );
+    await expect(page.getByTestId('order-delivery-place')).toHaveText(
+      'Mixco, Guatemala',
+    );
+    await expect(delivery).not.toContainText('ana@correo.com');
+    await expect(page.getByTestId('receipt-until')).toContainText('2099');
+    expect(await page.locator('main:visible').innerText()).not.toMatch(UUID);
   });
 
   test('keeps its receipt across a reload, with the cart empty behind it', async ({
@@ -102,9 +126,7 @@ test.describe('a checkout', () => {
     await expect(page.getByTestId('order-id')).toBeVisible();
 
     await page.reload();
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
 
     // ⚠️ The cart was cleared on the path it was written with. Expiring it on
     // another path leaves the original cookie in place, and the basket comes
@@ -155,33 +177,41 @@ test.describe('a checkout', () => {
     );
     await page.reload();
 
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
   });
 
-  test('offers cash on delivery only where the seller ships it, and keeps the choice per seller', async ({
+  test('offers cash on delivery only where the seller ships it, and the receipt names each choice', async ({
     page,
     network,
   }) => {
     const script = scriptStream(network);
     await addToCart(page, 'offering-aurora-desk-lamp');
     await addToCart(page, 'offering-solano-clip-light');
+    await page.getByTestId('review').filter({ visible: true }).click();
+    await page.waitForURL(REVIEW_PAGE);
 
-    const solano = page.getByTestId('tender-vendor-casa-solano');
-    const demo = page.getByTestId('tender-demo-organization');
-    // Named by what it chooses, inside a group the seller names (a3-26).
-    await expect(solano).toHaveAccessibleName('Forma de pago');
+    // Two tenders: a group the seller names, with nothing chosen for them.
+    const solano = page.getByRole('group', {
+      name: 'Cómo le pagas a Casa Solano',
+    });
+    await expect(solano.getByRole('radio')).toHaveCount(2);
+    for (const radio of await solano.getByRole('radio').all()) {
+      await expect(radio).not.toBeChecked();
+    }
     await expect(
-      page.getByRole('group', { name: 'Casa Solano' }).getByRole('combobox', {
-        name: 'Forma de pago',
-      }),
-    ).toBeVisible();
-    await expect(solano.locator('option[value="cod"]')).toHaveCount(1);
-    await expect(demo.locator('option[value="cod"]')).toHaveCount(0);
-    await solano.selectOption('cod');
+      solano.getByRole('radio', { name: 'Tarjeta' }),
+    ).toHaveAccessibleDescription(/no te pedimos datos de tarjeta/);
+    // One tender: stated as a fact, not asked.
+    await expect(page.getByTestId('payment-demo-organization-only')).toHaveText(
+      /Pagas con tarjeta/,
+    );
+    await expect(
+      page.getByTestId('payment-demo-organization').getByRole('radio'),
+    ).toHaveCount(0);
 
-    await startCheckout(page);
+    await fillDelivery(page, { 'vendor-casa-solano': 'cod' });
+    await page.getByTestId('checkout').filter({ visible: true }).click();
+    await page.waitForURL(STATUS_PAGE);
     script.outcome = 'flow.completed';
 
     await expect(
@@ -198,58 +228,67 @@ test.describe('a checkout', () => {
 });
 
 test.describe('the review step', () => {
-  test('shows each seller, how they are paid and the total, and starts nothing until placed', async ({
+  test('shows each seller and the total, and starts nothing until placed', async ({
     page,
   }) => {
     await addToCart(page, 'offering-aurora-desk-lamp');
     await addToCart(page, 'offering-solano-clip-light');
-    await page.getByTestId('tender-vendor-casa-solano').selectOption('cod');
 
+    // Nothing about tenders travels from the cart (ADR 0076 §7).
     await page.getByTestId('review').filter({ visible: true }).click();
-    await page.waitForURL(/\/es\/cart\/review/);
+    await page.waitForURL(REVIEW_PAGE);
 
     await expect(
       page.getByRole('heading', { level: 1, name: 'Revisa tu pedido' }),
     ).toBeVisible();
     await expect(
-      page.getByTestId('review-method-vendor-casa-solano'),
-    ).toHaveText('Forma de pago: Contra entrega');
-    await expect(
-      page.getByTestId('review-method-demo-organization'),
-    ).toHaveText('Forma de pago: Tarjeta');
-    await expect(
       page.getByTestId('review-seller-vendor-casa-solano'),
-    ).toContainText('en efectivo cuando llegue el paquete');
+    ).toBeVisible();
     await expect(page.getByTestId('review-total')).toBeVisible();
     // Reviewing is not ordering: no flow has a status page yet.
     await expect(page).not.toHaveURL(STATUS_PAGE);
   });
 
-  test("keeps each seller's tender through Edit cart and a removal", async ({
+  test('refuses a seller who takes two tenders until the buyer chooses one, keeping what was typed', async ({
     page,
   }) => {
-    await addToCart(page, 'offering-aurora-desk-lamp');
     await addToCart(page, 'offering-solano-clip-light');
-    await page.getByTestId('tender-vendor-casa-solano').selectOption('cod');
     await page.getByTestId('review').filter({ visible: true }).click();
-    await page.waitForURL(/\/es\/cart\/review/);
+    await page.waitForURL(REVIEW_PAGE);
 
-    await page.getByRole('link', { name: 'Editar carrito' }).click();
-    await page.waitForURL(/\/es\/cart\?/);
-    await expect(page.getByTestId('tender-vendor-casa-solano')).toHaveValue(
-      'cod',
-    );
+    // The contact, but no tender: the form names the missing choice in place.
+    const form = page.getByTestId('delivery-form').filter({ visible: true });
+    await form
+      .getByLabel('Nombre de quien recibe', { exact: true })
+      .fill('Ana López');
+    await form.getByLabel('Teléfono', { exact: true }).fill('5555-1234');
+    await form
+      .getByLabel('Correo electrónico', { exact: true })
+      .fill('ana@correo.com');
+    await form.getByLabel('Municipio', { exact: true }).selectOption('0108');
+    await form
+      .getByLabel('Dirección', { exact: true })
+      .fill('5a avenida 12-34');
+    await page.getByTestId('checkout').filter({ visible: true }).click();
 
-    // Removing the other seller's line redirects back to the cart, and the
-    // choice made for this one survives it.
-    await page
-      .getByTestId('cart-seller-demo-organization')
-      .getByRole('button', { name: /^Quitar / })
-      .click();
-    await expect(page.getByTestId('cart-removed')).toBeVisible();
-    await expect(page.getByTestId('tender-vendor-casa-solano')).toHaveValue(
-      'cod',
+    // Only the tender is refused: every contact field passed.
+    await expect(form.locator('[data-testid^="delivery-error-"]')).toHaveCount(
+      0,
     );
+    const error = page.getByTestId('payment-vendor-casa-solano-error');
+    await expect(error).toHaveText('Elige cómo le pagas a este vendedor.');
+    await expect(
+      page.getByRole('group', { name: 'Cómo le pagas a Casa Solano' }),
+    ).toHaveAccessibleDescription('Elige cómo le pagas a este vendedor.');
+    await expect(form.getByLabel('Nombre de quien recibe')).toHaveValue(
+      'Ana López',
+    );
+    await expect(page).not.toHaveURL(STATUS_PAGE);
+
+    // Chosen, the same form places the order.
+    await page.getByTestId('payment-vendor-casa-solano-cod').check();
+    await page.getByTestId('checkout').filter({ visible: true }).click();
+    await page.waitForURL(STATUS_PAGE);
   });
 
   test('sends an empty cart back to the cart, which says why', async ({
@@ -272,14 +311,13 @@ test('reviews and places an order through native form submissions', async ({
   page,
 }) => {
   await addToCart(page, 'offering-solano-clip-light');
-  await page.getByTestId('tender-vendor-casa-solano').selectOption('cod');
 
   await page
     .getByTestId('review')
     .evaluate(button => (button as HTMLButtonElement).form?.submit());
-  await page.waitForURL(/\/es\/cart\/review\?method%3Avendor-casa-solano=cod/);
+  await page.waitForURL(REVIEW_PAGE);
 
-  await fillDelivery(page);
+  await fillDelivery(page, { 'vendor-casa-solano': 'cod' });
   await page
     .getByTestId('checkout')
     .filter({ visible: true })
@@ -317,9 +355,7 @@ test.describe('the receipt', () => {
     ).toBeVisible();
     await expect(page.getByTestId('cancel-vendor-casa-solano')).toHaveCount(0);
     await expect(page.getByTestId('cancel-demo-organization')).toBeVisible();
-    await expect(page.getByTestId('order-id')).toContainText(
-      'e2e-flow-placed-',
-    );
+    await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
     // One order of two is still standing, so the receipt still thanks.
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       '¡Gracias por tu compra!',

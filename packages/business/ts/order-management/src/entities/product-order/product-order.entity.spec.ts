@@ -14,6 +14,7 @@ const PAID = new Date('2026-08-12T09:05:00.000Z');
 
 const lineData = (amount: number) => ({
   offeringId: 'off-1',
+  name: 'Lámpara Aurora',
   quantity: 1,
   amount,
   currency: 'EUR',
@@ -27,7 +28,7 @@ const anOrder = () =>
     groupId: 'group-1',
     paymentMethod: 'cod',
     channel: { id: 'ch-1', type: 'counter' },
-    items: [new OrderItem('off-1', 1, 1000, 'EUR', 'res-1')],
+    items: [new OrderItem('off-1', 'Lámpara Aurora', 1, 1000, 'EUR', 'res-1')],
     placedAt: PLACED,
     paidAt: PAID,
   });

@@ -44,6 +44,7 @@ const OPTIONS = { flowId: 'f', composedAt: '2026-10-28T00:00:00.000Z' };
 
 const line = (offeringId: string) => ({
   offeringId,
+  name: `Name of ${offeringId}`,
   quantity: 2,
   amount: 500,
   currency: 'GTQ',
@@ -265,6 +266,33 @@ describe('the checkout recipe', () => {
       },
     });
     expect(JSON.stringify(open?.parameters)).not.toContain(CONTACT.email);
+  });
+
+  it('writes each line under the name it was sold as, into the order and the shipment (#582)', () => {
+    const start = CHECKOUTS[0]!.value;
+    const slip = composed(start);
+    const step = (ref: string) =>
+      slipSteps(slip).find(entry => entry.step === `v-1/card:${ref}`)
+        ?.parameters as { items?: unknown[]; lines?: unknown[] } | undefined;
+
+    const sold = { offeringId: 'v-1-o-1', name: 'Name of v-1-o-1' };
+    expect(step('order.write')?.items).toEqual([expect.objectContaining(sold)]);
+    expect(step('fulfilment.open')?.lines).toEqual([{ ...sold, quantity: 2 }]);
+    // The slip is composed from the start alone: nothing reads the projection
+    // again, so a rename after the checkout reaches neither write.
+  });
+
+  it('refuses a line that names nothing it was sold as', () => {
+    const decode = Schema.decodeUnknownExit(CheckoutStart);
+    const unnamed: Partial<ReturnType<typeof line>> = line('v-1-o-1');
+    delete unnamed.name;
+    const start = checkout('counter', [part('v-1', 'card')]);
+
+    // Decoded as the coordinator receives it: an unknown body.
+    expect(
+      decode({ ...start, vendors: [{ ...start.vendors[0], lines: [unnamed] }] })
+        ._tag,
+    ).toBe('Failure');
   });
 
   it('holds a vendor whose entitlements nobody stated to none', () => {

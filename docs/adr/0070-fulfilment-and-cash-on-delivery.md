@@ -9,6 +9,7 @@
 - Revised: 2026-11-17 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — `fulfilment.open@3` copies the recipient, the destination and the order's number onto the shipment, which is named by that number, and a `shipping-order.*` event carries an explicit pick of non-personal members rather than the shipment (#580)
 - Area: business
 - Read when: an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout
+- Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — a shipment line keeps the name it was sold under, so a packing list reads as what was sold; `fulfilment.open@4` requires it (#582)
 
 ## Context
 

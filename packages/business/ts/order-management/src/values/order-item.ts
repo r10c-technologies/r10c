@@ -13,7 +13,9 @@ import { accessor } from '@entifix/core';
  *
  * The price is **captured here**, not read through to the offering. A buyer must
  * be charged the price they were shown, and an offering's price can change
- * between the cart and the payment.
+ * between the cart and the payment. So is the **name**: a receipt and a
+ * packing list are records of a sale, and an offering renamed or retired after
+ * it must still read as what was sold (#582, ADR 0076).
  *
  * `reservationId` holds the stock hold this line took. order-management holds an
  * **id, never a quantity** — which is what lets a failed order compensate by
@@ -39,6 +41,7 @@ import { accessor } from '@entifix/core';
 export class OrderItem {
   // #region properties
   #offeringId: string;
+  #name: string;
   #quantity: number;
   #amount: number;
   #currency: string;
@@ -48,12 +51,14 @@ export class OrderItem {
   // #region constructors
   constructor(
     offeringId = '',
+    name = '',
     quantity = 0,
     amount = 0,
     currency = '',
     reservationId?: string,
   ) {
     this.#offeringId = offeringId;
+    this.#name = name;
     this.#quantity = quantity;
     this.#amount = amount;
     this.#currency = currency;
@@ -72,6 +77,22 @@ export class OrderItem {
   }
   set offeringId(value: string) {
     this.#offeringId = value;
+  }
+
+  /**
+   * What the offering was called when it was sold, copied from the published
+   * projection the line was priced from, and never updated.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.item.name',
+    required: true,
+  })
+  get name(): string {
+    return this.#name;
+  }
+  set name(value: string) {
+    this.#name = value;
   }
 
   @accessor({

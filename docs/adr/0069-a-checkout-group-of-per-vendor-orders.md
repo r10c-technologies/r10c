@@ -7,6 +7,7 @@
 - Revised: 2026-11-17 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — the group holds the storefront buyer's contact and a readable number, each vendor order a number of its own, `order.open-group@3` and `order.write@4` carry them, and a storefront basket from a seller who does not ship is refused at start (`vendorDoesNotShip`) (#577, #578)
 - Area: business
 - Read when: a basket spans vendors, a vendor acts on their part of a sale, or a refund is partial — a checkout writes one group and one order per vendor, and one capture is allocated per order
+- Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — an order line keeps the name it was sold under, copied from the projection it was priced from and never updated; `order.write@5` requires it (#582)
 
 ## Context
 

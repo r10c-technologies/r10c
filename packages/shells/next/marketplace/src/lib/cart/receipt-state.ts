@@ -50,6 +50,8 @@ export type ReceiptTotal = MoneyTotal;
 /** One vendor's order on the receipt. */
 export interface ReceiptOrder {
   readonly orderId: string;
+  /** The seller's own order number, `7KQ4-M2XD`, as they would quote it. */
+  readonly number?: string;
   readonly vendorId: string;
   /** The seller's display name, absent when the projection has none yet. */
   readonly vendorName?: string;
@@ -65,6 +67,8 @@ export interface ReceiptOrder {
 
 export interface Receipt {
   readonly groupId: string;
+  /** The purchase's number, `7KQ4-M2XD`: what the buyer quotes (ADR 0076 §5). */
+  readonly number?: string;
   readonly placedAt?: string;
   readonly orders: readonly ReceiptOrder[];
   readonly totals: readonly ReceiptTotal[];
@@ -109,8 +113,16 @@ const linesOf = (value: unknown): ReceiptLine[] | undefined =>
 
 const readOrder = (value: unknown): ReceiptOrder | undefined => {
   if (!isRecord(value)) return undefined;
-  const { orderId, vendorId, vendorName, method, lines, lineCount, total } =
-    value;
+  const {
+    orderId,
+    number,
+    vendorId,
+    vendorName,
+    method,
+    lines,
+    lineCount,
+    total,
+  } = value;
   const readAt = readTotal(total);
   if (!filled(orderId) || !filled(vendorId) || !filled(method))
     return undefined;
@@ -118,6 +130,7 @@ const readOrder = (value: unknown): ReceiptOrder | undefined => {
   const readLines = linesOf(lines);
   return {
     orderId,
+    ...(filled(number) ? { number } : {}),
     vendorId,
     ...(filled(vendorName) ? { vendorName } : {}),
     method,
@@ -149,6 +162,7 @@ export const parseReceipt = (
   if (!isRecord(parsed)) return undefined;
   const {
     groupId,
+    number,
     placedAt,
     orders,
     totals,
@@ -172,6 +186,7 @@ export const parseReceipt = (
   if (readTotals.length === 0) return undefined;
   return {
     groupId,
+    ...(filled(number) ? { number } : {}),
     ...(filled(placedAt) ? { placedAt } : {}),
     orders: readOrders as ReceiptOrder[],
     totals: readTotals,
@@ -188,7 +203,7 @@ const readBackOrder = (
 ): ReceiptOrder | undefined => {
   const data = isRecord(envelope) ? envelope['data'] : undefined;
   if (!isRecord(data)) return undefined;
-  const { id, vendorId, paymentMethod, items } = data;
+  const { id, number, vendorId, paymentMethod, items } = data;
   if (!filled(id) || !filled(vendorId)) return undefined;
   const lines = linesOf(items) ?? [];
   const [total] = totalsByCurrency(lines);
@@ -196,6 +211,7 @@ const readBackOrder = (
   const name = vendorNames.get(vendorId);
   return {
     orderId: id,
+    ...(filled(number) ? { number } : {}),
     vendorId,
     ...(name === undefined ? {} : { vendorName: name }),
     method: filled(paymentMethod) ? paymentMethod : 'card',
@@ -228,9 +244,10 @@ export const receiptFromReadBack = (
     return undefined;
   }
   const readOrders = read as ReceiptOrder[];
-  const { placedAt, cancelWindowEndsAt, receiptEndsAt } = group;
+  const { number, placedAt, cancelWindowEndsAt, receiptEndsAt } = group;
   return {
     groupId: group['id'],
+    ...(filled(number) ? { number } : {}),
     ...(filled(placedAt) ? { placedAt } : {}),
     orders: readOrders,
     totals: totalsByCurrency(
@@ -240,6 +257,96 @@ export const receiptFromReadBack = (
     ...(filled(cancelWindowEndsAt) ? { cancelWindowEndsAt } : {}),
     ...(filled(receiptEndsAt) ? { receiptEndsAt } : {}),
   };
+};
+
+/** Where the parcels go and who receives them, as the receipt shows it. */
+export interface ReceiptDelivery {
+  readonly name: string;
+  /** The phone's last four digits: the receipt never shows the whole number. */
+  readonly phoneEnding: string;
+  readonly municipio: string;
+  readonly departamento: string;
+  readonly zona?: number;
+  readonly addressLine: string;
+  readonly reference?: string;
+}
+
+/**
+ * What the receipt reads from the server on each render rather than keeping
+ * in its cookie: the delivery, and each line's stored name by order and
+ * offering (#582). Personal data never enters the cookie (ADR 0076 §1), and
+ * names are long while the cookie is 4 KB.
+ */
+export interface ReceiptDetails {
+  readonly delivery?: ReceiptDelivery;
+  /** The name each line was sold under, keyed `<orderId>/<offeringId>`. */
+  readonly lineNames: ReadonlyMap<string, string>;
+}
+
+/** The key {@link ReceiptDetails.lineNames} holds a line's name under. */
+export const lineNameKey = (orderId: string, offeringId: string) =>
+  `${orderId}/${offeringId}`;
+
+const PHONE_ENDING = 4;
+
+const deliveryOf = (value: unknown): ReceiptDelivery | undefined => {
+  const row = Array.isArray(value) ? value[0] : undefined;
+  if (!isRecord(row)) return undefined;
+  const { name, phone, municipio, departamento, zona, addressLine, reference } =
+    row;
+  if (
+    !filled(name) ||
+    !filled(phone) ||
+    !filled(municipio) ||
+    !filled(departamento) ||
+    !filled(addressLine)
+  ) {
+    return undefined;
+  }
+  return {
+    name,
+    phoneEnding: phone.slice(-PHONE_ENDING),
+    municipio,
+    departamento,
+    ...(typeof zona === 'number' ? { zona } : {}),
+    addressLine,
+    ...(filled(reference) ? { reference } : {}),
+  };
+};
+
+/**
+ * The details a buyer-receipt read answers, or `undefined` when the answer is
+ * not one — the page then renders from its cookie alone.
+ */
+export const receiptDetailsOf = (
+  payload: unknown,
+): ReceiptDetails | undefined => {
+  if (!isRecord(payload)) return undefined;
+  const group = isRecord(payload['group'])
+    ? payload['group']['data']
+    : undefined;
+  const orders = payload['orders'];
+  if (!isRecord(group) || !Array.isArray(orders)) return undefined;
+  const lineNames = new Map<string, string>();
+  for (const envelope of orders) {
+    const data = isRecord(envelope) ? envelope['data'] : undefined;
+    if (!isRecord(data) || !filled(data['id'])) continue;
+    const items = Array.isArray(data['items']) ? data['items'] : [];
+    for (const item of items) {
+      if (
+        isRecord(item) &&
+        filled(item['offeringId']) &&
+        filled(item['name'])
+      ) {
+        lineNames.set(
+          lineNameKey(data['id'], item['offeringId']),
+          item['name'],
+        );
+      }
+    }
+  }
+  const delivery = deliveryOf(group['contact']);
+  return { ...(delivery === undefined ? {} : { delivery }), lineNames };
 };
 
 /** The receipt once the buyer cancelled one of its orders. */

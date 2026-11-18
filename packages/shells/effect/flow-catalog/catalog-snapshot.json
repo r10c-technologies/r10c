@@ -479,9 +479,9 @@
       "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "fulfilment.open@3",
+      "ref": "fulfilment.open@4",
       "id": "fulfilment.open",
-      "version": 3,
+      "version": 4,
       "module": "shipping-order-management",
       "kind": "retriable",
       "cardinality": "perVendor",
@@ -638,7 +638,46 @@
                 "minLength": 1
               },
               "lines": {
-                "type": "array"
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "offeringId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "quantity": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "offeringId",
+                    "name",
+                    "quantity"
+                  ],
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  ]
+                }
               }
             },
             "required": [
@@ -715,7 +754,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "12546a8da16000"
+      "fingerprint": "162b3fe20cc5ba"
     },
     {
       "ref": "fulfilment.release@2",
@@ -1585,9 +1624,9 @@
       "fingerprint": "10fcc91164045e"
     },
     {
-      "ref": "order.write@4",
+      "ref": "order.write@5",
       "id": "order.write",
-      "version": 4,
+      "version": 5,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "perVendor",
@@ -1648,7 +1687,30 @@
                 "minLength": 1
               },
               "items": {
-                "type": "array"
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "offeringId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "offeringId",
+                    "name"
+                  ],
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  ]
+                }
               }
             },
             "required": [
@@ -1729,7 +1791,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1bb0e5a01dec5c"
+      "fingerprint": "1f406c1b01b445"
     },
     {
       "ref": "payment.capture@3",

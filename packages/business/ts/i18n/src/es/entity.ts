@@ -409,6 +409,7 @@ export const entity = {
        */
       item: {
         offeringId: 'ID de oferta',
+        name: 'Vendido como',
         quantity: 'Cantidad',
         amount: 'Importe',
         currency: 'Moneda',
@@ -806,6 +807,7 @@ export const entity = {
       lines: 'Líneas',
       line: {
         offeringId: 'Producto',
+        name: 'Vendido como',
         quantity: 'Cantidad',
       },
       status: 'Estado',

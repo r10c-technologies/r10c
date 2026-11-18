@@ -57,7 +57,7 @@ export default defineEntifixTest({
     // The review's delivery form: a client island over `placeOrder`, a
     // `'use server'` action, so rendering it here would import `next/headers`.
     // What it decides is `delivery-contact.ts`, covered here, and
-    // `marketplace-app-e2e` submits it with script on and off.
+    // `marketplace-app-e2e` submits it, with script on (#725 owns script off).
     '**/lib/cart/delivery-form.tsx',
     // The cart's reads — one `cookies()` read and the cell reads, composed
     // like the pages. What is decided from them is `priced-cart-state.ts`,

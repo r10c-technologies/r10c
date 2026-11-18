@@ -18,7 +18,7 @@ const aShipment = (id: string) =>
     paymentMethod: 'cod',
     amountDue: 2500,
     currency: 'GTQ',
-    lines: [new ShippingLine('o-1', 2)],
+    lines: [new ShippingLine('o-1', 'Lámpara Aurora', 2)],
   });
 
 /** The code a refused move failed with. */
@@ -57,7 +57,7 @@ export const describeShippingOrderStoreContract = (
         orderId: 'order-s-1',
         paymentMethod: 'cod',
         amountDue: 2500,
-        lines: [{ offeringId: 'o-1', quantity: 2 }],
+        lines: [{ offeringId: 'o-1', name: 'Lámpara Aurora', quantity: 2 }],
       });
       expect(await run(store.get(ORG, 's-2'))).toBeUndefined();
       expect(await run(store.get('org-2', 's-1'))).toBeUndefined();
@@ -77,6 +77,10 @@ export const describeShippingOrderStoreContract = (
         dispatchedAt: AT,
         deliveredAt: AT,
       });
+      // The packing list still reads as what was sold (#582).
+      expect(delivered?.lines.map(line => line.name)).toEqual([
+        'Lámpara Aurora',
+      ]);
     });
 
     it('moves from dispatch to refusal to return, stamping each moment', async () => {

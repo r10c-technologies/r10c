@@ -224,7 +224,20 @@ export const r10c = {
       intro:
         'Revisa los productos de cada vendedor y cómo le pagas. No se pide ni se cobra nada hasta que confirmes el pedido.',
       subtotal: 'Subtotal',
-      codNote: 'Pagas a {{seller}} en efectivo cuando llegue el paquete.',
+      // Cómo le pagas a cada vendedor (ADR 0076 §7): sin nada marcado de
+      // antemano, y dicho como un hecho cuando el vendedor acepta una sola.
+      payment: {
+        legend: 'Cómo le pagas a {{seller}}',
+        card: 'Tarjeta',
+        cod: 'Contra entrega',
+        codHint: 'Pagas en efectivo cuando llegue el paquete.',
+        simulated:
+          'Pago simulado: no te pedimos datos de tarjeta ni te cobramos nada.',
+        onlyCard:
+          'Pagas con tarjeta. Pago simulado: no te pedimos datos de tarjeta ni te cobramos nada.',
+        onlyCod: 'Pagas en efectivo cuando llegue el paquete.',
+        required: 'Elige cómo le pagas a este vendedor.',
+      },
       edit: 'Editar carrito',
       place: 'Confirmar pedido',
       // Entrega y contacto (ADR 0076 §2). Sin código postal ni país: se
@@ -257,7 +270,6 @@ export const r10c = {
       // Un medio de pago por vendedor (ADR 0070). El pago contra entrega solo
       // se ofrece donde el vendedor lo acepta.
       method: {
-        label: 'Forma de pago',
         card: 'Tarjeta',
         cod: 'Contra entrega',
       },
@@ -272,6 +284,13 @@ export const r10c = {
       heading: '¡Gracias por tu compra!',
       placed: 'Tu pedido quedó registrado y el vendedor ya fue notificado.',
       reference: 'Número de pedido',
+      vendorNumber: 'Pedido {{number}}',
+      receiptUntil: 'Puedes volver a ver este recibo hasta el {{date}}.',
+      delivery: {
+        heading: 'Entrega',
+        phone: 'Teléfono: •••• {{ending}}',
+        zona: 'Zona {{zona}}',
+      },
       units: 'Cant. {{count}}',
       total: 'Total',
       tooManyLines:

@@ -40,7 +40,7 @@ const open = (extra: Record<string, string> = {}) =>
       paymentMethod: 'cod',
       amountDue: 2500,
       currency: 'GTQ',
-      lines: [{ offeringId: 'o-1', quantity: 2 }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara Aurora', quantity: 2 }],
       destination: {
         name: 'Ana López',
         phone: '5555-1234',

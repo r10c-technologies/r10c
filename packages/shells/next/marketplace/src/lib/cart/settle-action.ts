@@ -6,10 +6,11 @@ import { cookies } from 'next/headers';
 
 import { runRead } from '../catalog/catalog-reads';
 import { CART_COOKIE } from './cart-state';
-import { orderServiceUrl, realtimeServiceUrl } from './checkout-config';
+import { realtimeServiceUrl } from './checkout-config';
 import { FLOW_COOKIE } from './flow-ticket';
 import { readFlowTicket } from './flow-ticket-cookie';
 import { readReceipt } from './receipt-cookie';
+import { readBuyerReceipt } from './receipt-read';
 import {
   RECEIPT_COOKIE,
   receiptCookieMaxAge,
@@ -48,16 +49,7 @@ export async function settleCheckout(
   const decided = settleDecision(status);
   if (decided !== 'completed') return decided;
 
-  const readBack = await fetch(
-    `${orderServiceUrl()}/checkout-group/${encodeURIComponent(
-      flowId,
-    )}/buyer-receipt`,
-    { headers: { 'x-cancel-nonce': ticket.cancelNonce }, cache: 'no-store' },
-  )
-    .then(async response =>
-      response.ok ? ((await response.json()) as unknown) : undefined,
-    )
-    .catch(() => undefined);
+  const readBack = await readBuyerReceipt(flowId, ticket.cancelNonce);
   const vendors = await runRead(PublishedVendor, loadVendors(), []);
   const receipt = receiptFromReadBack(
     readBack,

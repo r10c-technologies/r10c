@@ -37,7 +37,7 @@ describe('ShippingOrder', () => {
       paymentMethod: 'cod',
       amountDue: 2500,
       currency: 'GTQ',
-      lines: [new ShippingLine('o-1', 2)],
+      lines: [new ShippingLine('o-1', 'Lámpara Aurora', 2)],
       destination: [
         Object.assign(new ShipmentDestination(), {
           name: 'Ana',

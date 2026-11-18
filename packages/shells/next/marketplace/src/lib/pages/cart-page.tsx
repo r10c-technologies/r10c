@@ -9,7 +9,6 @@ import {
   HeadingOne,
   Money,
   QuantityInput,
-  Select,
   Stack,
   SubmitButton,
   Text,
@@ -27,10 +26,9 @@ import {
 import type { CartNotice } from '../cart/cart-notice';
 import { MAX_QUANTITY } from '../cart/cart-state';
 import type { CheckoutOutcome } from '../cart/checkout-action';
-import { tenderField, tenderOf } from '../cart/checkout-start';
 import { readPricedCart } from '../cart/priced-cart';
 import { runRead } from '../catalog/catalog-reads';
-import { storePaths, type TenderChoice } from '../routing/paths';
+import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
 /**
@@ -48,15 +46,12 @@ export async function CartPage({
   locale,
   outcome,
   notice,
-  tenders = {},
 }: {
   readonly locale: Locale;
   /** What a previous checkout attempt did, carried back on the query string. */
   readonly outcome?: CheckoutOutcome;
   /** What the action that redirected here did to a line, for the status region. */
   readonly notice?: CartNotice;
-  /** The tenders already chosen, when the buyer came back from the review. */
-  readonly tenders?: TenderChoice;
 }) {
   const t = getServerTFor(locale, 'r10c');
   const { present, parts, offerings, totals } = await readPricedCart();
@@ -125,14 +120,6 @@ export async function CartPage({
                     value={notice.quantity}
                   />
                   <input type="hidden" name="locale" value={locale} />
-                  {Object.entries(tenders).map(([vendorId, tender]) => (
-                    <input
-                      key={vendorId}
-                      type="hidden"
-                      name={tenderField(vendorId)}
-                      value={tender}
-                    />
-                  ))}
                   <SubmitButton variant="secondary" size="sm">
                     {t('storefront.cart.undo')}
                   </SubmitButton>
@@ -217,14 +204,6 @@ export async function CartPage({
                             value={line.offeringId}
                           />
                           <input type="hidden" name="locale" value={locale} />
-                          {Object.entries(tenders).map(([vendorId, tender]) => (
-                            <input
-                              key={vendorId}
-                              type="hidden"
-                              name={tenderField(vendorId)}
-                              value={tender}
-                            />
-                          ))}
                           <SubmitButton
                             variant="ghost"
                             size="sm"
@@ -267,53 +246,13 @@ export async function CartPage({
                   {t('storefront.cart.keepShopping')}
                 </ButtonLink>
                 {/* A plain `GET` to the review step, so the buyer sees every
-                    seller's lines, tender and the total before anything
-                    starts — and so it needs no script (#534). */}
+                    seller's lines and the total, and chooses how to pay each,
+                    before anything starts — and so it needs no script (#534,
+                    ADR 0076 §7). */}
                 <form
                   action={localeHref(locale, storePaths.checkoutReview())}
                   method="get"
-                  className="flex flex-col gap-2xs"
                 >
-                  {/* A tender per seller, each its own group: the seller is
-                      the legend and the select is named by what it chooses,
-                      so a screen reader hears "Forma de pago" inside that
-                      seller's group rather than a seller's name alone
-                      (a3-26). Cash on delivery is offered only where the
-                      seller ships it — a hint from the published vendor
-                      record; the checkout's own eligibility step is what
-                      refuses. */}
-                  {parts.map(part => (
-                    <fieldset
-                      key={part.vendorId}
-                      className="flex flex-col gap-3xs"
-                    >
-                      <legend className="text-step--1 font-semibold">
-                        {vendors.get(part.vendorId)?.displayName ??
-                          part.vendorId}
-                      </legend>
-                      <label
-                        htmlFor={tenderField(part.vendorId)}
-                        className="text-step--1 text-content-muted"
-                      >
-                        {t('storefront.checkout.method.label')}
-                      </label>
-                      <Select
-                        id={tenderField(part.vendorId)}
-                        name={tenderField(part.vendorId)}
-                        defaultValue={tenderOf(tenders[part.vendorId])}
-                        data-testid={`tender-${part.vendorId}`}
-                      >
-                        <option value="card">
-                          {t('storefront.checkout.method.card')}
-                        </option>
-                        {vendors.get(part.vendorId)?.acceptsCod === true ? (
-                          <option value="cod">
-                            {t('storefront.checkout.method.cod')}
-                          </option>
-                        ) : null}
-                      </Select>
-                    </fieldset>
-                  ))}
                   <SubmitButton data-testid="review" className="touch-target">
                     {t('storefront.cart.review')}
                   </SubmitButton>
