@@ -691,6 +691,161 @@ and the scope of the slice that owns its domain.
    and missing in `en` will already have failed the build, but this also catches
    empty values and placeholder drift.
 
+## Adding a use case, step by step, and what each step cost
+
+The worked example is #641 (plan 1.17): the operator authors the phone models a
+product can fit, a vendor's specification names the ones it fits, the
+publication carries them, and the storefront filters by the buyer's phone. It
+touches every layer and both apps, and it was measured as it was built. Use it as
+the checklist for a change of the same shape. The cost of each step is the count
+of files it forced and which gate caught what was missed.
+
+The totals were **88 files** (19 new, 69 changed, about 2,000 lines, half of it specs)
+against a prediction of 52. The work was eleven commits and **no new store,
+slice, route permission or flow**. The prediction missed three costs: the specs
+that pin full lists by hand, adapter test doubles that must grow with every
+adapter, and a control entifix does not have yet.
+
+### The steps, one per file touched
+
+**1. The entity and its verbs**, in the owning domain
+(`packages/business/ts/catalog-reference`):
+
+- `entities/device-model/{device-model.entity.ts,index.ts}` + spec: `@entity`
+  with `labelKey`/`pluralKey`, every `@accessor` typed and labelled, `filterable`
+  on what a picker searches, `type: 'revision'` because the record is authored.
+- `use-cases/{retire,restore}-device-model/` + the two verb spec tables: one
+  `@useCase` each, the shared `retireReferences` run.
+- `src/index.ts`, `use-cases/index.ts`: exports.
+- A rule two domains share goes in a `business:policy` package, here
+  `catalog-contracts/src/values/device-model-fit.ts` + spec. The vendor's domain
+  may not import `catalog-reference`, so `universal` and its typed failure live
+  where both can reach them, the way `mediaRefusal` does.
+- `tools/capabilities/.../catalog-reference.capabilities.ts`: one entry per
+  `@useCase` ([ADR 0080](adr/0080-a-capability-register-holds-one-thin-entry-per-use-case.md)).
+- `tools/slices/src/revision.spec.ts`: the entity is declared authored or
+  excluded.
+
+**2. Serving and seeding it**, in its slice:
+
+- `packages/implementation/<domain>/http/src/<domain>-api.ts`:
+  `defineEntityApi` and the two `verbEndpoint`s.
+- `packages/shells/effect/<slice>/src/endpoints.ts`: `entityApi(...)`.
+- `tools/slices/src/slices/<slice>.slice.ts`: five `exposedAPIs` lines.
+- `apps/<service>/src/<entity>-temp-data.ts` + `seed.ts`. The seed writes only
+  into an empty collection, so a machine that already has data needs a
+  `dev:reset`.
+
+**3. The back-office screen:**
+
+- `client/client-types.ts`, `client/adapters/create-client-adapters.ts`: a REST
+  context, a writer and a use-case runner.
+- `client/catalog-crud.tsx`: one `makeEntityCrud`.
+- `catalog-surfaces.ts`: one `catalogSurface`. The nav entry, the palette's
+  create command and the record search source are derived from it, at no
+  further cost.
+- `client/reference-labels.ts`: so an id renders as a name (entifix 0030).
+- `apps/back-office-app/.../catalog/<key>/{page.tsx,[slug]/page.tsx}`.
+- `i18n/src/{es,en}/entity.ts` and `{es,en}/r10c.ts` (nav label).
+- **Specs that pin a full list:** `catalog-surfaces`, `nav`, `commands`,
+  `reference-labels` and `search-sources` specs, plus every spec that builds
+  the adapter set by hand (`client-pages`, `product-setup-wizard`,
+  `marketplace-admin-context`, `offering-regions`).
+
+**4. The member on the record that uses it:**
+
+- `product-specification.entity.ts`: the new member.
+- `values/specification-media.ts` + spec: the save rule, run on both write
+  paths.
+- The domain's http cell + spec: the rule's failure in `errors` and in
+  `prepare`/the create.
+- `i18n/{es,en}/errors.ts`: the failure's code.
+- The editing control, here a wizard step's `<EntityField render>`, since
+  entifix has no editor for a list of ids
+  ([entifix #296](https://github.com/r10c-technologies/entifix/issues/296)).
+  A new cross-package import also needs `pnpm nx sync`, a `package.json`
+  dependency and a lockfile change.
+
+**5. The publication snapshot**
+([ADR 0049](adr/0049-the-publication-snapshot-carries-what-the-storefront-renders.md)):
+
+- `catalog-contracts/.../catalog-publication.ts` + spec: an optional member,
+  read so that it never rejects.
+- `transition-offering.ts` + spec: copied, absent rather than `[]`.
+- `published-offering.entity.ts` + spec: the projected member.
+- `published-catalog/mongo/src/published-catalog.ts` + spec. The spec's
+  exhaustive `Record<keyof CatalogPublication, true>` fails typecheck until the
+  projector copies the new member.
+
+**6. The storefront:**
+
+- `catalog-reference/next/src/vocabulary.ts` + spec: one loader.
+- `marketplace-catalog/next/src/search-query.ts` + spec: one URL param and its
+  condition, checked against the allowlist at module load.
+- `shells/next/marketplace/src/lib/catalog/*` + specs: the control, and
+  `offering-listing.tsx` to mount it.
+
+**7. e2e (mock):** the back-office and storefront mock servers learn the new
+collection, then one journey per surface, plus a screen in `a11y.mock.spec.ts`.
+Tag existing journey data instead of adding rows, because several journeys
+pin a result count. Mount a listing control inside the filter panel (its
+`children` slot) so it folds away at 320px.
+
+**8. Docs:** a row in BUSINESS-ARCHITECTURE's glossary, and a `Revised:` line on
+each ADR the change makes stale (0022, 0034, 0049).
+
+**9. The live pass:** `dev:reset`, since the seed only fills an empty
+collection. Then hand-publish an event through the RabbitMQ management API, as
+[The live pass](#the-live-pass) describes, and query the read model with
+`rsql=`. An unknown parameter such as `filter=` is ignored silently and returns
+the unfiltered page, so check that one filter returns fewer rows than another.
+
+### The toll, by concern
+
+| Concern                          | Files it forced | Did a gate catch a miss?                                                                     | Could a generator have removed it?                         |
+| -------------------------------- | --------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Entity + verbs                   | 9               | spec tables, 100% coverage                                                                   | Partly: the verb pair is copied from brand nearly verbatim |
+| i18n (two locales)               | 6               | catalog parity, `i18n-check`                                                                 | No: the copy is the work                                   |
+| Capability register              | 1               | yes: an unknown screen, and a CRUD entry whose permission only `*:*:*` grants                | No                                                         |
+| Slices (`exposedAPIs`, revision) | 2               | yes: the revision gate named the undecided entity                                            | Yes: `exposedAPIs` lines are derivable from the descriptor |
+| Permissions (`ROLE_PERMISSIONS`) | **0**           | `*:retire`/`*:restore` already wildcard the entity key                                       | —                                                          |
+| Flows                            | **0**           | —                                                                                            | —                                                          |
+| Seed and reset                   | 2               | none (a stale lab shows nothing)                                                             | —                                                          |
+| Snapshot widening                | 8               | yes: the projector's exhaustive record                                                       | No: each copy is a decision                                |
+| Back-office screen and nav       | 9               | yes: 15 failures in 7 pinned-list specs across two projects; `TS2739` in 4 adapter doubles   | **Yes**: pinned lists and hand-built adapter doubles       |
+| Missing framework control        | 3               | none: the generic form would have shipped raw ids                                            | Yes, in entifix (#296)                                     |
+| Storefront filter                | 8               | allowlist assertion at module load                                                           | —                                                          |
+| e2e + a11y                       | 8               | yes: the 320px reflow journey caught the phone control pushing the first card below the fold | No: a real layout regression                               |
+| Docs and ADR bookkeeping         | 4               | `sync-docs --check`, `docs-check`                                                            | —                                                          |
+
+### Verdict on "safe but not cheap"
+
+**Safe: confirmed.** Every omission that would have reached a user was caught
+by a gate before the commit:
+
+- an undecided revision;
+- a screen the capability register could not find;
+- a projector that dropped the member;
+- a key missing from one locale;
+- an adapter double missing a field;
+- a control that broke the 320px reflow.
+
+The one hole is a framework gap, not a missing check. The generic form would
+have rendered raw ids, and nothing fails on that.
+
+**Not cheap, but the cost sits in tests, not code.** About half the touched
+files are specs, and a fifth of those only restate a list the code already
+derives. Two reductions would remove most of that toll. They are proposed as
+Discussions, not done here:
+
+- assert pinned lists against the surface table rather than literals
+  ([#721](https://github.com/r10c-technologies/r10c/discussions/721));
+- build adapter doubles from `createClientAdapters()` with overrides
+  ([#722](https://github.com/r10c-technologies/r10c/discussions/722)).
+
+The time recorded for the run measures agent wall-clock, not a person's day,
+so compare the file counts, not the minutes.
+
 ## Backends
 
 - Compose `@entifix/service-shell` through `@r10c/shells-effect-service`
