@@ -290,11 +290,12 @@ describe('the checkout recipe', () => {
     const decode = Schema.decodeUnknownExit(CheckoutStart);
     const unnamed: Partial<ReturnType<typeof line>> = line('v-1-o-1');
     delete unnamed.name;
+    const start = checkout('counter', [part('v-1', 'card')]);
 
+    // Decoded as the coordinator receives it: an unknown body.
     expect(
-      decode(
-        checkout('counter', [{ ...part('v-1', 'card'), lines: [unnamed] }]),
-      )._tag,
+      decode({ ...start, vendors: [{ ...start.vendors[0], lines: [unnamed] }] })
+        ._tag,
     ).toBe('Failure');
   });
 
