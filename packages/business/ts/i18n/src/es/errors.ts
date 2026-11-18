@@ -160,6 +160,8 @@ export const errors = {
   codNotEntitled: 'Este vendedor no acepta pago contra entrega.',
   // Los datos de entrega y contacto de una compra en la tienda (ADR 0076).
   // Cada uno nombra un campo del formulario, que los muestra junto a él.
+  vendorDoesNotShip:
+    'Este vendedor todavía no hace envíos, así que no se le puede comprar en la tienda. Quita sus productos del carrito.',
   contactNameRequired: 'Escribe tu nombre.',
   phoneNotGuatemalan:
     'Escribe un teléfono de Guatemala de ocho dígitos, por ejemplo 5555-1234.',

@@ -130,6 +130,8 @@ export const errors: EsErrors = {
   codOverLimit:
     'This order is over the cash-on-delivery limit. Pay this seller by card instead.',
   codNotEntitled: 'This seller does not accept cash on delivery.',
+  vendorDoesNotShip:
+    'This seller does not ship yet, so it cannot be bought from in the store. Remove its products from the cart.',
   contactNameRequired: 'Enter your name.',
   phoneNotGuatemalan:
     'Enter a Guatemalan phone number of eight digits, for example 5555-1234.',

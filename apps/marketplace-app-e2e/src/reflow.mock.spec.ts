@@ -3,6 +3,7 @@
 /// <reference lib="dom" />
 import type { Locator, Page } from '@playwright/test';
 
+import { fillDelivery } from './support/delivery';
 import { expect, scriptStream, test } from './support/stream-fixture';
 
 /**
@@ -110,6 +111,7 @@ test('the storefront reflows at 320px and keeps commerce above the fold', async 
   });
 
   await test.step('receipt', async () => {
+    await fillDelivery(page);
     await page.getByTestId('checkout').filter({ visible: true }).click();
     await page.waitForURL(/\/es\/order\/status\/e2e-flow-/);
     script.outcome = 'flow.completed';

@@ -89,11 +89,27 @@ const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
   (makeEntityEnvelope(...args) as unknown as { data: Record<string, unknown> })
     .data;
 
-const shipment = (extra: Partial<ShippingOrder> = {}) =>
-  flatOf(
+/** Who receives the parcel and where, as the checkout states it. */
+const DESTINATION = {
+  name: 'Ana López',
+  phone: '5555-1234',
+  destination: {
+    departamento: '01',
+    municipio: '0108',
+    zona: 4,
+    addressLine: '5a avenida 12-34',
+  },
+};
+
+const shipment = (
+  extra: Partial<ShippingOrder> = {},
+  destination: unknown = DESTINATION,
+) => ({
+  ...flatOf(
     ShippingOrder,
     Object.assign(new ShippingOrder(), {
       orderId: 'order-1',
+      orderNumber: '7KQ4-M2XD',
       groupId: 'group-1',
       paymentMethod: 'cod',
       amountDue: 2500,
@@ -101,7 +117,9 @@ const shipment = (extra: Partial<ShippingOrder> = {}) =>
       lines: [new ShippingLine('o-1', 2)],
       ...extra,
     }),
-  );
+  ),
+  destination,
+});
 
 /** A shipment opened awaiting dispatch for one order, its id answered. */
 const opened = async (w: ReturnType<typeof world>, orderId = 'order-1') =>
@@ -143,10 +161,21 @@ describe('the flow’s steps', () => {
     expect(first.data.status).toBe('awaiting-dispatch');
     // One shipment per vendor order, under the order's own id.
     expect(first.data.id).toBe('order-1');
+    // The courier's copy: the number, who receives it and where, no email.
+    const stored = first.data as unknown as Record<string, unknown>;
+    expect(stored['orderNumber']).toBe('7KQ4-M2XD');
+    expect(stored['destination']).toEqual([
+      expect.objectContaining({
+        name: 'Ana López',
+        phone: '+50255551234',
+        municipio: '0108',
+        addressLine: '5a avenida 12-34',
+      }),
+    ]);
     expect(again.data.id).toBe(first.data.id);
   });
 
-  it('refuses a shipment with no order or no lines', async () => {
+  it('refuses a shipment with no order, no number, no lines or nowhere to go', async () => {
     const w = world();
 
     const orderless = await w.refusal(
@@ -155,11 +184,16 @@ describe('the flow’s steps', () => {
     const empty = await w.refusal(
       at(open, { payload: shipment({ lines: [] }) }),
     );
+    const unnumbered = await w.refusal(
+      at(open, { payload: shipment({ orderNumber: '' }) }),
+    );
+    const nowhere = await w.refusal(
+      at(open, { payload: shipment({}, { name: 'Ana', phone: '1' }) }),
+    );
 
-    expect([orderless.code, empty.code]).toEqual([
-      'invalidBody',
-      'invalidBody',
-    ]);
+    expect([orderless.code, empty.code, unnumbered.code, nowhere.code]).toEqual(
+      ['invalidBody', 'invalidBody', 'invalidBody', 'invalid'],
+    );
   });
 
   it('holds, releases, withdraws, and refuses a dispatch on what was withdrawn', async () => {

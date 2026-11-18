@@ -60,7 +60,10 @@ assertQueryable(
   'sortable',
   Object.values(SORTS).map(([member]) => member),
 );
-assertQueryable(PublishedOffering, 'filterable', ['name', 'fitsDeviceModelIds']);
+assertQueryable(PublishedOffering, 'filterable', [
+  'name',
+  'fitsDeviceModelIds',
+]);
 
 /**
  * The storefront's search address, one codec for every link that changes it.

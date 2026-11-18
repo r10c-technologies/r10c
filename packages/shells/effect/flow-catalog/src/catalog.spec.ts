@@ -10,14 +10,14 @@ import {
   validateSlip,
 } from '@entifix/business/flow';
 import { verifiedContext } from '@entifix/business/verified';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
   cancellationRecipe,
   type CancellationStart,
   checkoutRecipe,
-  type CheckoutStart,
+  CheckoutStart,
   deliveryCorrelation,
   deliveryRecipe,
   type DeliveryStart,
@@ -60,6 +60,19 @@ const part = (
   entitlements,
 });
 
+/** A storefront buyer's contact; a counter sale names none (ADR 0076 §3). */
+const CONTACT = {
+  name: 'Ana López',
+  phone: '+50255551234',
+  email: 'ana@correo.com',
+  destination: {
+    departamento: '01',
+    municipio: '0108',
+    zona: 4,
+    addressLine: '5a avenida 12-34',
+  },
+};
+
 const checkout = (
   channel: 'storefront' | 'counter',
   vendors: CheckoutStart['vendors'],
@@ -73,6 +86,7 @@ const checkout = (
   totals: [{ currency: 'GTQ', amount: 1000 * vendors.length }],
   capabilityDigest: 'cap',
   cancelDigest: 'cancel',
+  ...(channel === 'storefront' ? { contact: CONTACT, locale: 'es' } : {}),
 });
 
 /** The five checkouts the marketplace sells through (#486). */
@@ -217,12 +231,40 @@ describe('the checkout recipe', () => {
     expect(slipSteps(slip)[0]?.parameters).toEqual({
       id: 'f',
       totals: [{ currency: 'GTQ', amount: 2000 }],
+      contact: CONTACT,
+      locale: 'es',
       buyerId: 'party-1',
     });
     expect(
       slipSteps(slip).find(step => step.step === 'v-1/card:order.write')
         ?.parameters,
     ).toMatchObject({ buyerId: 'party-1' });
+  });
+
+  it('requires a storefront buyer’s contact, and none at a counter', () => {
+    const { contact: _dropped, ...noContact } = CHECKOUTS[0]!.value;
+    const decode = Schema.decodeUnknownExit(CheckoutStart);
+
+    expect(decode(noContact)._tag).toBe('Failure');
+    expect(decode(checkout('counter', [part('v-1', 'card')]))._tag).toBe(
+      'Success',
+    );
+  });
+
+  it('opens the shipment with who receives it, where, and the order’s number, never the email', () => {
+    const slip = composed(CHECKOUTS[0]!.value);
+    const open = slipSteps(slip).find(
+      step => step.step === 'v-1/card:fulfilment.open',
+    );
+
+    expect(open?.parameters).toMatchObject({
+      destination: {
+        name: CONTACT.name,
+        phone: CONTACT.phone,
+        destination: CONTACT.destination,
+      },
+    });
+    expect(JSON.stringify(open?.parameters)).not.toContain(CONTACT.email);
   });
 
   it('holds a vendor whose entitlements nobody stated to none', () => {

@@ -9,15 +9,16 @@ import {
   HeadingTwo,
   Money,
   Stack,
-  SubmitButton,
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
+import { CONTACT_ERROR_CODES } from '@r10c/business-ts-order-contracts';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { redirect } from 'next/navigation';
 
-import { checkout } from '../cart/checkout-action';
 import { tenderField, tenderOf } from '../cart/checkout-start';
+import { CONTACT_FIELDS } from '../cart/delivery-contact';
+import { DeliveryForm } from '../cart/delivery-form';
 import { readPricedCart } from '../cart/priced-cart';
 import { reviewedTotalsOf } from '../cart/priced-cart-state';
 import { runRead } from '../catalog/catalog-reads';
@@ -45,6 +46,7 @@ export async function CheckoutReviewPage({
   locale,
   tenders,
   changed = false,
+  retry = false,
 }: {
   readonly locale: Locale;
   /** The tender the buyer picked for each seller, by vendor id. */
@@ -54,8 +56,14 @@ export async function CheckoutReviewPage({
    * sold, between this page and Place order.
    */
   readonly changed?: boolean;
+  /**
+   * A retry from a failed start, sent here to state the contact again: Place
+   * order then reuses that start's ticket, so it names the same flow.
+   */
+  readonly retry?: boolean;
 }) {
   const t = getServerTFor(locale, 'r10c');
+  const tErrors = getServerTFor(locale, 'errors');
   const { parts, offerings, totals, unavailable } = await readPricedCart(
     vendorId => tenderOf(tenders[vendorId]),
   );
@@ -190,27 +198,45 @@ export async function CheckoutReviewPage({
             >
               {t('storefront.review.edit')}
             </ButtonLink>
-            <form action={checkout}>
-              <input type="hidden" name="locale" value={locale} />
-              <input
-                type="hidden"
-                name="reviewed"
-                value={reviewedTotalsOf(totals)}
-              />
-              {parts.map(part => (
-                <input
-                  key={part.vendorId}
-                  type="hidden"
-                  name={tenderField(part.vendorId)}
-                  value={part.paymentMethod}
-                />
-              ))}
-              <SubmitButton data-testid="checkout" className="touch-target">
-                {t('storefront.review.place')}
-              </SubmitButton>
-            </form>
           </Cluster>
         </Cluster>
+
+        {/* Where it goes and how to reach the buyer, and Place order with
+            it: one form, so a refused contact keeps everything typed. */}
+        <Card>
+          <DeliveryForm
+            locale={locale}
+            reviewed={reviewedTotalsOf(totals)}
+            tenders={Object.fromEntries(
+              parts.map(part => [
+                tenderField(part.vendorId),
+                part.paymentMethod,
+              ]),
+            )}
+            retry={retry}
+            labels={{
+              legend: t('storefront.review.delivery.legend'),
+              intro: t('storefront.review.delivery.intro'),
+              optional: t('storefront.review.delivery.optional'),
+              chooseMunicipio: t('storefront.review.delivery.chooseMunicipio'),
+              place: t('storefront.review.place'),
+              fields: Object.fromEntries(
+                CONTACT_FIELDS.map(field => [
+                  field,
+                  t(`storefront.review.delivery.fields.${field}`),
+                ]),
+              ) as Record<(typeof CONTACT_FIELDS)[number], string>,
+              hints: {
+                phone: t('storefront.review.delivery.hints.phone'),
+                email: t('storefront.review.delivery.hints.email'),
+                reference: t('storefront.review.delivery.hints.reference'),
+              },
+              errors: Object.fromEntries(
+                CONTACT_ERROR_CODES.map(code => [code, tErrors(code)]),
+              ),
+            }}
+          />
+        </Card>
       </Stack>
     </StoreShell>
   );

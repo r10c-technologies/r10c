@@ -42,6 +42,16 @@ const basket = (vendorId = PROVISIONED_VENDOR) => ({
   ],
   totals: [{ currency: 'GTQ', amount: 500 }],
   capabilityDigest: 'digest',
+  contact: {
+    name: 'Ana López',
+    phone: '+50255551234',
+    email: 'ana@correo.com',
+    destination: {
+      departamento: '01',
+      municipio: '0108',
+      addressLine: '5a avenida 12-34',
+    },
+  },
 });
 
 describe('POST /api/flow/checkout', () => {
@@ -75,12 +85,36 @@ describe('POST /api/flow/checkout', () => {
   it('refuses a vendor it finds unprovisioned, whatever the basket said', async () => {
     const res = await service.client.post(
       '/api/flow/checkout',
-      basket('unprovisioned-vendor'),
+      {
+        ...basket('unprovisioned-vendor'),
+        channel: { type: 'counter', id: 'ch-1', name: 'Front desk' },
+      },
       { headers: crossing() },
     );
 
     expect(res.status).toBe(403);
     expect(res.data.code).toBe('flowRequirementsUnmet');
+  });
+
+  it('refuses a storefront basket from a seller who does not ship', async () => {
+    const res = await service.client.post(
+      '/api/flow/checkout',
+      basket('unprovisioned-vendor'),
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(422);
+    expect(res.data.code).toBe('vendorDoesNotShip');
+  });
+
+  it('refuses a storefront basket that names no buyer contact', async () => {
+    const { contact: _none, ...anonymous } = basket();
+    const res = await service.client.post('/api/flow/checkout', anonymous, {
+      headers: crossing(),
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.data.code).toBe('invalid');
   });
 
   it('refuses a start that is no basket', async () => {

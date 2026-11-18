@@ -22,6 +22,7 @@ import {
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import type { FlowAccepted } from '@r10c/business-ts-flow-contracts';
 import {
+  decodeShipmentDestination,
   dispatchShipment,
   dispatchShipmentSelection,
   DispatchShippingOrderUC,
@@ -223,12 +224,22 @@ const dispatchStep = defineEndpoint({
 export const shippingOrderEndpoints = [
   implement(openShipment, ({ payload }) =>
     Effect.gen(function* () {
-      const order = yield* readStepRecord(ShippingOrder, payload);
-      if (order.orderId === '' || order.lines.length === 0) {
+      // The destination travels nested, as the flow stated it; the shipment
+      // stores it as one checked row (ADR 0076 §1).
+      const { destination, ...members } = payload as Record<string, unknown>;
+      const order = yield* readStepRecord(ShippingOrder, members);
+      if (
+        order.orderId === '' ||
+        order.orderNumber === '' ||
+        order.lines.length === 0
+      ) {
         return yield* new InvalidBody({
-          reason: 'a shipment ships one vendor order, and at least one line',
+          reason:
+            'a shipment ships one numbered vendor order, and at least one line',
         });
       }
+      order.destination = [yield* decodeShipmentDestination(destination)];
+      order.redactedAt = undefined;
       // One shipment per vendor order, under the order's own id: a flow on an
       // order that already exists — a cancellation's hold — names its shipment
       // without having opened it.

@@ -5,6 +5,7 @@ import {
   OrderTenders,
 } from '@r10c/business-ts-sales-vocabulary';
 
+import { ShipmentDestination } from '../../values/shipment-destination';
 import { ShippingLine } from '../../values/shipping-line';
 import {
   type ShippingStatus,
@@ -28,7 +29,8 @@ import {
  * ([ADR 0070](../../../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
  */
 @entity({
-  labelMember: 'orderId',
+  // Named by its order's number, which it carries, so no read crosses stores.
+  labelMember: 'orderNumber',
   domain: 'shipping-order-management',
   key: 'shipping-order',
   labelKey: 'entity:shipping-order.label',
@@ -40,6 +42,9 @@ export class ShippingOrder implements Entity {
   // #region properties
   #id?: EntityId;
   #orderId = '';
+  #orderNumber = '';
+  #destination: readonly ShipmentDestination[] = [];
+  #redactedAt?: Date;
   #groupId = '';
   #flowId?: string;
   #paymentMethod: OrderTender = 'card';
@@ -77,6 +82,57 @@ export class ShippingOrder implements Entity {
   }
   set orderId(value: string) {
     this.#orderId = value;
+  }
+
+  /**
+   * The vendor order's number, as the buyer's receipt shows it — what a vendor
+   * reads out to a buyer and what labels the shipment (ADR 0076 §3, §5).
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:shipping-order.fields.orderNumber',
+    filterable: true,
+    sortable: true,
+  })
+  get orderNumber(): string {
+    return this.#orderNumber;
+  }
+  set orderNumber(value: string) {
+    this.#orderNumber = value;
+  }
+
+  /**
+   * Who receives the parcel and where — one row, copied from the buyer's
+   * contact less the email (ADR 0076 §1). Removed by the retention sweep once
+   * the parcel's journey ends; never on the bus.
+   *
+   * ⚠️ `filterable` and `sortable` are written `false`: a queryable phone lets
+   * a caller confirm a guess one request at a time.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => ShipmentDestination,
+    labelKey: 'entity:shipping-order.fields.destination',
+    filterable: false,
+    sortable: false,
+  })
+  get destination(): readonly ShipmentDestination[] {
+    return this.#destination;
+  }
+  set destination(value: readonly ShipmentDestination[]) {
+    this.#destination = value;
+  }
+
+  /** When the retention sweep removed {@link destination}. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:shipping-order.fields.redactedAt',
+  })
+  get redactedAt(): Date | undefined {
+    return this.#redactedAt;
+  }
+  set redactedAt(value: Date | undefined) {
+    this.#redactedAt = value;
   }
 
   /** The checkout group the order belongs to. */

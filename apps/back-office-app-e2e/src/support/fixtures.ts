@@ -374,9 +374,15 @@ export const DISPATCHED_SHIPMENT_ID = 'ship-d1';
 /** A parcel the buyer refused, which only a return moves on from. */
 export const REFUSED_SHIPMENT_ID = 'ship-r1';
 
-const shipment = (id: string, orderId: string, status: string) => ({
+const shipment = (
+  id: string,
+  orderId: string,
+  orderNumber: string,
+  status: string,
+) => ({
   id,
   orderId,
+  orderNumber,
   groupId: 'group-1',
   flowId: 'checkout-flow-1',
   paymentMethod: 'cod',
@@ -388,10 +394,10 @@ const shipment = (id: string, orderId: string, status: string) => ({
 
 /** The shipments a seeded vendor holds: two awaiting, one out, one refused. */
 export const shipmentSeed = () => [
-  shipment(AWAITING_SHIPMENT_ID, 'ord-a1', 'awaiting-dispatch'),
-  shipment(AWAITING_SHIPMENT_2_ID, 'ord-a2', 'awaiting-dispatch'),
-  shipment(DISPATCHED_SHIPMENT_ID, 'ord-d1', 'dispatched'),
-  shipment(REFUSED_SHIPMENT_ID, 'ord-r1', 'refused'),
+  shipment(AWAITING_SHIPMENT_ID, 'ord-a1', 'A1A1-0001', 'awaiting-dispatch'),
+  shipment(AWAITING_SHIPMENT_2_ID, 'ord-a2', 'A2A2-0002', 'awaiting-dispatch'),
+  shipment(DISPATCHED_SHIPMENT_ID, 'ord-d1', 'D1D1-0003', 'dispatched'),
+  shipment(REFUSED_SHIPMENT_ID, 'ord-r1', 'R1R1-0004', 'refused'),
 ];
 
 const shippingOrders = entityBackendHandlers(ShippingOrder, {

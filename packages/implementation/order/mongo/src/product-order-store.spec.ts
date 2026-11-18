@@ -92,6 +92,11 @@ describe('placing an order', () => {
       }),
     ]);
     expect(bus.published.map(event => event.name)).toEqual(['order.placed']);
+    // Nothing personal rides an order event: the contact is the group's
+    // alone (ADR 0076 §1).
+    expect(JSON.stringify(bus.published)).not.toMatch(
+      /contact|email|phone|destination|addressLine/,
+    );
   });
 
   it('refuses a duplicate that remembers no order, and a group duplicate that remembers none', async () => {

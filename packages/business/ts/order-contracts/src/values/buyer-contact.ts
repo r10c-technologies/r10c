@@ -2,12 +2,16 @@ import { Failure, type FieldProblem, Invalid, openStruct } from '@entifix/core';
 import { Effect, Schema } from 'effect';
 
 import {
+  ADDRESS_LINE_REQUIRED,
   DeliveryDestinationSchema,
   type DeliveryDestinationValue,
+  DEPARTAMENTO_UNKNOWN,
   destinationProblems,
   isFilled,
+  MUNICIPIO_OUTSIDE_DEPARTAMENTO,
   normalizeDestination,
   problem,
+  ZONA_OUT_OF_RANGE,
 } from './delivery-destination';
 
 /**
@@ -146,3 +150,14 @@ export const decodeBuyerContact = (
     destination: normalizeDestination(record['destination']),
   });
 };
+
+/** Every code a contact can be refused with, for a form that renders them. */
+export const CONTACT_ERROR_CODES = [
+  CONTACT_NAME_REQUIRED,
+  PHONE_NOT_GUATEMALAN,
+  EMAIL_NOT_VALID,
+  DEPARTAMENTO_UNKNOWN,
+  MUNICIPIO_OUTSIDE_DEPARTAMENTO,
+  ZONA_OUT_OF_RANGE,
+  ADDRESS_LINE_REQUIRED,
+] as const;

@@ -38,9 +38,10 @@ export const EVENT_OF: Partial<
 };
 
 /**
- * What a shipping-order event carries: the shipment as its move left it, with
- * the order and the flow that waits on it — the flow id is what a waiting
- * delivery flow correlates the event with.
+ * What a shipping-order event carries: the shipment's status as its move left
+ * it, with the order and the flow that waits on it — the flow id is what a
+ * waiting delivery flow correlates the event with. Nothing personal: see
+ * {@link SHIPPING_ORDER_EVENT_MEMBERS}.
  */
 export const ShippingOrderEventSchema = openStruct({
   id: Schema.NonEmptyString,
@@ -67,13 +68,30 @@ const VERSION: Record<ShippingOrderEventName, number> = {
 };
 
 /**
+ * The members an event carries, **picked by name** from the shipment: never
+ * the shipment itself, so a member added to it — its `destination`, a
+ * recipient's phone — cannot reach the bus or a vendor's tab by being there
+ * (ADR 0076 §1). `flowId` rides along for the delivery flow's correlation.
+ */
+export const SHIPPING_ORDER_EVENT_MEMBERS = [
+  'id',
+  'orderId',
+  'groupId',
+  'status',
+  'paymentMethod',
+  'amountDue',
+  'currency',
+  'flowId',
+] as const;
+
+/**
  * A move as a routable message from `source`, addressed to the one vendor whose
  * store it moved, correlated on the delivery flow it signals.
  */
 export const shippingOrderEvent = (
   name: ShippingOrderEventName,
   organizationId: string,
-  data: Record<string, unknown> & {
+  shipment: Record<string, unknown> & {
     readonly id: string;
     readonly flowId?: string;
   },
@@ -83,12 +101,16 @@ export const shippingOrderEvent = (
   version: number;
 } => ({
   name,
-  id: `${data.id}:${name.split('.')[1] as string}`,
+  id: `${shipment.id}:${name.split('.')[1] as string}`,
   source,
   at: new Date().toISOString(),
-  correlationId: data.flowId ?? data.id,
-  aggregate: { type: 'shipping-order', id: data.id },
+  correlationId: shipment.flowId ?? shipment.id,
+  aggregate: { type: 'shipping-order', id: shipment.id },
   version: VERSION[name],
   audience: [{ kind: 'organization', id: organizationId }],
-  data,
+  data: Object.fromEntries(
+    SHIPPING_ORDER_EVENT_MEMBERS.filter(
+      member => shipment[member] !== undefined,
+    ).map(member => [member, shipment[member]]),
+  ),
 });

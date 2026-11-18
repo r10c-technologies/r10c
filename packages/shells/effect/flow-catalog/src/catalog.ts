@@ -6,6 +6,7 @@ import {
   type SlipSegment,
 } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
+import { BuyerContactSchema } from '@r10c/business-ts-order-contracts';
 import { ORDER_FRAGMENTS } from '@r10c/business-ts-order-management';
 import { PAYMENT_FRAGMENTS } from '@r10c/business-ts-payment-management';
 import {
@@ -84,7 +85,20 @@ export const CheckoutStart = openStruct({
   buyerId: Schema.optionalKey(Schema.String),
   cancelDigest: Schema.optionalKey(Schema.String),
   capabilityDigest: Schema.optionalKey(Schema.String),
-});
+  /**
+   * The buyer's contact and destination (ADR 0076 §3): required from the
+   * storefront, whose parcels go somewhere, and absent at a counter, whose
+   * walk-in leaves with the goods. Its meaning is checked where it is stored.
+   */
+  contact: Schema.optionalKey(BuyerContactSchema),
+  /** The locale the buyer checked out in. */
+  locale: Schema.optionalKey(Schema.String),
+}).check(
+  Schema.makeFilter(
+    start => start.channel.type !== 'storefront' || start.contact !== undefined,
+    { message: 'a storefront checkout names the buyer’s contact' },
+  ),
+);
 export type CheckoutStart = typeof CheckoutStart.Type;
 
 /** A vendor's lines total: unit price times quantity. */
@@ -163,10 +177,12 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       name: 'group',
       steps: [
         {
-          ref: 'order.open-group@2',
+          ref: 'order.open-group@3',
           parameters: (_context, start) => ({
             id: start.groupId,
             totals: start.totals,
+            ...(start.contact === undefined ? {} : { contact: start.contact }),
+            ...(start.locale === undefined ? {} : { locale: start.locale }),
             ...(start.buyerId === undefined ? {} : { buyerId: start.buyerId }),
             ...(start.cancelDigest === undefined
               ? {}
@@ -194,7 +210,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           }),
         },
         {
-          ref: 'order.write@3',
+          ref: 'order.write@4',
           parameters: (_context, start, segment) => {
             const part = partOf(start.vendors, segment);
             return {
@@ -249,12 +265,24 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
         },
         { ref: 'order.confirm@2' },
         {
-          ref: 'fulfilment.open@2',
+          ref: 'fulfilment.open@3',
           when: (_context, start, segment) =>
             !atCounter(start) && holds(segment, SHIPPING),
           parameters: (_context, start, segment) => {
             const part = partOf(start.vendors, segment);
+            // Only a storefront sale ships, and `CheckoutStart` refuses one
+            // that names no contact.
+            const contact = start.contact as NonNullable<
+              CheckoutStart['contact']
+            >;
             return {
+              // The courier's copy: who receives it and where, never the
+              // email (ADR 0076 §1). The order's number is the write's.
+              destination: {
+                name: contact.name,
+                phone: contact.phone,
+                destination: contact.destination,
+              },
               organizationId: part.vendorId,
               paymentMethod: part.paymentMethod,
               amountDue: part.paymentMethod === 'cod' ? totalOf(part.lines) : 0,

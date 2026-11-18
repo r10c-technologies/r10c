@@ -34,12 +34,22 @@ const open = (extra: Record<string, string> = {}) =>
     '/api/shipping-order',
     {
       orderId: `order-${crypto.randomUUID()}`,
+      orderNumber: '7KQ4-M2XD',
       groupId: 'group-1',
       flowId: 'flow-1',
       paymentMethod: 'cod',
       amountDue: 2500,
       currency: 'GTQ',
       lines: [{ offeringId: 'o-1', quantity: 2 }],
+      destination: {
+        name: 'Ana López',
+        phone: '5555-1234',
+        destination: {
+          departamento: '01',
+          municipio: '0108',
+          addressLine: '5a avenida 12-34',
+        },
+      },
     },
     { headers: crossing(extra) },
   );

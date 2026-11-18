@@ -131,6 +131,76 @@ describe('openGroup', () => {
     expect(counter.group.cancelWindowEndsAt).toBeUndefined();
   });
 
+  it('stores a storefront buyer’s contact as one checked row, and none at a counter', async () => {
+    const { run } = world();
+
+    const online = await run(
+      openGroup({
+        group: aGroup(),
+        contact: {
+          name: ' Ana López ',
+          phone: '5555-1234',
+          email: 'Ana@Correo.com',
+          destination: {
+            departamento: '01',
+            municipio: '0108',
+            zona: 4,
+            addressLine: '5a avenida 12-34',
+          },
+        },
+        commandId: undefined,
+        cancelWindowSeconds: 60,
+      }),
+    );
+    const counter = await run(
+      openGroup({
+        group: aGroup({ id: crypto.randomUUID() }),
+        commandId: undefined,
+        cancelWindowSeconds: 60,
+      }),
+    );
+
+    expect(online.group.contact).toHaveLength(1);
+    expect(online.group.contact[0]).toMatchObject({
+      name: 'Ana López',
+      phone: '+50255551234',
+      email: 'ana@correo.com',
+      departamento: '01',
+      municipio: '0108',
+      zona: 4,
+      addressLine: '5a avenida 12-34',
+      reference: undefined,
+    });
+    expect(counter.group.contact).toEqual([]);
+  });
+
+  it('refuses a contact it cannot deliver to, pointing at each field', async () => {
+    const { run } = world();
+
+    const failure = await run(
+      Effect.flip(
+        openGroup({
+          group: aGroup(),
+          contact: { name: 'Ana', phone: '123', email: 'ana@correo.com' },
+          commandId: undefined,
+          cancelWindowSeconds: 60,
+        }),
+      ),
+    );
+
+    expect(failure).toMatchObject({ code: 'invalid' });
+    expect(
+      (failure as unknown as { errors: { pointer: string }[] }).errors.map(
+        error => error.pointer,
+      ),
+    ).toEqual([
+      '/contact/phone',
+      '/contact/destination/departamento',
+      '/contact/destination/municipio',
+      '/contact/destination/addressLine',
+    ]);
+  });
+
   it('refuses a group whose id is not a flow’s', async () => {
     const { refusal } = world();
 

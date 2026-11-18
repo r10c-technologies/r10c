@@ -6,6 +6,7 @@ import {
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { ShipmentDestination } from '../../values/shipment-destination.js';
 import { ShippingLine } from '../../values/shipping-line.js';
 import { ShippingOrder } from './shipping-order.entity.js';
 
@@ -30,17 +31,28 @@ describe('ShippingOrder', () => {
     const order = Object.assign(new ShippingOrder(), {
       id: 's-1',
       orderId: 'ord-1',
+      orderNumber: '7KQ4-M2XD',
       groupId: 'grp-1',
       flowId: 'flow-1',
       paymentMethod: 'cod',
       amountDue: 2500,
       currency: 'GTQ',
       lines: [new ShippingLine('o-1', 2)],
+      destination: [
+        Object.assign(new ShipmentDestination(), {
+          name: 'Ana',
+          phone: '+50255551234',
+          departamento: '01',
+          municipio: '0101',
+          addressLine: '5a avenida',
+        }),
+      ],
       status: 'returned',
       dispatchedAt: AT,
       deliveredAt: AT,
       refusedAt: AT,
       returnedAt: AT,
+      redactedAt: AT,
     });
 
     const revived = await Effect.runPromise(
@@ -58,12 +70,23 @@ describe('ShippingOrder', () => {
       paymentMethod: 'cod',
       amountDue: 2500,
       currency: 'GTQ',
+      orderNumber: '7KQ4-M2XD',
       lines: [{ offeringId: 'o-1', quantity: 2 }],
+      destination: [
+        {
+          name: 'Ana',
+          phone: '+50255551234',
+          departamento: '01',
+          municipio: '0101',
+          addressLine: '5a avenida',
+        },
+      ],
       status: 'returned',
       dispatchedAt: AT,
       deliveredAt: AT,
       refusedAt: AT,
       returnedAt: AT,
+      redactedAt: AT,
     });
   });
 

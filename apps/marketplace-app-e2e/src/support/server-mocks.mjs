@@ -284,6 +284,15 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
   if (!Array.isArray(vendors) || vendors.length === 0) {
     return problem('InvalidBody', 'invalidBody', 'invalid', 400);
   }
+  // A storefront start names its buyer's contact, as the coordinator's
+  // `CheckoutStart` requires (ADR 0076 §3), nested and already checked.
+  if (
+    typeof body?.contact?.name !== 'string' ||
+    typeof body?.contact?.destination?.municipio !== 'string' ||
+    typeof body?.locale !== 'string'
+  ) {
+    return problem('Invalid', 'invalid', 'invalid', 400);
+  }
   started += 1;
   const kind = holds(vendors, FAILING_OFFERING)
     ? 'failing'

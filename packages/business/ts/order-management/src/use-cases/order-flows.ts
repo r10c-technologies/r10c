@@ -2,7 +2,10 @@ import { IdempotencyKeyTag } from '@entifix/business';
 import { NotFound } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
-import { drawOrderNumber } from '@r10c/business-ts-order-contracts';
+import {
+  decodeBuyerContact,
+  drawOrderNumber,
+} from '@r10c/business-ts-order-contracts';
 import { Effect, Option } from 'effect';
 
 import type { CheckoutGroup } from '../entities/checkout-group';
@@ -17,6 +20,7 @@ import {
   ProductOrderStoreTag,
 } from '../ports/product-order-store';
 import { verifyCancelCapability } from '../values/cancel-capability';
+import { checkoutContactOf } from '../values/checkout-contact';
 import type { OrderScope } from '../values/order-scope';
 import type { OrderTransition } from '../values/order-transition';
 import { CancelProductOrderUC } from './cancel-product-order';
@@ -61,6 +65,12 @@ const orderInScope = (orderId: string, scope: OrderScope) =>
  */
 export const openGroup = (input: {
   readonly group: CheckoutGroup;
+  /**
+   * The buyer's contact as the step carried it, nested, or `undefined` at a
+   * counter. Checked here, where the order lives, against the same rules the
+   * storefront's form answers from (ADR 0076 §2).
+   */
+  readonly contact?: unknown;
   readonly commandId: string | undefined;
   readonly cancelWindowSeconds: number;
 }) =>
@@ -71,6 +81,11 @@ export const openGroup = (input: {
         reason: 'a checkout group is opened under its flow’s id',
       });
     }
+    group.contact =
+      input.contact === undefined
+        ? []
+        : [checkoutContactOf(yield* decodeBuyerContact(input.contact))];
+    group.redactedAt = undefined;
     group.orderIds = [];
     group.number = drawOrderNumber();
     group.placedAt = new Date();
