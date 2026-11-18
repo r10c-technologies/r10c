@@ -23,6 +23,7 @@ import {
   acceptedFlowId,
   checkoutStartBody,
   chooseTenders,
+  refusedSeller,
   type SellerLines,
   tenderField,
   tendersOffered,
@@ -46,7 +47,12 @@ import { readFlowTicket } from './flow-ticket-cookie';
 import { readPricedCart } from './priced-cart';
 import { reviewedTotalsOf } from './priced-cart-state';
 
-export type CheckoutOutcome = 'empty' | 'failed';
+/**
+ * What a start that never became a flow says on the cart: nothing left to
+ * buy, a start the coordinator did not accept, or a seller it refused because
+ * they do not ship — named by the `seller` beside it (#589).
+ */
+export type CheckoutOutcome = 'empty' | 'failed' | 'doesNotShip';
 
 /** The SHA-256 digest of a nonce, as order-service stores a cancel capability. */
 const cancelDigestOf = (nonce: string) =>
@@ -209,7 +215,17 @@ const start = async (formData: FormData, contact: unknown): Promise<never> => {
       ? undefined
       : acceptedFlowId(response.status, response.payload);
   if (flowId === undefined) {
-    redirect(`/${locale}/cart?checkout=failed`);
+    const seller =
+      response === undefined
+        ? undefined
+        : refusedSeller(response.status, response.payload);
+    redirect(
+      `/${locale}${storePaths.cart(
+        seller === undefined
+          ? { checkout: 'failed' }
+          : { checkout: 'doesNotShip', seller },
+      )}`,
+    );
   }
 
   const accepted: FlowTicket = { ...ticket, flowId };

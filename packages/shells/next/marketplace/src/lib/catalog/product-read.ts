@@ -14,6 +14,13 @@ export interface ProductRead {
   readonly brandName?: string;
   /** Absent when nothing was announced for the vendor (ADR 0061). */
   readonly sellerName?: string;
+  /**
+   * Whether the seller ships, and so takes cash on delivery: one entitlement
+   * decides both today (`PublishedVendor.acceptsCod`, ADR 0076 §8). Absent
+   * when the vendor could not be read, so the page states nothing and the
+   * checkout decides.
+   */
+  readonly ships?: boolean;
 }
 
 /**
@@ -41,7 +48,9 @@ export const readProduct = cache(
     return {
       offering,
       ...(brand ? { brandName: brand.name } : {}),
-      ...(vendor ? { sellerName: vendor.displayName } : {}),
+      ...(vendor
+        ? { sellerName: vendor.displayName, ships: vendor.acceptsCod }
+        : {}),
     };
   },
 );

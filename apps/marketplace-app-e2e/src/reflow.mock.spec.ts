@@ -89,6 +89,10 @@ test('the storefront reflows at 320px and keeps commerce above the fold', async 
     await expectNoSidewaysScroll(page);
     await expectTouchTarget(add);
     await expectTouchTarget(buy.getByRole('spinbutton'));
+    // The delivery block's disclosure sits under the form, not above it.
+    await expectTouchTarget(
+      page.getByRole('main').getByText('Qué pasa al recibirlo'),
+    );
   });
 
   await test.step('cart', async () => {

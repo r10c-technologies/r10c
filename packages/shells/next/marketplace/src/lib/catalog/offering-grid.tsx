@@ -28,6 +28,12 @@ export interface CardNames {
   readonly brandName: (brandId: string) => string | undefined;
   readonly sellerName: (vendorId: string) => string | undefined;
   /**
+   * Whether the seller ships, read in the same call as the name: a card from
+   * a seller who does not offers no Add, as their product page does not
+   * (ADR 0076 §8). `undefined` when the seller could not be read.
+   */
+  readonly ships: (vendorId: string) => boolean | undefined;
+  /**
    * Whether either read failed. A grid without seller lines is still a grid,
    * so a failure never drops a card; but the cached component that rendered it
    * keeps that render for seconds rather than the catalog's lifetime, exactly
@@ -59,9 +65,13 @@ export async function loadCardNames(
   const sellerNames = new Map(
     vendors.value.map(vendor => [vendor.vendorId, vendor.displayName]),
   );
+  const shipping = new Map(
+    vendors.value.map(vendor => [vendor.vendorId, vendor.acceptsCod]),
+  );
   return {
     brandName: id => brandNames.get(id),
     sellerName: id => sellerNames.get(id),
+    ships: id => shipping.get(id),
     failed: brands.failed || vendors.failed,
   };
 }
@@ -166,27 +176,29 @@ export function OfferingGrid({
             // the visible word inside it (WCAG 2.5.3). It is the card's primary
             // target, so it takes the 44px floor at the card's full width.
             cta={
-              <form action={addToCart}>
-                <input
-                  type="hidden"
-                  name="offeringId"
-                  value={offering.offeringId}
-                />
-                <input type="hidden" name="locale" value={locale} />
-                {returnTo === undefined ? null : (
-                  <input type="hidden" name="returnTo" value={returnTo} />
-                )}
-                <SubmitButton
-                  variant="primary"
-                  size="sm"
-                  className="touch-target w-full"
-                  aria-label={t('storefront.product.addNamed', {
-                    name: offering.name,
-                  })}
-                >
-                  {t('storefront.product.add')}
-                </SubmitButton>
-              </form>
+              names.ships(offering.vendorId) === false ? undefined : (
+                <form action={addToCart}>
+                  <input
+                    type="hidden"
+                    name="offeringId"
+                    value={offering.offeringId}
+                  />
+                  <input type="hidden" name="locale" value={locale} />
+                  {returnTo === undefined ? null : (
+                    <input type="hidden" name="returnTo" value={returnTo} />
+                  )}
+                  <SubmitButton
+                    variant="primary"
+                    size="sm"
+                    className="touch-target w-full"
+                    aria-label={t('storefront.product.addNamed', {
+                      name: offering.name,
+                    })}
+                  >
+                    {t('storefront.product.add')}
+                  </SubmitButton>
+                </form>
+              )
             }
           />
         );

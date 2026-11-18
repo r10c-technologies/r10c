@@ -43,7 +43,16 @@ export default async function CartRoute({
       // reaches a translation key, and an arbitrary query param must not be
       // able to name one.
       outcome={
-        outcome === 'empty' || outcome === 'failed' ? outcome : undefined
+        outcome === 'empty' ||
+        outcome === 'failed' ||
+        outcome === 'doesNotShip'
+          ? outcome
+          : undefined
+      }
+      // An id only, which the page resolves to a name itself — never copy
+      // from the address.
+      seller={
+        typeof query?.['seller'] === 'string' ? query['seller'] : undefined
       }
       notice={parseCartNotice(query)}
     />

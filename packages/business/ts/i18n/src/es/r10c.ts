@@ -150,6 +150,16 @@ export const r10c = {
     product: {
       buy: 'Comprar',
       soldBy: 'Vendido por {{seller}}',
+      delivery: {
+        ships: 'Envío por el vendedor',
+        cod: 'Pago contra entrega disponible',
+        doesNotShip:
+          'Este vendedor no hace envíos, así que este producto no se puede comprar en la tienda en línea.',
+        atTheDoor: 'Qué pasa al recibirlo',
+        refuse:
+          'Puedes rechazar el paquete al recibirlo; si pagaste con tarjeta, se te reembolsa.',
+        noReturns: 'No hay devoluciones después de la entrega.',
+      },
       details: 'Detalles',
       seller: 'Vendedor',
       addToCart: 'Añadir al carrito',
@@ -297,6 +307,9 @@ export const r10c = {
     checkout: {
       empty: 'Ninguno de estos productos sigue a la venta.',
       failed: 'No se pudo iniciar la compra. Inténtalo de nuevo.',
+      doesNotShip:
+        '{{seller}} no hace envíos, así que no se le puede comprar en la tienda. Quita sus productos del carrito para continuar.',
+      thisSeller: 'Uno de los vendedores',
       // Un medio de pago por vendedor (ADR 0070). El pago contra entrega solo
       // se ofrece donde el vendedor lo acepta.
       method: {

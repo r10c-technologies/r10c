@@ -1,7 +1,11 @@
+import { Invalid, problemOf } from '@entifix/core';
+import { VendorDoesNotShip } from '@r10c/business-ts-flow-contracts';
+
 import {
   acceptedFlowId,
   checkoutStartBody,
   chooseTenders,
+  refusedSeller,
   sellerParts,
   tenderField,
   tenderOf,
@@ -129,5 +133,21 @@ describe('acceptedFlowId', () => {
     expect(
       acceptedFlowId(202, { meta: accepted.meta, data: { flowId: 7 } }),
     ).toBeUndefined();
+  });
+});
+
+describe('refusedSeller', () => {
+  it('names the seller a vendorDoesNotShip refusal names', () => {
+    expect(
+      refusedSeller(422, problemOf(new VendorDoesNotShip({ vendorId: 'v-x' }))),
+    ).toBe('v-x');
+  });
+
+  it('names nobody for any other answer', () => {
+    expect(refusedSeller(503, undefined)).toBeUndefined();
+    expect(
+      refusedSeller(400, problemOf(new Invalid({ errors: [] }))),
+    ).toBeUndefined();
+    expect(refusedSeller(202, { meta: { type: 'flowAccepted' } })).toBeUndefined();
   });
 });

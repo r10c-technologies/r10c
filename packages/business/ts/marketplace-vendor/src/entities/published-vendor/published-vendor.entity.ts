@@ -113,6 +113,12 @@ export class PublishedVendor implements Entity {
    * from the organization's entitlement. A storefront **hint**: the checkout's
    * own `cod-eligible` step is what refuses, and payment-service reads this
    * same record to decide it (ADR 0070).
+   *
+   * It means "provisioned for `shipping-order-management`", which is both
+   * "ships" and "takes cash on delivery" today: the product page reads it for
+   * both lines, and a storefront checkout naming a seller without it is
+   * refused `vendorDoesNotShip` (ADR 0076 §3, §8). If the two ever diverge per
+   * seller, this splits into two flags then.
    */
   @accessor({
     type: 'boolean',
