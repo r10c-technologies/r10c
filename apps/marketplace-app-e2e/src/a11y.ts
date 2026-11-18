@@ -58,11 +58,13 @@ export const duplicateReferencedIds = (page: Page) =>
     // `display: none`, and a hidden page repeating an id is not on screen.
     const rendered = (element: Element) => element.checkVisibility();
     const referenced = new Set(
-      [...document.querySelectorAll('*')].filter(rendered).flatMap(element =>
-        ATTRIBUTES.flatMap(name =>
-          (element.getAttribute(name) ?? '').split(/\s+/).filter(Boolean),
+      [...document.querySelectorAll('*')]
+        .filter(rendered)
+        .flatMap(element =>
+          ATTRIBUTES.flatMap(name =>
+            (element.getAttribute(name) ?? '').split(/\s+/).filter(Boolean),
+          ),
         ),
-      ),
     );
     return [...referenced].filter(
       id =>

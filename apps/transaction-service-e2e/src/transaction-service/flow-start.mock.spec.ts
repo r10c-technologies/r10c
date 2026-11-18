@@ -37,7 +37,15 @@ const basket = (vendorId = PROVISIONED_VENDOR) => ({
     {
       vendorId,
       paymentMethod: 'card',
-      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1, amount: 500, currency: 'GTQ' }],
+      lines: [
+        {
+          offeringId: 'o-1',
+          name: 'Lámpara',
+          quantity: 1,
+          amount: 500,
+          currency: 'GTQ',
+        },
+      ],
     },
   ],
   totals: [{ currency: 'GTQ', amount: 500 }],

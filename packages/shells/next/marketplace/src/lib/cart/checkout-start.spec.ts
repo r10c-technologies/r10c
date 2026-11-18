@@ -51,16 +51,18 @@ describe('tenders', () => {
 describe('chooseTenders', () => {
   const parts = sellerParts([line('a', 'v-1'), line('b', 'v-2')]);
   const offered = (vendorId: string) =>
-    vendorId === 'v-1' ? tendersOffered({ acceptsCod: true }) : ['card' as const];
+    vendorId === 'v-1'
+      ? tendersOffered({ acceptsCod: true })
+      : ['card' as const];
 
   it('pays each seller as chosen, and a one-tender seller its one tender', () => {
     const choice = chooseTenders(parts, offered, vendorId =>
       vendorId === 'v-1' ? 'cod' : undefined,
     );
 
-    expect('parts' in choice && choice.parts.map(part => part.paymentMethod)).toEqual(
-      ['cod', 'card'],
-    );
+    expect(
+      'parts' in choice && choice.parts.map(part => part.paymentMethod),
+    ).toEqual(['cod', 'card']);
   });
 
   it('names a two-tender seller with no choice, or one they do not take', () => {
@@ -68,19 +70,30 @@ describe('chooseTenders', () => {
       missing: ['v-1'],
     });
     expect(
-      chooseTenders(parts, () => ['card'], () => 'cod'),
-    ).toMatchObject({ parts: [{ paymentMethod: 'card' }, { paymentMethod: 'card' }] });
+      chooseTenders(
+        parts,
+        () => ['card'],
+        () => 'cod',
+      ),
+    ).toMatchObject({
+      parts: [{ paymentMethod: 'card' }, { paymentMethod: 'card' }],
+    });
     expect(
-      chooseTenders(parts, () => ['card', 'cod'], () => 'cheque'),
+      chooseTenders(
+        parts,
+        () => ['card', 'cod'],
+        () => 'cheque',
+      ),
     ).toEqual({ missing: ['v-1', 'v-2'] });
   });
 });
 
 describe('checkoutStartBody', () => {
   it('carries the sellers, the basket’s totals and both digests', () => {
-    const parts = sellerParts([line('a', 'v-1', 100), line('b', 'v-2', 50)]).map(
-      part => ({ ...part, paymentMethod: 'card' as const }),
-    );
+    const parts = sellerParts([
+      line('a', 'v-1', 100),
+      line('b', 'v-2', 50),
+    ]).map(part => ({ ...part, paymentMethod: 'card' as const }));
 
     expect(
       checkoutStartBody({

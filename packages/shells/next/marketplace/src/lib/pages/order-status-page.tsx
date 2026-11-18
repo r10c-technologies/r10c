@@ -14,10 +14,7 @@ import {
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import {
-  departamentoOf,
-  municipioOf,
-} from '@r10c/business-ts-order-contracts';
+import { departamentoOf, municipioOf } from '@r10c/business-ts-order-contracts';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 
 import { cancelOrder } from '../cart/cancel-action';

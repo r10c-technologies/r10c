@@ -66,7 +66,15 @@ const basket = {
     {
       vendorId: 'v-1',
       paymentMethod: 'card',
-      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1, amount: 500, currency: 'GTQ' }],
+      lines: [
+        {
+          offeringId: 'o-1',
+          name: 'Lámpara',
+          quantity: 1,
+          amount: 500,
+          currency: 'GTQ',
+        },
+      ],
       // What a caller says it holds is never what the coordinator believes.
       entitlements: ['everything'],
     },

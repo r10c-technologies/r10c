@@ -266,7 +266,9 @@ test.describe('the review step', () => {
       .getByLabel('Correo electrónico', { exact: true })
       .fill('ana@correo.com');
     await form.getByLabel('Municipio', { exact: true }).selectOption('0108');
-    await form.getByLabel('Dirección', { exact: true }).fill('5a avenida 12-34');
+    await form
+      .getByLabel('Dirección', { exact: true })
+      .fill('5a avenida 12-34');
     await page.getByTestId('checkout').filter({ visible: true }).click();
 
     // Only the tender is refused: every contact field passed.

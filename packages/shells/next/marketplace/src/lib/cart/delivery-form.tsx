@@ -227,7 +227,7 @@ export function DeliveryForm({
         )}
         {missing ? (
           <p
-            className="m-0 text-step--1 text-danger"
+            className="text-step--1 m-0 text-danger"
             id={`${id}-error`}
             data-testid={`${id}-error`}
           >

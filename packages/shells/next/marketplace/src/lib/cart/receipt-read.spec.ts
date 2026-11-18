@@ -25,10 +25,7 @@ describe('readBuyerReceipt', () => {
     expect(await readBuyerReceipt('g/1', 'nonce')).toEqual({
       group: { data: { id: 'g/1' } },
     });
-    const [url, init] = vi.mocked(fetch).mock.calls[0] as [
-      string,
-      RequestInit,
-    ];
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
     expect(url).toMatch(/\/checkout-group\/g%2F1\/buyer-receipt$/);
     expect(init).toMatchObject({
       headers: { 'x-cancel-nonce': 'nonce' },

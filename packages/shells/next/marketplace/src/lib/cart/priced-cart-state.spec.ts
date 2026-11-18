@@ -16,22 +16,20 @@ const offering = (
 
 describe('pricedCartOf', () => {
   it('prices each line, splits it per seller and sums one total per currency', () => {
-    const cart = pricedCartOf(
-      [
-        {
-          line: { offeringId: 'o-1', quantity: 2 },
-          offering: offering('o-1', 'v-1', 500),
-        },
-        {
-          line: { offeringId: 'o-2', quantity: 1 },
-          offering: offering('o-2', 'v-2', 900),
-        },
-        {
-          line: { offeringId: 'o-3', quantity: 1 },
-          offering: offering('o-3', 'v-1', 100, 'USD'),
-        },
-      ],
-    );
+    const cart = pricedCartOf([
+      {
+        line: { offeringId: 'o-1', quantity: 2 },
+        offering: offering('o-1', 'v-1', 500),
+      },
+      {
+        line: { offeringId: 'o-2', quantity: 1 },
+        offering: offering('o-2', 'v-2', 900),
+      },
+      {
+        line: { offeringId: 'o-3', quantity: 1 },
+        offering: offering('o-3', 'v-1', 100, 'USD'),
+      },
+    ]);
 
     expect(cart.parts.map(part => part.vendorId)).toEqual(['v-1', 'v-2']);
     // Each line is sold under the offering's published name (#582).

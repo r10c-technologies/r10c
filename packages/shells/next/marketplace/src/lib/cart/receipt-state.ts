@@ -292,15 +292,8 @@ const PHONE_ENDING = 4;
 const deliveryOf = (value: unknown): ReceiptDelivery | undefined => {
   const row = Array.isArray(value) ? value[0] : undefined;
   if (!isRecord(row)) return undefined;
-  const {
-    name,
-    phone,
-    municipio,
-    departamento,
-    zona,
-    addressLine,
-    reference,
-  } = row;
+  const { name, phone, municipio, departamento, zona, addressLine, reference } =
+    row;
   if (
     !filled(name) ||
     !filled(phone) ||
@@ -340,8 +333,15 @@ export const receiptDetailsOf = (
     if (!isRecord(data) || !filled(data['id'])) continue;
     const items = Array.isArray(data['items']) ? data['items'] : [];
     for (const item of items) {
-      if (isRecord(item) && filled(item['offeringId']) && filled(item['name'])) {
-        lineNames.set(lineNameKey(data['id'], item['offeringId']), item['name']);
+      if (
+        isRecord(item) &&
+        filled(item['offeringId']) &&
+        filled(item['name'])
+      ) {
+        lineNames.set(
+          lineNameKey(data['id'], item['offeringId']),
+          item['name'],
+        );
       }
     }
   }

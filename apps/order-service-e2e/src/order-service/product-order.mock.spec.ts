@@ -478,9 +478,9 @@ describe('the checkout group', () => {
     const endsAt = Date.parse(String(res.data.data.cancelWindowEndsAt));
     // 30 minutes to cancel, and 30 days to read the receipt back.
     expect(endsAt - placedAt).toBe(1800 * 1000);
-    expect(
-      Date.parse(String(res.data.data.receiptEndsAt)) - placedAt,
-    ).toBe(30 * 24 * 60 * 60 * 1000);
+    expect(Date.parse(String(res.data.data.receiptEndsAt)) - placedAt).toBe(
+      30 * 24 * 60 * 60 * 1000,
+    );
   });
 
   it('stamps no window for a counter sale, which brings no digest', async () => {

@@ -276,12 +276,8 @@ describe('the checkout recipe', () => {
         ?.parameters as { items?: unknown[]; lines?: unknown[] } | undefined;
 
     const sold = { offeringId: 'v-1-o-1', name: 'Name of v-1-o-1' };
-    expect(step('order.write')?.items).toEqual([
-      expect.objectContaining(sold),
-    ]);
-    expect(step('fulfilment.open')?.lines).toEqual([
-      { ...sold, quantity: 2 },
-    ]);
+    expect(step('order.write')?.items).toEqual([expect.objectContaining(sold)]);
+    expect(step('fulfilment.open')?.lines).toEqual([{ ...sold, quantity: 2 }]);
     // The slip is composed from the start alone: nothing reads the projection
     // again, so a rename after the checkout reaches neither write.
   });
