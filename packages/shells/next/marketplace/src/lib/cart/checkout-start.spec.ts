@@ -1,15 +1,16 @@
-import { describe, expect, it } from 'vitest';
-
 import {
   acceptedFlowId,
   checkoutStartBody,
+  chooseTenders,
   sellerParts,
   tenderField,
   tenderOf,
+  tendersOffered,
 } from './checkout-start.js';
 
 const line = (offeringId: string, vendorId: string, amount = 100) => ({
   offeringId,
+  name: `Name of ${offeringId}`,
   vendorId,
   quantity: 2,
   amount,
@@ -17,38 +18,69 @@ const line = (offeringId: string, vendorId: string, amount = 100) => ({
 });
 
 describe('sellerParts', () => {
-  it('splits a basket per seller, in the order each first appears, with each one’s tender', () => {
-    const parts = sellerParts(
-      [line('a', 'v-2'), line('b', 'v-1'), line('c', 'v-2')],
-      vendorId => (vendorId === 'v-1' ? 'cod' : 'card'),
-    );
-
-    expect(parts.map(part => [part.vendorId, part.paymentMethod])).toEqual([
-      ['v-2', 'card'],
-      ['v-1', 'cod'],
+  it('splits a basket per seller, in the order each first appears', () => {
+    const parts = sellerParts([
+      line('a', 'v-2'),
+      line('b', 'v-1'),
+      line('c', 'v-2'),
     ]);
-    expect(parts[0]?.lines.map(entry => entry.offeringId)).toEqual(['a', 'c']);
-  });
 
-  it('pays every seller by card unless told otherwise', () => {
-    expect(sellerParts([line('a', 'v-1')])[0]?.paymentMethod).toBe('card');
+    expect(parts.map(part => part.vendorId)).toEqual(['v-2', 'v-1']);
+    expect(parts[0]?.lines.map(entry => entry.offeringId)).toEqual(['a', 'c']);
   });
 });
 
 describe('tenders', () => {
-  it('reads a form field as cash on delivery only when it says so', () => {
-    expect([tenderOf('cod'), tenderOf('card'), tenderOf(null)]).toEqual([
-      'cod',
-      'card',
-      'card',
-    ]);
+  it('reads a form field as a tender, and nothing as none (ADR 0076 §7)', () => {
+    expect([
+      tenderOf('cod'),
+      tenderOf('card'),
+      tenderOf(null),
+      tenderOf('cash'),
+    ]).toEqual(['cod', 'card', undefined, undefined]);
     expect(tenderField('v-1')).toBe('method:v-1');
+  });
+
+  it('offers cash on delivery only where the seller collects it', () => {
+    expect(tendersOffered({ acceptsCod: true })).toEqual(['card', 'cod']);
+    expect(tendersOffered({ acceptsCod: false })).toEqual(['card']);
+    expect(tendersOffered(undefined)).toEqual(['card']);
+  });
+});
+
+describe('chooseTenders', () => {
+  const parts = sellerParts([line('a', 'v-1'), line('b', 'v-2')]);
+  const offered = (vendorId: string) =>
+    vendorId === 'v-1' ? tendersOffered({ acceptsCod: true }) : ['card' as const];
+
+  it('pays each seller as chosen, and a one-tender seller its one tender', () => {
+    const choice = chooseTenders(parts, offered, vendorId =>
+      vendorId === 'v-1' ? 'cod' : undefined,
+    );
+
+    expect('parts' in choice && choice.parts.map(part => part.paymentMethod)).toEqual(
+      ['cod', 'card'],
+    );
+  });
+
+  it('names a two-tender seller with no choice, or one they do not take', () => {
+    expect(chooseTenders(parts, offered, () => null)).toEqual({
+      missing: ['v-1'],
+    });
+    expect(
+      chooseTenders(parts, () => ['card'], () => 'cod'),
+    ).toMatchObject({ parts: [{ paymentMethod: 'card' }, { paymentMethod: 'card' }] });
+    expect(
+      chooseTenders(parts, () => ['card', 'cod'], () => 'cheque'),
+    ).toEqual({ missing: ['v-1', 'v-2'] });
   });
 });
 
 describe('checkoutStartBody', () => {
   it('carries the sellers, the basket’s totals and both digests', () => {
-    const parts = sellerParts([line('a', 'v-1', 100), line('b', 'v-2', 50)]);
+    const parts = sellerParts([line('a', 'v-1', 100), line('b', 'v-2', 50)]).map(
+      part => ({ ...part, paymentMethod: 'card' as const }),
+    );
 
     expect(
       checkoutStartBody({

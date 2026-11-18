@@ -4,9 +4,8 @@ import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
 import type { CartLine } from './cart-state';
 import {
   type PricedLine,
-  type SellerPart,
+  type SellerLines,
   sellerParts,
-  type Tender,
 } from './checkout-start';
 
 /** One cart line beside the published offering it was priced from. */
@@ -20,7 +19,7 @@ export interface PricedCart {
   readonly present: readonly PresentLine[];
   readonly priced: readonly PricedLine[];
   readonly offerings: ReadonlyMap<string, PublishedOffering>;
-  readonly parts: readonly SellerPart[];
+  readonly parts: readonly SellerLines[];
   readonly totals: readonly MoneyTotal[];
   /** Lines in the cart whose offering is no longer published. */
   readonly unavailable: number;
@@ -38,7 +37,6 @@ export function pricedCartOf(
     readonly line: CartLine;
     readonly offering: PublishedOffering | undefined;
   }[],
-  tender: (vendorId: string) => Tender = () => 'card',
 ): PricedCart {
   const present: PresentLine[] = items.flatMap(({ line, offering }) =>
     offering === undefined ? [] : [{ line, offering }],
@@ -58,8 +56,9 @@ export function pricedCartOf(
       present.map(({ line, offering }) => [line.offeringId, offering]),
     ),
     // One part per seller, in the order each first appears: a checkout writes
-    // one order per vendor, and the buyer picks a tender for each (ADR 0070).
-    parts: sellerParts(priced, tender),
+    // one order per vendor, and the buyer picks a tender for each at review
+    // (ADR 0070, ADR 0076 §7).
+    parts: sellerParts(priced),
     totals: totalsByCurrency(priced),
     unavailable: items.length - present.length,
   };

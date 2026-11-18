@@ -6,11 +6,14 @@ import {
   digestFlowCapability,
   makeFlowCapability,
 } from '@entifix/transactions';
+import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
+import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { postFlow } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
 import {
   checkoutServiceUrl,
@@ -19,8 +22,10 @@ import {
 import {
   acceptedFlowId,
   checkoutStartBody,
+  chooseTenders,
+  type SellerLines,
   tenderField,
-  tenderOf,
+  tendersOffered,
 } from './checkout-start';
 import {
   type CheckoutFormState,
@@ -62,17 +67,38 @@ const ticketFor = async (retry: boolean) => {
 };
 
 /**
- * Checkout, as the storefront starts it from the review step: price each line
- * from the published offering, split the basket per seller with the tender
- * the buyer picked for each, check the buyer's contact, and ask the
- * coordinator to start the flow. A `202` names the flow, and the buyer waits
- * on it at its order-status page — the outcome arrives on the stream, never
- * in this response (ADR 0073).
+ * Each seller's part with the tender the buyer chose at review, or the sellers
+ * whose choice is missing. What a seller takes is read from the published
+ * vendor, as the review page offers it (ADR 0076 §7).
+ */
+const tendered = async (parts: readonly SellerLines[], formData: FormData) => {
+  const vendors = new Map(
+    (
+      await runRead(
+        PublishedVendor,
+        loadVendors(parts.map(part => part.vendorId)),
+        [],
+      )
+    ).map(vendor => [vendor.vendorId, vendor]),
+  );
+  return chooseTenders(
+    parts,
+    vendorId => tendersOffered(vendors.get(vendorId)),
+    vendorId => formData.get(tenderField(vendorId)),
+  );
+};
+
+/**
+ * Checkout, as the storefront starts it from the review step: check the
+ * tender the buyer chose for each seller and their contact, price each line
+ * from the published offering, and ask the coordinator to start the flow. A
+ * `202` names the flow, and the buyer waits on it at its order-status page —
+ * the outcome arrives on the stream, never in this response (ADR 0073).
  *
- * A contact the order could not be delivered to answers the form's state —
- * what was typed, and each field's error — rather than a redirect, so the
- * buyer fixes it in place (ADR 0076 §2). The values stay in that state alone:
- * a URL or a cookie would keep them.
+ * A missing tender or a contact the order could not be delivered to answers
+ * the form's state — what was chosen and typed, and each field's error —
+ * rather than a redirect, so the buyer fixes it in place (ADR 0076 §2, §7).
+ * The values stay in that state alone: a URL or a cookie would keep them.
  *
  * The cart is **not** cleared here: a checkout that later fails keeps it, and
  * the settle step clears it only once the flow completed.
@@ -83,28 +109,37 @@ export async function placeOrder(
 ): Promise<CheckoutFormState> {
   const values = contactValuesOf(formData);
   const errors = contactErrors(values);
-  if (Object.keys(errors).length > 0) return { values, errors };
+  const { parts } = await readPricedCart();
+  const choice = await tendered(parts, formData);
+  const tendersMissing = 'missing' in choice ? choice.missing : [];
+  if (Object.keys(errors).length > 0 || tendersMissing.length > 0) {
+    return {
+      values,
+      errors,
+      tenders: Object.fromEntries(
+        parts.flatMap(part => {
+          const value = formData.get(tenderField(part.vendorId));
+          return typeof value === 'string' ? [[part.vendorId, value]] : [];
+        }),
+      ),
+      tendersMissing,
+    };
+  }
   return start(formData, contactOf(values));
 }
 
 /**
  * A retry from the order-status page, under the ticket the first attempt left.
- * It carries no contact — the status page holds none — so it sends the buyer
- * back to the review step to state it again, still under that ticket, so the
- * same `Idempotency-Key` names the same flow.
+ * It carries no contact and no tender — the status page holds neither — so it
+ * sends the buyer back to the review step to state them again, still under
+ * that ticket, so the same `Idempotency-Key` names the same flow.
  */
 export async function checkout(formData: FormData) {
   const locale = String(formData.get('locale') ?? '');
   const values = contactValuesOf(formData);
   if (namesNoContact(values)) {
-    const { parts } = await readPricedCart(vendorId =>
-      tenderOf(formData.get(tenderField(vendorId))),
-    );
     redirect(
       `/${locale}${storePaths.checkoutReview(
-        Object.fromEntries(
-          parts.map(part => [part.vendorId, part.paymentMethod]),
-        ),
         formData.get('retry') === null ? {} : { retry: '1' },
       )}`,
     );
@@ -116,29 +151,25 @@ const start = async (formData: FormData, contact: unknown): Promise<never> => {
   const locale = String(formData.get('locale') ?? '');
   // Re-priced here rather than trusted from the review: the published price
   // at the moment the flow starts is the one the buyer pays.
-  const { priced, parts, totals } = await readPricedCart(vendorId =>
-    tenderOf(formData.get(tenderField(vendorId))),
-  );
+  const { priced, parts: lines, totals } = await readPricedCart();
 
   if (priced.length === 0) {
     redirect(`/${locale}/cart?checkout=empty`);
   }
 
-  // What the buyer agreed to must still be what they pay: a price that moved
-  // or a line that stopped being sold since the review sends them back to
-  // review it again, rather than charging a figure they never saw.
+  // What the buyer agreed to must still be what they pay: a price that moved,
+  // a line that stopped being sold, or a seller whose tender the review never
+  // asked for since sends them back to review it again, rather than charging a
+  // figure or a tender they never saw.
   const reviewed = formData.get('reviewed');
-  if (typeof reviewed === 'string' && reviewed !== reviewedTotalsOf(totals)) {
-    redirect(
-      `/${locale}${storePaths.checkoutReview(
-        Object.fromEntries(
-          parts.map(part => [part.vendorId, part.paymentMethod]),
-        ),
-        { changed: '1' },
-      )}`,
-    );
+  const choice = await tendered(lines, formData);
+  if (
+    (typeof reviewed === 'string' && reviewed !== reviewedTotalsOf(totals)) ||
+    'missing' in choice
+  ) {
+    redirect(`/${locale}${storePaths.checkoutReview({ changed: '1' })}`);
   }
-
+  const { parts } = choice;
   const ticket = await ticketFor(formData.get('retry') !== null);
   const response = await postFlow(
     checkoutServiceUrl(),

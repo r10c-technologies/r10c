@@ -31,15 +31,11 @@ describe('pricedCartOf', () => {
           offering: offering('o-3', 'v-1', 100, 'USD'),
         },
       ],
-      vendorId => (vendorId === 'v-2' ? 'cod' : 'card'),
     );
 
-    expect(cart.parts.map(part => [part.vendorId, part.paymentMethod])).toEqual(
-      [
-        ['v-1', 'card'],
-        ['v-2', 'cod'],
-      ],
-    );
+    expect(cart.parts.map(part => part.vendorId)).toEqual(['v-1', 'v-2']);
+    // Each line is sold under the offering's published name (#582).
+    expect(cart.priced.map(line => line.name)).toEqual(['o-1', 'o-2', 'o-3']);
     expect(cart.totals).toEqual([
       { currency: 'GTQ', amount: 1900 },
       { currency: 'USD', amount: 100 },
@@ -48,7 +44,7 @@ describe('pricedCartOf', () => {
     expect(cart.unavailable).toBe(0);
   });
 
-  it('drops and counts a line whose offering is no longer published, and pays a card by default', () => {
+  it('drops and counts a line whose offering is no longer published', () => {
     const cart = pricedCartOf([
       {
         line: { offeringId: 'o-1', quantity: 1 },
@@ -59,7 +55,6 @@ describe('pricedCartOf', () => {
 
     expect(cart.present.map(({ line }) => line.offeringId)).toEqual(['o-1']);
     expect(cart.totals).toEqual([{ currency: 'GTQ', amount: 500 }]);
-    expect(cart.parts[0]?.paymentMethod).toBe('card');
     expect(cart.unavailable).toBe(1);
   });
 });

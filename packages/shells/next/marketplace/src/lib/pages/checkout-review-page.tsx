@@ -16,14 +16,14 @@ import { CONTACT_ERROR_CODES } from '@r10c/business-ts-order-contracts';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { redirect } from 'next/navigation';
 
-import { tenderField, tenderOf } from '../cart/checkout-start';
+import { tendersOffered } from '../cart/checkout-start';
 import { CONTACT_FIELDS } from '../cart/delivery-contact';
 import { DeliveryForm } from '../cart/delivery-form';
 import { readPricedCart } from '../cart/priced-cart';
 import { reviewedTotalsOf } from '../cart/priced-cart-state';
 import { runRead } from '../catalog/catalog-reads';
 import { totalsByCurrency } from '../catalog/money';
-import { storePaths, type TenderChoice } from '../routing/paths';
+import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
 /**
@@ -36,21 +36,18 @@ import { StoreShell } from './store-shell';
  * and, on a card, takes money. The cart is where a basket is edited; this is
  * where it is agreed to.
  *
- * Plain forms, like the cart: the tenders arrive on the query string from the
- * cart's `GET` form, and Place order posts the checkout action with the totals
- * shown here. The action re-prices from the published catalog and, if that no
+ * The buyer chooses how to pay each seller here, in the same form as the
+ * contact (ADR 0076 §7), and Place order posts the checkout action with the
+ * totals shown here. The action re-prices from the published catalog and, if that no
  * longer matches what was reviewed, sends the buyer back here to look again.
  * Dynamic for the same reason as the cart — it reads the cookie.
  */
 export async function CheckoutReviewPage({
   locale,
-  tenders,
   changed = false,
   retry = false,
 }: {
   readonly locale: Locale;
-  /** The tender the buyer picked for each seller, by vendor id. */
-  readonly tenders: TenderChoice;
   /**
    * The checkout sent the buyer back: a price moved, or a line stopped being
    * sold, between this page and Place order.
@@ -64,9 +61,7 @@ export async function CheckoutReviewPage({
 }) {
   const t = getServerTFor(locale, 'r10c');
   const tErrors = getServerTFor(locale, 'errors');
-  const { parts, offerings, totals, unavailable } = await readPricedCart(
-    vendorId => tenderOf(tenders[vendorId]),
-  );
+  const { parts, offerings, totals, unavailable } = await readPricedCart();
   // Nothing to agree to: the cart says why, and offers the way back.
   if (parts.length === 0) {
     redirect(localeHref(locale, `${storePaths.cart()}?checkout=empty`));
@@ -79,9 +74,6 @@ export async function CheckoutReviewPage({
         [],
       )
     ).map(vendor => [vendor.vendorId, vendor]),
-  );
-  const chosen = Object.fromEntries(
-    parts.map(part => [part.vendorId, part.paymentMethod]),
   );
 
   return (
@@ -140,12 +132,7 @@ export async function CheckoutReviewPage({
                       );
                     })}
                   </ul>
-                  <Cluster justify="between" gap="s">
-                    <Text data-testid={`review-method-${part.vendorId}`}>
-                      {t('storefront.checkout.method.label')}
-                      {': '}
-                      {t(`storefront.checkout.method.${part.paymentMethod}`)}
-                    </Text>
+                  <Cluster justify="end" gap="s">
                     {/* One figure per currency, as the total sums them. */}
                     {subtotals.map(subtotal => (
                       <Text key={subtotal.currency} weight="semibold">
@@ -160,11 +147,6 @@ export async function CheckoutReviewPage({
                       </Text>
                     ))}
                   </Cluster>
-                  {part.paymentMethod === 'cod' && (
-                    <Text tone="muted">
-                      {t('storefront.review.codNote', { seller })}
-                    </Text>
-                  )}
                 </Stack>
               </Card>
             );
@@ -190,10 +172,8 @@ export async function CheckoutReviewPage({
             ))}
           </Stack>
           <Cluster gap="s">
-            {/* Back to the cart with the tenders still chosen, so editing
-                the cart does not cost the buyer their payment choices. */}
             <ButtonLink
-              href={localeHref(locale, storePaths.cart(chosen))}
+              href={localeHref(locale, storePaths.cart())}
               variant="secondary"
             >
               {t('storefront.review.edit')}
@@ -207,12 +187,14 @@ export async function CheckoutReviewPage({
           <DeliveryForm
             locale={locale}
             reviewed={reviewedTotalsOf(totals)}
-            tenders={Object.fromEntries(
-              parts.map(part => [
-                tenderField(part.vendorId),
-                part.paymentMethod,
-              ]),
-            )}
+            sellers={parts.map(part => ({
+              vendorId: part.vendorId,
+              legend: t('storefront.review.payment.legend', {
+                seller:
+                  vendors.get(part.vendorId)?.displayName ?? part.vendorId,
+              }),
+              offered: tendersOffered(vendors.get(part.vendorId)),
+            }))}
             retry={retry}
             labels={{
               legend: t('storefront.review.delivery.legend'),
@@ -234,6 +216,19 @@ export async function CheckoutReviewPage({
               errors: Object.fromEntries(
                 CONTACT_ERROR_CODES.map(code => [code, tErrors(code)]),
               ),
+              payment: {
+                tender: {
+                  card: t('storefront.review.payment.card'),
+                  cod: t('storefront.review.payment.cod'),
+                },
+                only: {
+                  card: t('storefront.review.payment.onlyCard'),
+                  cod: t('storefront.review.payment.onlyCod'),
+                },
+                simulated: t('storefront.review.payment.simulated'),
+                codHint: t('storefront.review.payment.codHint'),
+                required: t('storefront.review.payment.required'),
+              },
             }}
           />
         </Card>

@@ -25,15 +25,24 @@ export type ContactValues = Readonly<Partial<Record<ContactField, string>>>;
  * Where the review form stands after a refused submit: what the buyer typed,
  * kept so nothing is lost, and the error code each field answered with. Held
  * in action state only — never in a URL or a cookie, because it is personal.
+ *
+ * The tenders ride beside the contact: what the buyer chose per seller, and
+ * the sellers whose choice was missing (ADR 0076 §7).
  */
 export interface CheckoutFormState {
   readonly values: ContactValues;
   readonly errors: Readonly<Partial<Record<ContactField, string>>>;
+  /** The tender chosen for each seller, by vendor id, as the form sent it. */
+  readonly tenders: Readonly<Record<string, string>>;
+  /** The sellers the buyer has still to choose a tender for. */
+  readonly tendersMissing: readonly string[];
 }
 
 export const EMPTY_CHECKOUT_FORM: CheckoutFormState = {
   values: {},
   errors: {},
+  tenders: {},
+  tendersMissing: [],
 };
 
 /** The prefix a field's name carries on the form, so it cannot collide. */

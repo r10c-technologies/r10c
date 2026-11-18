@@ -2,17 +2,34 @@ import { FlowAccepted } from '@entifix/transactions';
 import { Option, Schema } from 'effect';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
-import { TENDER_PREFIX } from '../routing/paths';
 
 /** How a buyer pays one seller: a card at checkout, or cash on delivery. */
 export type Tender = 'card' | 'cod';
 
-/** What a form field says, narrowed: anything but `cod` is a card. */
-export const tenderOf = (value: unknown): Tender =>
-  value === 'cod' ? 'cod' : 'card';
+const TENDERS: readonly Tender[] = ['card', 'cod'];
+
+/** The form field prefix a seller's tender travels under, `method:<id>`. */
+export const TENDER_PREFIX = 'method:';
+
+/**
+ * What a form field says, narrowed — or `undefined` when it names no tender.
+ * ⚠️ **No default** (ADR 0076 §7): a tender the buyer never chose is one the
+ * receipt would name for them, so an absent choice stays absent.
+ */
+export const tenderOf = (value: unknown): Tender | undefined =>
+  TENDERS.find(tender => tender === value);
 
 /** The form field one seller's tender travels in. */
 export const tenderField = (vendorId: string) => `${TENDER_PREFIX}${vendorId}`;
+
+/**
+ * The tenders a seller takes: a card always, and cash on delivery only where
+ * the published vendor says they collect it — a hint the checkout's own
+ * eligibility step still enforces (ADR 0070).
+ */
+export const tendersOffered = (
+  vendor: { readonly acceptsCod?: boolean } | undefined,
+): readonly Tender[] => (vendor?.acceptsCod === true ? TENDERS : ['card']);
 
 /** One cart line priced from the published offering. */
 export interface PricedLine {
@@ -25,11 +42,15 @@ export interface PricedLine {
   readonly currency: string;
 }
 
-/** One seller's part of a basket: their lines and how the buyer pays them. */
-export interface SellerPart {
+/** One seller's lines in a basket, before the buyer chose how to pay them. */
+export interface SellerLines {
   readonly vendorId: string;
-  readonly paymentMethod: Tender;
   readonly lines: readonly PricedLine[];
+}
+
+/** One seller's part of a basket: their lines and how the buyer pays them. */
+export interface SellerPart extends SellerLines {
+  readonly paymentMethod: Tender;
 }
 
 /**
@@ -39,8 +60,7 @@ export interface SellerPart {
  */
 export const sellerParts = (
   lines: readonly PricedLine[],
-  tender: (vendorId: string) => Tender = () => 'card',
-): readonly SellerPart[] => {
+): readonly SellerLines[] => {
   const order: string[] = [];
   const byVendor = new Map<string, PricedLine[]>();
   for (const line of lines) {
@@ -54,9 +74,36 @@ export const sellerParts = (
   }
   return order.map(vendorId => ({
     vendorId,
-    paymentMethod: tender(vendorId),
     lines: byVendor.get(vendorId) as PricedLine[],
   }));
+};
+
+/**
+ * Each seller's part with the tender the buyer chose for it — or the sellers
+ * whose choice is missing or not one they take. A seller who takes one tender
+ * is paid that way whatever the form said, since the review states it rather
+ * than asking (ADR 0076 §7).
+ */
+export const chooseTenders = (
+  parts: readonly SellerLines[],
+  offered: (vendorId: string) => readonly Tender[],
+  chosen: (vendorId: string) => unknown,
+):
+  | { readonly parts: readonly SellerPart[] }
+  | { readonly missing: readonly string[] } => {
+  const missing: string[] = [];
+  const tendered: SellerPart[] = [];
+  for (const part of parts) {
+    const takes = offered(part.vendorId);
+    const tender =
+      takes.length === 1 ? takes[0] : tenderOf(chosen(part.vendorId));
+    if (tender === undefined || !takes.includes(tender)) {
+      missing.push(part.vendorId);
+    } else {
+      tendered.push({ ...part, paymentMethod: tender });
+    }
+  }
+  return missing.length > 0 ? { missing } : { parts: tendered };
 };
 
 /** What the storefront asks the coordinator to start a checkout with. */

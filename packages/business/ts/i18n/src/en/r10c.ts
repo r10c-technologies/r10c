@@ -203,7 +203,20 @@ export const r10c: EsR10c = {
       intro:
         "Check each seller's items and how you pay them. Nothing is ordered or charged until you place the order.",
       subtotal: 'Subtotal',
-      codNote: 'You pay {{seller}} in cash when the parcel arrives.',
+      // How the buyer pays each seller (ADR 0076 §7): nothing chosen in
+      // advance, and stated as a fact when the seller takes one tender.
+      payment: {
+        legend: 'How you pay {{seller}}',
+        card: 'Card',
+        cod: 'Cash on delivery',
+        codHint: 'You pay in cash when the parcel arrives.',
+        simulated:
+          'Simulated payment: no card details are asked for and nothing is charged.',
+        onlyCard:
+          'You pay by card. Simulated payment: no card details are asked for and nothing is charged.',
+        onlyCod: 'You pay in cash when the parcel arrives.',
+        required: 'Choose how you pay this seller.',
+      },
       edit: 'Edit cart',
       place: 'Place order',
       delivery: {
@@ -234,7 +247,6 @@ export const r10c: EsR10c = {
       // A tender per seller (ADR 0070). Cash on delivery is offered only where
       // the seller ships it.
       method: {
-        label: 'Payment method',
         card: 'Card',
         cod: 'Cash on delivery',
       },

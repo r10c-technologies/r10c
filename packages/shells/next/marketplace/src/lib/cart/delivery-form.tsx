@@ -11,6 +11,7 @@ import { GUATEMALA_DEPARTAMENTOS } from '@r10c/business-ts-order-contracts';
 import { useActionState } from 'react';
 
 import { placeOrder } from './checkout-action';
+import { type Tender, tenderField } from './checkout-start';
 import {
   type ContactField,
   contactFieldName,
@@ -28,6 +29,27 @@ export interface DeliveryFormLabels {
   readonly hints: Readonly<Partial<Record<ContactField, string>>>;
   /** Each error code the contact can answer, as a sentence. */
   readonly errors: Readonly<Record<string, string>>;
+  /** The payment choice, one group per seller (ADR 0076 §7). */
+  readonly payment: {
+    /** Each tender's name, as a radio's label. */
+    readonly tender: Readonly<Record<Tender, string>>;
+    /** A seller that takes one tender, stated rather than asked. */
+    readonly only: Readonly<Record<Tender, string>>;
+    /** What the card option means while the provider is simulated. */
+    readonly simulated: string;
+    /** What the cash-on-delivery option means. */
+    readonly codHint: string;
+    /** Said beside a seller whose tender the buyer has not chosen. */
+    readonly required: string;
+  };
+}
+
+/** One seller the buyer pays, and the tenders that seller takes. */
+export interface PayableSeller {
+  readonly vendorId: string;
+  /** The group's legend, naming the seller, resolved on the server. */
+  readonly legend: string;
+  readonly offered: readonly Tender[];
 }
 
 /**
@@ -66,13 +88,13 @@ const idOf = (field: ContactField) => `delivery-${field}`;
 export function DeliveryForm({
   locale,
   reviewed,
-  tenders,
+  sellers,
   retry,
   labels,
 }: {
   readonly locale: string;
   readonly reviewed: string;
-  readonly tenders: Readonly<Record<string, string>>;
+  readonly sellers: readonly PayableSeller[];
   /** The review was reached from a failed start, whose ticket it reuses. */
   readonly retry: boolean;
   readonly labels: DeliveryFormLabels;
@@ -145,9 +167,81 @@ export function DeliveryForm({
     );
   };
 
+  /**
+   * One seller's tender. Two tenders are a radio group with **none checked**
+   * and a choice required; one is a sentence and a hidden field, because a
+   * control with one option asks nothing (ADR 0076 §7).
+   */
+  const payment = (seller: PayableSeller) => {
+    const id = `payment-${seller.vendorId}`;
+    const missing = state.tendersMissing.includes(seller.vendorId);
+    const [only] = seller.offered;
+    return (
+      <fieldset
+        key={seller.vendorId}
+        className="flex min-w-0 flex-col gap-2xs"
+        data-testid={id}
+        aria-describedby={missing ? `${id}-error` : undefined}
+      >
+        <legend className="text-step-0 font-semibold">{seller.legend}</legend>
+        {seller.offered.length === 1 && only !== undefined ? (
+          <>
+            <Text data-testid={`${id}-only`}>{labels.payment.only[only]}</Text>
+            <input
+              type="hidden"
+              name={tenderField(seller.vendorId)}
+              value={only}
+            />
+          </>
+        ) : (
+          seller.offered.map(tender => (
+            <div
+              key={tender}
+              className="flex min-h-(--target-min) items-start gap-2xs"
+            >
+              <input
+                // Keyed by the submitted choice, so a refused submit keeps it.
+                key={state.tenders[seller.vendorId] ?? ''}
+                id={`${id}-${tender}`}
+                type="radio"
+                className="mt-3xs size-s accent-primary"
+                name={tenderField(seller.vendorId)}
+                value={tender}
+                required
+                defaultChecked={state.tenders[seller.vendorId] === tender}
+                aria-describedby={`${id}-${tender}-hint`}
+                data-testid={`${id}-${tender}`}
+              />
+              <span className="flex flex-col">
+                <label htmlFor={`${id}-${tender}`}>
+                  {labels.payment.tender[tender]}
+                </label>
+                <Text tone="muted" id={`${id}-${tender}-hint`}>
+                  {tender === 'card'
+                    ? labels.payment.simulated
+                    : labels.payment.codHint}
+                </Text>
+              </span>
+            </div>
+          ))
+        )}
+        {missing ? (
+          <p
+            className="m-0 text-step--1 text-danger"
+            id={`${id}-error`}
+            data-testid={`${id}-error`}
+          >
+            {labels.payment.required}
+          </p>
+        ) : null}
+      </fieldset>
+    );
+  };
+
   return (
     <form action={action} noValidate data-testid="delivery-form">
       <Stack gap="m">
+        {sellers.map(payment)}
         {/* A fieldset defaults to `min-inline-size: min-content`, so the
             municipio select's longest option would widen the page past
             320px; `min-w-0` lets the fields take the width they are given. */}
@@ -165,9 +259,6 @@ export function DeliveryForm({
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="reviewed" value={reviewed} />
         {retry ? <input type="hidden" name="retry" value="1" /> : null}
-        {Object.entries(tenders).map(([name, value]) => (
-          <input key={name} type="hidden" name={name} value={value} />
-        ))}
         <SubmitButton data-testid="checkout" className="touch-target">
           {labels.place}
         </SubmitButton>

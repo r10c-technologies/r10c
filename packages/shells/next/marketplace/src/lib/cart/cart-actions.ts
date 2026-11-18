@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { parseTenderChoice, storePaths } from '../routing/paths';
+import { storePaths } from '../routing/paths';
 import { type CartNotice, cartNoticeQuery } from './cart-notice';
 import {
   CART_COOKIE,
@@ -33,22 +33,9 @@ import { safeReturn, withAddedNotice } from './return-to';
 
 const ONE_MONTH = 60 * 60 * 24 * 30;
 
-/** The tenders a cart form was posted with: its `method:<vendorId>` fields. */
-const tendersOf = (formData: FormData) =>
-  parseTenderChoice(
-    Object.fromEntries(
-      Array.from(formData.entries(), ([key, value]) => [key, String(value)]),
-    ),
-  );
-
-/**
- * The cart page, carrying what the action did for its status region and the
- * tenders the buyer had chosen, so a removal or its undo never resets a
- * seller's payment choice.
- */
-const cartWith = (locale: string, formData: FormData, notice?: CartNotice) =>
+/** The cart page, carrying what the action did for its status region. */
+const cartWith = (locale: string, notice?: CartNotice) =>
   `/${locale}${storePaths.cart(
-    tendersOf(formData),
     notice === undefined
       ? {}
       : Object.fromEntries(new URLSearchParams(cartNoticeQuery(notice))),
@@ -105,7 +92,7 @@ export async function addToCart(formData: FormData) {
   const back = safeReturn(formData.get('returnTo'), locale);
   redirect(
     back === undefined
-      ? cartWith(locale, formData, { kind: 'added', offeringId })
+      ? cartWith(locale, { kind: 'added', offeringId })
       : withAddedNotice(back, offeringId),
   );
 }
@@ -125,7 +112,7 @@ export async function removeFromCart(formData: FormData) {
   // gives back what was there rather than one.
   if (locale && removed)
     redirect(
-      cartWith(locale, formData, {
+      cartWith(locale, {
         kind: 'removed',
         offeringId,
         quantity: removed.quantity,
@@ -152,7 +139,7 @@ export async function restoreToCart(formData: FormData) {
     ),
   );
 
-  if (locale) redirect(cartWith(locale, formData));
+  if (locale) redirect(cartWith(locale));
 }
 
 /**
