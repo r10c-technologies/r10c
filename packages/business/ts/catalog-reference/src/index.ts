@@ -32,6 +32,7 @@
  * a display gap, never a corrupt record.
  */
 export { CATALOG_REFERENCE_DOMAIN } from './domain';
+export * from './entities/device-model';
 export * from './entities/dictionary-term';
 export * from './entities/product-brand';
 export * from './entities/product-category';

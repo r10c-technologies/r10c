@@ -52,6 +52,8 @@ export const errors = {
     'Esta categoría todavía tiene subcategorías activas. Retíralas o muévelas primero.',
   mediaNotHttps: 'Cada URL de imagen debe ser una dirección https:// completa.',
   mediaAltMissing: 'Cada imagen necesita una descripción.',
+  deviceModelUniversalNotAlone:
+    '«Universal» ya incluye todos los modelos y no se combina con otro.',
   paymentPending:
     'Tu pago todavía se está confirmando. Inténtalo de nuevo en un momento.',
   cancelNotAuthorized:
