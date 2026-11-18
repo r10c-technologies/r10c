@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@entifix/amqp": "catalog:",
+    "@entifix/business": "catalog:",
     "@entifix/mongo": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@entifix/transactions": "catalog:",

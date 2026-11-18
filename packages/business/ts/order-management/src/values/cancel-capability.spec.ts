@@ -134,11 +134,7 @@ describe('verifyReceiptCapability', () => {
       verifyReceiptCapability(group({ receiptEndsAt: CLOSED }), nonce, NOW),
     ).toBe('windowClosed');
     expect(
-      verifyReceiptCapability(
-        group({ receiptEndsAt: undefined }),
-        nonce,
-        NOW,
-      ),
+      verifyReceiptCapability(group({ receiptEndsAt: undefined }), nonce, NOW),
     ).toBe('noCapability');
   });
 
@@ -146,8 +142,8 @@ describe('verifyReceiptCapability', () => {
     expect(verifyReceiptCapability(group(), 'not-the-nonce', NOW)).toBe(
       'badCapability',
     );
-    expect(
-      verifyReceiptCapability({ receiptEndsAt: OPEN }, nonce, NOW),
-    ).toBe('noCapability');
+    expect(verifyReceiptCapability({ receiptEndsAt: OPEN }, nonce, NOW)).toBe(
+      'noCapability',
+    );
   });
 });

@@ -264,6 +264,52 @@ test.describe('browsing the catalog', () => {
     );
   });
 
+  /**
+   * ADR 0076 §8 (#589): the page states only what the system enforces — the
+   * seller ships and takes cash on delivery, and what happens at the door —
+   * and no figure of money or days in that block.
+   */
+  test('a product page says its seller ships, takes cash on delivery, and what happens at the door', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-solano-clip-light');
+    const main = page.getByRole('main');
+
+    const facts = main.getByTestId('delivery-facts');
+    await expect(facts).toContainText('Envío por el vendedor');
+    await expect(facts.getByTestId('delivery-cod')).toHaveText(
+      'Pago contra entrega disponible',
+    );
+    await facts.getByText('Qué pasa al recibirlo').click();
+    await expect(facts).toContainText('Puedes rechazar el paquete');
+    await expect(facts).toContainText('No hay devoluciones');
+    expect(await facts.textContent()).not.toMatch(/\d/);
+    await expect(
+      main
+        .getByRole('form', { name: 'Comprar' })
+        .getByRole('button', { name: 'Añadir al carrito' }),
+    ).toBeVisible();
+  });
+
+  test('a seller who does not ship is said so, and nothing of theirs can be added', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-cobalto-arc-lamp');
+    const main = page.getByRole('main');
+
+    await expect(main.getByTestId('delivery-does-not-ship')).toContainText(
+      'no hace envíos',
+    );
+    await expect(main.getByRole('form', { name: 'Comprar' })).toHaveCount(0);
+    await expect(main.getByTestId('delivery-facts')).toHaveCount(0);
+
+    // Nor from a card: the same read decides the grid's Add.
+    await page.goto('/es/c/lighting');
+    await expect(
+      page.getByRole('main').getByRole('button', { name: /Cobalto Arc Lamp/ }),
+    ).toHaveCount(0);
+  });
+
   // Sorting is a link, not client state — so the URL is the whole mechanism and
   // the server renders the answer.
   /** #343: the seller line and the details, from three domains' reads. */

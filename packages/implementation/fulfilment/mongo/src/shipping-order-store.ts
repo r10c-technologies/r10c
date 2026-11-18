@@ -1,6 +1,8 @@
 import {
   type TenantDatabaseResolver,
   TenantDatabaseResolverTag,
+  type TenantDirectory,
+  TenantDirectoryTag,
 } from '@entifix/business';
 import {
   deserializeSingleEntity,
@@ -11,6 +13,7 @@ import {
 } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import {
+  COMMAND_INBOX_COLLECTION,
   drainOutboxNow,
   ensureOutboxIndexes,
   makeMongoUnitsOfWork,
@@ -22,6 +25,8 @@ import {
   OutboxMaxAttempts,
 } from '@entifix/transactions';
 import {
+  CLOSED_AT,
+  type DestinationRedaction,
   EVENT_OF,
   type OpenOutcome,
   ShippingOrder,
@@ -33,13 +38,47 @@ import {
   STAMP_OF,
 } from '@r10c/business-ts-shipping-order-management';
 import { Effect, Layer, Option } from 'effect';
-import type { Db } from 'mongodb';
+import type { ClientSession, Db } from 'mongodb';
 
 export const SHIPPING_ORDER_COLLECTION = envelopeEntityName(ShippingOrder);
 
 const WITHOUT_ID = { projection: { _id: 0 } } as const;
 
 const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
+
+/** How many closed shipments one retention pass takes per organization. */
+const BATCH = 100;
+
+/**
+ * Removes the destination from the record each command claim that opened
+ * `orderId` remembered for a redelivery, so the address leaves the store and
+ * not only the shipment. Rewritten whole rather than `$unset` on a dotted
+ * path, one claim at a time, inside the caller's unit.
+ */
+const forgetRememberedDestination = async (
+  db: Db,
+  session: ClientSession,
+  orderId: string,
+) => {
+  const inbox = db.collection(COMMAND_INBOX_COLLECTION);
+  const remembered = await inbox
+    .find(
+      { 'replay.record.orderId': orderId },
+      { projection: { _id: 0, commandId: 1, replay: 1 }, session },
+    )
+    .toArray();
+  for (const { commandId, replay } of remembered) {
+    const { record, ...rest } = replay as { record: Record<string, unknown> };
+    const kept = Object.fromEntries(
+      Object.entries(record).filter(([key]) => key !== 'destination'),
+    );
+    await inbox.updateOne(
+      { commandId },
+      { $set: { replay: { ...rest, record: kept } } },
+      { session },
+    );
+  }
+};
 
 /** The move did not land: the shipment stood where the move is not legal. */
 class NotMoved {
@@ -78,6 +117,7 @@ export const MongoShippingOrderStoreLayer = Layer.effect(
     const client = yield* MongoClientTag;
     const resolver =
       (yield* TenantDatabaseResolverTag) as TenantDatabaseResolver<Db>;
+    const directory = (yield* TenantDirectoryTag) as TenantDirectory<Db>;
     const bus = yield* EventBusTag;
     const maxAttempts = yield* OutboxMaxAttempts;
     const source = yield* EventSourceTag;
@@ -237,6 +277,81 @@ export const MongoShippingOrderStoreLayer = Layer.effect(
             standing: current.status,
             transition,
           });
+        }),
+
+      // ADR 0076 §4. A `Date` bound, never its ISO string: the stamps are
+      // stored as dates. Each shipment in a unit of its own, so its address
+      // and the copy its opening remembered leave together, and one that
+      // fails is reported while the rest still go.
+      redactClosedBefore: (before, at) =>
+        Effect.gen(function* () {
+          let redacted = 0;
+          const failed: Array<DestinationRedaction['failed'][number]> = [];
+          for (const { handle: db } of yield* directory.list()) {
+            const closed = Object.entries(CLOSED_AT).map(([status, stamp]) => ({
+              status,
+              [stamp]: { $lt: before },
+            }));
+            const due = yield* Effect.tryPromise({
+              try: () =>
+                db
+                  .collection(SHIPPING_ORDER_COLLECTION)
+                  .find(
+                    {
+                      'destination.phone': { $exists: true },
+                      $or: closed,
+                    },
+                    { projection: { _id: 0, id: 1, orderId: 1 }, limit: BATCH },
+                  )
+                  .toArray(),
+              catch: storeUnavailable,
+            });
+            for (const { id, orderId } of due as unknown as ReadonlyArray<{
+              id: string;
+              orderId: string;
+            }>) {
+              yield* units
+                .forDatabase(db)
+                .run(unit =>
+                  Effect.tryPromise({
+                    try: async () => {
+                      const session = unit.handle.session;
+                      await unit.handle.db
+                        .collection(SHIPPING_ORDER_COLLECTION)
+                        .updateOne(
+                          { id },
+                          {
+                            $unset: { destination: '' },
+                            $set: { redactedAt: at },
+                          },
+                          { session },
+                        );
+                      await forgetRememberedDestination(
+                        unit.handle.db,
+                        session,
+                        orderId,
+                      );
+                    },
+                    catch: mongoUnitFault,
+                  }),
+                )
+                .pipe(
+                  Effect.match({
+                    onSuccess: () => {
+                      redacted += 1;
+                    },
+                    onFailure: failure => {
+                      failed.push({
+                        database: db.databaseName,
+                        shippingOrderId: id,
+                        failure,
+                      });
+                    },
+                  }),
+                );
+            }
+          }
+          return { redacted, failed } as DestinationRedaction;
         }),
     };
   }),

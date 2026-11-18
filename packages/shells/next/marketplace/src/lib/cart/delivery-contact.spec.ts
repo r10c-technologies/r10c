@@ -5,7 +5,10 @@ import {
   contactFieldName,
   contactOf,
   contactValuesOf,
+  EMPTY_CHECKOUT_FORM,
   namesNoContact,
+  refusalQuery,
+  refusedState,
 } from './delivery-contact';
 
 const typed = {
@@ -72,5 +75,43 @@ describe('the review form’s contact', () => {
       phone: 'phoneNotGuatemalan',
       zona: 'zonaOutOfRange',
     });
+  });
+});
+
+describe('a refusal carried on the address (#725)', () => {
+  const CODES = ['phoneNotGuatemalan', 'emailNotValid'];
+
+  it('round-trips codes and sellers, and never a typed value', () => {
+    const query = refusalQuery({
+      values: { phone: '12', email: 'x' },
+      errors: { phone: 'phoneNotGuatemalan', email: 'emailNotValid' },
+      tenders: {},
+      tendersMissing: ['vendor-a'],
+    });
+    expect(query).toBe(
+      'phone.phoneNotGuatemalan,email.emailNotValid,tender.vendor-a',
+    );
+    expect(query).not.toContain('12');
+    expect(refusedState(query, CODES, ['vendor-a'])).toEqual({
+      ...EMPTY_CHECKOUT_FORM,
+      errors: { phone: 'phoneNotGuatemalan', email: 'emailNotValid' },
+      tendersMissing: ['vendor-a'],
+    });
+  });
+
+  it('ignores a field, a code or a seller the review does not have', () => {
+    expect(
+      refusedState(
+        'phone.made-up,city.emailNotValid,tender.vendor-z,email.emailNotValid,email.phoneNotGuatemalan,nodot',
+        CODES,
+        ['vendor-a'],
+      ),
+    ).toEqual({ ...EMPTY_CHECKOUT_FORM, errors: { email: 'emailNotValid' } });
+  });
+
+  it('starts empty with nothing on the address', () => {
+    expect(refusedState(undefined, CODES, [])).toBe(EMPTY_CHECKOUT_FORM);
+    expect(refusedState('', CODES, [])).toBe(EMPTY_CHECKOUT_FORM);
+    expect(refusedState(['a'], CODES, [])).toBe(EMPTY_CHECKOUT_FORM);
   });
 });

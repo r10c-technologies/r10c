@@ -8,6 +8,7 @@ import { Effect } from 'effect';
 import { ShippingOrder } from '../entities/shipping-order';
 import { ShippingOrderNotTransitionable } from '../failures/shipping-failures';
 import type { ShippingOrderStore } from '../ports/shipping-order-store';
+import { CLOSED_AT } from '../values/shipping-status';
 import { shippingStatusAfter, STAMP_OF } from '../values/shipping-transition';
 
 /**
@@ -77,5 +78,29 @@ export const makeInMemoryShippingOrderStore = (): ShippingOrderStore => {
           return Effect.succeed(copy(order));
         },
       ),
+    redactClosedBefore: (before, at) =>
+      Effect.sync(() => {
+        let redacted = 0;
+        for (const order of orders.values()) {
+          const closedAt = CLOSED_AT[order.status];
+          if (
+            closedAt === undefined ||
+            order.destination.length === 0 ||
+            !(Number(order[closedAt]) < before.getTime())
+          ) {
+            continue;
+          }
+          order.destination = [];
+          order.redactedAt = at;
+          redacted += 1;
+          // The opening's remembered copy, as the command inbox holds it.
+          for (const remembered of commands.values()) {
+            if (remembered.orderId === order.orderId) {
+              remembered.destination = [];
+            }
+          }
+        }
+        return { redacted, failed: [] };
+      }),
   };
 };

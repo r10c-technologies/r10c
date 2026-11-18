@@ -16,6 +16,9 @@ import type {
 import { type OrderStatus } from '../values/order-status';
 import { orderStatusAfter } from '../values/order-transition';
 
+/** The statuses a group's contact waits for every order to reach. */
+const CLOSED: readonly OrderStatus[] = ['fulfilled', 'cancelled'];
+
 /**
  * A {@link ProductOrderStore} and a {@link CheckoutGroupStore} held in memory
  * over one shared map of groups, for the specs of whatever consumes the ports.
@@ -232,6 +235,37 @@ export const makeInMemoryOrderStores = (): {
         const group =
           groupId === undefined ? undefined : groups.get(String(groupId));
         return group === undefined ? undefined : copyGroup(group);
+      }),
+    redactEndedReceipts: now =>
+      Effect.sync(() => {
+        let redacted = 0;
+        for (const group of groups.values()) {
+          if (
+            group.contact.length === 0 ||
+            !(Number(group.receiptEndsAt) < now.getTime())
+          ) {
+            continue;
+          }
+          const open = Array.from(orders.values()).some(
+            order =>
+              order.groupId === String(group.id) &&
+              !CLOSED.includes(order.status),
+          );
+          if (open) continue;
+          group.contact = [];
+          group.redactedAt = now;
+          redacted += 1;
+          // The opening's remembered copy, as the command inbox holds it.
+          for (const remembered of commands.values()) {
+            if (
+              remembered instanceof CheckoutGroup &&
+              remembered.number === group.number
+            ) {
+              remembered.contact = [];
+            }
+          }
+        }
+        return redacted;
       }),
   };
 

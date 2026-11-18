@@ -28,6 +28,7 @@ import {
 import { Effect, Layer } from 'effect';
 
 import { startPaymentStatusProjection } from './payment-status.js';
+import { startReceiptRedactionSweep } from './receipt-redaction-sweep.js';
 
 const SERVICE_NAME = 'order-service';
 
@@ -171,6 +172,8 @@ export const orderComposition = (configuration: FleetConfiguration) =>
           startOutboxRelay({ onOutcome: logMechanismOutcome }),
         ),
         Layer.effectDiscard(startPaymentStatusProjection),
+        // The buyer's contact leaves once its job is done (ADR 0076 §4).
+        Layer.effectDiscard(startReceiptRedactionSweep),
       ),
       stored,
     );

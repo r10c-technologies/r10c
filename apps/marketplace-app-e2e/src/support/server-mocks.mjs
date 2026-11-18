@@ -88,6 +88,9 @@ const [
   fixture('vendors'),
 ]);
 
+/** The vendor fixture, under a name the checkout's own `vendors` cannot shadow. */
+const SELLERS = vendors;
+
 /** Where the storefront's server components look, and what they find. */
 const CONFIG_URL = 'http://localhost:3190/api/config/marketplace-app';
 const SERVICE_URL = 'http://localhost:3100/api';
@@ -329,6 +332,19 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
     typeof body?.locale !== 'string'
   ) {
     return problem('Invalid', 'invalid', 'invalid', 400);
+  }
+  // A storefront sale is shipped, so a seller who does not ship refuses the
+  // whole basket, as the coordinator does from the entitlements it verified
+  // (ADR 0076 §3). The fixture's `acceptsCod` stands for that entitlement.
+  const stranded = vendors.find(
+    part =>
+      SELLERS.find(vendor => vendor.vendorId === part?.vendorId)?.acceptsCod ===
+      false,
+  );
+  if (stranded !== undefined) {
+    return problem('VendorDoesNotShip', 'vendorDoesNotShip', 'declined', 422, {
+      vendorId: stranded.vendorId,
+    });
   }
   started += 1;
   const kind = holds(vendors, FAILING_OFFERING)

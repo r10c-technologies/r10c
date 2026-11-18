@@ -111,3 +111,46 @@ export const contactErrors = (
   }
   return errors;
 };
+
+/** The query member a refused post without script returns its codes on. */
+export const REFUSED_PARAM = 'refused';
+
+/**
+ * A refused form's errors as one query value — `phone.phoneNotGuatemalan`,
+ * `tender.<vendorId>` — for a post made without script, whose action state
+ * Next never brings back (#725). Codes and seller ids only: what the buyer
+ * typed is personal and stays out of the address (ADR 0076 §2).
+ */
+export const refusalQuery = (state: CheckoutFormState): string =>
+  [
+    ...Object.entries(state.errors).map(([field, code]) => `${field}.${code}`),
+    ...state.tendersMissing.map(vendorId => `tender.${vendorId}`),
+  ].join(',');
+
+/**
+ * The form state a `refusalQuery` names, keeping only fields the form has,
+ * codes the contact can answer and sellers on this review; anything else in
+ * the address is ignored rather than shown.
+ */
+export const refusedState = (
+  raw: unknown,
+  codes: readonly string[],
+  vendorIds: readonly string[],
+): CheckoutFormState => {
+  if (typeof raw !== 'string' || raw === '') return EMPTY_CHECKOUT_FORM;
+  const errors: Partial<Record<ContactField, string>> = {};
+  const tendersMissing: string[] = [];
+  for (const entry of raw.split(',')) {
+    const dot = entry.indexOf('.');
+    const [key, value] = [entry.slice(0, dot), entry.slice(dot + 1)];
+    if (key === 'tender') {
+      if (vendorIds.includes(value)) tendersMissing.push(value);
+    } else if (
+      (CONTACT_FIELDS as readonly string[]).includes(key) &&
+      codes.includes(value)
+    ) {
+      errors[key as ContactField] ??= value;
+    }
+  }
+  return { ...EMPTY_CHECKOUT_FORM, errors, tendersMissing };
+};

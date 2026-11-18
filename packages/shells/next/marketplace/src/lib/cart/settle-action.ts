@@ -1,7 +1,9 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
+import { storePaths } from '../routing/paths';
 import { CART_COOKIE } from './cart-state';
 import { realtimeServiceUrl } from './checkout-config';
 import { FLOW_COOKIE } from './flow-ticket';
@@ -48,4 +50,23 @@ export async function settleCheckout(
   jar.set(CART_COOKIE, '', { path: '/', maxAge: 0 });
   jar.set(FLOW_COOKIE, '', { path: '/', maxAge: 0 });
   return 'settled';
+}
+
+/**
+ * The order-status page's button for a browser without script (#725): the
+ * island that waits on the stream never runs there, so the buyer asks. Settles
+ * as the island would, then answers with the page the outcome leads to — the
+ * receipt, the same wait, or the cart a failed checkout left.
+ */
+export async function refreshCheckout(formData: FormData): Promise<never> {
+  const locale = String(formData.get('locale') ?? '');
+  const flowId = String(formData.get('flowId') ?? '');
+  const outcome = await settleCheckout(flowId);
+  redirect(
+    `/${locale}${
+      outcome === 'failed'
+        ? storePaths.cart({ checkout: 'failed' })
+        : storePaths.orderStatus(flowId)
+    }`,
+  );
 }

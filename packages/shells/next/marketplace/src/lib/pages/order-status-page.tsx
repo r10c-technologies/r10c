@@ -11,6 +11,7 @@ import {
   Money,
   Stack,
   StatusTag,
+  SubmitButton,
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
@@ -35,7 +36,7 @@ import {
   receiptDetailsOf,
   type ReceiptOrder,
 } from '../cart/receipt-state';
-import { settleCheckout } from '../cart/settle-action';
+import { refreshCheckout, settleCheckout } from '../cart/settle-action';
 import { settleCancellation } from '../cart/settle-cancel-action';
 import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
@@ -96,6 +97,20 @@ export async function OrderStatusPage({
               retry={checkout}
             />
           </Card>
+          {/* The island above settles on the stream, which never opens
+              without script; there, the buyer asks instead (#725). */}
+          <noscript>
+            <form action={refreshCheckout} data-testid="check-now">
+              <Stack gap="s">
+                <Text tone="muted">{t('storefront.order.checkNowHint')}</Text>
+                <input type="hidden" name="flowId" value={flowId} />
+                <input type="hidden" name="locale" value={locale} />
+                <SubmitButton className="touch-target">
+                  {t('storefront.order.checkNow')}
+                </SubmitButton>
+              </Stack>
+            </form>
+          </noscript>
         </Stack>
       </StoreShell>
     );

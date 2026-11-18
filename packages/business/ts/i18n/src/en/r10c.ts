@@ -141,6 +141,16 @@ export const r10c: EsR10c = {
     product: {
       buy: 'Buy',
       soldBy: 'Sold by {{seller}}',
+      delivery: {
+        ships: 'Shipped by the seller',
+        cod: 'Cash on delivery available',
+        doesNotShip:
+          'This seller does not ship, so this product cannot be bought online.',
+        atTheDoor: 'What happens at the door',
+        refuse:
+          'You can refuse the parcel at the door; if you paid by card, you are refunded.',
+        noReturns: 'There are no returns after delivery.',
+      },
       details: 'Details',
       seller: 'Seller',
       addToCart: 'Add to cart',
@@ -274,6 +284,9 @@ export const r10c: EsR10c = {
     checkout: {
       empty: 'Nothing here is still on sale.',
       failed: 'Checkout could not be started. Please try again.',
+      doesNotShip:
+        '{{seller}} does not ship, so it cannot be bought from in the store. Remove its products from the cart to continue.',
+      thisSeller: 'One of the sellers',
       // A tender per seller (ADR 0070). Cash on delivery is offered only where
       // the seller ships it.
       method: {
@@ -288,6 +301,9 @@ export const r10c: EsR10c = {
       failed:
         'Your order could not be placed, and nothing was charged. Your cart is still here.',
       retry: 'Try again',
+      checkNow: 'See if it is ready',
+      checkNowHint:
+        'Your browser does not update this page on its own. Use the button to see whether your order is placed.',
       heading: 'Thank you for your purchase',
       placed: 'Your order is placed, and the vendor has been notified.',
       reference: 'Order number',

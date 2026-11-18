@@ -16,7 +16,10 @@ import {
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
-import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
+import {
+  getVendor,
+  loadVendors,
+} from '@r10c/implementation-marketplace-vendor-next';
 
 import {
   removeFromCart,
@@ -45,11 +48,14 @@ import { StoreShell } from './store-shell';
 export async function CartPage({
   locale,
   outcome,
+  seller,
   notice,
 }: {
   readonly locale: Locale;
   /** What a previous checkout attempt did, carried back on the query string. */
   readonly outcome?: CheckoutOutcome;
+  /** The seller a `doesNotShip` outcome names, by vendor id. */
+  readonly seller?: string;
   /** What the action that redirected here did to a line, for the status region. */
   readonly notice?: CartNotice;
 }) {
@@ -64,6 +70,13 @@ export async function CartPage({
       )
     ).map(vendor => [vendor.vendorId, vendor]),
   );
+
+  // The seller a refused checkout names, when nothing left in the cart is
+  // theirs any more: read by id, so the address never supplies copy.
+  const refusedVendor =
+    outcome === 'doesNotShip' && seller !== undefined && !vendors.has(seller)
+      ? await runRead(PublishedVendor, getVendor(seller), undefined)
+      : undefined;
 
   // The line a notice names, read like any other: a removed line is no
   // longer in the cookie, so its name is read for the notice alone.
@@ -88,10 +101,18 @@ export async function CartPage({
             never here. */}
         {outcome !== undefined && (
           <Alert
-            tone={outcome === 'failed' ? 'danger' : 'warning'}
+            tone={outcome === 'empty' ? 'warning' : 'danger'}
             data-testid={`checkout-${outcome}`}
           >
-            {t(`storefront.checkout.${outcome}`)}
+            {outcome === 'doesNotShip'
+              ? t('storefront.checkout.doesNotShip', {
+                  seller:
+                    (seller === undefined
+                      ? undefined
+                      : (vendors.get(seller) ?? refusedVendor)?.displayName) ??
+                    t('storefront.checkout.thisSeller'),
+                })
+              : t(`storefront.checkout.${outcome}`)}
           </Alert>
         )}
 

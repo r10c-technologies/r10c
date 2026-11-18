@@ -32,6 +32,7 @@ import { MAX_QUANTITY } from '../cart/cart-state';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
+import { DeliveryFacts } from '../catalog/delivery-facts';
 import {
   loadCardNames,
   OfferingGrid,
@@ -155,7 +156,7 @@ async function ProductContent({
   const product = await readProduct(offeringId);
   // Unpublished between the check and this render: still a miss.
   if (!product) notFound();
-  const { offering, brandName, sellerName } = product;
+  const { offering, brandName, sellerName, ships } = product;
 
   // The trail ends at the offering's own category, so it is also the
   // category line below: one vocabulary read, not two (ADR 0062).
@@ -236,35 +237,53 @@ async function ProductContent({
               A real form, not an onClick. It submits without JavaScript, and on
               a cached page there is no other way to reach the server. Named,
               so it is a `form` landmark a buyer — and a test — can tell apart
-              from the related cards' own add buttons below.
+              from the related cards' own add buttons below. A seller who does
+              not ship gets none: the checkout would refuse the basket (ADR 0076
+              §8). An unread seller keeps it, and the checkout decides.
             */}
-            <form
-              action={addToCart}
-              aria-label={t('storefront.product.buy')}
-              className="flex flex-wrap items-end gap-s"
-            >
-              <input
-                type="hidden"
-                name="offeringId"
-                value={offering.offeringId}
-              />
-              <input type="hidden" name="locale" value={locale} />
-              <QuantityInput
-                label={t('storefront.cart.quantity')}
-                name="quantity"
-                defaultValue={1}
-                min={1}
-                max={MAX_QUANTITY}
-                className="touch-target"
-              />
-              <SubmitButton
-                variant="primary"
-                size="lg"
-                className="touch-target"
+            {ships === false ? null : (
+              <form
+                action={addToCart}
+                aria-label={t('storefront.product.buy')}
+                className="flex flex-wrap items-end gap-s"
               >
-                {t('storefront.product.addToCart')}
-              </SubmitButton>
-            </form>
+                <input
+                  type="hidden"
+                  name="offeringId"
+                  value={offering.offeringId}
+                />
+                <input type="hidden" name="locale" value={locale} />
+                <QuantityInput
+                  label={t('storefront.cart.quantity')}
+                  name="quantity"
+                  defaultValue={1}
+                  min={1}
+                  max={MAX_QUANTITY}
+                  className="touch-target"
+                />
+                <SubmitButton
+                  variant="primary"
+                  size="lg"
+                  className="touch-target"
+                >
+                  {t('storefront.product.addToCart')}
+                </SubmitButton>
+              </form>
+            )}
+
+            {ships === undefined ? null : (
+              <DeliveryFacts
+                ships={ships}
+                labels={{
+                  ships: t('storefront.product.delivery.ships'),
+                  cod: t('storefront.product.delivery.cod'),
+                  doesNotShip: t('storefront.product.delivery.doesNotShip'),
+                  atTheDoor: t('storefront.product.delivery.atTheDoor'),
+                  refuse: t('storefront.product.delivery.refuse'),
+                  noReturns: t('storefront.product.delivery.noReturns'),
+                }}
+              />
+            )}
 
             {offering.description ? (
               <Text muted className="max-w-(--measure)">

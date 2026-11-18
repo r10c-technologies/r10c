@@ -27,6 +27,7 @@ const CONFIGURATION = fleetConfigurationOf({
     uri: 'mongodb://127.0.0.1:1/?directConnection=true',
   }),
   tenant: configurationRows({ dbPrefix: 'fulfilment_' }),
+  fulfilment: configurationRows({ destinationRetentionDays: 30 }),
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),

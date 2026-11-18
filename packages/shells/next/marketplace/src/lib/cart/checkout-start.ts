@@ -1,4 +1,11 @@
+import { decodeProblem } from '@entifix/core';
 import { FlowAccepted } from '@entifix/transactions';
+// A value import on purpose: loading the module registers the failure with the
+// codec `decodeProblem` reads, and a type-only import would leave it unknown.
+import {
+  VENDOR_DOES_NOT_SHIP,
+  type VendorDoesNotShip,
+} from '@r10c/business-ts-flow-contracts';
 import { Option, Schema } from 'effect';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
@@ -154,4 +161,23 @@ export const acceptedFlowId = (
     { meta?: { type?: unknown }; data?: unknown } | null | undefined;
   if (envelope?.meta?.type !== 'flowAccepted') return undefined;
   return Option.getOrUndefined(decodeAccepted(envelope.data))?.flowId;
+};
+
+/**
+ * The seller a refused start names, when the coordinator refused the basket
+ * because that seller does not ship (`422 vendorDoesNotShip`, ADR 0076 §3) —
+ * so the cart can say who, rather than "try again", which cannot help. The
+ * product page already withholds Add to cart from such a seller; this is the
+ * projection changing between that page and Place order (#589).
+ */
+export const refusedSeller = (
+  status: number,
+  payload: unknown,
+): string | undefined => {
+  // By code rather than `instanceof`: the registry that decodes it may hold
+  // another copy of the class than this module imported.
+  const failure = decodeProblem(payload, status);
+  return failure.code === VENDOR_DOES_NOT_SHIP
+    ? (failure as VendorDoesNotShip).vendorId
+    : undefined;
 };

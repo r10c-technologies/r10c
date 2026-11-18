@@ -14,6 +14,11 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import {
+  DestinationRetentionDays,
+  startDestinationRedactionSweep,
+} from './destination-redaction-sweep.js';
+
 const SERVICE_NAME = 'fulfilment-service';
 
 /** The **slice** this service publishes as — never the deployment (ADR 0029). */
@@ -51,6 +56,11 @@ export const FULFILMENT_IDEMPOTENCY_DB = 'fulfilment-idempotency';
 export const fulfilmentComposition = (configuration: FleetConfiguration) =>
   Effect.gen(function* () {
     const coordinator = configuration.store.in('transaction');
+    // A dial, not a constant: how long an address outlives its parcel is a
+    // product choice (ADR 0076 §4).
+    const retentionDays = yield* configuration.store
+      .in('fulfilment')
+      .getNumber('destinationRetentionDays');
     const connections = Layer.mergeAll(
       httpFlowStarterLayer({
         url: yield* coordinator.getString('url'),
@@ -61,6 +71,7 @@ export const fulfilmentComposition = (configuration: FleetConfiguration) =>
       yield* crossingTokenLayer(configuration),
       yield* fleetBusLayer(configuration),
       yield* fleetOutboxLayer(configuration, FULFILMENT_SLICE),
+      Layer.succeed(DestinationRetentionDays, retentionDays),
     );
 
     // The crossing routes' `Idempotency-Key` records, in a database of their
@@ -71,8 +82,12 @@ export const fulfilmentComposition = (configuration: FleetConfiguration) =>
     );
 
     return Layer.provideMerge(
-      Layer.effectDiscard(
-        startTenantOutboxRelay({ onOutcome: logMechanismOutcome }),
+      Layer.mergeAll(
+        Layer.effectDiscard(
+          startTenantOutboxRelay({ onOutcome: logMechanismOutcome }),
+        ),
+        // A shipment's address leaves once its journey ends (ADR 0076 §4).
+        Layer.effectDiscard(startDestinationRedactionSweep),
       ),
       Layer.provideMerge(
         Layer.mergeAll(MongoShippingOrderStoreLayer, idempotency),

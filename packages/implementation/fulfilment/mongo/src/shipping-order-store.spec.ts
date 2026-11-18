@@ -1,4 +1,7 @@
-import { TenantDatabaseResolverTag } from '@entifix/business';
+import {
+  TenantDatabaseResolverTag,
+  TenantDirectoryTag,
+} from '@entifix/business';
 import { isStoreFault } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import { COMMAND_INBOX_COLLECTION } from '@entifix/mongo/transactions';
@@ -10,6 +13,7 @@ import {
   OutboxMaxAttempts,
 } from '@entifix/transactions';
 import {
+  ShipmentDestination,
   ShippingLine,
   ShippingOrder,
   type ShippingOrderStore,
@@ -52,6 +56,15 @@ const world = (
         Layer.succeed(TenantDatabaseResolverTag, {
           forOrganization: (organizationId: string) =>
             Effect.succeed(dbs[organizationId] as Db),
+        }),
+        Layer.succeed(TenantDirectoryTag, {
+          list: () =>
+            Effect.succeed(
+              Object.entries(dbs).map(([organizationId, handle]) => ({
+                organizationId,
+                handle,
+              })),
+            ),
         }),
         Layer.succeed(EventBusTag, bus),
         Layer.succeed(OutboxMaxAttempts, 3),
@@ -173,6 +186,62 @@ describe('the store’s failures', () => {
     for (const failure of [open, read, move, index]) {
       expect(isStoreFault(failure)).toBe(true);
     }
+  });
+
+  it('reports a shipment whose redaction failed, and still redacts the rest', async () => {
+    const failing = makeFakeMongoDb();
+    const healthy = makeFakeMongoDb();
+    const { run } = world({ 'org-1': failing, 'org-2': healthy });
+    const withdrawn =
+      (id: string, organizationId: string) => (store: ShippingOrderStore) =>
+        Effect.gen(function* () {
+          yield* store.open(
+            organizationId,
+            Object.assign(aShipment(id), {
+              destination: [
+                Object.assign(new ShipmentDestination(), {
+                  name: 'Ana López',
+                  phone: '+50255551234',
+                }),
+              ],
+            }),
+            undefined,
+          );
+          yield* store.transition(
+            organizationId,
+            id,
+            'withdraw',
+            AT,
+            undefined,
+          );
+        });
+    await run(withdrawn('s-1', 'org-1'));
+    await run(withdrawn('s-2', 'org-2'));
+    failing.failOn('updateOne', new Error('network down'));
+
+    const sweep = await run(store =>
+      store.redactClosedBefore(new Date('2027-01-01'), new Date('2027-01-02')),
+    );
+
+    expect(sweep.redacted).toBe(1);
+    expect(sweep.failed).toEqual([
+      expect.objectContaining({
+        database: 'fulfilment_org-1',
+        shippingOrderId: 's-1',
+      }),
+    ]);
+    expect(isStoreFault(sweep.failed[0]?.failure)).toBe(true);
+  });
+
+  it('fails a pass that cannot read an organization’s shipments', async () => {
+    const fake = makeFakeMongoDb();
+    fake.failOn('find', new Error('network down'));
+
+    const failure = await world({ 'org-1': fake }).run(store =>
+      Effect.flip(store.redactClosedBefore(AT, AT)),
+    );
+
+    expect(isStoreFault(failure)).toBe(true);
   });
 
   it('keeps one shipment per vendor order', async () => {

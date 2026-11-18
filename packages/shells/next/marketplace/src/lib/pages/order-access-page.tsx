@@ -20,8 +20,9 @@ import { StoreShell } from './store-shell';
  * ⚠️ **Opening the page spends nothing.** The token rides the query string
  * into a hidden field, and only the button's post redeems it — so a mail
  * scanner that pre-fetches every link cannot use one up before the buyer does.
- * The route answers with `Referrer-Policy: no-referrer`, so the token never
- * leaves in a `Referer` either.
+ * The route answers with `Referrer-Policy: strict-origin`, so the token never
+ * leaves in a `Referer` either — and its post still carries the `Origin` Next's
+ * CSRF check reads, which `no-referrer` would send as `null` (#725).
  */
 export function OrderAccessPage({
   locale,

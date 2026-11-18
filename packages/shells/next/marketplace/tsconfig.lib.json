@@ -59,6 +59,9 @@
       "path": "../../../business/ts/marketplace-catalog/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/flow-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/catalog-reference/tsconfig.lib.json"
     }
   ]

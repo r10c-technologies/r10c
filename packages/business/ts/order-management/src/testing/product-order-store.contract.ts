@@ -8,6 +8,7 @@ import type {
   CheckoutGroupStore,
   ProductOrderStore,
 } from '../ports/product-order-store';
+import { checkoutContactOf } from '../values/checkout-contact';
 import { GroupTotal } from '../values/group-total';
 import { OrderItem } from '../values/order-item';
 
@@ -32,6 +33,27 @@ const anOrder = (id: string, vendorId = 'v-1', groupId = GROUP) =>
     status: 'pending',
     items: [new OrderItem('o-1', 'Lámpara Aurora', 2, 10, 'GTQ')],
   });
+
+const CONTACT = checkoutContactOf({
+  name: 'Ana López',
+  phone: '+50255551234',
+  email: 'ana@correo.com',
+  destination: {
+    departamento: '01',
+    municipio: '0108',
+    addressLine: '5a avenida 12-34',
+  },
+});
+
+/** A group with a buyer to reach, whose receipt window ends at `endsAt`. */
+const aContactedGroup = (endsAt: Date, id = GROUP) =>
+  Object.assign(aGroup(id), {
+    contact: [CONTACT],
+    receiptEndsAt: endsAt,
+  });
+
+const ENDED = new Date('2026-11-01T00:00:00.000Z');
+const SWEPT_AT = new Date('2026-11-02T00:00:00.000Z');
 
 const paid = { consumer: 'order', eventId: 'e-1' };
 const PAID_AT = '2026-10-26T10:00:00.000Z';
@@ -149,6 +171,56 @@ export const describeProductOrderStoreContract = (
         GROUP,
       );
       expect(await run(groups.findByNumber('ZZZZ-ZZZZ'))).toBeUndefined();
+    });
+
+    it('removes the contact of an ended receipt whose orders are all closed, and its remembered copy', async () => {
+      const { orders, groups } = await make();
+      await run(groups.open(aContactedGroup(ENDED), 'open-1'));
+      // Other remembered commands, which the sweep must leave as they are: an
+      // order's placement, and another group's opening.
+      await run(orders.place(anOrder('ord-1'), 'place-1'));
+      await run(
+        groups.open(aContactedGroup(new Date('2026-12-01'), 'grp-2'), 'open-2'),
+      );
+      await run(orders.move('ord-1', 'confirm', undefined));
+      await run(orders.move('ord-1', 'mark-dispatched', undefined));
+      await run(orders.move('ord-1', 'close-fulfilled', undefined));
+
+      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toBe(1);
+      const group = await run(groups.get(GROUP));
+      expect(group?.contact).toEqual([]);
+      expect(new Date(group?.redactedAt as Date).toISOString()).toBe(
+        SWEPT_AT.toISOString(),
+      );
+      // A redelivered opening is answered with the redacted copy.
+      const replayed = await run(groups.open(aContactedGroup(ENDED), 'open-1'));
+      expect(replayed).toMatchObject({ _tag: 'replayed' });
+      expect((replayed as { group: CheckoutGroup }).group.contact).toEqual([]);
+      const other = await run(groups.open(aContactedGroup(ENDED), 'open-2'));
+      expect((other as { group: CheckoutGroup }).group.contact).toHaveLength(1);
+      // A second pass finds nothing left to remove.
+      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toBe(0);
+    });
+
+    it('keeps the contact while a receipt is open, or while any order is', async () => {
+      const { orders, groups } = await make();
+      await run(groups.open(aContactedGroup(ENDED), undefined));
+      await run(orders.place(anOrder('ord-1'), undefined));
+      await run(
+        groups.open(
+          aContactedGroup(new Date('2026-12-01'), 'grp-2'),
+          undefined,
+        ),
+      );
+      await run(orders.place(anOrder('ord-2', 'v-1', 'grp-2'), undefined));
+      await run(orders.move('ord-2', 'confirm', undefined));
+      await run(orders.move('ord-2', 'mark-dispatched', undefined));
+      await run(orders.move('ord-2', 'close-fulfilled', undefined));
+
+      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toBe(0);
+      expect((await run(groups.get(GROUP)))?.contact).toHaveLength(1);
+      expect((await run(groups.get('grp-2')))?.contact).toHaveLength(1);
+      expect((await run(groups.get(GROUP)))?.redactedAt).toBeUndefined();
     });
 
     it('places each vendor’s order into its group, and reads them back together', async () => {

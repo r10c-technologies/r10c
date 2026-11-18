@@ -28,12 +28,17 @@ const imageHosts = (process.env.STOREFRONT_IMAGE_HOSTS ?? 'picsum.photos')
  * The page a mailed access link opens carries its one-time token in the query
  * string, so nothing it loads may send that address on as a `Referer`
  * (ADR 0076 §6). The page's own metadata says the same for the document.
+ *
+ * ⚠️ `strict-origin`, never `no-referrer`: under `no-referrer` a browser posts
+ * the page's form with `Origin: null`, Next's CSRF check refuses the Server
+ * Action, and redeeming the link worked only with script (#725). The origin
+ * alone is sent — never the path, so never the token.
  */
-const NO_REFERRER = [{ key: 'Referrer-Policy', value: 'no-referrer' }];
+const ORIGIN_ONLY = [{ key: 'Referrer-Policy', value: 'strict-origin' }];
 
 const nextConfig = {
   headers: async () => [
-    { source: '/:locale/order/access', headers: NO_REFERRER },
+    { source: '/:locale/order/access', headers: ORIGIN_ONLY },
   ],
   // Partial prerendering (#346): each route's static shell is prerendered and
   // what reads the catalog, a cookie or the query streams into it. The

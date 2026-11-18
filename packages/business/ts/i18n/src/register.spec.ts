@@ -72,3 +72,19 @@ describe('the back office register', () => {
     ]).toEqual([]);
   });
 });
+
+/**
+ * The product page states only what the system enforces (ADR 0076 §8): no
+ * delivery time and no cost until something enforces them, so the delivery
+ * copy names no figure in either locale.
+ */
+describe('the product page’s delivery copy', () => {
+  it('names no amount and no number of days', async () => {
+    const { r10c: english } = await import('./en/r10c.js');
+    for (const catalog of [r10c, english]) {
+      for (const line of Object.values(catalog.storefront.product.delivery)) {
+        expect(line).not.toMatch(/\d/);
+      }
+    }
+  });
+});

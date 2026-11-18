@@ -180,7 +180,7 @@ test.describe('a checkout', () => {
     await expect(page.getByTestId('order-id')).toHaveText(ORDER_NUMBER);
   });
 
-  test('offers cash on delivery only where the seller ships it, and the receipt names each choice', async ({
+  test('asks each seller who ships how to pay them, and the receipt names each choice', async ({
     page,
     network,
   }) => {
@@ -201,13 +201,9 @@ test.describe('a checkout', () => {
     await expect(
       solano.getByRole('radio', { name: 'Tarjeta' }),
     ).toHaveAccessibleDescription(/no te pedimos datos de tarjeta/);
-    // One tender: stated as a fact, not asked.
-    await expect(page.getByTestId('payment-demo-organization-only')).toHaveText(
-      /Pagas con tarjeta/,
-    );
     await expect(
       page.getByTestId('payment-demo-organization').getByRole('radio'),
-    ).toHaveCount(0);
+    ).toHaveCount(2);
 
     await fillDelivery(page, { 'vendor-casa-solano': 'cod' });
     await page.getByTestId('checkout').filter({ visible: true }).click();
@@ -519,6 +515,9 @@ const refusesAnEmptyPhone = async (page: Page, submit: () => Promise<void>) => {
   const form = page.getByTestId('delivery-form').filter({ visible: true });
   const phone = form.getByLabel('Teléfono', { exact: true });
   await phone.fill('');
+  // Until React runs, the browser validates (#725); this journey is the
+  // server's answer, so it waits for the form to hand validation over.
+  await expect(form).toHaveAttribute('novalidate', '');
 
   await submit();
 
@@ -555,5 +554,101 @@ test.describe('the delivery and contact fields', () => {
     await page.waitForURL(STATUS_PAGE);
 
     expect(visited.filter(url => PERSONAL.test(url))).toEqual([]);
+  });
+});
+
+/**
+ * The whole storefront order with scripting off (#725): every page on the way
+ * renders in the first response, the browser refuses a bad field before
+ * anything is posted, and the order-status page offers a button where the
+ * stream would have settled it.
+ */
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('a buyer goes from product to receipt', async ({ page }) => {
+    await page.goto('/es/p/offering-aurora-desk-lamp');
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
+    await page.waitForURL(/\/es\/cart(\?|$)/);
+    await page.getByTestId('review').click();
+    await page.waitForURL(REVIEW_PAGE);
+
+    const form = page.getByTestId('delivery-form');
+    await fillDelivery(page);
+    const phone = form.getByLabel('Teléfono', { exact: true });
+    await phone.fill('12');
+    const posts: string[] = [];
+    page.on('request', request => {
+      if (request.method() === 'POST') posts.push(request.url());
+    });
+
+    // Refused by the browser, beside the field, with everything kept.
+    await form.getByTestId('checkout').click();
+    await expect(phone).toHaveJSProperty('validity.valid', false);
+    await expect(phone).toHaveValue('12');
+    await expect(
+      form.getByLabel('Nombre de quien recibe', { exact: true }),
+    ).toHaveValue('Ana López');
+    expect(posts).toEqual([]);
+    expect(page.url()).toMatch(REVIEW_PAGE);
+
+    await phone.fill('5555-1234');
+    await form.getByTestId('checkout').click();
+    await page.waitForURL(STATUS_PAGE);
+
+    await page.getByTestId('check-now').getByRole('button').click();
+    await expect(page.getByTestId('order-id')).toBeVisible();
+  });
+
+  test('a post the server refuses comes back with its errors, never its values', async ({
+    page,
+  }) => {
+    await reachReview(page);
+    const form = page.getByTestId('delivery-form');
+    await fillDelivery(page);
+    await form.getByLabel('Teléfono', { exact: true }).fill('12');
+    // A browser that does not validate, or a hand-made post.
+    await form.evaluate(element => {
+      (element as HTMLFormElement).noValidate = true;
+    });
+    await form.getByTestId('checkout').click();
+
+    await page.waitForURL(/\/es\/cart\/review\?refused=/);
+    expect(page.url()).not.toMatch(PERSONAL);
+    expect(page.url()).not.toContain('Ana');
+    await expect(form.getByTestId('delivery-error-phone')).toBeVisible();
+    await expect(form.getByLabel('Teléfono', { exact: true })).toHaveValue('');
+  });
+});
+
+/**
+ * A seller who does not ship (ADR 0076 §3, §8, #589). The product page offers
+ * no Add to cart, so the refusal below is the projection changing between the
+ * product page and Place order: a cart that still holds the seller's line.
+ */
+test.describe('a seller who does not ship', () => {
+  test('is named on the cart when the checkout refuses the basket', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      {
+        name: 'r10c_cart',
+        value: 'offering-cobalto-arc-lamp:1',
+        url: baseURL ?? 'http://localhost:3000',
+      },
+    ]);
+    await page.goto('/es/cart/review');
+    await fillDelivery(page);
+    await page.getByTestId('checkout').filter({ visible: true }).click();
+
+    await page.waitForURL(/\/es\/cart\?checkout=doesNotShip/);
+    await expect(
+      page.getByTestId('checkout-doesNotShip').filter({ visible: true }),
+    ).toContainText('Cobalto Studio no hace envíos');
   });
 });

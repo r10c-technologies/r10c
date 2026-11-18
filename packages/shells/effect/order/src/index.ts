@@ -6,3 +6,7 @@
 export { makeAppLayer, ORDER_SLICE, orderComposition } from './app-layer.js';
 export { endpoints, policy } from './endpoints.js';
 export { capturedSubscription } from './payment-status.js';
+export {
+  startReceiptRedactionSweep,
+  sweepEndedReceipts,
+} from './receipt-redaction-sweep.js';

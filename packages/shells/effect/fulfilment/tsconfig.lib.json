@@ -24,6 +24,9 @@
     },
     {
       "path": "../../../implementation/fulfilment/mongo/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/shipping-order-management/tsconfig.lib.json"
     }
   ],
   "exclude": [

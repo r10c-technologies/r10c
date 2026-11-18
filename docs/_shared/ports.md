@@ -381,6 +381,14 @@ crossing into this slice: its guard names its caller, so it opens only to
 `service.storefrontToken`, never to the coordinator's `service.token`, and
 answers `202` alike whatever matched.
 
+⚠️ **The buyer's contact leaves when its job is done** ([ADR 0076](../adr/0076-delivery-destination-buyer-contact-and-the-way-back.md) §4).
+An hourly sweep removes a group's `contact` once its `receiptEndsAt` has passed
+and every order in it is `fulfilled` or `cancelled`, stamping `redactedAt` —
+and removes the copy the group's opening command left in `command_inbox` for a
+redelivery, or the data would leave the record and stay in the store. A group
+redacted this way no longer answers "find my order", by design: its receipt
+window is over.
+
 The cart is **not** here. It is a cookie, so the storefront's first response is
 correct without a round trip, and the fleet keeps zero anonymous write surfaces.
 
@@ -515,6 +523,14 @@ wins. The courier's reports — `record-delivery`, `record-refusal` and
 `record-return` — stay plain moves whose events answer the flow's waits, and a
 parcel is returned only after it was refused: one delivered is the delivery
 flow's end.
+
+⚠️ **A shipment's address outlives its parcel by a dial.** An hourly sweep walks
+every `fulfilment_<organizationId>` database and removes the `destination` of a
+shipment delivered, returned or withdrawn more than
+`fulfilment.destinationRetentionDays` ago (30, seeded), stamping `redactedAt`
+and clearing the copy its opening left in that database's `command_inbox`
+([ADR 0076](../adr/0076-delivery-destination-buyer-contact-and-the-way-back.md) §4).
+A refused parcel is still on its way back, so it keeps its address.
 
 **It holds its own crossing token, accepts the coordinator's, and holds the
 coordinator's inbound one too** — `participant.fulfilmentToken` on

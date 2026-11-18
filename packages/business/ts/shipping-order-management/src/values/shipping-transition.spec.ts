@@ -41,8 +41,9 @@ describe('shippingStatusAfter', () => {
 });
 
 describe('STAMP_OF', () => {
-  it('stamps the four moments a courier report or a dispatch records', () => {
+  it('stamps the moment a withdrawal, a dispatch or a courier report records', () => {
     expect(STAMP_OF).toEqual({
+      withdraw: 'withdrawnAt',
       dispatch: 'dispatchedAt',
       'record-delivery': 'deliveredAt',
       'record-refusal': 'refusedAt',

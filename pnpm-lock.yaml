@@ -3897,12 +3897,18 @@ importers:
 
   packages/shells/effect/fulfilment:
     dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.23.3(effect@4.0.7)
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.23.3(@entifix/transactions@0.23.3(effect@4.0.7))(effect@4.0.7)
       '@entifix/service-shell':
         specifier: 'catalog:'
         version: 0.23.3(54ce38dcbb5105076a649b325ed28ba0)
+      '@r10c/business-ts-shipping-order-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/shipping-order-management
       '@r10c/implementation-fulfilment-mongo':
         specifier: workspace:*
         version: link:../../../implementation/fulfilment/mongo
@@ -4026,6 +4032,9 @@ importers:
       '@entifix/amqp':
         specifier: 'catalog:'
         version: 0.23.3(@entifix/transactions@0.23.3(effect@4.0.7))(effect@4.0.7)
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.23.3(effect@4.0.7)
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.23.3(@entifix/transactions@0.23.3(effect@4.0.7))(effect@4.0.7)
@@ -4504,6 +4513,9 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
+      '@r10c/business-ts-flow-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/flow-contracts
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-catalog
