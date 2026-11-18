@@ -90,6 +90,7 @@ export function DeliveryForm({
       .join(' ');
     const common = {
       id: idOf(name),
+      className: 'w-full min-w-0',
       name: contactFieldName(name),
       autoComplete: AUTOCOMPLETE[name],
       defaultValue: state.values[name] ?? '',
@@ -98,7 +99,7 @@ export function DeliveryForm({
       required: !OPTIONAL.has(name),
     } as const;
     return (
-      <div key={name} className="flex flex-col gap-3xs">
+      <div key={name} className="flex min-w-0 flex-col gap-3xs">
         <label htmlFor={idOf(name)} className="text-step--1 font-semibold">
           {labels.fields[name]}
           {OPTIONAL.has(name) ? ` ${labels.optional}` : null}
@@ -147,7 +148,10 @@ export function DeliveryForm({
   return (
     <form action={action} noValidate data-testid="delivery-form">
       <Stack gap="m">
-        <fieldset className="flex flex-col gap-s">
+        {/* A fieldset defaults to `min-inline-size: min-content`, so the
+            municipio select's longest option would widen the page past
+            320px; `min-w-0` lets the fields take the width they are given. */}
+        <fieldset className="flex min-w-0 flex-col gap-s">
           <legend className="text-step-1 font-semibold">{labels.legend}</legend>
           <Text tone="muted">{labels.intro}</Text>
           {field('name')}
