@@ -13,6 +13,8 @@ import { CheckoutGroup } from './checkout-group.entity.js';
 const PLACED = new Date('2026-11-03T09:00:00.000Z');
 const ENDS = new Date('2026-11-03T09:30:00.000Z');
 
+const RECEIPT_ENDS = new Date('2026-12-26T10:00:00.000Z');
+
 const aGroup = () =>
   Object.assign(new CheckoutGroup(), {
     id: 'group-1',
@@ -22,6 +24,7 @@ const aGroup = () =>
     placedAt: PLACED,
     cancelDigest: 'digest',
     cancelWindowEndsAt: ENDS,
+    receiptEndsAt: RECEIPT_ENDS,
   });
 
 describe('CheckoutGroup', () => {
@@ -41,6 +44,7 @@ describe('CheckoutGroup', () => {
       placedAt: PLACED,
       cancelDigest: 'digest',
       cancelWindowEndsAt: ENDS,
+      receiptEndsAt: RECEIPT_ENDS,
     });
   });
 

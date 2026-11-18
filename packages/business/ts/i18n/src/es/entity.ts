@@ -366,6 +366,7 @@ export const entity = {
       placedAt: 'Fecha de la compra',
       cancelDigest: 'Huella de cancelación',
       cancelWindowEndsAt: 'Fin del plazo de cancelación',
+      receiptEndsAt: 'Recibo disponible hasta',
       contact: 'Contacto y entrega',
       buyer: {
         name: 'Nombre',

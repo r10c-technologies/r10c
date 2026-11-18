@@ -258,9 +258,9 @@ export const r10c: EsR10c = {
       expired:
         'The receipt for your last purchase is no longer available in this browser. If you have just bought something, check your confirmation email.',
       // The window is named rather than left for the button to stop working on
-      // its own: the receipt carries the moment the server stamped, and the two
-      // agree because `RECEIPT_TTL_SECONDS` and the service's own dial are one
-      // number (ADR 0058 §5).
+      // its own: the receipt carries the moment the server stamped, and the
+      // button goes when that moment passes, while the receipt stays readable
+      // until its own `receiptEndsAt` (ADR 0076 §6).
       cancel: 'Cancel order',
       cancelTitle: 'Cancel the order from {{seller}}?',
       cancelMessage:

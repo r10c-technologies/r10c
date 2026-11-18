@@ -43,6 +43,7 @@ import {
   placeOrder,
   ProductOrder,
   ProductOrderStoreTag,
+  ReceiptDays,
 } from '@r10c/business-ts-order-management';
 import { Effect, Option, Schema } from 'effect';
 
@@ -188,6 +189,7 @@ export const checkoutGroupApi = defineEntityApi(CheckoutGroup, GROUP_KEY, {
             contact,
             commandId: yield* commandId,
             cancelWindowSeconds: yield* CancelWindowSeconds,
+            receiptDays: yield* ReceiptDays,
           });
           return makeEntityEnvelope(
             CheckoutGroup,

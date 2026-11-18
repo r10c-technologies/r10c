@@ -8,6 +8,7 @@
 - Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — the scope is a resolver narrowing over the verified context, and the by-id read is a narrowed load rather than an in-memory `includes`
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the receipt is the checkout group, and a flow capability is a third nonce credential
 - Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — a vendor's predicate is the order's top-level `vendorId`, and a storefront that waited on a flow reads the group back once by its cancel capability, since flow-status carries no order
+- Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — the receipt cookie and the read-back outlive the cancel window: both end at the group's `receiptEndsAt` (#579)
 
 ## Context
 
@@ -157,6 +158,11 @@ the saga already returned, and redirects to `/{locale}/order/confirmation`.
 > cancel nonce it already held (`GET /api/checkout-group/:id/buyer-receipt`,
 > nonce in `x-cancel-nonce`), and writes the cookie from that. Flow-status
 > carries no order, so there was nothing else to carry it from (ADR 0069).
+>
+> **2026-11-18 — the cookie lives as long as the receipt.** The read-back and
+> the cookie both end at the group's own `receiptEndsAt`, days past the cancel
+> window, so a buyer can still see an order they can no longer cancel
+> ([ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) §6).
 
 ⚠️ **The address identifies no order.** It is the same path for every visitor, so
 there is no capability to leak, nothing to guess and nothing to share by

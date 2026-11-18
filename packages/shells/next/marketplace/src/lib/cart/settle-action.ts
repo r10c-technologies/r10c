@@ -12,7 +12,7 @@ import { readFlowTicket } from './flow-ticket-cookie';
 import { readReceipt } from './receipt-cookie';
 import {
   RECEIPT_COOKIE,
-  RECEIPT_TTL_SECONDS,
+  receiptCookieMaxAge,
   receiptFromReadBack,
   serializeReceipt,
 } from './receipt-state';
@@ -71,7 +71,7 @@ export async function settleCheckout(
     path: '/',
     sameSite: 'lax',
     httpOnly: true,
-    maxAge: RECEIPT_TTL_SECONDS,
+    maxAge: receiptCookieMaxAge(receipt, new Date()),
   });
   jar.set(CART_COOKIE, '', { path: '/', maxAge: 0 });
   jar.set(FLOW_COOKIE, '', { path: '/', maxAge: 0 });

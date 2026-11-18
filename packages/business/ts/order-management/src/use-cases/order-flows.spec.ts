@@ -70,12 +70,15 @@ const world = () => {
   const refusal = <A, E>(effect: Effect.Effect<A, E, R>) =>
     run(Effect.flip(effect)) as Promise<{ code: string }>;
   /** A group with the buyer's capability, and one placed order in it. */
-  const placed = async (status: ProductOrder['status'] = 'paid') => {
+  const placed = async (
+    status: ProductOrder['status'] = 'paid',
+    windows = { cancelWindowSeconds: 600, receiptDays: 30 },
+  ) => {
     await run(
       openGroup({
         group: aGroup({ cancelDigest: digestOf(NONCE) }),
         commandId: undefined,
-        cancelWindowSeconds: 600,
+        ...windows,
       }),
     );
     const { order } = await run(
@@ -112,6 +115,7 @@ describe('openGroup', () => {
         group: aGroup({ cancelDigest: 'digest', orderIds: ['stale'] }),
         commandId: 'g-1',
         cancelWindowSeconds: 60,
+        receiptDays: 30,
       }),
     );
     const counter = await run(
@@ -119,6 +123,7 @@ describe('openGroup', () => {
         group: aGroup({ id: crypto.randomUUID() }),
         commandId: undefined,
         cancelWindowSeconds: 60,
+        receiptDays: 30,
       }),
     );
 
@@ -129,6 +134,13 @@ describe('openGroup', () => {
         (online.group.placedAt as Date).getTime(),
     ).toBe(60_000);
     expect(counter.group.cancelWindowEndsAt).toBeUndefined();
+    // The receipt outlives the cancel window by `receiptDays` (ADR 0076 §6),
+    // and opens only where the cancel does: a counter sale has no buyer.
+    expect(
+      (online.group.receiptEndsAt as Date).getTime() -
+        (online.group.placedAt as Date).getTime(),
+    ).toBe(30 * 24 * 60 * 60 * 1000);
+    expect(counter.group.receiptEndsAt).toBeUndefined();
   });
 
   it('stores a storefront buyer’s contact as one checked row, and none at a counter', async () => {
@@ -150,6 +162,7 @@ describe('openGroup', () => {
         },
         commandId: undefined,
         cancelWindowSeconds: 60,
+        receiptDays: 30,
       }),
     );
     const counter = await run(
@@ -157,6 +170,7 @@ describe('openGroup', () => {
         group: aGroup({ id: crypto.randomUUID() }),
         commandId: undefined,
         cancelWindowSeconds: 60,
+        receiptDays: 30,
       }),
     );
 
@@ -184,6 +198,7 @@ describe('openGroup', () => {
           contact: { name: 'Ana', phone: '123', email: 'ana@correo.com' },
           commandId: undefined,
           cancelWindowSeconds: 60,
+          receiptDays: 30,
         }),
       ),
     );
@@ -211,6 +226,7 @@ describe('openGroup', () => {
             group: aGroup({ id: 'not-a-uuid' }),
             commandId: undefined,
             cancelWindowSeconds: 60,
+            receiptDays: 30,
           }),
         )
       ).code,
@@ -237,6 +253,7 @@ describe('placeOrder', () => {
         group: aGroup(),
         commandId: undefined,
         cancelWindowSeconds: 1,
+        receiptDays: 30,
       }),
     );
 
@@ -480,6 +497,41 @@ describe('buyerReceipt', () => {
       'cancelNotAuthorized',
       'cancelNotAuthorized',
     ]);
+  });
+});
+
+describe('the receipt outlives the cancel window', () => {
+  it('reads past the cancel window, but no longer cancels', async () => {
+    const { run, refusal, started, placed } = world();
+    // A window of nought seconds has closed by the time anyone asks.
+    const orderId = await placed('confirmed', {
+      cancelWindowSeconds: 0,
+      receiptDays: 30,
+    });
+
+    const receipt = await run(buyerReceipt({ groupId: GROUP, nonce: NONCE }));
+    const cancel = await refusal(cancelOrderAsBuyer({ orderId, nonce: NONCE }));
+
+    expect(receipt.group.id).toBe(GROUP);
+    expect(cancel.code).toBe('cancelNotAuthorized');
+    expect(started).toEqual([]);
+  });
+
+  it('does neither once the receipt window has ended too', async () => {
+    const { refusal, started, placed } = world();
+    const orderId = await placed('confirmed', {
+      cancelWindowSeconds: 0,
+      receiptDays: 0,
+    });
+
+    const read = await refusal(buyerReceipt({ groupId: GROUP, nonce: NONCE }));
+    const cancel = await refusal(cancelOrderAsBuyer({ orderId, nonce: NONCE }));
+
+    expect([read.code, cancel.code]).toEqual([
+      'cancelNotAuthorized',
+      'cancelNotAuthorized',
+    ]);
+    expect(started).toEqual([]);
   });
 });
 

@@ -36,7 +36,10 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
+import {
+  CancelWindowSeconds,
+  ReceiptDays,
+} from '@r10c/business-ts-order-management';
 import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
 import {
   endpoints,
@@ -79,9 +82,13 @@ const CONFIGURATION = {
     { key: 'keyId', value: E2E_KEY_ID },
   ],
   service: [{ key: 'token', value: E2E_CROSSING_TOKEN }],
-  // The buyer's cancel window. A literal here for the same reason every other
-  // row is: the fixture is the config-service fetch, not a stub of the dial.
-  order: [{ key: 'cancelWindowSeconds', value: '1800' }],
+  // The buyer's cancel window and how long the receipt can be read. Literals
+  // here for the same reason every other row is: the fixture is the
+  // config-service fetch, not a stub of the dial.
+  order: [
+    { key: 'cancelWindowSeconds', value: '1800' },
+    { key: 'receiptDays', value: '30' },
+  ],
   // Where this service starts a cancellation. The real composition root reads
   // both rows; this profile builds the two tags directly below, and the rows are
   // here so the fixture keeps describing the same config-service document.
@@ -91,8 +98,9 @@ const CONFIGURATION = {
   ],
 };
 
-/** Matches the seeded row, and the storefront's `RECEIPT_TTL_SECONDS`. */
+/** Matches the seeded rows. */
 const E2E_CANCEL_WINDOW_SECONDS = 1800;
+const E2E_RECEIPT_DAYS = 30;
 
 /**
  * The `mock` composition root: the same shape as the service's own `AppLayer`,
@@ -130,6 +138,7 @@ const connections = Layer.mergeAll(
     makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
   ),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
+  Layer.succeed(ReceiptDays, E2E_RECEIPT_DAYS),
   httpFlowStarterLayer({
     url: COORDINATOR_URL,
     crossingToken: E2E_CROSSING_TOKEN,

@@ -329,6 +329,7 @@ export const entity: EsEntity = {
       placedAt: 'Placed at',
       cancelDigest: 'Cancel digest',
       cancelWindowEndsAt: 'Cancel window ends at',
+      receiptEndsAt: 'Receipt available until',
       contact: 'Contact and delivery',
       buyer: {
         name: 'Name',

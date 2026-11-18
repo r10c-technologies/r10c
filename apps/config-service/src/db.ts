@@ -917,12 +917,11 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'dev-order-crossing-token-change-me',
     is_secret: true,
   },
-  // ⚠️ **This number and the storefront's `RECEIPT_TTL_SECONDS` are one
-  // number.** The receipt cookie is the only place the buyer's cancel nonce
-  // lives, so a window wider than the cookie is a capability nobody can present
-  // and a cookie that outlives the window is a Cancel button that quietly stops
-  // working. 30 minutes, matching that constant
-  // ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md)).
+  // How long after placement a storefront buyer may still cancel their own
+  // order, in seconds. The receipt cookie that carries the capability lives
+  // as long as the receipt does (`receiptDays`, below), so this window only
+  // decides when the Cancel button goes
+  // ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §5).
   //
   // Not `is_secret`: it is a dial, not a credential, and an operator narrowing
   // a cancel window should be able to read what it is today.
@@ -931,6 +930,17 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'order',
     key: 'cancelWindowSeconds',
     value: '1800',
+  },
+  // How many days after placement the buyer's capability may still read the
+  // receipt. Stamped on the group as `receiptEndsAt`, and the storefront sizes
+  // the receipt cookie from that stamp, so this is the only place the number
+  // lives ([ADR 0076](../../../docs/adr/0076-delivery-destination-buyer-contact-and-the-way-back.md) §6).
+  // A month: a parcel takes days, and a refused or returned one longer.
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'receiptDays',
+    value: '30',
   },
   // Where the cancellation coordinator answers, and the secret this service
   // presents to start a flow through it.

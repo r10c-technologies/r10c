@@ -8,7 +8,7 @@ import { realtimeServiceUrl } from './checkout-config';
 import { readReceipt } from './receipt-cookie';
 import {
   RECEIPT_COOKIE,
-  RECEIPT_TTL_SECONDS,
+  receiptCookieMaxAge,
   serializeReceipt,
   withCancelled,
 } from './receipt-state';
@@ -46,16 +46,14 @@ export async function settleCancellation(
 
   const receipt = await readReceipt();
   if (receipt !== undefined) {
-    jar.set(
-      RECEIPT_COOKIE,
-      serializeReceipt(withCancelled(receipt, ticket.orderId)),
-      {
-        path: '/',
-        sameSite: 'lax',
-        httpOnly: true,
-        maxAge: RECEIPT_TTL_SECONDS,
-      },
-    );
+    const cancelled = withCancelled(receipt, ticket.orderId);
+    jar.set(RECEIPT_COOKIE, serializeReceipt(cancelled), {
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: true,
+      // Rewriting the cookie must not extend it: it still ends with the group.
+      maxAge: receiptCookieMaxAge(cancelled, new Date()),
+    });
   }
   return 'settled';
 }

@@ -213,7 +213,7 @@ test.describe('browsing the catalog', () => {
 
   /** #573: the category facet is ordered by the name in the page's locale. */
   test('the category facet sorts by the page’s locale', async ({ page }) => {
-    const facet = (locale: 'es' | 'en') =>
+    const facet = () =>
       page
         .getByRole('complementary', { name: /Filtrar|Filter/ })
         .getByRole('region', { name: /Categoría|Category/ })
@@ -222,14 +222,14 @@ test.describe('browsing the catalog', () => {
     // The two locales disagree at the end: "Textiles del hogar" sorts before
     // "Vajilla", while "Tableware" sorts before "Textiles".
     await page.goto('/es/search');
-    await expect(facet('es')).toHaveText([
+    await expect(facet()).toHaveText([
       /Cocina/,
       /Iluminación/,
       /Textiles del hogar/,
       /Vajilla/,
     ]);
     await page.goto('/en/search');
-    await expect(facet('en')).toHaveText([
+    await expect(facet()).toHaveText([
       /Kitchen/,
       /Lighting/,
       /Tableware/,

@@ -285,6 +285,7 @@ test('reviews and places an order through native form submissions', async ({
     .filter({ visible: true })
     .evaluate(button => (button as HTMLButtonElement).form?.submit());
   await page.waitForURL(STATUS_PAGE);
+  await expect(page.getByTestId('order-pending')).toHaveRole('status');
 });
 
 test.describe('the receipt', () => {
@@ -419,6 +420,38 @@ test.describe('the receipt', () => {
     );
     await expect(page.getByTestId('cancel-failed')).toHaveCount(0);
     await expect(page.getByTestId('cancel-demo-organization')).toBeVisible();
+  });
+
+  /**
+   * #579: the receipt outlives the cancel window (ADR 0076 §6). Past the
+   * window the receipt still renders, with no Cancel to offer, and its cookie
+   * lives until the group's own `receiptEndsAt` rather than the window.
+   */
+  test('stays readable past the cancel window, with no Cancel to offer', async ({
+    page,
+    network,
+  }) => {
+    const script = scriptStream(network);
+    await addToCart(page, 'offering-terra-dinner-plate');
+    await startCheckout(page);
+    script.outcome = 'flow.completed';
+
+    const order = page.getByTestId('vendor-order-demo-organization');
+    await expect(order).toContainText('Demo Vendor');
+    await expect(page.getByTestId('cancel-window')).toHaveCount(0);
+    await expect(page.getByTestId('cancel-demo-organization')).toHaveCount(0);
+
+    const receipt = (await page.context().cookies()).find(
+      cookie => cookie.name === 'r10c_receipt',
+    );
+    // Days, not the half hour the cancel window lasts: the mock stamps the
+    // receipt open into 2099.
+    expect(receipt?.expires ?? 0).toBeGreaterThan(
+      Date.now() / 1000 + 365 * 24 * 60 * 60,
+    );
+
+    await page.reload();
+    await expect(order).toContainText('Demo Vendor');
   });
 
   test('is not shown for a flow this browser never started', async ({
