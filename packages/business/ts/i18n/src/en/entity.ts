@@ -302,6 +302,7 @@ export const entity: EsEntity = {
       code: 'Reference',
       description: 'Description',
       brandId: 'Brand ID',
+      fitsDeviceModelIds: 'Compatible phones',
       categoryId: 'Category ID',
       media: 'Images',
     },

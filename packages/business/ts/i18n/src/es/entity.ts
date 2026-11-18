@@ -339,6 +339,7 @@ export const entity = {
       code: 'Referencia',
       description: 'Descripción',
       brandId: 'ID de marca',
+      fitsDeviceModelIds: 'Teléfonos compatibles',
       categoryId: 'ID de categoría',
       media: 'Imágenes',
     },

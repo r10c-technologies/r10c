@@ -311,6 +311,7 @@ describe('the payload and the record it is written into', () => {
       brandId: true,
       categoryId: true,
       media: true,
+      fitsDeviceModelIds: true,
     };
 
     for (const member of Object.keys(publication)) {
@@ -346,6 +347,7 @@ describe('the payload and the record it is written into', () => {
       brandId: undefined,
       categoryId: undefined,
       media: undefined,
+      fitsDeviceModelIds: undefined,
     });
 
     const keys = Object.keys(p.record ?? {});
@@ -355,9 +357,23 @@ describe('the payload and the record it is written into', () => {
       'brandId',
       'categoryId',
       'media',
+      'fitsDeviceModelIds',
     ]) {
       expect(keys).not.toContain(absent);
     }
+  });
+
+  it('projects the phones the offering fits, as the array the storefront filters', async () => {
+    const p = world();
+
+    await p.apply(CATALOG_PUBLISHED, {
+      fitsDeviceModelIds: ['device-model-1', 'device-model-2'],
+    });
+
+    expect(p.record?.['fitsDeviceModelIds']).toEqual([
+      'device-model-1',
+      'device-model-2',
+    ]);
   });
 
   it("projects the media as plain url and alt values, in the vendor's order", async () => {

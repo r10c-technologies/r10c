@@ -68,6 +68,7 @@ describe('PublishedOffering', () => {
         brandId: 'product-brand-4',
         categoryId: 'product-category-8',
         media: [{ url: 'https://cdn.example/red.jpg', alt: 'Red widget' }],
+        fitsDeviceModelIds: ['device-model-1'],
       }),
     );
 
@@ -77,10 +78,24 @@ describe('PublishedOffering', () => {
     expect(published?.description).toBe('One widget.');
     expect(published?.brandId).toBe('product-brand-4');
     expect(published?.categoryId).toBe('product-category-8');
+    expect(published?.fitsDeviceModelIds).toEqual(['device-model-1']);
     // Children are rebuilt through `MediaReference`, in the order stored.
     expect(published?.media?.map(({ url, alt }) => ({ url, alt }))).toEqual([
       { url: 'https://cdn.example/red.jpg', alt: 'Red widget' },
     ]);
+  });
+
+  it('filters by the phones it fits, but never sorts by them', () => {
+    // The storefront's "my phone" is `fitsDeviceModelIds=in=(…)`, so the flag is
+    // load-bearing as the server-side allowlist (entifix 0.23.0 lets a scalar
+    // collection be filterable; sorting by an array still means nothing).
+    const fits = describeEntityColumns(PublishedOffering).find(
+      column => column.name === 'fitsDeviceModelIds',
+    );
+
+    expect(fits?.type).toBe('scalarCollection');
+    expect(fits?.filterable).toBe(true);
+    expect(fits?.sortable).toBe(false);
   });
 
   it('holds its media as an owned collection, never a queryable member', () => {
