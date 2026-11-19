@@ -296,20 +296,21 @@ The register of slices. **This table is generated** from `tools/slices/` by
 
 <!-- docs:begin slice-register -->
 
-| Slice               | Status | Domains                                                          | Stores                                                       | Deployment                  |
-| ------------------- | ------ | ---------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------- |
-| `auth`              | active | `authn`, `party-management`, `access-management`                 | `auth`, `session`                                            | `auth-service`              |
-| `config`            | active | `config`                                                         | `configuration`                                              | `config-service`            |
-| `fulfilment`        | active | `shipping-order-management`                                      | `fulfilment`, `fulfilment-idempotency`                       | `fulfilment-service`        |
-| `marketplace-admin` | active | `product-configuration-management`                               | `catalog`, `catalog-idempotency`                             | `marketplace-admin-service` |
-| `marketplace`       | active | `catalog-reference`, `marketplace-catalog`, `marketplace-vendor` | `catalog-reference`, `published-catalog`, `published-vendor` | `marketplace-service`       |
-| `order`             | active | `order-management`                                               | `order`                                                      | `order-service`             |
-| `payment`           | active | `payment-management`                                             | `payment`                                                    | `payment-service`           |
-| `realtime`          | active | —                                                                | `flow-status`                                                | `realtime-service`          |
-| `sales`             | active | `sales-management`                                               | `sales`, `sales-idempotency`                                 | `sales-service`             |
-| `settlement`        | active | `settlement-management`                                          | `settlement`                                                 | `settlement-service`        |
-| `stock`             | active | `stock-management`                                               | `stock`, `stock-idempotency`                                 | `stock-service`             |
-| `transaction`       | active | —                                                                | `workflow`                                                   | `transaction-service`       |
+| Slice               | Status      | Domains                                                          | Stores                                                       | Deployment                  |
+| ------------------- | ----------- | ---------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------- |
+| `accounting`        | **planned** | —                                                                | `accounting`                                                 | —                           |
+| `auth`              | active      | `authn`, `party-management`, `access-management`                 | `auth`, `session`                                            | `auth-service`              |
+| `config`            | active      | `config`                                                         | `configuration`                                              | `config-service`            |
+| `fulfilment`        | active      | `shipping-order-management`                                      | `fulfilment`, `fulfilment-idempotency`                       | `fulfilment-service`        |
+| `marketplace-admin` | active      | `product-configuration-management`                               | `catalog`, `catalog-idempotency`                             | `marketplace-admin-service` |
+| `marketplace`       | active      | `catalog-reference`, `marketplace-catalog`, `marketplace-vendor` | `catalog-reference`, `published-catalog`, `published-vendor` | `marketplace-service`       |
+| `order`             | active      | `order-management`                                               | `order`                                                      | `order-service`             |
+| `payment`           | active      | `payment-management`                                             | `payment`                                                    | `payment-service`           |
+| `realtime`          | active      | —                                                                | `flow-status`                                                | `realtime-service`          |
+| `sales`             | active      | `sales-management`                                               | `sales`, `sales-idempotency`                                 | `sales-service`             |
+| `settlement`        | active      | `settlement-management`                                          | `settlement`                                                 | `settlement-service`        |
+| `stock`             | active      | `stock-management`                                               | `stock`, `stock-idempotency`                                 | `stock-service`             |
+| `transaction`       | active      | —                                                                | `workflow`                                                   | `transaction-service`       |
 
 <!-- docs:end slice-register -->
 
@@ -593,16 +594,17 @@ delivery flow, and cash on delivery
 ([ADR 0070](adr/0070-fulfilment-and-cash-on-delivery.md)).
 
 **Tax facts and the ERP modules left this list** with
-[ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)
-(Proposed). Recording what a sale owed in tax — fiscal identity, the breakdown
+[ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md). Recording what a sale owed in tax — fiscal identity, the breakdown
 per line, the totals — and computing the IVA is in scope on orders, payments and
 stock movements, with the fiscal document issued through a simulated adapter and a simulated
 courier adapter, both future and not built;
 filing is not, and who issues the fiscal document is still open. Accounting,
 cost control, services and manufacturing are future modules: each a slice with
 its own store that joins by subscribing to complete events and starts from a
-snapshot. None is in the capability map yet — a domain enters it when its slice
-is declared.
+snapshot. Accounting is declared as a `planned` slice so its subscriptions hold
+the producers to the whole fact today. It claims no domain until its ODA/SID
+name is chosen, so none of the four is in the capability map yet. A domain
+enters the map when its package does.
 
 Four more, decided in [ADR 0022](adr/0022-v1-marketplace-module-boundaries.md)
 and named here so their absence reads as a decision:

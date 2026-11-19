@@ -81,6 +81,10 @@ export const stockSlice: SliceDeclaration = {
   dependantAPIs: ['GET /api/config/:service'],
   // Every counter move, from the outbox of the organization's own `stock_<id>`
   // database, so an open back-office tab sees availability move (#481).
-  publishedEvents: ['stock-item.changed'],
+  //
+  // And every ledger line, as a whole fact, for the modules that keep books
+  // from stock (ADR 0078 §2) — a second event, so the counter a browser
+  // receives never carries one.
+  publishedEvents: ['stock-item.changed', 'stock-movement.recorded'],
   subscriptions: [],
 };

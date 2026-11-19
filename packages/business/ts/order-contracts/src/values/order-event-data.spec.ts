@@ -1,5 +1,7 @@
+import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { OrderEventSchema } from './order-event.js';
 import { orderEventDataOf } from './order-event-data.js';
 
 const STORED = {
@@ -41,6 +43,10 @@ const STORED = {
 };
 
 describe('orderEventDataOf', () => {
+  it('builds a payload the registered contract accepts as a whole fact', () => {
+    expect(Schema.is(OrderEventSchema)(orderEventDataOf(STORED))).toBe(true);
+  });
+
   it('names the sale, the seller’s identity and each line’s tax', () => {
     expect(orderEventDataOf(STORED)).toEqual({
       id: 'order-1',

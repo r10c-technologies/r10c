@@ -17,7 +17,7 @@ describe('order fragments', () => {
       'order.claim-cancel@3',
       'order.confirm@2',
       'order.await-payment@1',
-      'order.payment-decision@1',
+      'order.payment-decision@2',
       'order.mark-dispatched@2',
       'order.close@2',
       'order.notify-buyer@1',
@@ -36,6 +36,12 @@ describe('order fragments', () => {
       'orderNumber',
     ]);
     expect(orderClaimCancel.isolation).toBe('semanticLock');
+  });
+
+  it('wait on a seller’s decision and provide the authorization number it was answered with', () => {
+    expect(Object.keys(orderPaymentDecision.provides ?? {})).toEqual([
+      'paymentReference',
+    ]);
   });
 
   it('wait for the seller’s decision on a payment link, answered either way', () => {

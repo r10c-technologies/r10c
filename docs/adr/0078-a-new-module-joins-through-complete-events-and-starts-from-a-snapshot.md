@@ -1,8 +1,10 @@
 # 78. A new module joins through complete events, and starts from a snapshot
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-16
+- Accepted: 2026-11-19, when §2 and §3 were built and the `accounting` slice was declared against them (#662, #663)
 - Revised: 2026-11-18 by the fiscal facts build (#659–#661): §6's open states decided as below
+- Revised: 2026-11-19 by the contracts build (#662, #663): §2 and §3 as built below
 - Area: messaging
 - Read when: adding accounting, cost control, services or manufacturing, or widening an event another slice keeps books from — a module consumes complete events from its activation on, starts from a snapshot, and changes no existing slice
 
@@ -139,6 +141,28 @@ a smaller order; it is a wrong ledger entry.
 Every module subscription is `mode: 'work'`, `dedupe: 'inbox'`: the claim on
 `(consumer, eventId)` commits with the module's write, so a redelivery is a
 no-op and a crash between the two is impossible.
+
+**As built (2026-11-19, #662, #663).** The `order.*` contract requires the
+whole fact: every line's offering, description, unit price, quantity, kind,
+treatment, rate, taxable base and tax; the order's status, `sellerTax`, net,
+tax, total and currency. The payload names a payment link's confirmation
+(`paymentReference`, `paymentConfirmedAt`) and a cancellation's `cancelCause`,
+and still never the buyer's identity. `payment.captured` builds its
+allocations member by member too. `stock-movement.recorded` is registered in
+`@r10c/business-ts-stock-management` with `audience: 'none'`. It carries
+`organizationId` because the event leaves the database handle behind and a
+module activates per organization (§4). The stock ledger emits it from the
+unit that writes the line, into the organization's own outbox.
+
+The fingerprint is `tools/slices/event-contracts.json`: every registered
+event's JSON Schema, its `versioned` and `audience`, and a hash.
+`event-contracts.spec.ts` fails a changed, added or removed contract and names
+each subscribing slice. `UPDATE_EVENT_CONTRACTS=1 pnpm nx test @r10c/slices`
+rewrites it. The listener is one `planned` slice, `accounting`. It subscribes
+to `order.placed`, `order.cancelled`, `payment.captured`, `payment.refunded`
+and `stock-movement.recorded`, claims no domain until open question 7 names
+one, and declares a tenant `accounting` store with no hosts. A planned store
+opens no database, so the documents still count four per organization.
 
 ### 4. A module hears from its activation on, and nothing is replayed
 
@@ -315,6 +339,7 @@ this record supersedes nothing.
 
 ## Trigger
 
-The conflicts are answered (Resolved, above) and the owner reviews this text.
-The record moves to Accepted when §6 and §2 are built and a `planned` module
-slice is declared against them.
+Met on 2026-11-19. §6 was built by #659–#661, and §2 and §3 by #662 and #663,
+with the `accounting` slice declared against them. The record is Accepted.
+A module's own build (Consequences, step 6) is triggered by its first
+customer, not by this record.

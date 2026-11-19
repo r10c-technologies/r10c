@@ -37,6 +37,7 @@ import {
   stockItemChangedEvent,
   StockLedgerTag,
   StockMovement,
+  stockMovementRecordedEvent,
 } from '@r10c/business-ts-stock-management';
 import { Effect, Layer, Option } from 'effect';
 import type { Db } from 'mongodb';
@@ -209,7 +210,18 @@ export const MongoStockLedgerLayer = Layer.effect(
         { id: globalThis.crypto.randomUUID(), offeringId, reserved: 0 },
       );
 
-    const appendMovement = (unit: MongoUnit, movement: StockMovement) =>
+    /**
+     * A ledger line, announced as `stock-movement.recorded` in the unit that
+     * wrote it (ADR 0078 §2): the outbox row commits with the line or not at
+     * all, so a module keeping books from stock never misses one nor hears of
+     * one that was rolled back.
+     */
+    const appendMovement = (
+      unit: MongoUnit,
+      emitter: Emitting,
+      organizationId: string,
+      movement: StockMovement,
+    ) =>
       Effect.tryPromise({
         try: () =>
           unit.db
@@ -219,7 +231,15 @@ export const MongoStockLedgerLayer = Layer.effect(
               { session: unit.session },
             ),
         catch: mongoUnitFault,
-      });
+      }).pipe(
+        Effect.tap(() =>
+          Effect.sync(() =>
+            emitter.emit(
+              stockMovementRecordedEvent(organizationId, movement, source),
+            ),
+          ),
+        ),
+      );
 
     /**
      * A movement and its counter, once more if the item was created under it
@@ -236,7 +256,7 @@ export const MongoStockLedgerLayer = Layer.effect(
         .run(
           unit =>
             Effect.andThen(
-              appendMovement(unit.handle, movement),
+              appendMovement(unit.handle, unit, organizationId, movement),
               moveCounter(
                 unit.handle,
                 unit,
@@ -333,7 +353,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                 sale.occurredAt = new Date();
                 sale.causeType = 'reservation';
                 sale.causeId = reservationId;
-                yield* appendMovement(unit.handle, sale);
+                yield* appendMovement(unit.handle, unit, organizationId, sale);
               }
               yield* change(
                 unit.handle,

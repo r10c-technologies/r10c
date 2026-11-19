@@ -60,7 +60,31 @@ const placed = (id: string, organizationId = 'org-a'): DomainEvent => ({
     vendorId: organizationId,
     groupId: 'g-1',
     paymentMethod: 'card',
-    items: [{ amount: 10, quantity: 1, currency: 'GTQ' }],
+    status: 'paid',
+    items: [
+      {
+        amount: 10,
+        quantity: 1,
+        currency: 'GTQ',
+        offeringId: 'off-1',
+        name: 'Cog',
+        kind: 'good',
+        taxTreatment: 'taxed',
+        taxRate: 1200,
+        taxableBase: 9,
+        taxAmount: 1,
+      },
+    ],
+    sellerTax: {
+      taxId: '10000003',
+      legalName: 'Demo, S.A.',
+      taxRegime: 'general',
+      establishmentCode: '1',
+    },
+    netAmount: 9,
+    taxAmount: 1,
+    totalAmount: 10,
+    currency: 'GTQ',
   },
 });
 

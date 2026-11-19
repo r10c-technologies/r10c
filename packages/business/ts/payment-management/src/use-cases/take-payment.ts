@@ -123,7 +123,18 @@ const outcomeOf = (
 ): PaymentOutcome => ({
   paymentId: String(payment.id),
   groupId: payment.groupId,
-  allocations: shares,
+  // Member by member (ADR 0078 §2): a share decoded from the coordinator's
+  // body may carry more than the contract names, and none of it is announced.
+  allocations: shares.map(
+    ({ orderId, vendorId, amount, taxableBase, taxAmount, taxRegime }) => ({
+      orderId,
+      vendorId,
+      amount,
+      taxableBase,
+      taxAmount,
+      taxRegime,
+    }),
+  ),
   amount: payment.amount,
   currency: payment.currency,
   paymentMethod: payment.paymentMethod,
@@ -199,11 +210,16 @@ export const capturePayment = (input: {
     } as CaptureResult;
   });
 
+/** The tenders a vendor collects outside the platform's own capture. */
+export const CollectedTenders = ['cod', 'link'] as const;
+export type CollectedTender = (typeof CollectedTenders)[number];
+
 /**
- * Record the cash a courier collected for one cash-on-delivery order: a `cod`
- * payment for that order alone, captured the moment it is recorded, and
- * announced as `payment.captured` like any other — so the order is paid and
- * settlement folds it the same way, flagged as cash the vendor holds.
+ * Record money the vendor collected for one order — the cash a courier took on
+ * delivery (`cod`), or a payment link the seller confirmed (`link`): a payment
+ * for that order alone, captured the moment it is recorded, and announced as
+ * `payment.captured` like any other — so settlement folds it the same way,
+ * flagged as money the vendor holds (ADR 0070, ADR 0081 §5).
  *
  * Idempotent on its command: a repeated report of one collection answers the
  * first.
@@ -212,13 +228,30 @@ export const recordCollection = (input: {
   readonly groupId: string;
   readonly share: RequestedShare;
   readonly currency: string;
+  /**
+   * How the vendor collected it: `cod`, cash a courier took on delivery, or
+   * `link`, a payment link their acquirer took — which names the seller's
+   * authorization number as its provider reference (ADR 0081 §2).
+   */
+  readonly tender?: CollectedTender;
+  readonly providerReference?: string | undefined;
   readonly commandId: string | undefined;
 }) =>
   Effect.gen(function* () {
     const { share, commandId } = input;
+    const tender = input.tender ?? 'cod';
+    const providerReference = input.providerReference?.trim() ?? '';
+    if (tender === 'link' && providerReference === '') {
+      return yield* new InvalidBody({
+        reason: 'a payment link is recorded with its authorization number',
+      });
+    }
     const payment = Object.assign(
       new Payment(input.groupId, share.amount, input.currency),
-      { paymentMethod: 'cod' as const },
+      {
+        paymentMethod: tender,
+        ...(providerReference === '' ? {} : { providerReference }),
+      },
     );
     const problem = sharesProblem(payment.amount, [share]);
     if (problem !== undefined)
@@ -237,7 +270,11 @@ export const recordCollection = (input: {
     const written = yield* ledger.recordCapture(
       payment,
       allocationsOf(payment, [share]),
-      outcomeOf(payment, [share], {}),
+      outcomeOf(
+        payment,
+        [share],
+        providerReference === '' ? {} : { providerReference },
+      ),
       commandId,
     );
     return {

@@ -21,7 +21,12 @@ type Handler = (event: DomainEvent) => Effect.Effect<void, unknown>;
  * The consumer, subscribed to a bus that keeps its handler, over an engine
  * that answers every correlated signal with `answer` and remembers it.
  */
-const consumer = async (answer: Effect.Effect<void, unknown> = Effect.void) => {
+const consumer = async (
+  answer: Effect.Effect<void, unknown> = Effect.void,
+  status: Effect.Effect<{ state: string }, unknown> = Effect.succeed({
+    state: 'waiting',
+  }),
+) => {
   const signals: Array<{ correlation: string; signal: unknown }> = [];
   let subscribed: Subscription | undefined;
   let handler: Handler | undefined;
@@ -30,6 +35,7 @@ const consumer = async (answer: Effect.Effect<void, unknown> = Effect.void) => {
       signals.push({ correlation, signal });
       return answer as never;
     },
+    status: () => status as never,
   };
   await Effect.runPromise(
     startPaymentSignals.pipe(
@@ -91,6 +97,22 @@ describe('the payment signals', () => {
     ]);
   });
 
+  it('hand a confirmation’s authorization number to the wait', async () => {
+    const { signals, deliver } = await consumer();
+
+    await deliver('order.payment-confirmed', {
+      ...order,
+      paymentReference: 'AUTH-123456',
+    });
+
+    expect(signals).toEqual([
+      {
+        correlation: 'payment:grp-1:v-1',
+        signal: { outcome: 'confirmed', paymentReference: 'AUTH-123456' },
+      },
+    ]);
+  });
+
   it.each([
     ['a placement, which no wait listens for', 'order.placed', order],
     [
@@ -120,6 +142,32 @@ describe('the payment signals', () => {
 
     expect(await deliver('order.cancelled', order)).toMatchObject({
       _tag: 'Success',
+    });
+  });
+
+  it.each(['completed', 'compensated', 'failed', 'interrupted', 'stranded'])(
+    'let go of a second delivery once its flow is %s',
+    async state => {
+      const { deliver } = await consumer(
+        Effect.fail(new FlowNotFound({ flowId: 'payment:grp-1:v-1' })),
+        Effect.succeed({ state }),
+      );
+
+      expect(await deliver('order.cancelled', order)).toMatchObject({
+        _tag: 'Success',
+      });
+    },
+  );
+
+  it('retry an answer whose flow cannot be read', async () => {
+    const { deliver } = await consumer(
+      Effect.fail(new FlowNotFound({ flowId: 'payment:grp-1:v-1' })),
+      Effect.fail(new FlowNotFound({ flowId: 'grp-1' })),
+    );
+
+    expect(await deliver('order.cancelled', order)).toMatchObject({
+      _tag: 'Failure',
+      failure: { _tag: 'Unavailable' },
     });
   });
 

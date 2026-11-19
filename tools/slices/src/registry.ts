@@ -1,3 +1,4 @@
+import { accountingSlice } from './slices/accounting.slice.js';
 import { authSlice } from './slices/auth.slice.js';
 import { configSlice } from './slices/config.slice.js';
 import { fulfilmentSlice } from './slices/fulfilment.slice.js';
@@ -23,6 +24,7 @@ import type { SliceDeclaration } from './types.js';
  * phantom store.
  */
 export const SLICES: readonly SliceDeclaration[] = [
+  accountingSlice,
   authSlice,
   configSlice,
   fulfilmentSlice,
