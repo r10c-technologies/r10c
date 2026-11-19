@@ -23,6 +23,9 @@
       "path": "../../../business/ts/tax-policy/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/flow-contracts/tsconfig.lib.json"
     }
   ],

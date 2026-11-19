@@ -46,10 +46,11 @@ export interface DeliveryFormLabels {
     readonly tender: Readonly<Record<Tender, string>>;
     /** A seller that takes one tender, stated rather than asked. */
     readonly only: Readonly<Record<Tender, string>>;
-    /** What the card option means while the provider is simulated. */
-    readonly simulated: string;
-    /** What the cash-on-delivery option means. */
-    readonly codHint: string;
+    /**
+     * What each option means: a card while the provider is simulated, cash
+     * on delivery, and a link the seller sends and confirms.
+     */
+    readonly hint: Readonly<Record<Tender, string>>;
     /** Said beside a seller whose tender the buyer has not chosen. */
     readonly required: string;
   };
@@ -287,9 +288,7 @@ export function DeliveryForm({
                   {labels.payment.tender[tender]}
                 </label>
                 <Text tone="muted" id={`${id}-${tender}-hint`}>
-                  {tender === 'card'
-                    ? labels.payment.simulated
-                    : labels.payment.codHint}
+                  {labels.payment.hint[tender]}
                 </Text>
               </span>
             </div>

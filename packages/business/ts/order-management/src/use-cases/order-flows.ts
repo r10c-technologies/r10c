@@ -13,6 +13,8 @@ import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
 import {
   CancelNotAuthorized,
+  InvalidPaymentDetails,
+  OrderNotAwaitingPayment,
   OrderNotTransitionable,
   PaymentPending,
 } from '../failures/order-failures';
@@ -21,6 +23,7 @@ import {
   composeReceiptMail,
 } from '../notifications/receipt-mail';
 import { BuyerNotifierTag } from '../ports/buyer-notifier';
+import { PaymentLinkProvidersTag } from '../ports/payment-link-providers';
 import {
   CheckoutGroupStoreTag,
   ProductOrderStoreTag,
@@ -40,7 +43,14 @@ import {
 import { checkoutContactOf } from '../values/checkout-contact';
 import type { OrderScope } from '../values/order-scope';
 import type { OrderTransition } from '../values/order-transition';
+import {
+  type PaymentConfirmationPayload,
+  paymentLinkOf,
+  type PaymentLinkPayload,
+  paymentReferenceOf,
+} from '../values/payment-link';
 import { CancelProductOrderUC } from './cancel-product-order';
+import { ConfirmPaymentUC, SetPaymentLinkUC } from './payment-link';
 
 const MILLISECONDS = 1000;
 /** A day, in milliseconds: `order.receiptDays` is counted in whole days. */
@@ -217,7 +227,11 @@ export const moveOrder = (input: {
   readonly orderId: string;
   readonly transition: Exclude<
     OrderTransition,
-    'claim-cancel' | 'settle-cancel'
+    | 'claim-cancel'
+    | 'settle-cancel'
+    | 'await-payment'
+    | 'confirm-payment'
+    | 'end-awaiting-payment'
   >;
   readonly commandId: string | undefined;
 }) =>
@@ -339,6 +353,11 @@ const groupForBuyer = (
 /**
  * A buyer cancelling one vendor order with the capability their receipt
  * carried — the group's — and no session at all.
+ *
+ * An order still waiting for its payment link took no money, so it is
+ * withdrawn by one conditional write rather than a cancellation flow — the
+ * same write an expiry makes, so of the two exactly one wins — and the
+ * checkout that waited on it lets its stock go (ADR 0081 §4).
  */
 export const cancelOrderAsBuyer = (input: {
   readonly orderId: string;
@@ -355,8 +374,24 @@ export const cancelOrderAsBuyer = (input: {
     if (order.status === 'pending') {
       return yield* new PaymentPending({ orderId: input.orderId });
     }
-    yield* CancelProductOrderUC.run(order);
-    return yield* startCancellation(order, input.capabilityDigest);
+    let current = order;
+    if (order.status === 'awaiting-payment') {
+      const withdrawn = yield* store.endAwaitingPayment(
+        input.orderId,
+        'buyer',
+        new Date(),
+      );
+      if (withdrawn !== undefined) {
+        return { _tag: 'withdrawn' as const, order: withdrawn };
+      }
+      // Confirmed or expired a moment ago: answered as it now stands.
+      current = (yield* store.get(input.orderId)) as ProductOrder;
+    }
+    yield* CancelProductOrderUC.run(current);
+    return {
+      _tag: 'started' as const,
+      accepted: yield* startCancellation(current, input.capabilityDigest),
+    };
   });
 
 /**
@@ -525,4 +560,132 @@ export const sendAccessLink = (input: {
     });
     yield* Effect.annotateCurrentSpan({ 'checkout-group.lookup': outcome });
     return { accepted: true as const };
+  });
+
+/** The refusal an order that did not move answers, read off where it stands. */
+const notAwaiting = (orderId: string) =>
+  Effect.gen(function* () {
+    const order = yield* (yield* ProductOrderStoreTag).get(orderId);
+    if (order === undefined) return yield* orderNotFound;
+    return yield* new OrderNotAwaitingPayment({
+      orderId,
+      standing: order.status,
+    });
+  });
+
+/**
+ * A payment-link order's commit point (`order.await-payment`): it waits for
+ * its payment until `now + paymentWindowMs`. The window is the coordinator's
+ * to state from its one configuration row, and the stamp this domain's —
+ * order-service holds no row of its own for it, since two rows meaning one
+ * number drift (ADR 0081 §3).
+ */
+export const awaitPayment = (input: {
+  readonly orderId: string;
+  readonly paymentWindowMs: unknown;
+  readonly commandId: string | undefined;
+}) =>
+  Effect.gen(function* () {
+    const window = input.paymentWindowMs;
+    if (typeof window !== 'number' || !Number.isInteger(window) || window <= 0) {
+      return yield* new InvalidBody({
+        reason: 'a payment window is a positive number of milliseconds',
+      });
+    }
+    const store = yield* ProductOrderStoreTag;
+    const moved = yield* store.awaitPayment(
+      input.orderId,
+      new Date(Date.now() + window),
+      input.commandId,
+    );
+    if (moved !== undefined) return moved;
+    const order = yield* store.get(input.orderId);
+    if (order === undefined) return yield* orderNotFound;
+    return yield* new OrderNotTransitionable({
+      orderId: input.orderId,
+      standing: order.status,
+      transition: 'await-payment',
+    });
+  });
+
+/**
+ * The seller confirms a payment link was paid (`confirm-payment`): one
+ * conditional write on `awaiting-payment`, announced as
+ * `order.payment-confirmed`. A confirmation that lost to an expiry or a
+ * withdrawal is refused `orderNotAwaitingPayment` (ADR 0081 §4).
+ */
+export const confirmPayment = (input: {
+  readonly orderId: string;
+  readonly scope: OrderScope;
+  readonly payload: PaymentConfirmationPayload;
+  readonly confirmedBy: string;
+}) =>
+  Effect.gen(function* () {
+    const order = yield* orderInScope(input.orderId, input.scope);
+    yield* ConfirmPaymentUC.run(order);
+    const reference = paymentReferenceOf(input.payload);
+    if (!reference.ok) {
+      return yield* new InvalidPaymentDetails({
+        field: reference.field,
+        reason: reference.reason,
+      });
+    }
+    const store = yield* ProductOrderStoreTag;
+    const confirmed = yield* store.confirmPayment(input.orderId, {
+      reference: reference.value,
+      confirmedBy: input.confirmedBy,
+      confirmedAt: new Date(),
+    });
+    return confirmed ?? (yield* notAwaiting(input.orderId));
+  });
+
+/**
+ * The seller sets the link the buyer pays by (`set-payment-link`), checked
+ * against the provider dictionary; the last one set wins (ADR 0081 §10).
+ */
+export const setPaymentLink = (input: {
+  readonly orderId: string;
+  readonly scope: OrderScope;
+  readonly payload: PaymentLinkPayload;
+  readonly setBy: string;
+}) =>
+  Effect.gen(function* () {
+    const order = yield* orderInScope(input.orderId, input.scope);
+    yield* SetPaymentLinkUC.run(order);
+    const link = paymentLinkOf(input.payload, yield* PaymentLinkProvidersTag);
+    if (!link.ok) {
+      return yield* new InvalidPaymentDetails({
+        field: link.field,
+        reason: link.reason,
+      });
+    }
+    const store = yield* ProductOrderStoreTag;
+    const set = yield* store.setPaymentLink(input.orderId, {
+      ...link.value,
+      setBy: input.setBy,
+      setAt: new Date(),
+    });
+    return set ?? (yield* notAwaiting(input.orderId));
+  });
+
+/**
+ * One pass of the payment-expiry sweep: every order still waiting past its
+ * window is cancelled, each by its own conditional write, so a confirmation
+ * landing in between wins that order and the sweep moves on (ADR 0081 §4).
+ * Answers how many it expired.
+ */
+export const expireOverduePayments = (now: Date) =>
+  Effect.gen(function* () {
+    const store = yield* ProductOrderStoreTag;
+    const overdue = yield* store.overduePayments(now);
+    let expired = 0;
+    for (const orderId of overdue) {
+      const ended = yield* store.endAwaitingPayment(
+        orderId,
+        'payment-expired',
+        now,
+      );
+      if (ended !== undefined) expired += 1;
+    }
+    return expired;
   });

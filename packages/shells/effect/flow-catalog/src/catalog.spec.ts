@@ -23,6 +23,7 @@ import {
   type DeliveryStart,
   FLOW_RECIPES,
   flowCatalog,
+  paymentCorrelation,
 } from './catalog.js';
 
 /** A vendor provisioned for everything a checkout's steps require. */
@@ -52,7 +53,7 @@ const line = (offeringId: string) => ({
 
 const part = (
   vendorId: string,
-  paymentMethod: 'card' | 'cash' | 'cod',
+  paymentMethod: 'card' | 'cash' | 'cod' | 'link',
   entitlements: readonly string[] = PROVISIONED,
 ) => ({
   vendorId,
@@ -74,6 +75,10 @@ const CONTACT = {
   },
 };
 
+/** The payment window and its grace the coordinator states, in ms. */
+const WINDOW = 172_800_000;
+const GRACE = 3_600_000;
+
 const checkout = (
   channel: 'storefront' | 'counter',
   vendors: CheckoutStart['vendors'],
@@ -87,10 +92,12 @@ const checkout = (
   totals: [{ currency: 'GTQ', amount: 1000 * vendors.length }],
   capabilityDigest: 'cap',
   cancelDigest: 'cancel',
+  paymentWindowMs: WINDOW,
+  paymentGraceMs: GRACE,
   ...(channel === 'storefront' ? { contact: CONTACT, locale: 'es' } : {}),
 });
 
-/** The five checkouts the marketplace sells through (#486). */
+/** The seven checkouts the marketplace sells through (#486, ADR 0081). */
 const CHECKOUTS = [
   {
     label: 'storefront, card only',
@@ -112,6 +119,18 @@ const CHECKOUTS = [
     label: 'counter, card',
     value: checkout('counter', [part('v-1', 'card')]),
   },
+  {
+    label: 'storefront, payment link only',
+    value: checkout('storefront', [part('v-1', 'link')]),
+  },
+  {
+    label: 'storefront, card and payment link',
+    value: checkout('storefront', [part('v-1', 'card'), part('v-2', 'link')]),
+  },
+  {
+    label: 'counter, payment link',
+    value: checkout('counter', [part('v-1', 'link')]),
+  },
 ];
 
 const composed = (start: CheckoutStart) =>
@@ -122,7 +141,7 @@ const composed = (start: CheckoutStart) =>
 const refsOf = (slip: Slip) => slipSteps(slip).map(step => step.step);
 
 describe('the checkout recipe', () => {
-  it('composes all five checkouts for the coordinator, from the vendors’ entitlements', () => {
+  it('composes all eight checkouts for the coordinator, from the vendors’ entitlements', () => {
     const outcomes = enumerateCompositions(checkoutRecipe, flowCatalog, {
       contexts: [{ label: 'the coordinator', value: coordinator }],
       inputs: CHECKOUTS,
@@ -130,7 +149,7 @@ describe('the checkout recipe', () => {
 
     expect(() => expectAllCompositionsValid(outcomes)).not.toThrow();
     expect(outcomes.map(outcome => outcome.outcome)).toEqual(
-      Array(5).fill('composed'),
+      Array(CHECKOUTS.length).fill('composed'),
     );
   });
 
@@ -188,6 +207,86 @@ describe('the checkout recipe', () => {
       { kind: 'organization', id: 'v-1' },
       { kind: 'organization', id: 'v-2' },
     ]);
+  });
+
+  it('commits a link segment, then waits on its seller and branches on the answer', () => {
+    const slip = composed(CHECKOUTS[6]!.value);
+
+    expect(refsOf(slip)).toEqual([
+      'order.open-group',
+      'v-1/card:v-1-o-1:stock.reserve',
+      'v-1/card:order.write',
+      'v-2/link:v-2-o-1:stock.reserve',
+      'v-2/link:order.write',
+      'payment.capture',
+      'v-1/card:v-1-o-1:stock.convert',
+      'v-1/card:order.confirm',
+      'v-1/card:fulfilment.open',
+      'v-2/link:order.await-payment',
+      'order.notify-buyer',
+      'v-2/link:order.payment-decision',
+      'v-2/link:v-2-o-1:stock.convert',
+      'v-2/link:order.confirm',
+      'v-2/link:fulfilment.open',
+      'v-2/link:v-2-o-1:stock.release',
+    ]);
+    const step = (name: string) =>
+      slipSteps(slip).find(candidate => candidate.step === name);
+    // The capture takes the card seller's share alone.
+    expect(step('payment.capture')?.parameters).toMatchObject({
+      shares: [{ vendorId: 'v-1', amount: 1000 }],
+    });
+    // The hold outlives the decision: window + 2 × grace.
+    expect(step('v-2/link:v-2-o-1:stock.reserve')?.parameters).toMatchObject({
+      holdSeconds: (WINDOW + 2 * GRACE) / 1000,
+    });
+    expect(
+      step('v-1/card:v-1-o-1:stock.reserve')?.parameters,
+    ).not.toHaveProperty('holdSeconds');
+    expect(step('v-2/link:order.await-payment')?.parameters).toMatchObject({
+      paymentWindowMs: WINDOW,
+    });
+    expect(step('v-2/link:order.payment-decision')?.parameters).toMatchObject({
+      correlation: paymentCorrelation('f', 'v-2'),
+      timeoutMs: WINDOW + GRACE,
+      onTimeout: 'strand',
+    });
+    expect(step('v-2/link:order.confirm')?.guard).toEqual({
+      wait: 'v-2/link:order.payment-decision',
+      outcomes: ['confirmed'],
+    });
+    expect(step('v-2/link:v-2-o-1:stock.release')?.guard).toEqual({
+      wait: 'v-2/link:order.payment-decision',
+      outcomes: ['cancelled'],
+    });
+  });
+
+  it('passes flow.commit for a basket paid by link alone', () => {
+    const refs = refsOf(composed(CHECKOUTS[5]!.value));
+
+    expect(refs).toContain('flow.commit');
+    expect(refs).not.toContain('payment.capture');
+  });
+
+  it('hands a counter link sale over once it is paid', () => {
+    const refs = refsOf(composed(CHECKOUTS[7]!.value));
+
+    expect(refs.slice(-4)).toEqual([
+      'v-1/link:order.confirm',
+      'v-1/link:order.mark-dispatched',
+      'v-1/link:order.close',
+      'v-1/link:v-1-o-1:stock.release',
+    ]);
+  });
+
+  it('refuses a link checkout that states no payment window', () => {
+    const decode = Schema.decodeUnknownExit(CheckoutStart);
+    const { paymentWindowMs: _window, ...unstated } = CHECKOUTS[5]!.value;
+    const { paymentWindowMs: _w, paymentGraceMs: _g, ...card } =
+      CHECKOUTS[0]!.value;
+
+    expect(decode(unstated)._tag).toBe('Failure');
+    expect(decode(card)._tag).toBe('Success');
   });
 
   it('passes flow.commit for a basket all on delivery, and takes no money', () => {

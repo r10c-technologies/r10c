@@ -163,6 +163,63 @@ export const orderConfirm = defineFragment({
   },
 });
 
+/**
+ * A payment-link order's commit point: `pending → awaiting-payment`, stamping
+ * when it stops waiting from the window the coordinator states (ADR 0081 §2–3).
+ * After the checkout's commit point — a link segment commits like a
+ * cash-on-delivery one and *then* waits — so retried.
+ */
+export const orderAwaitPayment = defineFragment({
+  id: 'order.await-payment',
+  version: 1,
+  module: 'order-management',
+  kind: 'retriable',
+  participant: PARTICIPANT,
+  call: {
+    method: 'POST',
+    path: '/api/product-order/:orderId/awaiting-payment',
+  },
+  cardinality: 'perVendor',
+  isolation: 'reRead',
+  consumes: { orderId: OrderId },
+  contract: {
+    input: openStruct({
+      orderId: OrderId,
+      paymentWindowMs: Schema.Int.check(Schema.isGreaterThan(0)),
+    }),
+    output: ORDER,
+    failure: participantRefusal([
+      'notFound',
+      'orderNotTransitionable',
+      'invalidBody',
+    ]),
+  },
+});
+
+/**
+ * Wait for the seller's decision on a payment link: answered `confirmed` by
+ * `order.payment-confirmed`, or `cancelled` by the `order.cancelled` an expiry
+ * or a withdrawal announces. The order's status is the arbiter, so a timeout
+ * firing means a signal was lost — a case for a person, and the recipe
+ * strands on it. A wait makes no call; the one named reads the order.
+ */
+export const orderPaymentDecision = defineFragment({
+  id: 'order.payment-decision',
+  version: 1,
+  outcomes: ['confirmed', 'cancelled'],
+  module: 'order-management',
+  kind: 'wait',
+  participant: PARTICIPANT,
+  call: { method: 'GET', path: '/api/product-order/:orderId' },
+  cardinality: 'perVendor',
+  consumes: { orderId: OrderId },
+  contract: {
+    input: openStruct({ orderId: OrderId }),
+    output: ORDER,
+    failure: participantRefusal([]),
+  },
+});
+
 /** Mark a vendor order dispatched, once its shipment left. Retried. */
 export const orderMarkDispatched = defineFragment({
   id: 'order.mark-dispatched',
@@ -239,6 +296,8 @@ export const ORDER_FRAGMENTS = [
   orderWrite,
   orderClaimCancel,
   orderConfirm,
+  orderAwaitPayment,
+  orderPaymentDecision,
   orderMarkDispatched,
   orderClose,
   orderNotifyBuyer,

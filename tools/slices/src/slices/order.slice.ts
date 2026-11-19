@@ -64,6 +64,13 @@ export const orderSlice: SliceDeclaration = {
     'POST /api/product-order/:id/buyer-cancellation',
     'POST|DELETE /api/product-order/:id/cancelling',
     'POST /api/product-order/:id/confirmed',
+    // A payment-link order (ADR 0081): the checkout's commit point for it, a
+    // crossing; the seller's two verbs, behind a session; and the provider
+    // dictionary their form offers.
+    'POST /api/product-order/:id/awaiting-payment',
+    'POST /api/product-order/:id/confirm-payment',
+    'POST /api/product-order/:id/set-payment-link',
+    'GET /api/payment-link-provider',
     'POST /api/product-order/:id/dispatched',
     'POST /api/product-order/:id/closed',
     'GET|POST /api/checkout-group',
@@ -88,7 +95,13 @@ export const orderSlice: SliceDeclaration = {
     // ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §6).
     'POST /api/flow/cancellation',
   ],
-  publishedEvents: ['order.placed', 'order.cancelled'],
+  // `order.payment-confirmed` exists because the checkout flow waits on it
+  // (ADR 0068, ADR 0081 §4).
+  publishedEvents: [
+    'order.placed',
+    'order.payment-confirmed',
+    'order.cancelled',
+  ],
   subscriptions: [
     // `inbox`: advancing an order's state on a capture is not a rewrite of the
     // same value, so a redelivery must be recognised rather than survived.

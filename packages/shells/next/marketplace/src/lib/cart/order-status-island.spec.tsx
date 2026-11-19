@@ -153,6 +153,13 @@ describe('OrderStatusIsland', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
+  it('settles a checkout its catch-up read finds waiting on a seller', async () => {
+    const { settle } = mount({ state: 'waiting' });
+    await flush();
+
+    expect(settle).toHaveBeenCalledWith('f-1');
+  });
+
   it('shows the failure and a retry for a flow that ended badly', async () => {
     mount({ state: 'compensated' });
     await flush();

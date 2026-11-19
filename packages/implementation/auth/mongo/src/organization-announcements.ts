@@ -82,6 +82,8 @@ export const announcementOf = (
     announcedAt: updatedAt.toISOString(),
     acceptsCod: commerce.acceptsCod,
     holdsStock: commerce.holdsStock,
+    // Authored on the organization itself, not provisioned (ADR 0081 §1).
+    acceptsLink: row['acceptsPaymentLink'] === true,
     fiscal,
   };
 };

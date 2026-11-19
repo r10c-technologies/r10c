@@ -43,15 +43,15 @@ export const orderManagementCapabilities: readonly Capability[] = [
     status: 'implemented',
     verticals: 'all',
   },
-  // Planned (ADR 0081, plan 4.7): an order waits for a payment the seller
-  // confirms, and a receipt is a file.
+  // ADR 0081 (plan 4.7, 4.8): an order waits for a payment the seller
+  // confirms; the receipt as a file is still planned (4.9).
   {
     id: 'order-management:product-order:set-payment-link',
     oda: 'TMFC002',
     entities: ['order-management:product-order'],
     permissions: ['order-management:product-order:set-payment-link'],
     screens: ['operation:product-order'],
-    status: 'planned',
+    status: 'implemented',
     verticals: 'all',
   },
   {
@@ -66,10 +66,10 @@ export const orderManagementCapabilities: readonly Capability[] = [
   {
     id: 'order-management:product-order:confirm-payment',
     oda: 'TMFC002',
-    entities: ['order-management:product-order', 'payment-management:payment'],
+    entities: ['order-management:product-order'],
     permissions: ['order-management:product-order:confirm-payment'],
     screens: ['operation:product-order'],
-    status: 'planned',
+    status: 'implemented',
     verticals: 'all',
   },
 ];

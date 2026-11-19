@@ -3,6 +3,7 @@ export * from './client/client-types';
 export * from './client/latest-orders-tile';
 export * from './client/order-context';
 export * from './client/order-crud';
+export * from './client/order-payment-region';
 export * from './client/reference-labels';
 export * from './order-push-topics';
 export * from './order-surfaces';

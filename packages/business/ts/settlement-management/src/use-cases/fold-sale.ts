@@ -4,6 +4,7 @@ import {
   readPlacedOrder,
 } from '@r10c/business-ts-order-contracts';
 import { readPaymentOutcome } from '@r10c/business-ts-payment-contracts';
+import { collectedByVendor } from '@r10c/business-ts-sales-vocabulary';
 import { Effect } from 'effect';
 
 import { type FoldOutcome, SaleJoinTag } from '../ports/settlement-ports';
@@ -77,8 +78,11 @@ export const foldCapture = (consumer: string, event: DomainEvent) =>
     const join = yield* SaleJoinTag;
     const payment = yield* readPaymentOutcome(event.data);
     const reports: FoldReport[] = [];
-    // Cash a courier collected is in the vendor's hand, not the platform's.
-    const collectedBy = payment.paymentMethod === 'cod' ? 'vendor' : 'platform';
+    // Cash a courier collected, or a link paid into the seller's own acquirer
+    // account, is in the vendor's hand, not the platform's (ADR 0081 §5).
+    const collectedBy = collectedByVendor(payment.paymentMethod)
+      ? 'vendor'
+      : 'platform';
     for (const { orderId, amount } of payment.allocations) {
       const outcome = yield* join.contribute(
         { consumer, eventId: `${event.id}#${orderId}` },

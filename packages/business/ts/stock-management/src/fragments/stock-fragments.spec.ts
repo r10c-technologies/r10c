@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
   STOCK_FRAGMENTS,
   stockConvert,
+  stockRelease,
   stockReserve,
 } from './stock-fragments.js';
 
@@ -33,8 +34,9 @@ const slipOf = (refs: readonly string[]): Slip => ({
 describe('stock fragments', () => {
   it('are pinned and owned by stock-management', () => {
     expect(STOCK_FRAGMENTS.map(fragmentRef)).toEqual([
-      'stock.reserve@2',
+      'stock.reserve@3',
       'stock.convert@3',
+      'stock.release@1',
       'stock.restore@4',
     ]);
     expect(new Set(STOCK_FRAGMENTS.map(f => f.module))).toEqual(
@@ -49,6 +51,21 @@ describe('stock fragments', () => {
           fragmentRef(stockReserve),
           'flow.commit@1',
           fragmentRef(stockConvert),
+        ]),
+        catalog,
+      ),
+    ).toEqual([]);
+  });
+
+  // A link order never paid lets its hold go past the commit point, by the
+  // same route the reservation's compensation calls (ADR 0081 §2).
+  it('let a release after the commit point consume the hold', () => {
+    expect(
+      validateSlip(
+        slipOf([
+          fragmentRef(stockReserve),
+          'flow.commit@1',
+          fragmentRef(stockRelease),
         ]),
         catalog,
       ),

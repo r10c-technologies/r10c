@@ -6,6 +6,7 @@ import {
 import { makeEntityEnvelope } from '@entifix/core';
 import {
   Reservation,
+  ReservationMaxHoldSecondsTag,
   ReservationTtlSecondsTag,
   StockLedgerTag,
   StockMovement,
@@ -35,20 +36,29 @@ const world = () => {
   const layer = Layer.mergeAll(
     Layer.succeed(StockLedgerTag, ledger),
     Layer.succeed(ReservationTtlSecondsTag, 900),
+    Layer.succeed(ReservationMaxHoldSecondsTag, 3600),
     Layer.succeed(OrganizationIdTag, 'acme'),
   );
   const run = <A, E>(
     effect: Effect.Effect<
       A,
       E,
-      StockLedgerTag | ReservationTtlSecondsTag | OrganizationIdTag
+      
+      | StockLedgerTag
+      | ReservationTtlSecondsTag
+      | ReservationMaxHoldSecondsTag
+      | OrganizationIdTag
     >,
   ) => Effect.runPromise(Effect.provide(effect, layer));
   const refusal = <A, E>(
     effect: Effect.Effect<
       A,
       E,
-      StockLedgerTag | ReservationTtlSecondsTag | OrganizationIdTag
+      
+      | StockLedgerTag
+      | ReservationTtlSecondsTag
+      | ReservationMaxHoldSecondsTag
+      | OrganizationIdTag
     >,
   ) => Effect.runPromise(Effect.flip(Effect.provide(effect, layer)));
   return { run, refusal };
@@ -121,6 +131,24 @@ describe('the stock declarations', () => {
       available: 1,
     });
     expect(zero).toMatchObject({ code: 'invalidBody', category: 'invalid' });
+  });
+
+  it('holds for as long as the step states, and refuses longer than the bound', async () => {
+    const { run, refusal } = world();
+    await run(record({ payload: receipt(3) }, context));
+    const before = Date.now();
+
+    const held = (await run(
+      take({ payload: { ...hold(1), holdSeconds: 3600 } }, context),
+    )) as unknown as { data: { expiresAt: string } };
+    const long = await refusal(
+      take({ payload: { ...hold(1), holdSeconds: 3601 } }, context),
+    );
+
+    expect(Date.parse(held.data.expiresAt)).toBeGreaterThanOrEqual(
+      before + 3_600_000 - 1000,
+    );
+    expect(long).toMatchObject({ code: 'invalidBody' });
   });
 });
 

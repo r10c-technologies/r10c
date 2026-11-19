@@ -40,6 +40,13 @@ export interface SeededVendor {
     readonly taxRegime: 'general' | 'small-taxpayer' | 'simplified';
     readonly establishmentCode: string;
   };
+  /**
+   * Whether the organization is seeded taking payment links (ADR 0081 §1) —
+   * the demo vendor does, the second does not, so a basket across both can
+   * show the tender offered for one seller and not the other. Written only at
+   * creation, like the fiscal identity.
+   */
+  readonly acceptsPaymentLink: boolean;
 }
 
 export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
@@ -55,6 +62,7 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
       taxRegime: 'general',
       establishmentCode: '1',
     },
+    acceptsPaymentLink: true,
   },
   {
     organizationId: 'second-organization',
@@ -73,6 +81,7 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
       taxRegime: 'small-taxpayer',
       establishmentCode: '1',
     },
+    acceptsPaymentLink: false,
   },
 ];
 

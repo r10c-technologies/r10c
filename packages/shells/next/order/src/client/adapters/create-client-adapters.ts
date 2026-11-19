@@ -13,7 +13,12 @@ import {
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Context } from 'effect';
 
-import type { OrderAdapters } from '../client-types';
+import type {
+  OrderAdapters,
+  PaymentLinkOutcome,
+  PaymentLinkPort,
+  PaymentLinkProviderOption,
+} from '../client-types';
 
 /**
  * Where every adapter below resolves its URL, bound when each is built — the
@@ -89,6 +94,57 @@ const productOrderUseCases = makeEntityRestUseCaseRunner(
   ORDER_SERVICE,
 );
 
+/** The `errors` code a refusal's problem body names, or `unexpected`. */
+const refusalOf = async (response: Response): Promise<PaymentLinkOutcome> => {
+  if (response.ok) return { ok: true };
+  const body = (await response.json().catch(() => undefined)) as
+    | { code?: unknown }
+    | undefined;
+  return {
+    ok: false,
+    code: typeof body?.code === 'string' ? body.code : 'unexpected',
+  };
+};
+
+/** One verb on one order, posted through the proxy with its body. */
+const postVerb = (orderId: string, verb: string, body: unknown) =>
+  fetch(
+    `/api/order/product-order/${encodeURIComponent(orderId)}/${verb}`,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        // An RFC 9651 String, fresh per submit: a retried click is a new
+        // decision, and the order's status refuses a second confirmation.
+        'idempotency-key': `"${globalThis.crypto.randomUUID()}"`,
+      },
+      body: JSON.stringify(body),
+    },
+  )
+    .then(refusalOf)
+    .catch((): PaymentLinkOutcome => ({ ok: false, code: 'unexpected' }));
+
+/**
+ * A payment-link order's verbs and its provider dictionary, through the same
+ * proxy. A dictionary that cannot be read is an empty one: the form then has
+ * no provider to offer, rather than one it made up.
+ */
+const paymentLink: PaymentLinkPort = {
+  providers: () =>
+    fetch('/api/order/payment-link-provider')
+      .then(async response =>
+        response.ok
+          ? ((await response.json()) as {
+              items?: PaymentLinkProviderOption[];
+            })
+          : {},
+      )
+      .then(body => body.items ?? [])
+      .catch(() => []),
+  setLink: (orderId, body) => postVerb(orderId, 'set-payment-link', body),
+  confirm: (orderId, body) => postVerb(orderId, 'confirm-payment', body),
+};
+
 export function createClientAdapters(): OrderAdapters {
-  return { productOrderRest, metadata, productOrderUseCases };
+  return { productOrderRest, metadata, productOrderUseCases, paymentLink };
 }

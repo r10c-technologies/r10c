@@ -6,6 +6,7 @@ import { ProductOrder } from '@r10c/business-ts-order-management';
 
 import { PRODUCT_ORDER_SURFACE } from '../order-surfaces';
 import { useOrderAdapters } from './order-context';
+import { OrderPaymentRegion } from './order-payment-region';
 
 export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
   ProductOrder,
@@ -36,6 +37,9 @@ export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
     // carries the same note over the same pair.
     metadata: 'metadata',
     useCases: 'productOrderUseCases',
+    // A payment-link order's link and confirmation: two verbs with a body,
+    // which the header's buttons cannot send (ADR 0081).
+    regions: order => [<OrderPaymentRegion key="payment" order={order} />],
   },
 );
 

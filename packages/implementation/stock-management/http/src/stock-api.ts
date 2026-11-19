@@ -124,7 +124,8 @@ export const reservationApi = defineEntityApi(
       write: { kind: 'crossing', organization: true },
     },
     override: {
-      // A flow step: the line's offering and quantity, flat.
+      // A flow step: the line's offering and quantity, flat, and — for a
+      // hold that must outlive a seller's decision — how long it lives.
       create: {
         idempotent: 'unit',
         payload: JsonBody,
@@ -139,6 +140,9 @@ export const reservationApi = defineEntityApi(
               organizationId: organizationOf(context),
               reservation,
               commandId: yield* commandId,
+              holdSeconds: (
+                request.payload as { holdSeconds?: unknown } | undefined
+              )?.holdSeconds,
             });
             return makeEntityEnvelope(
               Reservation,

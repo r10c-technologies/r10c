@@ -66,6 +66,11 @@ export const transactionSlice: SliceDeclaration = {
     'DELETE /api/product-order/:id',
     'POST|DELETE /api/product-order/:id/cancelling',
     'POST /api/product-order/:id/confirmed',
+    // A payment-link segment's commit point, and the read its wait names: a
+    // wait makes no call, and is completed by the `order.*` event it waits on
+    // (ADR 0081).
+    'POST /api/product-order/:id/awaiting-payment',
+    'GET /api/product-order/:id',
     'POST /api/product-order/:id/dispatched',
     'POST /api/product-order/:id/closed',
     'POST /api/payment',
@@ -106,6 +111,17 @@ export const transactionSlice: SliceDeclaration = {
       dedupe: 'natural',
       dedupeReason:
         'a signal claims the parked wait with one conditional write, so a redelivered report finds it claimed and is let go — the engine is the inbox',
+    },
+    // What became of a payment-link order: its seller confirmed it, or it was
+    // cancelled — expired or withdrawn. Each answers the checkout's wait on
+    // that order (ADR 0081 §4); an event about any other order is let go.
+    {
+      event: 'order.*',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'natural',
+      dedupeReason:
+        'a signal claims the parked wait with one conditional write, so a redelivered answer finds it claimed and is let go — the engine is the inbox',
     },
   ],
 };

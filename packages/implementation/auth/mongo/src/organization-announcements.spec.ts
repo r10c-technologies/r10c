@@ -72,8 +72,15 @@ describe('announcementOf', () => {
       announcedAt: FIRST.toISOString(),
       acceptsCod: false,
       holdsStock: false,
+      acceptsLink: false,
       fiscal: FISCAL,
     });
+  });
+
+  it('says the seller takes payment links when its organization says so', () => {
+    expect(
+      announcementOf({ ...SEED, acceptsPaymentLink: true, updatedAt: FIRST }),
+    ).toMatchObject({ acceptsLink: true });
   });
 
   it('announces nothing for an organization with no fiscal identity', () => {

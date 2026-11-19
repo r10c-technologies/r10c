@@ -3666,6 +3666,9 @@ importers:
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.23.3(@entifix/transactions@0.23.3(effect@4.0.7))(effect@4.0.7)
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/business-ts-settlement-management':
         specifier: workspace:*
         version: link:../../../business/ts/settlement-management
@@ -4421,6 +4424,9 @@ importers:
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../../../business/ts/flow-contracts
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/business-ts-tax-policy':
         specifier: workspace:*
         version: link:../../../business/ts/tax-policy

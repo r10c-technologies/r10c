@@ -21,6 +21,7 @@ describe('PublishedVendor', () => {
       announcedAt: new Date('2026-10-23T10:00:00.000Z'),
       acceptsCod: false,
       holdsStock: false,
+      acceptsLink: false,
       taxId: '',
       legalName: '',
       taxRegime: '',
@@ -37,6 +38,7 @@ describe('PublishedVendor', () => {
         announcedAt: new Date('2026-10-23T11:00:00.000Z'),
         acceptsCod: true,
         holdsStock: true,
+        acceptsLink: true,
         taxId: '20000006',
         legalName: 'Terra Studio',
         taxRegime: 'small-taxpayer',
@@ -49,6 +51,7 @@ describe('PublishedVendor', () => {
     expect(vendor?.announcedAt.toISOString()).toBe('2026-10-23T11:00:00.000Z');
     expect(vendor?.acceptsCod).toBe(true);
     expect(vendor?.holdsStock).toBe(true);
+    expect(vendor?.acceptsLink).toBe(true);
     expect([
       vendor?.taxId,
       vendor?.legalName,

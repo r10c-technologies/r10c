@@ -284,8 +284,29 @@ export interface ReceiptBilledTo {
   readonly name: string;
 }
 
+/**
+ * Where a payment-link order stands for its buyer: waiting until when, and the
+ * link the seller set, if any (ADR 0081 §10). Read back on every render, never
+ * kept in the receipt cookie.
+ */
+export interface ReceiptPayment {
+  readonly awaiting: boolean;
+  readonly dueAt?: string;
+  /** The order expired before its seller confirmed a payment. */
+  readonly expired: boolean;
+  readonly link?: {
+    readonly url: string;
+    readonly host: string;
+    readonly providerName: string;
+    /** `other`: a provider nobody vouched for, so its host is shown. */
+    readonly unlisted: boolean;
+  };
+}
+
 export interface ReceiptDetails {
   readonly delivery?: ReceiptDelivery;
+  /** Each payment-link order's state, keyed by order id. */
+  readonly payments: ReadonlyMap<string, ReceiptPayment>;
   /** The name each line was sold under, keyed `<orderId>/<offeringId>`. */
   readonly lineNames: ReadonlyMap<string, string>;
   /**
@@ -306,6 +327,46 @@ const billedToOf = (
     idType,
     taxId: typeof buyerTaxId === 'string' ? buyerTaxId : '',
     name: typeof buyerTaxName === 'string' ? buyerTaxName : '',
+  };
+};
+
+/** An `https` link's host, or `undefined` for anything else. */
+const httpsHost = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ? parsed.hostname : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * A payment-link order's state as its buyer reads it, or `undefined` for an
+ * order paid any other way. A link that is not `https` is not shown: the
+ * service refuses one, so its presence means the record was not ours.
+ */
+const paymentOf = (
+  data: Record<string, unknown>,
+): ReceiptPayment | undefined => {
+  if (data['paymentMethod'] !== 'link') return undefined;
+  const url = data['paymentLinkUrl'];
+  const host = filled(url) ? httpsHost(url) : undefined;
+  const provider = data['paymentLinkProviderName'];
+  const dueAt = data['paymentDueAt'];
+  return {
+    awaiting: data['status'] === 'awaiting-payment',
+    ...(filled(dueAt) ? { dueAt } : {}),
+    expired: data['cancelCause'] === 'payment-expired',
+    ...(host === undefined || !filled(url)
+      ? {}
+      : {
+          link: {
+            url,
+            host,
+            providerName: filled(provider) ? provider : host,
+            unlisted: data['paymentLinkProviderKey'] === 'other',
+          },
+        }),
   };
 };
 
@@ -355,11 +416,14 @@ export const receiptDetailsOf = (
   if (!isRecord(group) || !Array.isArray(orders)) return undefined;
   const lineNames = new Map<string, string>();
   const ivaIncluded = new Map<string, number>();
+  const payments = new Map<string, ReceiptPayment>();
   let billedTo: ReceiptBilledTo | undefined;
   for (const envelope of orders) {
     const data = isRecord(envelope) ? envelope['data'] : undefined;
     if (!isRecord(data) || !filled(data['id'])) continue;
     billedTo ??= billedToOf(data);
+    const payment = paymentOf(data);
+    if (payment !== undefined) payments.set(data['id'], payment);
     if (
       typeof data['taxAmount'] === 'number' &&
       data['sellerTaxRegime'] !== 'small-taxpayer'
@@ -385,6 +449,7 @@ export const receiptDetailsOf = (
     ...(delivery === undefined ? {} : { delivery }),
     lineNames,
     ivaIncluded,
+    payments,
     ...(billedTo === undefined ? {} : { billedTo }),
   };
 };

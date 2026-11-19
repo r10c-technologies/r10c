@@ -104,7 +104,7 @@ paid. So a `link` segment is committed like a `cod` one and **then** waits:
 | `place`                          | `stock.reserve@3` with `holdSeconds` stated by the coordinator (§3); `order.write`                                                       | `stock.reserve` holds for the default |
 | `pay` (once)                     | excluded from `payment.capture`; a basket that is all `link`/`cod` passes `flow.commit@1`                                                | yes                                   |
 | `fulfil`                         | `order.await-payment@1` — `pending → awaiting-payment`, stamping `paymentDueAt`                                                          | convert, confirm, open as today       |
-| `await-payment` (new)            | wait `order.payment-decision@1`, outcomes `confirmed` \| `cancelled`, correlation `payment:<orderId>`, timeout §3, `onTimeout: 'strand'` | not composed                          |
+| `await-payment` (new)            | wait `order.payment-decision@1`, outcomes `confirmed` \| `cancelled`, correlation `payment:<groupId>:<vendorId>`, timeout §3, `onTimeout: 'strand'` | not composed                          |
 | `paid` (new, on `confirmed`)     | `payment.record-confirmation@1`, `stock.convert@3`, `order.confirm@2`, `fulfilment.open@3`                                               | not composed                          |
 | `unpaid` (new, on `cancelled`)   | `stock.release@1`                                                                                                                        | not composed                          |
 
@@ -142,9 +142,11 @@ to 48 hours (Q16), and one grace row, `paymentWindowGrace`, set to 1 hour. The
 coordinator states both into the flow, as it states the delivery windows
 (ADR 0070). They are never a caller's to say.
 
-- `order.await-payment@1` receives `paymentDueAt = now + paymentWindow` from
-  its parameters. order-service holds no row of its own for it. Two rows
-  meaning one number is the trap ADR 0058 §5 recorded for the receipt cookie.
+- `order.await-payment@1` receives `paymentWindowMs` from its parameters and
+  stamps `paymentDueAt = now + paymentWindow` when the step runs — a slip
+  states no clock, so the same start always composes the same slip.
+  order-service holds no row of its own for it. Two rows meaning one number
+  is the trap ADR 0058 §5 recorded for the receipt cookie.
 - `stock.reserve@3` receives `holdSeconds = paymentWindow + 2 × grace`.
   stock-service refuses more than `stock-service / reservation /
 maxHoldSeconds` (`invalidBody`), because a crossing caller stating an expiry
@@ -176,11 +178,13 @@ and an expiry wins, at the store, whatever the timing:
 | expiry            | an order-service sweep, every `order / paymentExpirySweepMs`             | `awaiting-payment → cancelled` where `paymentDueAt < now`, cause `payment-expired`                                          | `order.cancelled`         |
 | buyer withdraws   | the buyer's capability (§6), on the existing `buyer-cancellation` route  | `awaiting-payment → cancelled`, cause `buyer`                                                                               | `order.cancelled`         |
 
-transaction-service subscribes to `order.payment-confirmed` and
-`order.cancelled` as one `work` queue with `natural` dedupe, for the reason its
-`shipping-order.*` subscription gives. Each event signals the wait correlated
-`payment:<orderId>`. An event for an order with no parked wait is let go, and
-that covers every non-`link` cancellation. `order.payment-confirmed` exists
+transaction-service subscribes to `order.*` as one `work` queue with `natural`
+dedupe, for the reason its `shipping-order.*` subscription gives, and acts on
+`order.payment-confirmed` and `order.cancelled`. Each signals the wait
+correlated `payment:<groupId>:<vendorId>` — the order's own id is minted by a
+step, so the slip cannot name it, while its group (the flow's id) and its
+vendor (the segment's) are known when it is composed. An event for an order
+not paid by link is let go, and that covers every other cancellation. `order.payment-confirmed` exists
 because a subscriber exists ([ADR 0068](0068-one-outbox-ordered-per-aggregate.md)).
 
 The confirmation verb lives on the **order**, not in payment-service, for two
@@ -195,9 +199,10 @@ payment-service still writes every `Payment`, behind a crossing token, as the
 step after the wait. A `payment.captured` that arrives at an order the verb
 already moved to `paid` is left alone by the existing conditional write.
 
-The seller's verb answers `202`, and its outcome arrives by push, as
-`dispatch` does (ADR 0073). A confirmation that lost to an expiry is refused
-`409 orderNotAwaitingPayment`. Its copy tells the seller the order expired and
+The seller's verb answers `200` with the order, `paid`: the decision is made
+at that write, and it starts no flow — the checkout already waiting on it
+carries on by the event (unlike `dispatch`, which starts one). A confirmation
+that lost to an expiry is refused `409 orderNotAwaitingPayment`. Its copy tells the seller the order expired and
 that any money taken goes back through their acquirer. The platform never held
 it.
 

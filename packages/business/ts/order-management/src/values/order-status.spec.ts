@@ -6,6 +6,7 @@ describe('OrderStatuses', () => {
   it('follows one vendor order from checkout to delivery or cancellation', () => {
     expect(OrderStatuses).toEqual([
       'pending',
+      'awaiting-payment',
       'paid',
       'confirmed',
       'cancelling',

@@ -95,3 +95,84 @@ describe('createClientAdapters', () => {
     expect(ProductOrder.name).toBe('ProductOrder');
   });
 });
+
+describe('the payment-link port', () => {
+  const { paymentLink } = createClientAdapters();
+
+  it('reads the provider dictionary through the proxy, and an unreadable one as empty', async () => {
+    server.use(
+      http.get('*/api/order/payment-link-provider', () =>
+        HttpResponse.json({ items: [{ key: 'other', name: 'Other', hosts: [] }] }),
+      ),
+    );
+    expect(await paymentLink.providers()).toEqual([
+      { key: 'other', name: 'Other', hosts: [] },
+    ]);
+
+    server.use(
+      http.get('*/api/order/payment-link-provider', () =>
+        HttpResponse.json({}, { status: 503 }),
+      ),
+    );
+    expect(await paymentLink.providers()).toEqual([]);
+
+    server.use(
+      http.get('*/api/order/payment-link-provider', () => HttpResponse.error()),
+    );
+    expect(await paymentLink.providers()).toEqual([]);
+  });
+
+  it('posts each verb with its body and a fresh key, and reads a refusal’s code', async () => {
+    const posted: Array<{ url: string; key: string | null; body: unknown }> =
+      [];
+    server.use(
+      http.post('*/api/order/product-order/:id/:verb', async ({ request }) => {
+        posted.push({
+          url: request.url,
+          key: request.headers.get('idempotency-key'),
+          body: await request.json(),
+        });
+        return request.url.endsWith('confirm-payment')
+          ? HttpResponse.json(
+              { code: 'orderNotAwaitingPayment' },
+              { status: 409 },
+            )
+          : HttpResponse.json({ data: {} });
+      }),
+    );
+
+    const set = await paymentLink.setLink('ord-1', {
+      url: 'https://x.example',
+      providerKey: 'other',
+    });
+    const confirmed = await paymentLink.confirm('ord-1', { reference: 'A' });
+
+    expect(set).toEqual({ ok: true });
+    expect(confirmed).toEqual({ ok: false, code: 'orderNotAwaitingPayment' });
+    expect(posted[0]?.url).toMatch(/product-order\/ord-1\/set-payment-link$/);
+    expect(posted[0]?.key).toMatch(/^"[0-9a-f-]+"$/);
+    expect(posted[1]?.body).toEqual({ reference: 'A' });
+  });
+
+  it('reads a refusal with no code, or no answer, as unexpected', async () => {
+    server.use(
+      http.post('*/api/order/product-order/:id/:verb', () =>
+        HttpResponse.text('nope', { status: 500 }),
+      ),
+    );
+    expect(await paymentLink.confirm('o', { reference: 'A' })).toEqual({
+      ok: false,
+      code: 'unexpected',
+    });
+
+    server.use(
+      http.post('*/api/order/product-order/:id/:verb', () =>
+        HttpResponse.error(),
+      ),
+    );
+    expect(await paymentLink.confirm('o', { reference: 'A' })).toEqual({
+      ok: false,
+      code: 'unexpected',
+    });
+  });
+});

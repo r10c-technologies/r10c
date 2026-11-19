@@ -1,3 +1,4 @@
+import { collectedByVendor } from '@r10c/business-ts-sales-vocabulary';
 import { Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
@@ -65,11 +66,13 @@ export const makeInMemorySettlementStore = (
       half,
     );
     joins.set(orderId, join);
-    // A cash-on-delivery order cancelled before its cash was collected: there
-    // is nothing to settle and nothing to reverse, ever.
+    // An order whose vendor collects — cash on delivery, a payment link —
+    // cancelled before anything was collected: there is nothing to settle and
+    // nothing to reverse, ever (ADR 0081 §5).
     if (
       !join.folded &&
-      join.paymentMethod === 'cod' &&
+      join.paymentMethod !== undefined &&
+      collectedByVendor(join.paymentMethod) &&
       join.cancelledAt !== undefined &&
       join.decidedAt === undefined
     ) {

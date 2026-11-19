@@ -9,6 +9,7 @@ import {
   mongoUnitFault,
   MongoUnitOfWorkTag,
 } from '@entifix/mongo/transactions';
+import { collectedByVendor } from '@r10c/business-ts-sales-vocabulary';
 import {
   Agreement,
   type CollectedBy,
@@ -202,12 +203,14 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           ),
         )) as PendingSale;
 
-        // A cash-on-delivery order cancelled before its cash was collected:
-        // nothing to settle and nothing to reverse, ever.
+        // An order whose vendor collects — cash on delivery, a payment link
+        // — cancelled before anything was collected: nothing to settle and
+        // nothing to reverse, ever (ADR 0081 §5).
         if (
           merged.voided === true ||
           (!merged.folded &&
-            merged.paymentMethod === 'cod' &&
+            typeof merged.paymentMethod === 'string' &&
+            collectedByVendor(merged.paymentMethod) &&
             merged.cancelledAt !== undefined &&
             merged.decidedAt === undefined)
         ) {

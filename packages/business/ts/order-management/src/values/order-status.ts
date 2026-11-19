@@ -4,7 +4,9 @@ import type { EnumTone } from '@entifix/core';
  * Where one vendor's order is in its life.
  *
  * `pending` → `paid` when a card capture lands, or `pending` → `confirmed` at a
- * cash-on-delivery checkout's commit point; a paid order is `confirmed` once its
+ * cash-on-delivery checkout's commit point; a payment-link order goes
+ * `pending` → `awaiting-payment` at its commit point and waits there until the
+ * seller confirms it `paid` or its window lapses it `cancelled` (ADR 0081 §4); a paid order is `confirmed` once its
  * checkout commits. From `confirmed` it is `dispatched` with its shipment, then
  * `fulfilled` on delivery — or `cancelled` when the parcel is refused or
  * returned. `cancelled` is reachable before dispatch only through `cancelling`.
@@ -25,6 +27,7 @@ import type { EnumTone } from '@entifix/core';
  */
 export const OrderStatuses = [
   'pending',
+  'awaiting-payment',
   'paid',
   'confirmed',
   'cancelling',
@@ -41,6 +44,7 @@ export type OrderStatus = (typeof OrderStatuses)[number];
  */
 export const OrderStatusTones = {
   pending: 'warning',
+  'awaiting-payment': 'warning',
   paid: 'info',
   confirmed: 'info',
   cancelling: 'warning',

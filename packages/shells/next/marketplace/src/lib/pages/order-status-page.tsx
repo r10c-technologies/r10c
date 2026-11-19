@@ -35,6 +35,7 @@ import {
   type ReceiptDetails,
   receiptDetailsOf,
   type ReceiptOrder,
+  type ReceiptPayment,
 } from '../cart/receipt-state';
 import { refreshCheckout, settleCheckout } from '../cart/settle-action';
 import { settleCancellation } from '../cart/settle-cancel-action';
@@ -378,6 +379,7 @@ async function VendorOrderCard({
   );
 
   const iva = details?.ivaIncluded.get(order.orderId);
+  const payment = details?.payments.get(order.orderId);
 
   return (
     <Card>
@@ -393,10 +395,13 @@ async function VendorOrderCard({
           </Stack>
           <Text muted data-testid="vendor-order-method">
             {t(
-              `storefront.checkout.method.${order.method === 'cod' ? 'cod' : 'card'}`,
+              `storefront.checkout.method.${order.method === 'cod' || order.method === 'link' ? order.method : 'card'}`,
             )}
           </Text>
         </Cluster>
+        {payment === undefined ? undefined : (
+          <LinkPayment locale={locale} payment={payment} />
+        )}
         {order.cancelled === true ? (
           <span>
             <StatusTag tone="neutral" data-testid="vendor-order-cancelled">
@@ -519,5 +524,73 @@ function DeliveryCard({
         )}
       </Stack>
     </Card>
+  );
+}
+
+/**
+ * A payment-link order's state for its buyer (ADR 0081): waiting until when,
+ * and the seller's link to pay by — or that it expired unpaid. A provider
+ * nobody listed shows its host in full beside the button, so the buyer sees
+ * whose link it is before following it (§10).
+ */
+function LinkPayment({
+  locale,
+  payment,
+}: {
+  readonly locale: Locale;
+  readonly payment: ReceiptPayment;
+}) {
+  const t = getServerTFor(locale, 'r10c');
+  if (payment.expired) {
+    return (
+      <Text muted data-testid="vendor-order-payment-expired">
+        {t('storefront.order.payment.expired')}
+      </Text>
+    );
+  }
+  if (!payment.awaiting) return undefined;
+  const until =
+    payment.dueAt === undefined
+      ? undefined
+      : new Intl.DateTimeFormat(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date(payment.dueAt));
+  return (
+    <Stack gap="2xs" data-testid="vendor-order-payment">
+      <span>
+        <StatusTag tone="warning" data-testid="vendor-order-awaiting">
+          {t('storefront.order.payment.awaiting')}
+        </StatusTag>
+      </span>
+      {until === undefined ? undefined : (
+        <Text muted>{t('storefront.order.payment.until', { time: until })}</Text>
+      )}
+      {payment.link === undefined ? (
+        <Text muted data-testid="vendor-order-no-link">
+          {t('storefront.order.payment.noLink')}
+        </Text>
+      ) : (
+        <Stack gap="3xs">
+          <ButtonLink
+            href={payment.link.url}
+            rel="noopener noreferrer"
+            target="_blank"
+            data-testid="vendor-order-pay-link"
+          >
+            {t('storefront.order.payment.pay', {
+              provider: payment.link.providerName,
+            })}
+          </ButtonLink>
+          {payment.link.unlisted ? (
+            <Text muted data-testid="vendor-order-link-host">
+              {t('storefront.order.payment.unlisted', {
+                host: payment.link.host,
+              })}
+            </Text>
+          ) : undefined}
+        </Stack>
+      )}
+    </Stack>
   );
 }

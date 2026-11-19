@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { TaxRulesTag } from './checkout-tax.js';
-import { DeliveryDialsTag } from './delivery-dials.js';
+import { DeliveryDialsTag, PaymentDialsTag } from './delivery-dials.js';
 import { FLOW_STARTS, flowStartEndpoints } from './flow-endpoints.js';
 import { VendorFactsTag } from './vendor-facts.js';
 
@@ -13,6 +13,9 @@ import { VendorFactsTag } from './vendor-facts.js';
 const sellerWith = (entitlements: readonly string[]) => ({
   holdsStock: entitlements.includes('stock-management'),
   acceptsCod: entitlements.includes('shipping-order-management'),
+  // Not an entitlement: a published fact a seller authors (ADR 0081 §1),
+  // marked here by a pseudo-entitlement so a case can name it.
+  acceptsLink: entitlements.includes('link'),
   taxId: '10000003',
   legalName: 'Demo Vendor, S.A.',
   taxRegime: 'general',
@@ -27,7 +30,12 @@ const TAX_RULES = {
 
 const [checkout, cancellation, delivery] = flowStartEndpoints;
 
-const DIALS = { awaitDeliveryMs: 1_209_600_000, awaitReturnMs: 2_592_000_000 };
+const DIALS = {
+  awaitDeliveryMs: 1_209_600_000,
+  awaitReturnMs: 2_592_000_000,
+  paymentWindowMs: 172_800_000,
+  paymentGraceMs: 3_600_000,
+};
 
 const PROVISIONED = ['stock-management', 'shipping-order-management'];
 
@@ -76,6 +84,7 @@ const world = (facts: Record<string, readonly string[]> = {}) => {
           Effect.provideService(TaxRulesTag, TAX_RULES),
           Effect.provideService(FlowEngineTag, flows.service as never),
           Effect.provideService(DeliveryDialsTag, DIALS),
+          Effect.provideService(PaymentDialsTag, DIALS),
         ),
       ),
     );
@@ -189,7 +198,9 @@ describe('the flow start routes', () => {
   });
 
   it('treats a vendor nothing is known about as one that does not ship', () => {
-    expect(FLOW_STARTS.checkout.refusal(basket, new Map())).toMatchObject({
+    expect(
+      FLOW_STARTS.checkout.refusal(basket, new Map(), new Map()),
+    ).toMatchObject({
       _tag: 'VendorDoesNotShip',
       vendorId: 'v-1',
     });
@@ -210,6 +221,43 @@ describe('the flow start routes', () => {
     });
     expect(storefront.flows.started).toEqual([]);
     expect(counter.flows.started).toHaveLength(1);
+  });
+
+  it('starts a payment-link checkout in the window configured, for a seller who takes links', async () => {
+    const { flows, run } = world({ 'v-1': [...PROVISIONED, 'link'] });
+    const byLink = {
+      ...basket,
+      vendors: basket.vendors.map(part => ({
+        ...part,
+        paymentMethod: 'link',
+      })),
+      // The caller's window is never the one that runs.
+      paymentWindowMs: 1,
+    };
+
+    await run(checkout, byLink);
+
+    const steps = flows.started[0]?.stages.flatMap(stage => stage.steps);
+    expect(
+      steps?.find(step => step.ref === 'order.await-payment@1')?.parameters,
+    ).toMatchObject({ paymentWindowMs: DIALS.paymentWindowMs });
+  });
+
+  it('refuses a link to a seller who takes none, before anything is composed', async () => {
+    const { flows, run } = world({ 'v-1': PROVISIONED });
+
+    const refused = await run(checkout, {
+      ...basket,
+      vendors: basket.vendors.map(part => ({
+        ...part,
+        paymentMethod: 'link',
+      })),
+    });
+
+    expect(refused).toMatchObject({
+      failure: { _tag: 'VendorDoesNotTakeLinks', vendorId: 'v-1' },
+    });
+    expect(flows.started).toEqual([]);
   });
 
   it.each([
@@ -333,6 +381,7 @@ describe('the checkout start’s fiscal facts', () => {
   it('refuses a buyer whose NIT does not validate before composing anything', () => {
     const refused = FLOW_STARTS.checkout.refusal?.(
       { ...start, buyerTax: { idType: 'nit', taxId: '1', name: 'A' } },
+      new Map(),
       new Map(),
     );
     expect(refused?.code).toBe('invalid');

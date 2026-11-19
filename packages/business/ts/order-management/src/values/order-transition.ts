@@ -9,11 +9,20 @@ import type { OrderStatus } from './order-status';
  * ([ADR 0069](../../../../../docs/adr/0069-a-checkout-group-of-per-vendor-orders.md),
  * [ADR 0070](../../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
  *
+ * `await-payment`, `confirm-payment` and `end-awaiting-payment` are a
+ * payment-link order's: it waits past its checkout's commit point, and exactly
+ * one of the seller's confirmation and its ending — the window lapsing, or
+ * the buyer withdrawing — wins, because both are one conditional write on
+ * `awaiting-payment` (ADR 0081 §4).
+ *
  * `claim-cancel` and `settle-cancel` are the two halves of one cancellation,
  * separated because a refund sits between them and cannot be undone; the claim
  * is compensatable, the settle only rolls forward.
  */
 export const OrderTransitions = [
+  'await-payment',
+  'confirm-payment',
+  'end-awaiting-payment',
   'confirm',
   'mark-dispatched',
   'close-fulfilled',
@@ -48,6 +57,9 @@ const TRANSITIONS: Record<
   OrderTransition,
   Partial<Record<OrderStatus, OrderStatus>>
 > = {
+  'await-payment': { pending: 'awaiting-payment' },
+  'confirm-payment': { 'awaiting-payment': 'paid' },
+  'end-awaiting-payment': { 'awaiting-payment': 'cancelled' },
   confirm: { pending: 'confirmed', paid: 'confirmed' },
   'mark-dispatched': { confirmed: 'dispatched' },
   'close-fulfilled': { dispatched: 'fulfilled' },

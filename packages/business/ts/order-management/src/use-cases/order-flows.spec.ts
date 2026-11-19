@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { CheckoutGroup } from '../entities/checkout-group/index.js';
 import { ProductOrder } from '../entities/product-order/index.js';
 import { BuyerNotifierTag } from '../ports/buyer-notifier.js';
+import { PaymentLinkProvidersTag } from '../ports/payment-link-providers.js';
 import {
   CheckoutGroupStoreTag,
   ProductOrderStoreTag,
@@ -27,11 +28,14 @@ import {
 import { OrderItem } from '../values/order-item.js';
 import type { OrderScope } from '../values/order-scope.js';
 import {
+  awaitPayment,
   buyerReceipt,
   CANCELLATION_RECIPE,
   cancellationInput,
   cancelOrderAsBuyer,
   cancelOrderAsStaff,
+  confirmPayment,
+  expireOverduePayments,
   fiscalFactsProblem,
   foreignLinesProblem,
   issueAccessLink,
@@ -41,6 +45,7 @@ import {
   redeemAccess,
   sendAccessLink,
   sendReceiptMail,
+  setPaymentLink,
 } from './order-flows.js';
 
 const GROUP = '7b6f2b0e-6a0c-4b8e-9d55-0f0e6a3a1c11';
@@ -453,12 +458,56 @@ describe('cancelOrderAsBuyer', () => {
     const { run, started, placed } = world();
     const orderId = await placed('confirmed');
 
-    await run(
+    const answer = await run(
       cancelOrderAsBuyer({ orderId, nonce: NONCE, capabilityDigest: 'cap' }),
     );
 
+    expect(answer._tag).toBe('started');
     expect(started).toHaveLength(1);
     expect(started[0]?.input).toMatchObject({ capabilityDigest: 'cap' });
+  });
+
+  it('withdraws an order waiting for its payment link, with no flow', async () => {
+    const { run, started, placed, stores } = world();
+    const orderId = await placed('pending');
+    await run(stores.orders.awaitPayment(orderId, new Date(Date.now() + 60_000), undefined));
+
+    const answer = await run(cancelOrderAsBuyer({ orderId, nonce: NONCE }));
+
+    expect(answer).toMatchObject({
+      _tag: 'withdrawn',
+      order: { status: 'cancelled', cancelCause: 'buyer' },
+    });
+    expect(started).toEqual([]);
+  });
+
+  it('answers a withdrawal that lost to a confirmation as the paid order it now is', async () => {
+    const { run, started, placed, stores } = world();
+    const orderId = await placed('pending');
+    await run(stores.orders.awaitPayment(orderId, new Date(Date.now() + 60_000), undefined));
+    const losing = {
+      ...stores.orders,
+      endAwaitingPayment: () => {
+        // The seller's confirmation lands between the read and the write.
+        void Effect.runSync(
+          stores.orders.confirmPayment(orderId, {
+            reference: 'A-1',
+            confirmedBy: 'staff',
+            confirmedAt: new Date(),
+          }),
+        );
+        return Effect.succeed(undefined);
+      },
+    };
+
+    const answer = await run(
+      cancelOrderAsBuyer({ orderId, nonce: NONCE }).pipe(
+        Effect.provideService(ProductOrderStoreTag, losing),
+      ),
+    );
+
+    expect(answer._tag).toBe('started');
+    expect(started).toHaveLength(1);
   });
 
   it('answers every capability failure alike', async () => {
@@ -839,5 +888,275 @@ describe('fiscalFactsProblem', () => {
     expect(
       fiscalFactsProblem(Object.assign(anOrder(), { netAmount: 1 })),
     ).toContain('add up');
+  });
+});
+
+describe('the payment-link moves', () => {
+  const PROVIDERS = [
+    { key: 'other', name: 'Other', hosts: [] },
+    { key: 'acq', name: 'Acquirer', hosts: ['pay.acq.example'] },
+  ];
+  const waiting = async () => {
+    const w = world();
+    const orderId = await w.placed('pending');
+    await w.run(
+      awaitPayment({ orderId, paymentWindowMs: 60_000, commandId: 'a-1' }),
+    );
+    return { ...w, orderId };
+  };
+  const withProviders = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+    Effect.provideService(effect, PaymentLinkProvidersTag, PROVIDERS);
+
+  it('waits for the payment until the window the coordinator stated', async () => {
+    const before = Date.now();
+    const { run, orderId, stores } = await waiting();
+
+    const order = await run(stores.orders.get(orderId));
+
+    expect(order?.status).toBe('awaiting-payment');
+    expect((order?.paymentDueAt as Date).getTime()).toBeGreaterThanOrEqual(
+      before + 60_000,
+    );
+  });
+
+  it('refuses a window that is not a positive whole number, an unknown order and one already moved', async () => {
+    const { refusal, orderId } = await waiting();
+
+    expect(
+      await refusal(
+        awaitPayment({ orderId, paymentWindowMs: 0, commandId: undefined }),
+      ),
+    ).toMatchObject({ code: 'invalidBody' });
+    expect(
+      await refusal(
+        awaitPayment({
+          orderId: 'nope',
+          paymentWindowMs: 1,
+          commandId: undefined,
+        }),
+      ),
+    ).toMatchObject({ code: 'notFound' });
+    expect(
+      await refusal(
+        awaitPayment({ orderId, paymentWindowMs: 1, commandId: undefined }),
+      ),
+    ).toMatchObject({ code: 'orderNotTransitionable' });
+  });
+
+  it('confirms a waiting order for its vendor, recording who and the number', async () => {
+    const { run, refusal, orderId } = await waiting();
+
+    const blank = await refusal(
+      confirmPayment({
+        orderId,
+        scope: vendor('v-1'),
+        payload: { reference: '  ' },
+        confirmedBy: 'staff-1',
+      }),
+    );
+    const paid = await run(
+      confirmPayment({
+        orderId,
+        scope: vendor('v-1'),
+        payload: { reference: ' AUTH-9 ' },
+        confirmedBy: 'staff-1',
+      }),
+    );
+    const again = await refusal(
+      confirmPayment({
+        orderId,
+        scope: vendor('v-1'),
+        payload: { reference: 'AUTH-9' },
+        confirmedBy: 'staff-1',
+      }),
+    );
+
+    expect(blank).toMatchObject({
+      code: 'invalidPaymentDetails',
+      field: 'reference',
+    });
+    expect(paid).toMatchObject({
+      status: 'paid',
+      paymentReference: 'AUTH-9',
+      paymentConfirmedBy: 'staff-1',
+    });
+    expect(again).toMatchObject({
+      code: 'orderNotAwaitingPayment',
+      standing: 'paid',
+    });
+  });
+
+  it('answers a confirmation that lost the race to an expiry as not awaiting payment', async () => {
+    const { run, refusal, orderId, stores } = await waiting();
+    const lost = {
+      ...stores.orders,
+      confirmPayment: () =>
+        Effect.flatMap(
+          stores.orders.endAwaitingPayment(orderId, 'buyer', new Date()),
+          () => Effect.succeed(undefined),
+        ),
+    };
+
+    const refused = await refusal(
+      confirmPayment({
+        orderId,
+        scope: operator,
+        payload: { reference: 'AUTH-9' },
+        confirmedBy: 'op',
+      }).pipe(Effect.provideService(ProductOrderStoreTag, lost)),
+    );
+    const fresh = await waiting();
+    const vanished = {
+      ...fresh.stores.orders,
+      confirmPayment: () =>
+        Effect.flatMap(fresh.stores.orders.remove(fresh.orderId), () =>
+          Effect.succeed(undefined),
+        ),
+    };
+    const removed = await fresh.refusal(
+      confirmPayment({
+        orderId: fresh.orderId,
+        scope: operator,
+        payload: { reference: 'AUTH-9' },
+        confirmedBy: 'op',
+      }).pipe(Effect.provideService(ProductOrderStoreTag, vanished)),
+    );
+
+    const gone = await run(
+      Effect.flip(
+        Effect.gen(function* () {
+          const store = yield* ProductOrderStoreTag;
+          yield* store.remove(orderId);
+          return yield* confirmPayment({
+            orderId,
+            scope: operator,
+            payload: { reference: 'AUTH-9' },
+            confirmedBy: 'op',
+          });
+        }),
+      ),
+    );
+
+    expect(refused).toMatchObject({
+      code: 'orderNotAwaitingPayment',
+      standing: 'cancelled',
+    });
+    expect(gone).toMatchObject({ code: 'notFound' });
+    expect(removed).toMatchObject({ code: 'notFound' });
+  });
+
+  it('refuses another vendor’s order as though it did not exist', async () => {
+    const { refusal, orderId } = await waiting();
+
+    expect(
+      await refusal(
+        confirmPayment({
+          orderId,
+          scope: vendor('v-2'),
+          payload: { reference: 'A' },
+          confirmedBy: 's',
+        }),
+      ),
+    ).toMatchObject({ code: 'notFound' });
+  });
+
+  it('sets a payment link checked against the provider dictionary', async () => {
+    const { run, refusal, orderId } = await waiting();
+
+    const set = await run(
+      withProviders(
+        setPaymentLink({
+          orderId,
+          scope: vendor('v-1'),
+          payload: {
+            url: 'https://pay.acq.example/p/1',
+            providerKey: 'acq',
+          },
+          setBy: 'staff-1',
+        }),
+      ),
+    );
+    const foreign = await refusal(
+      withProviders(
+        setPaymentLink({
+          orderId,
+          scope: vendor('v-1'),
+          payload: { url: 'https://evil.example/p', providerKey: 'acq' },
+          setBy: 'staff-1',
+        }),
+      ),
+    );
+
+    expect(set).toMatchObject({
+      paymentLinkUrl: 'https://pay.acq.example/p/1',
+      paymentLinkProviderName: 'Acquirer',
+      paymentLinkSetBy: 'staff-1',
+    });
+    expect(foreign).toMatchObject({
+      code: 'invalidPaymentDetails',
+      field: 'url',
+    });
+  });
+
+  it('refuses a link on an order no longer waiting', async () => {
+    const { run, refusal, orderId, stores } = await waiting();
+    const raced = {
+      ...stores.orders,
+      setPaymentLink: () =>
+        Effect.flatMap(
+          stores.orders.endAwaitingPayment(orderId, 'buyer', new Date()),
+          () => Effect.succeed(undefined),
+        ),
+    };
+
+    const refused = await refusal(
+      withProviders(
+        setPaymentLink({
+          orderId,
+          scope: operator,
+          payload: { url: 'https://x.example', providerKey: 'other' },
+          setBy: 'op',
+        }),
+      ).pipe(Effect.provideService(ProductOrderStoreTag, raced)),
+    );
+    const after = await refusal(
+      withProviders(
+        setPaymentLink({
+          orderId,
+          scope: operator,
+          payload: { url: 'https://x.example', providerKey: 'other' },
+          setBy: 'op',
+        }),
+      ),
+    );
+    await run(Effect.void);
+
+    expect(refused).toMatchObject({ code: 'orderNotAwaitingPayment' });
+    expect(after).toMatchObject({ code: 'orderNotAwaitingPayment' });
+  });
+
+  it('expires every overdue order once, and leaves one a confirmation won', async () => {
+    const { run, orderId, stores } = await waiting();
+    const later = new Date(Date.now() + 120_000);
+    const raced = {
+      ...stores.orders,
+      endAwaitingPayment: () => Effect.succeed(undefined),
+    };
+
+    const lost = await run(
+      expireOverduePayments(later).pipe(
+        Effect.provideService(ProductOrderStoreTag, raced),
+      ),
+    );
+    const expired = await run(expireOverduePayments(later));
+    const again = await run(expireOverduePayments(later));
+
+    expect(lost).toBe(0);
+    expect(expired).toBe(1);
+    expect(again).toBe(0);
+    expect(await run(stores.orders.get(orderId))).toMatchObject({
+      status: 'cancelled',
+      cancelCause: 'payment-expired',
+    });
   });
 });

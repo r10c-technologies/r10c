@@ -46,6 +46,12 @@ const CONFIGURATION = fleetConfigurationOf({
     accessLinkHours: 24,
     accessLinkIntervalSeconds: 300,
     storefrontUrl: 'http://localhost:3000/',
+    paymentExpirySweepMs: 60_000,
+  }),
+  paymentLinkProvider: configurationRows({
+    other: '{"name":"Other","hosts":[]}',
+    // A row that does not read as a provider drops out.
+    broken: '{',
   }),
   smtp: configurationRows({
     host: '127.0.0.1',
@@ -73,6 +79,16 @@ describe('the order shell', () => {
     );
 
     expect(exit._tag).toBe('Failure');
+  });
+
+  it('composes with no payment-link providers configured', async () => {
+    const { paymentLinkProvider: _providers, ...rest } = CONFIGURATION.plain;
+
+    const layer = await Effect.runPromise(
+      orderComposition(fleetConfigurationOf(rest)),
+    );
+
+    expect(Layer.isLayer(layer)).toBe(true);
   });
 
   it('offers the booted composition as a layer', () => {

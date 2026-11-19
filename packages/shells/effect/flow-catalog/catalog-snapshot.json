@@ -1017,6 +1017,119 @@
       "fingerprint": "053fa05152ea93"
     },
     {
+      "ref": "order.await-payment@1",
+      "id": "order.await-payment",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "perVendor",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:orderId/awaiting-payment"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              },
+              "paymentWindowMs": {
+                "type": "integer",
+                "maximum": 9007199254740991,
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "orderId",
+              "paymentWindowMs"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable",
+                  "invalidBody"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1ae11de4d063e9"
+    },
+    {
       "ref": "order.claim-cancel@3",
       "id": "order.claim-cancel",
       "version": 3,
@@ -1771,6 +1884,112 @@
         }
       },
       "fingerprint": "10fcc91164045e"
+    },
+    {
+      "ref": "order.payment-decision@1",
+      "id": "order.payment-decision",
+      "version": 1,
+      "module": "order-management",
+      "kind": "wait",
+      "cardinality": "perVendor",
+      "participant": "order-service",
+      "call": {
+        "method": "GET",
+        "path": "/api/product-order/:orderId"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {},
+      "outcomes": [
+        "confirmed",
+        "cancelled"
+      ],
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "not": {}
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "0027523fbca58f"
     },
     {
       "ref": "order.write@6",
@@ -2918,9 +3137,115 @@
       "fingerprint": "027b108c32d686"
     },
     {
-      "ref": "stock.reserve@2",
+      "ref": "stock.release@1",
+      "id": "stock.release",
+      "version": 1,
+      "module": "stock-management",
+      "kind": "retriable",
+      "cardinality": "perLine",
+      "participant": "stock-service",
+      "call": {
+        "method": "DELETE",
+        "path": "/api/reservation/:reservationId"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "commutative",
+      "requires": {
+        "entitlements": [
+          "stock-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "reservationId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "reservationId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reservationId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "not": {}
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "027b108c32d686"
+    },
+    {
+      "ref": "stock.reserve@3",
       "id": "stock.reserve",
-      "version": 2,
+      "version": 3,
       "module": "stock-management",
       "kind": "compensatable",
       "cardinality": "perLine",
@@ -2974,6 +3299,18 @@
                       "-Infinity",
                       "NaN"
                     ]
+                  }
+                ]
+              },
+              "holdSeconds": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "maximum": 9007199254740991,
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "null"
                   }
                 ]
               }
@@ -3042,7 +3379,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1bb2ba0ee1a7c5"
+      "fingerprint": "12b0764c7b428a"
     },
     {
       "ref": "stock.restore@4",

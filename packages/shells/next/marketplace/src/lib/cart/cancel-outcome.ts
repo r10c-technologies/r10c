@@ -21,6 +21,8 @@ export const isCancelOutcome = (value: unknown): value is CancelOutcome =>
 /** What order-service's answer to a buyer's cancel means to the action. */
 export type CancelStart =
   | { readonly kind: 'started'; readonly flowId: string }
+  /** An order that only waited for its payment link, withdrawn on the spot. */
+  | { readonly kind: 'withdrawn' }
   | { readonly kind: 'pending' }
   | { readonly kind: 'failed' };
 
@@ -40,9 +42,21 @@ export const cancelStartOf = (
   payload: unknown,
 ): CancelStart => {
   const body = payload as
-    | { code?: unknown; meta?: { type?: unknown }; data?: { flowId?: unknown } }
+    | {
+        code?: unknown;
+        meta?: { type?: unknown };
+        data?: { flowId?: unknown; status?: unknown };
+      }
     | undefined;
   const flowId = body?.data?.flowId;
+  // A payment-link order that took no money is withdrawn by one write, with
+  // no flow to follow (ADR 0081 §4).
+  if (
+    status === 202 &&
+    body?.meta?.type === 'entity' &&
+    body.data?.status === 'cancelled'
+  )
+    return { kind: 'withdrawn' };
   if (
     status === 202 &&
     body?.meta?.type === 'flowAccepted' &&
