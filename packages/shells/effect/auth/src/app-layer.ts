@@ -35,6 +35,7 @@ import {
   makeMongoSessionScopeResolver,
   makeMongoUserDeviceRepository,
   MongoOrganizationFiscalIdentityLayer,
+  MongoOrganizationPaymentLinkAcceptanceLayer,
 } from '@r10c/implementation-auth-mongo';
 import {
   IdTokenStoreLayer,
@@ -266,6 +267,7 @@ export const authComposition =
           SessionScopeResolverLayer,
           UserDeviceRepositoryLayer,
           MongoOrganizationFiscalIdentityLayer,
+          MongoOrganizationPaymentLinkAcceptanceLayer,
           NotificationLayer,
           // The provider ports over Zitadel, the published key set and the
           // development mailbox: what the `authn/http` routes need from here.

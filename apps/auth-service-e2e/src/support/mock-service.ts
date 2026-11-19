@@ -56,6 +56,7 @@ import {
   makeSessionIdentityProvider,
   membershipSeedData,
   MongoOrganizationFiscalIdentityLayer,
+  MongoOrganizationPaymentLinkAcceptanceLayer,
   policy,
   ProviderSessionIndexTag,
   seedIdentityProvider,
@@ -231,6 +232,7 @@ const withAccounts = Layer.provideMerge(
     UserDeviceRepositoryLayer,
     NotificationLayer,
     MongoOrganizationFiscalIdentityLayer,
+    MongoOrganizationPaymentLinkAcceptanceLayer,
     // What the generic user and identifier reads open their repository from.
     MongoRepositoryFactoryLayer,
     // The host's own bindings for the authn routes — the provider ports over

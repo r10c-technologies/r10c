@@ -28,6 +28,7 @@ describe('Organization', () => {
       legalName: '',
       taxRegime: 'general',
       establishmentCode: '',
+      acceptsPaymentLink: false,
     });
   });
 
@@ -64,6 +65,7 @@ describe('Organization', () => {
       ['legalName', 'string'],
       ['taxRegime', 'enum'],
       ['establishmentCode', 'string'],
+      ['acceptsPaymentLink', 'boolean'],
       ['updatedAt', 'date'],
     ]);
   });
@@ -80,6 +82,13 @@ describe('Organization', () => {
       organization.taxRegime,
       organization.establishmentCode,
     ]).toEqual(['12345679', 'Demo, S.A.', 'simplified', '1']);
+  });
+
+  it('takes no payment link until it says so', () => {
+    const organization = new Organization('Demo Vendor', 'demo-vendor');
+    expect(organization.acceptsPaymentLink).toBe(false);
+    organization.acceptsPaymentLink = true;
+    expect(organization.acceptsPaymentLink).toBe(true);
   });
 
   it('holds the moment of its last write, which its announcement is stamped with', () => {

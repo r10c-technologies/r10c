@@ -3,8 +3,8 @@
 import { authorizationHeader, loadPrincipal } from './principal';
 import { AUTH_SERVICE_URL } from './session';
 
-/** What the organization form shows after a save. */
-export interface FiscalIdentityFormState {
+/** What an organization form shows after a save. */
+export interface OrganizationFormState {
   readonly status: 'idle' | 'saved' | 'refused';
   /** The `errors` catalog code the service answered with, when refused. */
   readonly code?: string;
@@ -20,25 +20,22 @@ const FIELDS = [
 ] as const;
 
 /**
- * Save the caller's active organization's fiscal identity
- * (`set-fiscal-identity`, ADR 0078 §6). A server action rather than a
- * browser fetch, so the form posts without script too; auth-service checks
- * the permission and that the organization is the caller's own.
+ * Post one of the caller's active organization's own verbs. A server action
+ * rather than a browser fetch, so each form posts without script too;
+ * auth-service checks the permission and that the organization is the
+ * caller's own.
  */
-export async function saveFiscalIdentity(
-  _previous: FiscalIdentityFormState,
-  formData: FormData,
-): Promise<FiscalIdentityFormState> {
+const postVerb = async (
+  verb: string,
+  body: Readonly<Record<string, unknown>>,
+): Promise<OrganizationFormState> => {
   const principal = await loadPrincipal();
   const organizationId = principal?.organizationId;
   if (organizationId === undefined || organizationId === null) {
     return { status: 'refused', code: 'notFound' };
   }
-  const body = Object.fromEntries(
-    FIELDS.map(field => [field, String(formData.get(field) ?? '')]),
-  );
   const res = await fetch(
-    `${AUTH_SERVICE_URL}/api/organization/${encodeURIComponent(organizationId)}/set-fiscal-identity`,
+    `${AUTH_SERVICE_URL}/api/organization/${encodeURIComponent(organizationId)}/${verb}`,
     {
       method: 'POST',
       headers: {
@@ -60,4 +57,31 @@ export async function saveFiscalIdentity(
     code: typeof problem.code === 'string' ? problem.code : 'unexpected',
     ...(typeof problem.field === 'string' ? { field: problem.field } : {}),
   };
+};
+
+/** Save the organization's fiscal identity (`set-fiscal-identity`, ADR 0078 §6). */
+export async function saveFiscalIdentity(
+  _previous: OrganizationFormState,
+  formData: FormData,
+): Promise<OrganizationFormState> {
+  return postVerb(
+    'set-fiscal-identity',
+    Object.fromEntries(
+      FIELDS.map(field => [field, String(formData.get(field) ?? '')]),
+    ),
+  );
+}
+
+/**
+ * Save whether the organization takes payment links
+ * (`set-payment-link-acceptance`, ADR 0081 §1). An unticked box posts nothing,
+ * which is the "no".
+ */
+export async function savePaymentLinkAcceptance(
+  _previous: OrganizationFormState,
+  formData: FormData,
+): Promise<OrganizationFormState> {
+  return postVerb('set-payment-link-acceptance', {
+    accepts: formData.get('accepts') === 'on',
+  });
 }

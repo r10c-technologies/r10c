@@ -10,7 +10,8 @@ vi.mock('./principal', () => ({
 }));
 vi.mock('./session', () => ({ AUTH_SERVICE_URL: 'http://auth' }));
 
-const { saveFiscalIdentity } = await import('./organization-actions');
+const { saveFiscalIdentity, savePaymentLinkAcceptance } =
+  await import('./organization-actions');
 const { OrganizationPage } = await import('./organization-page');
 
 const FISCAL = {
@@ -96,9 +97,48 @@ describe('saveFiscalIdentity', () => {
   });
 });
 
+describe('savePaymentLinkAcceptance', () => {
+  const idle = { status: 'idle' } as const;
+
+  it('posts a ticked box as yes and an unticked one as no', async () => {
+    stubFetch(() => answer(200, {}));
+    const ticked = new FormData();
+    ticked.set('accepts', 'on');
+    expect(await savePaymentLinkAcceptance(idle, ticked)).toEqual({
+      status: 'saved',
+    });
+    expect(await savePaymentLinkAcceptance(idle, new FormData())).toEqual({
+      status: 'saved',
+    });
+    expect(calls[0]?.url).toBe(
+      'http://auth/api/organization/org-1/set-payment-link-acceptance',
+    );
+    expect(calls.map(call => JSON.parse(String(call.init?.body)))).toEqual([
+      { accepts: true },
+      { accepts: false },
+    ]);
+  });
+});
+
 describe('OrganizationPage', () => {
-  const fiscalOf = async () =>
-    ((await OrganizationPage()) as { props: { fiscal: unknown } }).props.fiscal;
+  const propsOf = async () =>
+    (
+      (await OrganizationPage()) as {
+        props: { fiscal: unknown; paymentLink: unknown };
+      }
+    ).props;
+  const fiscalOf = async () => (await propsOf()).fiscal;
+
+  it('reads whether the organization takes payment links, failing as undefined', async () => {
+    stubFetch(() => answer(200, { id: 'org-1', accepts: true }));
+    expect((await propsOf()).paymentLink).toBe(true);
+    stubFetch(() => answer(200, { id: 'org-1' }));
+    expect((await propsOf()).paymentLink).toBe(false);
+    stubFetch(() => answer(403, {}));
+    expect((await propsOf()).paymentLink).toBeUndefined();
+    principal.current = null;
+    expect((await propsOf()).paymentLink).toBeUndefined();
+  });
 
   it('starts the form from the stored identity, or empty when there is none', async () => {
     stubFetch(() => answer(200, { id: 'org-1', fiscal: FISCAL }));

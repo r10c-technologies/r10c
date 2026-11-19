@@ -196,6 +196,7 @@ export const entity: EsEntity = {
     plural: 'Organizations',
     useCases: {
       setFiscalIdentity: 'Save fiscal details',
+      setPaymentLinkAcceptance: 'Save payment links',
     },
     fields: {
       id: 'ID',
@@ -206,6 +207,7 @@ export const entity: EsEntity = {
       legalName: 'Legal name',
       taxRegime: 'Tax regime',
       establishmentCode: 'Establishment code',
+      acceptsPaymentLink: 'Takes payment links',
       updatedAt: 'Last updated',
     },
     values: {

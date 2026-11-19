@@ -49,6 +49,13 @@ export const r10c: EsR10c = {
         'The tax ID, legal name, regime and establishment every order you sell is documented under.',
       failed: 'Your organization’s fiscal details could not be read.',
       saved: 'Fiscal details saved. New orders use them from now on.',
+      paymentLink: {
+        title: 'Payment links',
+        hint: 'Buyers can choose to pay by a link you send them. You confirm each payment yourself; an unpaid order is cancelled when its window ends.',
+        accepts: 'Take payment by a link I send',
+        failed: 'Whether you take payment links could not be read.',
+        saved: 'Saved. New checkouts follow it from now on.',
+      },
     },
     account: {
       overline: 'Account',

@@ -230,6 +230,7 @@ export const entity = {
     plural: 'Organizaciones',
     useCases: {
       setFiscalIdentity: 'Guardar datos fiscales',
+      setPaymentLinkAcceptance: 'Guardar enlaces de pago',
     },
     fields: {
       id: 'ID',
@@ -240,6 +241,7 @@ export const entity = {
       legalName: 'Razón social',
       taxRegime: 'Régimen tributario',
       establishmentCode: 'Código de establecimiento',
+      acceptsPaymentLink: 'Acepta enlaces de pago',
       updatedAt: 'Última actualización',
     },
     values: {

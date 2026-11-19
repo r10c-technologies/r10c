@@ -4,6 +4,7 @@ import {
   Alert,
   Card,
   HeadingOne,
+  HeadingTwo,
   Lead,
   Overline,
   Stack,
@@ -11,6 +12,7 @@ import {
   useT,
 } from '@entifix/react-controls';
 import {
+  Checkbox,
   Select,
   SubmitButton,
   TextInput,
@@ -19,12 +21,13 @@ import { TaxRegimes } from '@r10c/business-ts-tax-policy';
 import { useActionState } from 'react';
 
 import {
-  type FiscalIdentityFormState,
+  type OrganizationFormState,
   saveFiscalIdentity,
+  savePaymentLinkAcceptance,
 } from '../server/organization-actions';
 import type { FiscalIdentityValues } from '../server/organization-page';
 
-const IDLE: FiscalIdentityFormState = { status: 'idle' };
+const IDLE: OrganizationFormState = { status: 'idle' };
 
 const TEXT_FIELDS = ['taxId', 'legalName', 'establishmentCode'] as const;
 
@@ -36,8 +39,11 @@ const TEXT_FIELDS = ['taxId', 'legalName', 'establishmentCode'] as const;
  */
 export function OrganizationView({
   fiscal,
+  paymentLink,
 }: {
   readonly fiscal: FiscalIdentityValues | null | undefined;
+  /** Whether it takes payment links; `undefined` is a read that failed. */
+  readonly paymentLink: boolean | undefined;
 }) {
   const t = useT('r10c');
   const tEntity = useT('entity');
@@ -61,6 +67,7 @@ export function OrganizationView({
         <Card>
           <Text muted>{t('auth.organization.failed')}</Text>
         </Card>
+        <PaymentLinkCard accepts={paymentLink} />
       </Stack>
     );
   }
@@ -125,6 +132,59 @@ export function OrganizationView({
           </Stack>
         </form>
       </Card>
+      <PaymentLinkCard accepts={paymentLink} />
     </Stack>
+  );
+}
+
+/**
+ * Whether the organization takes payment by a link it sends the buyer
+ * (`set-payment-link-acceptance`, ADR 0081 §1). Its own form, so saving one
+ * statement never re-posts the other; a failed read says so rather than
+ * offering an unticked box that would switch links off.
+ */
+function PaymentLinkCard({
+  accepts,
+}: {
+  readonly accepts: boolean | undefined;
+}) {
+  const t = useT('r10c');
+  const tEntity = useT('entity');
+  const tErrors = useT('errors');
+  const [state, action] = useActionState(savePaymentLinkAcceptance, IDLE);
+
+  return (
+    <Card>
+      <Stack gap="s">
+        <HeadingTwo>{t('auth.organization.paymentLink.title')}</HeadingTwo>
+        {accepts === undefined ? (
+          <Text muted>{t('auth.organization.paymentLink.failed')}</Text>
+        ) : (
+          <form action={action} data-testid="payment-link-acceptance-form">
+            <Stack gap="s">
+              <Text muted>{t('auth.organization.paymentLink.hint')}</Text>
+              <Checkbox
+                name="accepts"
+                defaultChecked={accepts}
+                label={t('auth.organization.paymentLink.accepts')}
+              />
+              {state.status === 'saved' ? (
+                <Alert tone="success">
+                  {t('auth.organization.paymentLink.saved')}
+                </Alert>
+              ) : null}
+              {state.status === 'refused' ? (
+                <Alert tone="danger">
+                  {tErrors(state.code ?? 'unexpected')}
+                </Alert>
+              ) : null}
+              <SubmitButton className="touch-target">
+                {tEntity('organization.useCases.setPaymentLinkAcceptance')}
+              </SubmitButton>
+            </Stack>
+          </form>
+        )}
+      </Stack>
+    </Card>
   );
 }

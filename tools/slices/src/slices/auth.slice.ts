@@ -66,6 +66,9 @@ export const authSlice: SliceDeclaration = {
     'GET /api/organization/$metadata',
     'GET /api/organization/:id/fiscal-identity',
     'POST /api/organization/:id/set-fiscal-identity',
+    // Whether it takes payment links (ADR 0081 §1).
+    'GET /api/organization/:id/payment-link-acceptance',
+    'POST /api/organization/:id/set-payment-link-acceptance',
   ],
   dependantAPIs: [
     'GET /api/config/:service',

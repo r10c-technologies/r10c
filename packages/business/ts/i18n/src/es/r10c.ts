@@ -56,6 +56,13 @@ export const r10c = {
       failed: 'No se pudieron leer los datos fiscales de tu organización.',
       saved:
         'Datos fiscales guardados. Los pedidos nuevos los usan desde ahora.',
+      paymentLink: {
+        title: 'Enlaces de pago',
+        hint: 'Los compradores pueden elegir pagar con un enlace que tú les envías. Tú confirmas cada pago; un pedido sin pagar se cancela cuando vence su plazo.',
+        accepts: 'Acepto pagos con un enlace que envío',
+        failed: 'No se pudo leer si aceptas enlaces de pago.',
+        saved: 'Guardado. Las compras nuevas lo siguen desde ahora.',
+      },
     },
     account: {
       overline: 'Cuenta',

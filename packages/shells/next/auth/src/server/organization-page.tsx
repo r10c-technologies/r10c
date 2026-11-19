@@ -22,10 +22,24 @@ const readFiscalIdentity = async (
   return body.fiscal ?? null;
 };
 
+/** Whether the organization takes payment links; `undefined` for a failed read. */
+const readPaymentLinkAcceptance = async (
+  organizationId: string,
+): Promise<boolean | undefined> => {
+  const res = await fetch(
+    `${AUTH_SERVICE_URL}/api/organization/${encodeURIComponent(organizationId)}/payment-link-acceptance`,
+    { headers: await authorizationHeader(), cache: 'no-store' },
+  ).catch(() => undefined);
+  if (res === undefined || !res.ok) return undefined;
+  const body = (await res.json()) as { accepts?: unknown };
+  return body.accepts === true;
+};
+
 /**
- * `/account/organization` — the active organization's fiscal identity: the
- * NIT, legal name, regime and establishment every order it sells is
- * documented under (ADR 0078 §6). The caller's own organization, like the
+ * `/account/organization` — what the active organization states about
+ * itself: its fiscal identity, the NIT, legal name, regime and establishment
+ * every order it sells is documented under (ADR 0078 §6), and whether it takes
+ * payment by a link it sends the buyer (ADR 0081 §1). The caller's own organization, like the
  * account pages around it; auth-service refuses anyone without
  * `set-fiscal-identity`, so a failed read renders as one rather than as an
  * empty form.
@@ -33,9 +47,12 @@ const readFiscalIdentity = async (
 export async function OrganizationPage() {
   const principal = await loadPrincipal();
   const organizationId = principal?.organizationId ?? undefined;
-  const fiscal =
+  const [fiscal, paymentLink] =
     organizationId === undefined
-      ? undefined
-      : await readFiscalIdentity(organizationId);
-  return <OrganizationView fiscal={fiscal} />;
+      ? [undefined, undefined]
+      : await Promise.all([
+          readFiscalIdentity(organizationId),
+          readPaymentLinkAcceptance(organizationId),
+        ]);
+  return <OrganizationView fiscal={fiscal} paymentLink={paymentLink} />;
 }

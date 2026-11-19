@@ -80,7 +80,8 @@ true for `link` alone. A bank deposit with a slip is the same shape. Adding
 new recipe branch.
 
 A seller offers `link` the way a seller offers `cod`. The organization
-gains a member, `acceptsPaymentLink`, authored by the vendor's `admin`.
+gains a member, `acceptsPaymentLink`, authored by the vendor's `admin`
+through the verb `set-payment-link-acceptance` on the organization page.
 auth-service announces it on `organization.announced`, which plan 4.3 already
 widens, and the published vendor carries it as `acceptsLink`. It is not an
 entitlement, because an entitlement names a domain and not a tender. When
@@ -98,15 +99,15 @@ commit point every step is compensated if a later one fails. A 48-hour wait
 there would leave a basket's card capture hostage to a link that may never be
 paid. So a `link` segment is committed like a `cod` one and **then** waits:
 
-| Stage (per segment unless noted) | `link` segment                                                                                                                           | Unchanged for `card`, `cash`, `cod`   |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `group` (once)                   | `order.open-group`                                                                                                                       | yes                                   |
-| `place`                          | `stock.reserve@3` with `holdSeconds` stated by the coordinator (§3); `order.write`                                                       | `stock.reserve` holds for the default |
-| `pay` (once)                     | excluded from `payment.capture`; a basket that is all `link`/`cod` passes `flow.commit@1`                                                | yes                                   |
-| `fulfil`                         | `order.await-payment@1` — `pending → awaiting-payment`, stamping `paymentDueAt`                                                          | convert, confirm, open as today       |
+| Stage (per segment unless noted) | `link` segment                                                                                                                                      | Unchanged for `card`, `cash`, `cod`   |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `group` (once)                   | `order.open-group`                                                                                                                                  | yes                                   |
+| `place`                          | `stock.reserve@3` with `holdSeconds` stated by the coordinator (§3); `order.write`                                                                  | `stock.reserve` holds for the default |
+| `pay` (once)                     | excluded from `payment.capture`; a basket that is all `link`/`cod` passes `flow.commit@1`                                                           | yes                                   |
+| `fulfil`                         | `order.await-payment@1` — `pending → awaiting-payment`, stamping `paymentDueAt`                                                                     | convert, confirm, open as today       |
 | `await-payment` (new)            | wait `order.payment-decision@1`, outcomes `confirmed` \| `cancelled`, correlation `payment:<groupId>:<vendorId>`, timeout §3, `onTimeout: 'strand'` | not composed                          |
-| `paid` (new, on `confirmed`)     | `payment.record-confirmation@1`, `stock.convert@3`, `order.confirm@2`, `fulfilment.open@3`                                               | not composed                          |
-| `unpaid` (new, on `cancelled`)   | `stock.release@1`                                                                                                                        | not composed                          |
+| `paid` (new, on `confirmed`)     | `payment.record-confirmation@1`, `stock.convert@3`, `order.confirm@2`, `fulfilment.open@3`                                                          | not composed                          |
+| `unpaid` (new, on `cancelled`)   | `stock.release@1`                                                                                                                                   | not composed                          |
 
 New fragments:
 
