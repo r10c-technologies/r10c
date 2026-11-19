@@ -91,6 +91,7 @@ describe('applying an announcement', () => {
         displayName: 'Demo Vendor',
         announcedAt: new Date(NAMED.announcedAt),
         acceptsCod: true,
+        acceptsLink: false,
         holdsStock: true,
         taxId: '10000003',
         legalName: 'Demo Vendor, S.A.',
