@@ -126,6 +126,26 @@ describe('capturePayment', () => {
     ).toMatchObject({ vendorId: 'vendor-2', captured: 10, refunded: 0 });
   });
 
+  it('announces each share by the contract’s members alone', async () => {
+    const inner = makeInMemoryPaymentLedger();
+    const announced: unknown[] = [];
+    const ledger = {
+      ...inner,
+      recordCapture: (...args: Parameters<typeof inner.recordCapture>) => {
+        announced.push(args[2].allocations);
+        return inner.recordCapture(...args);
+      },
+    };
+    const stray = SHARES.map(share => ({ ...share, buyerTaxId: '12345679' }));
+
+    await run(
+      capturePayment({ payment: aPayment(), shares: stray, commandId: 'c-1' }),
+      { ledger },
+    );
+
+    expect(announced).toEqual([SHARES]);
+  });
+
   it('refuses shares that do not split the amount, before the provider', async () => {
     const refused = await run(
       refusalOf(
@@ -263,6 +283,73 @@ describe('recordCollection', () => {
     expect(
       await Effect.runPromise(ledger.allocationFor('order-3')),
     ).toMatchObject({ captured: 25, paymentMethod: 'cod' });
+  });
+
+  it('records a confirmed payment link under the seller’s authorization number', async () => {
+    const inner = makeInMemoryPaymentLedger();
+    const announced: unknown[] = [];
+    const ledger = {
+      ...inner,
+      recordCapture: (...args: Parameters<typeof inner.recordCapture>) => {
+        announced.push(args[2]);
+        return inner.recordCapture(...args);
+      },
+    };
+
+    const result = await run(
+      recordCollection({
+        groupId: 'group-1',
+        share: {
+          orderId: 'order-4',
+          vendorId: 'vendor-4',
+          amount: 30,
+          taxableBase: 27,
+          taxAmount: 3,
+          taxRegime: 'general',
+        },
+        currency: 'GTQ',
+        tender: 'link',
+        providerReference: ' AUTH-1 ',
+        commandId: 'k-9',
+      }),
+      { ledger },
+    );
+
+    expect(result).toMatchObject({
+      _tag: 'captured',
+      payment: { paymentMethod: 'link', providerReference: 'AUTH-1' },
+    });
+    expect(announced).toEqual([
+      expect.objectContaining({
+        paymentMethod: 'link',
+        providerReference: 'AUTH-1',
+      }),
+    ]);
+  });
+
+  it('refuses a payment link with no authorization number', async () => {
+    const refused = await run(
+      Effect.flip(
+        recordCollection({
+          groupId: 'group-1',
+          share: {
+            orderId: 'order-5',
+            vendorId: 'vendor-5',
+            amount: 30,
+            taxableBase: 27,
+            taxAmount: 3,
+            taxRegime: 'general',
+          },
+          currency: 'GTQ',
+          tender: 'link',
+          providerReference: '  ',
+          commandId: undefined,
+        }),
+      ),
+      { ledger: makeInMemoryPaymentLedger() },
+    );
+
+    expect(refused).toMatchObject({ code: 'invalidBody' });
   });
 
   it('answers a repeated report with the first collection', async () => {

@@ -191,6 +191,35 @@ describe('cash on delivery', () => {
     });
   });
 
+  it('records a confirmed payment link under the reference the flow bound', async () => {
+    const { run } = world();
+
+    const recorded = await run(
+      keyed(
+        collection.handler({
+          payload: {
+            groupId: 'group-l',
+            orderId: 'order-l',
+            vendorId: 'vendor-1',
+            amount: 40,
+            currency: 'GTQ',
+            tender: 'link',
+            paymentReference: 'AUTH-77',
+          },
+        } as never),
+        'k-l',
+      ),
+    );
+
+    expect(recorded).toMatchObject({
+      data: {
+        paymentMethod: 'link',
+        providerReference: 'AUTH-77',
+        status: 'captured',
+      },
+    });
+  });
+
   it('admits a seller who ships it under the limit, and refuses the rest', async () => {
     const { run, refusal } = world();
 

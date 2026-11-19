@@ -39,6 +39,7 @@ type OrderFacts = {
   readonly groupId?: unknown;
   readonly vendorId?: unknown;
   readonly paymentMethod?: unknown;
+  readonly paymentReference?: unknown;
 };
 
 const filled = (value: unknown): value is string =>
@@ -75,6 +76,11 @@ export const startPaymentSignals = Effect.gen(function* () {
     return engine
       .signalCorrelated(paymentCorrelation(order.groupId, order.vendorId), {
         outcome,
+        // The wait provides it to the step that records the payment, which
+        // reads the number from the flow and never from the order (ADR 0081 §2).
+        ...(filled(order.paymentReference)
+          ? { paymentReference: order.paymentReference }
+          : {}),
       })
       .pipe(
         Effect.catchTags({

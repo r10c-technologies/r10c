@@ -822,9 +822,12 @@ describe('Stated facts agree with their source', () => {
 
   it('counts the tenant databases the register declares', () => {
     const words = ['one', 'two', 'three', 'four', 'five', 'six', 'seven'];
-    const tenant = SLICES.flatMap(slice => slice.stores).filter(
-      store => store.partitioning === 'per-organization',
-    ).length;
+    // A planned slice's store opens no database (ADR 0020): it is ownership on
+    // file, not a handle, so only an active slice's store is a database an
+    // organization has.
+    const tenant = SLICES.filter(slice => slice.status === 'active')
+      .flatMap(slice => slice.stores)
+      .filter(store => store.partitioning === 'per-organization').length;
     const stated: { doc: string; count: number }[] = [];
     for (const doc of liveDocs()) {
       // Only a line about tenancy counts: "two databases" of Postgres is not

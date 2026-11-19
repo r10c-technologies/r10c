@@ -1,0 +1,1759 @@
+{
+  "events": [
+    {
+      "name": "catalog.published",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "6c8208c7f0de6519",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "offeringId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vendorId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "availableHint": {
+              "type": "boolean"
+            },
+            "publishedAt": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "offeringId",
+            "vendorId",
+            "name",
+            "amount",
+            "currency",
+            "availableHint",
+            "publishedAt"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "catalog.unpublished",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "8a301f9ff7a3f97a",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "offeringId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vendorId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "availableHint": {
+              "type": "boolean"
+            },
+            "publishedAt": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "offeringId",
+            "vendorId",
+            "name",
+            "amount",
+            "currency",
+            "availableHint",
+            "publishedAt"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "entity.changed",
+      "versioned": false,
+      "audience": "required",
+      "fingerprint": "344d84d8e680a3ca",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "entity": {
+              "type": "string"
+            },
+            "change": {
+              "type": "string",
+              "enum": [
+                "created",
+                "updated",
+                "deleted"
+              ]
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Infinity",
+                    "-Infinity",
+                    "NaN"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "entity",
+            "change",
+            "id"
+          ],
+          "additionalProperties": true
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "flow.completed",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "97b2ed55e702db86",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "flowId": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            },
+            "slipVersion": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Infinity",
+                    "-Infinity",
+                    "NaN"
+                  ]
+                }
+              ]
+            },
+            "step": {
+              "type": "string"
+            },
+            "outcome": {},
+            "failure": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "code",
+                "category"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            }
+          },
+          "required": [
+            "flowId",
+            "definition",
+            "slipVersion"
+          ],
+          "additionalProperties": true
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "flow.failed",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "fcd2ec418d835cf5",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "flowId": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            },
+            "slipVersion": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Infinity",
+                    "-Infinity",
+                    "NaN"
+                  ]
+                }
+              ]
+            },
+            "step": {
+              "type": "string"
+            },
+            "outcome": {},
+            "failure": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "code",
+                "category"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            }
+          },
+          "required": [
+            "flowId",
+            "definition",
+            "slipVersion",
+            "failure"
+          ],
+          "additionalProperties": true
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "flow.started",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "b683be255adb3de7",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "flowId": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            },
+            "slipVersion": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Infinity",
+                    "-Infinity",
+                    "NaN"
+                  ]
+                }
+              ]
+            },
+            "step": {
+              "type": "string"
+            },
+            "outcome": {},
+            "failure": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "code",
+                "category"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            }
+          },
+          "required": [
+            "flowId",
+            "definition",
+            "slipVersion"
+          ],
+          "additionalProperties": true
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "flow.stranded",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "55eddfb15747ebb7",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "flowId": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            },
+            "slipVersion": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Infinity",
+                    "-Infinity",
+                    "NaN"
+                  ]
+                }
+              ]
+            },
+            "step": {
+              "type": "string"
+            },
+            "outcome": {},
+            "failure": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "code",
+                "category"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            }
+          },
+          "required": [
+            "flowId",
+            "definition",
+            "slipVersion"
+          ],
+          "additionalProperties": true
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "flow.suspended",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "71d97b5c231fd880",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "flowId": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            },
+            "slipVersion": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Infinity",
+                    "-Infinity",
+                    "NaN"
+                  ]
+                }
+              ]
+            },
+            "step": {
+              "type": "string"
+            },
+            "outcome": {},
+            "failure": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "code",
+                "category"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            }
+          },
+          "required": [
+            "flowId",
+            "definition",
+            "slipVersion"
+          ],
+          "additionalProperties": true
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "flow.waiting",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "e9966851c48ae206",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "flowId": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            },
+            "slipVersion": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Infinity",
+                    "-Infinity",
+                    "NaN"
+                  ]
+                }
+              ]
+            },
+            "step": {
+              "type": "string"
+            },
+            "outcome": {},
+            "failure": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "code",
+                "category"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            }
+          },
+          "required": [
+            "flowId",
+            "definition",
+            "slipVersion"
+          ],
+          "additionalProperties": true
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "order.cancelled",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "83c3c18bfa587177",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vendorId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offeringId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "taxTreatment": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "taxRate": {
+                    "type": "number"
+                  },
+                  "taxableBase": {
+                    "type": "number"
+                  },
+                  "taxAmount": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "offeringId",
+                  "name",
+                  "amount",
+                  "quantity",
+                  "currency",
+                  "kind",
+                  "taxTreatment",
+                  "taxRate",
+                  "taxableBase",
+                  "taxAmount"
+                ],
+                "allOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                ]
+              },
+              "minItems": 1
+            },
+            "sellerTax": {
+              "type": "object",
+              "properties": {
+                "taxId": {
+                  "type": "string"
+                },
+                "legalName": {
+                  "type": "string"
+                },
+                "taxRegime": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "establishmentCode": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "taxId",
+                "legalName",
+                "taxRegime",
+                "establishmentCode"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            },
+            "netAmount": {
+              "type": "number"
+            },
+            "taxAmount": {
+              "type": "number"
+            },
+            "totalAmount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "channel": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "vendorId",
+            "groupId",
+            "paymentMethod",
+            "status",
+            "items",
+            "sellerTax",
+            "netAmount",
+            "taxAmount",
+            "totalAmount",
+            "currency"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "order.payment-confirmed",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "10a019f145966607",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vendorId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offeringId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "taxTreatment": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "taxRate": {
+                    "type": "number"
+                  },
+                  "taxableBase": {
+                    "type": "number"
+                  },
+                  "taxAmount": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "offeringId",
+                  "name",
+                  "amount",
+                  "quantity",
+                  "currency",
+                  "kind",
+                  "taxTreatment",
+                  "taxRate",
+                  "taxableBase",
+                  "taxAmount"
+                ],
+                "allOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                ]
+              },
+              "minItems": 1
+            },
+            "sellerTax": {
+              "type": "object",
+              "properties": {
+                "taxId": {
+                  "type": "string"
+                },
+                "legalName": {
+                  "type": "string"
+                },
+                "taxRegime": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "establishmentCode": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "taxId",
+                "legalName",
+                "taxRegime",
+                "establishmentCode"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            },
+            "netAmount": {
+              "type": "number"
+            },
+            "taxAmount": {
+              "type": "number"
+            },
+            "totalAmount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "channel": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "vendorId",
+            "groupId",
+            "paymentMethod",
+            "status",
+            "items",
+            "sellerTax",
+            "netAmount",
+            "taxAmount",
+            "totalAmount",
+            "currency"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "order.placed",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "8f2bc8d62f36ea66",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vendorId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offeringId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "taxTreatment": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "taxRate": {
+                    "type": "number"
+                  },
+                  "taxableBase": {
+                    "type": "number"
+                  },
+                  "taxAmount": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "offeringId",
+                  "name",
+                  "amount",
+                  "quantity",
+                  "currency",
+                  "kind",
+                  "taxTreatment",
+                  "taxRate",
+                  "taxableBase",
+                  "taxAmount"
+                ],
+                "allOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                ]
+              },
+              "minItems": 1
+            },
+            "sellerTax": {
+              "type": "object",
+              "properties": {
+                "taxId": {
+                  "type": "string"
+                },
+                "legalName": {
+                  "type": "string"
+                },
+                "taxRegime": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "establishmentCode": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "taxId",
+                "legalName",
+                "taxRegime",
+                "establishmentCode"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            },
+            "netAmount": {
+              "type": "number"
+            },
+            "taxAmount": {
+              "type": "number"
+            },
+            "totalAmount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "channel": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "vendorId",
+            "groupId",
+            "paymentMethod",
+            "status",
+            "items",
+            "sellerTax",
+            "netAmount",
+            "taxAmount",
+            "totalAmount",
+            "currency"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "organization.announced",
+      "versioned": true,
+      "audience": "none",
+      "fingerprint": "758c93b09fea06ea",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "organizationId": {
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "announcedAt": {
+              "type": "string"
+            },
+            "acceptsCod": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "holdsStock": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "acceptsLink": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fiscal": {
+              "type": "object",
+              "properties": {
+                "taxId": {
+                  "type": "string"
+                },
+                "legalName": {
+                  "type": "string"
+                },
+                "taxRegime": {
+                  "type": "string"
+                },
+                "establishmentCode": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "taxId",
+                "legalName",
+                "taxRegime",
+                "establishmentCode"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "organizationId",
+            "displayName",
+            "announcedAt",
+            "fiscal"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "payment.captured",
+      "versioned": true,
+      "audience": "none",
+      "fingerprint": "82edb1d80bbb0e03",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "paymentId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allocations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "vendorId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "taxableBase": {
+                    "type": "number"
+                  },
+                  "taxAmount": {
+                    "type": "number"
+                  },
+                  "taxRegime": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "orderId",
+                  "vendorId",
+                  "amount",
+                  "taxableBase",
+                  "taxAmount",
+                  "taxRegime"
+                ],
+                "allOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                ]
+              },
+              "minItems": 1
+            },
+            "amount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decidedAt": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "paymentId",
+            "groupId",
+            "allocations",
+            "amount",
+            "currency",
+            "paymentMethod",
+            "decidedAt"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "payment.refunded",
+      "versioned": true,
+      "audience": "none",
+      "fingerprint": "d6ef4f5deab6f7be",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "paymentId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allocations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "vendorId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "taxableBase": {
+                    "type": "number"
+                  },
+                  "taxAmount": {
+                    "type": "number"
+                  },
+                  "taxRegime": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "orderId",
+                  "vendorId",
+                  "amount",
+                  "taxableBase",
+                  "taxAmount",
+                  "taxRegime"
+                ],
+                "allOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                ]
+              },
+              "minItems": 1
+            },
+            "amount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decidedAt": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "paymentId",
+            "groupId",
+            "allocations",
+            "amount",
+            "currency",
+            "paymentMethod",
+            "decidedAt"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "shipping-order.delivered",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "9a8b1cd2965b0b60",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "orderId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amountDue": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "orderId",
+            "groupId",
+            "status",
+            "paymentMethod",
+            "amountDue",
+            "currency"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "shipping-order.dispatched",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "4149c632e729add3",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "orderId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amountDue": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "orderId",
+            "groupId",
+            "status",
+            "paymentMethod",
+            "amountDue",
+            "currency"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "shipping-order.refused",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "b7c59bffe31c6c4a",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "orderId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amountDue": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "orderId",
+            "groupId",
+            "status",
+            "paymentMethod",
+            "amountDue",
+            "currency"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "shipping-order.returned",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "65c1dfe86837086d",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "orderId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "groupId": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paymentMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amountDue": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "orderId",
+            "groupId",
+            "status",
+            "paymentMethod",
+            "amountDue",
+            "currency"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "stock-item.changed",
+      "versioned": true,
+      "audience": "required",
+      "fingerprint": "885518b50fab0886",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "offeringId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "onHand": {
+              "type": "number"
+            },
+            "reserved": {
+              "type": "number"
+            },
+            "available": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "offeringId",
+            "onHand",
+            "reserved",
+            "available"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "stock-movement.recorded",
+      "versioned": true,
+      "audience": "none",
+      "fingerprint": "ed006f8a6f4db2f6",
+      "schema": {
+        "dialect": "draft-2020-12",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "organizationId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "offeringId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "quantity": {
+              "type": "number"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "occurredAt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cause": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "type",
+                "id"
+              ],
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "organizationId",
+            "offeringId",
+            "quantity",
+            "reason",
+            "occurredAt",
+            "cause"
+          ],
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          ]
+        },
+        "definitions": {}
+      }
+    }
+  ]
+}

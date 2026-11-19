@@ -249,9 +249,7 @@ const openShipment = (
   const part = partOf(start.vendors, segment);
   // Only a storefront sale ships, and `CheckoutStart` refuses one
   // that names no contact.
-  const contact = start.contact as NonNullable<
-    CheckoutStart['contact']
-  >;
+  const contact = start.contact as NonNullable<CheckoutStart['contact']>;
   return {
     // The courier's copy: who receives it and where, never the
     // email (ADR 0076 §1). The order's number is the write's.
@@ -479,7 +477,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       perSegment: true,
       steps: [
         {
-          ref: `${AWAIT_PAYMENT}@1`,
+          ref: `${AWAIT_PAYMENT}@2`,
           when: (_context, _start, segment) => byLink(segment),
           parameters: (_context, start, segment) => {
             const { window, grace } = windowsOf(start);
@@ -501,6 +499,27 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       perSegment: true,
       on: { wait: AWAIT_PAYMENT, outcomes: [PAYMENT_OUTCOMES.confirmed] },
       steps: [
+        {
+          // The money the seller's acquirer took, recorded as a `link`
+          // payment under the authorization number the wait was answered
+          // with — so `payment.captured` reaches settlement and every module
+          // keeping books, as a card capture's does (ADR 0081 §2, §5).
+          ref: 'payment.record-confirmation@1',
+          when: (_context, _start, segment) => byLink(segment),
+          parameters: (_context, start, segment) => {
+            const part = partOf(start.vendors, segment);
+            return {
+              groupId: start.groupId,
+              vendorId: part.vendorId,
+              amount: totalOf(part.lines),
+              taxableBase: part.netAmount,
+              taxAmount: part.taxAmount,
+              taxRegime: part.sellerTax?.taxRegime,
+              currency: part.lines[0]?.currency,
+              tender: 'link',
+            };
+          },
+        },
         {
           ref: 'stock.convert@3',
           when: (_context, _start, segment) => byLink(segment),

@@ -26,30 +26,69 @@ export const ORDER_EVENTS = [
   ORDER_CANCELLED,
 ] as const;
 
-/** One line, as an order event carries it. */
+/**
+ * One line, as an order event carries it: what was sold, at what unit price,
+ * how many, and its tax (ADR 0078 §2). Every member is required — a line with
+ * no tax is not a smaller line, it is a wrong ledger entry.
+ */
 const OrderLineSchema = openStruct({
+  offeringId: Schema.NonEmptyString,
+  /** The description as sold, copied onto the line at placement. */
+  name: Schema.String,
   /** Minor units, **per unit**. */
   amount: Schema.Finite,
   quantity: Schema.Finite,
   currency: Schema.NonEmptyString,
+  kind: Schema.NonEmptyString,
+  taxTreatment: Schema.NonEmptyString,
+  taxRate: Schema.Finite,
+  /** Minor units, for the whole line. */
+  taxableBase: Schema.Finite,
+  taxAmount: Schema.Finite,
 });
 
 /**
- * What an order event's `data` must hold: the serialized vendor order, with an
- * id, the one vendor it belongs to, its checkout group and tender, at least one
- * line, and — when it came through one — a channel that says its type. Pricing
- * a channel that refuses to say which as though there were none would quietly
+ * The seller's fiscal identity, copied onto the order at placement. The id,
+ * name and establishment are strings that may still be empty — a seller who has
+ * not stated them yet sells all the same — while the regime always has a value.
+ */
+const SellerTaxSchema = openStruct({
+  taxId: Schema.String,
+  legalName: Schema.String,
+  taxRegime: Schema.NonEmptyString,
+  establishmentCode: Schema.String,
+});
+
+/**
+ * What an order event's `data` must hold: the vendor order **as a whole fact**
+ * (ADR 0078 §2) — its id, the one vendor it belongs to, its checkout group and
+ * tender, at least one complete line, the seller's fiscal identity and the
+ * document's net, tax and total. A consumer that has seen only this event and
+ * its own store can write its record.
+ *
+ * When the order came through a channel, the channel says its type. Pricing a
+ * channel that refuses to say which as though there were none would quietly
  * charge the default rate (ADR 0069).
  *
- * Registered for both names, so the publisher encodes and every consumer
- * decodes against this one schema (ADR 0068).
+ * ⚠️ **The buyer's fiscal identity is not here, and never will be.** It rides
+ * only the fiscal-document event, which no browser receives (ADR 0078 §2).
+ *
+ * Registered for every name, so the publisher encodes and every consumer
+ * decodes against this one schema (ADR 0068). Decoding stays open: a member a
+ * consumer does not read is let through.
  */
 export const OrderEventSchema = openStruct({
   id: Schema.NonEmptyString,
   vendorId: Schema.NonEmptyString,
   groupId: Schema.NonEmptyString,
   paymentMethod: Schema.NonEmptyString,
+  status: Schema.NonEmptyString,
   items: Schema.Array(OrderLineSchema).check(Schema.isMinLength(1)),
+  sellerTax: SellerTaxSchema,
+  netAmount: Schema.Finite,
+  taxAmount: Schema.Finite,
+  totalAmount: Schema.Finite,
+  currency: Schema.NonEmptyString,
   channel: Schema.optional(Schema.NullOr(openStruct({ type: Schema.String }))),
 });
 

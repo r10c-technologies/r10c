@@ -22,6 +22,7 @@ import {
   checkCodEligibility,
   CodNotEntitled,
   CodOverLimit,
+  CollectedTenders,
   NothingToRefund,
   Payment,
   PaymentAllocation,
@@ -187,10 +188,12 @@ export const paymentAllocationApi = defineEntityApi(
 );
 
 /**
- * `POST /api/collection` — the cash a courier collected for one
- * cash-on-delivery order, recorded after the delivery: a `cod` payment for that
- * order alone, announced as `payment.captured`. Idempotent in the unit, so a
- * courier's report delivered twice is one collection.
+ * `POST /api/collection` — money the vendor collected for one order: the cash
+ * a courier took on delivery (`cod`, the default), or a payment link the seller
+ * confirmed (`link`, with their authorization number as `paymentReference`,
+ * ADR 0081 §2). A payment for that order alone, announced as
+ * `payment.captured`. Idempotent in the unit, so a report delivered twice is
+ * one collection.
  */
 const collection = defineEndpoint({
   name: 'collection',
@@ -205,6 +208,10 @@ const collection = defineEndpoint({
     taxAmount: Schema.Number,
     taxRegime: Schema.String,
     currency: Schema.NonEmptyString,
+    tender: Schema.optionalKey(Schema.Literals(CollectedTenders)),
+    // A `link` collection's authorization number, by the key the checkout
+    // flow binds it under (ADR 0081 §2).
+    paymentReference: Schema.optionalKey(Schema.String),
   }),
   success: JsonBody,
   errors: [InvalidBody, DuplicateKey, StaleRevision],
@@ -256,6 +263,8 @@ export const codEndpoints = [
           taxRegime: payload.taxRegime,
         },
         currency: payload.currency,
+        ...(payload.tender === undefined ? {} : { tender: payload.tender }),
+        providerReference: payload.paymentReference,
         commandId: yield* commandId,
       });
       return makeEntityEnvelope(Payment, payment, [

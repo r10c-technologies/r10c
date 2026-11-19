@@ -202,10 +202,14 @@ export const orderAwaitPayment = defineFragment({
  * or a withdrawal announces. The order's status is the arbiter, so a timeout
  * firing means a signal was lost — a case for a person, and the recipe
  * strands on it. A wait makes no call; the one named reads the order.
+ *
+ * A confirmation's signal carries the seller's authorization number, and the
+ * wait provides it: the step that records the payment after it reads the
+ * number from the flow, never from the order (ADR 0081 §2).
  */
 export const orderPaymentDecision = defineFragment({
   id: 'order.payment-decision',
-  version: 1,
+  version: 2,
   outcomes: ['confirmed', 'cancelled'],
   module: 'order-management',
   kind: 'wait',
@@ -213,6 +217,7 @@ export const orderPaymentDecision = defineFragment({
   call: { method: 'GET', path: '/api/product-order/:orderId' },
   cardinality: 'perVendor',
   consumes: { orderId: OrderId },
+  provides: { paymentReference: Schema.String },
   contract: {
     input: openStruct({ orderId: OrderId }),
     output: ORDER,

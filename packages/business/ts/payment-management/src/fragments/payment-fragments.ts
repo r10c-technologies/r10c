@@ -114,6 +114,46 @@ export const paymentRecordCollection = defineFragment({
 });
 
 /**
+ * Record the payment link a seller confirmed, after the checkout's wait was
+ * answered `confirmed`: a `link` payment for that one order, its provider
+ * reference the seller's authorization number (ADR 0081 §2). The money moved
+ * at the seller's acquirer past the slip's commit point, so this step rolls
+ * forward like a cash-on-delivery collection — retried, idempotent on its key —
+ * and calls the same route under the same crossing permission.
+ */
+export const paymentRecordConfirmation = defineFragment({
+  id: 'payment.record-confirmation',
+  version: 1,
+  module: 'payment-management',
+  kind: 'retriable',
+  participant: PARTICIPANT,
+  call: { method: 'POST', path: '/api/collection' },
+  cardinality: 'perVendor',
+  isolation: 'commutative',
+  consumes: {
+    orderId: Schema.String,
+    paymentReference: Schema.String,
+  },
+  contract: {
+    input: openStruct({
+      groupId: Schema.NonEmptyString,
+      orderId: Schema.NonEmptyString,
+      vendorId: Schema.NonEmptyString,
+      amount: Schema.Number,
+      taxableBase: Schema.Number,
+      taxAmount: Schema.Number,
+      taxRegime: Schema.String,
+      currency: Schema.NonEmptyString,
+      tender: Schema.Literal('link'),
+      // The flow binds it from the wait; the route reads it by this name.
+      paymentReference: Schema.NonEmptyString,
+    }),
+    output: PAYMENT,
+    failure: participantRefusal(['invalidBody']),
+  },
+});
+
+/**
  * May this seller's order be paid cash on delivery? A read before the commit
  * point with nothing to undo, so `readOnly`: over the limit, or a seller who
  * does not ship it, refuses the checkout before anything was held.
@@ -164,5 +204,6 @@ export const PAYMENT_FRAGMENTS = [
   paymentRefund,
   paymentRefundAfterDelivery,
   paymentRecordCollection,
+  paymentRecordConfirmation,
   paymentCodEligible,
 ] as const;

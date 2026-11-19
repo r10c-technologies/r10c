@@ -893,6 +893,19 @@ not change an existing exchange's type. `@r10c/slices` now asserts that every
 subscribed event has a slice declaring it published, that no slice subscribes to
 its own, and that every name is routable.
 
+**A payload is a whole fact, and its contract is committed**
+([ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md)).
+A publisher builds `data` member by member from the registered Schema, never
+by serializing an entity, and the members a module keeps books from are
+required. `tools/slices/event-contracts.json` holds every registered event's
+JSON Schema and a fingerprint. A changed, added or removed contract fails
+`@r10c/slices` with the name of every slice that subscribes to it, because those
+consumers move in the same change. There is no version in the routing key and no
+dual publish. Once they have moved, `UPDATE_EVENT_CONTRACTS=1 pnpm nx test
+@r10c/slices` rewrites the file, and the lab is reset. A `planned` slice's
+subscription counts as a listener. That is how `stock-movement.recorded` is
+published before the module that keeps books from it exists.
+
 **What happens when a message cannot be processed is decided, and most of it is
 built** ([ADR 0030](adr/0030-failure-retry-and-quarantine-on-the-bus.md)).
 Until #177 a failed handler and a malformed payload both ended in

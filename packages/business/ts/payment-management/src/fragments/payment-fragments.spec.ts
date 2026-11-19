@@ -36,12 +36,13 @@ const captureIn = (paymentMethod: string): Slip => ({
 });
 
 describe('payment fragments', () => {
-  it('are two irreversible pivots, a retried refund and collection, and a read-only check', () => {
+  it('are two irreversible pivots, a retried refund and two collections, and a read-only check', () => {
     expect(PAYMENT_FRAGMENTS.map(fragmentRef)).toEqual([
       'payment.capture@4',
       'payment.refund@2',
       'payment.refund-after-delivery@1',
       'payment.record-collection@2',
+      'payment.record-confirmation@1',
       'payment.cod-eligible@1',
     ]);
     expect(
@@ -54,9 +55,22 @@ describe('payment fragments', () => {
       'pivot',
       'retriable',
       'retriable',
+      'retriable',
       'compensatable',
     ]);
-    expect(PAYMENT_FRAGMENTS[4]?.readOnly).toBe(true);
+    expect(PAYMENT_FRAGMENTS[5]?.readOnly).toBe(true);
+  });
+
+  it('records a confirmed link on the collection route, per vendor, under the reference the flow bound', () => {
+    const [, , , collection, confirmation] = PAYMENT_FRAGMENTS;
+    expect(confirmation).toMatchObject({
+      call: collection.call,
+      cardinality: 'perVendor',
+    });
+    expect(Object.keys(confirmation.consumes ?? {})).toEqual([
+      'orderId',
+      'paymentReference',
+    ]);
   });
 
   it('refunds after a delivery on the refund’s own route, contract and refusals', () => {

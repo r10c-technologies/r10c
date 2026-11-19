@@ -225,6 +225,7 @@ describe('the checkout recipe', () => {
       'v-2/link:order.await-payment',
       'order.notify-buyer',
       'v-2/link:order.payment-decision',
+      'v-2/link:payment.record-confirmation',
       'v-2/link:v-2-o-1:stock.convert',
       'v-2/link:order.confirm',
       'v-2/link:fulfilment.open',
@@ -251,6 +252,15 @@ describe('the checkout recipe', () => {
       timeoutMs: WINDOW + GRACE,
       onTimeout: 'strand',
     });
+    // The seller's money is recorded as a `link` payment for that one order,
+    // under the authorization number the wait is answered with (ADR 0081 §2).
+    expect(step('v-2/link:payment.record-confirmation')?.guard).toEqual({
+      wait: 'v-2/link:order.payment-decision',
+      outcomes: ['confirmed'],
+    });
+    expect(
+      step('v-2/link:payment.record-confirmation')?.parameters,
+    ).toMatchObject({ groupId: 'f', vendorId: 'v-2', tender: 'link' });
     expect(step('v-2/link:order.confirm')?.guard).toEqual({
       wait: 'v-2/link:order.payment-decision',
       outcomes: ['confirmed'],
@@ -282,8 +292,11 @@ describe('the checkout recipe', () => {
   it('refuses a link checkout that states no payment window', () => {
     const decode = Schema.decodeUnknownExit(CheckoutStart);
     const { paymentWindowMs: _window, ...unstated } = CHECKOUTS[5]!.value;
-    const { paymentWindowMs: _w, paymentGraceMs: _g, ...card } =
-      CHECKOUTS[0]!.value;
+    const {
+      paymentWindowMs: _w,
+      paymentGraceMs: _g,
+      ...card
+    } = CHECKOUTS[0]!.value;
 
     expect(decode(unstated)._tag).toBe('Failure');
     expect(decode(card)._tag).toBe('Success');

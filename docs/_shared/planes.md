@@ -45,6 +45,7 @@ declaration as `bindingReason`.
 
 | Store                    | Plane    | Owner slice         | Slice status | Co-deployed with | Hosts                                                         | Partitioning     | Truth                    |
 | ------------------------ | -------- | ------------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------------- | ------------------------ |
+| `accounting`             | tenant   | `accounting`        | **planned**  | —                | —                                                             | per-organization | system-of-record         |
 | `auth`                   | control  | `auth`              | active       | —                | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record         |
 | `catalog-idempotency`    | control  | `marketplace-admin` | active       | —                | —                                                             | single           | system-of-record         |
 | `catalog-reference`      | platform | `marketplace`       | active       | —                | `catalog-reference`                                           | single           | system-of-record         |

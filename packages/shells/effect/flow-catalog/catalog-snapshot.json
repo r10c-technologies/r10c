@@ -1886,9 +1886,9 @@
       "fingerprint": "10fcc91164045e"
     },
     {
-      "ref": "order.payment-decision@1",
+      "ref": "order.payment-decision@2",
       "id": "order.payment-decision",
-      "version": 1,
+      "version": 2,
       "module": "order-management",
       "kind": "wait",
       "cardinality": "perVendor",
@@ -1915,7 +1915,15 @@
           "definitions": {}
         }
       },
-      "provides": {},
+      "provides": {
+        "paymentReference": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "contract": {
         "input": {
           "dialect": "draft-2020-12",
@@ -1989,7 +1997,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0027523fbca58f"
+      "fingerprint": "177153e1e826d6"
     },
     {
       "ref": "order.write@6",
@@ -2791,6 +2799,202 @@
         }
       },
       "fingerprint": "12908616e9e143"
+    },
+    {
+      "ref": "payment.record-confirmation@1",
+      "id": "payment.record-confirmation",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "retriable",
+      "cardinality": "perVendor",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/collection"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "commutative",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "paymentReference": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "groupId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "orderId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vendorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxableBase": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxAmount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxRegime": {
+                "type": "string"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tender": {
+                "type": "string",
+                "enum": [
+                  "link"
+                ]
+              },
+              "paymentReference": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "groupId",
+              "orderId",
+              "vendorId",
+              "amount",
+              "taxableBase",
+              "taxAmount",
+              "taxRegime",
+              "currency",
+              "tender",
+              "paymentReference"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "invalidBody"
+                    ]
+                  }
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "041c2c4e5555fd"
     },
     {
       "ref": "payment.refund-after-delivery@1",

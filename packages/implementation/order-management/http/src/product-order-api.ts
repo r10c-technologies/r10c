@@ -189,8 +189,13 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
     // conditional write on `awaiting-payment`, answered with the order as it
     // moved: the decision is made at that write, and the checkout waiting on
     // a confirmation carries on by the event it announces.
+    //
+    // Remembered at the edge by `Idempotency-Key`: a seller's retried
+    // confirmation is answered with the first one's order, `paid`, rather than
+    // refused as no longer awaiting payment (#667).
     verbEndpoint(ConfirmPaymentUC, {
       guard: { kind: 'permission' },
+      idempotent: 'edge',
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         confirmPayment({
           orderId: idOf(request),
@@ -205,6 +210,7 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
     }),
     verbEndpoint(SetPaymentLinkUC, {
       guard: { kind: 'permission' },
+      idempotent: 'edge',
       handler: (request: EntityApiRequest, context: EntityApiContext) =>
         setPaymentLink({
           orderId: idOf(request),

@@ -506,6 +506,7 @@ export const entity = {
         voucher: 'Vale',
         transfer: 'Transferencia',
         cod: 'Contra entrega',
+        link: 'Enlace de pago',
       },
     },
   },

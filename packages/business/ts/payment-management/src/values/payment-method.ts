@@ -16,6 +16,10 @@
  * `cod` is cash handed to a courier on delivery: never captured at checkout,
  * recorded as a collection once the courier reports it, for the one order it
  * paid (ADR 0070).
+ *
+ * `link` is a payment link the buyer paid into the seller's own acquirer
+ * account: recorded once the seller confirms it, with their authorization
+ * number as the provider reference, for the one order it paid (ADR 0081 §2).
  */
 export const PaymentMethods = [
   'cash',
@@ -23,6 +27,7 @@ export const PaymentMethods = [
   'voucher',
   'transfer',
   'cod',
+  'link',
 ] as const;
 
 export type PaymentMethod = (typeof PaymentMethods)[number];

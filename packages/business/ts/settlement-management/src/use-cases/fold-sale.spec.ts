@@ -48,7 +48,33 @@ const order = {
   vendorId: 'v-1',
   groupId: 'g-1',
   paymentMethod: 'card',
-  items: [{ amount: 10, quantity: 2, currency: 'GTQ' }],
+  status: 'placed',
+  // The whole fact the contract requires (ADR 0078 §2); the fold reads only
+  // the vendor, the lines' price and the channel.
+  items: [
+    {
+      offeringId: 'off-1',
+      name: 'Cog',
+      amount: 10,
+      quantity: 2,
+      currency: 'GTQ',
+      kind: 'good',
+      taxTreatment: 'taxed',
+      taxRate: 1200,
+      taxableBase: 18,
+      taxAmount: 2,
+    },
+  ],
+  sellerTax: {
+    taxId: '10000003',
+    legalName: 'Demo, S.A.',
+    taxRegime: 'general',
+    establishmentCode: '1',
+  },
+  netAmount: 18,
+  taxAmount: 2,
+  totalAmount: 20,
+  currency: 'GTQ',
 };
 
 const joinThat = (outcome: FoldOutcome) => {

@@ -91,6 +91,22 @@ describe('the payment signals', () => {
     ]);
   });
 
+  it('hand a confirmation’s authorization number to the wait', async () => {
+    const { signals, deliver } = await consumer();
+
+    await deliver('order.payment-confirmed', {
+      ...order,
+      paymentReference: 'AUTH-123456',
+    });
+
+    expect(signals).toEqual([
+      {
+        correlation: 'payment:grp-1:v-1',
+        signal: { outcome: 'confirmed', paymentReference: 'AUTH-123456' },
+      },
+    ]);
+  });
+
   it.each([
     ['a placement, which no wait listens for', 'order.placed', order],
     [

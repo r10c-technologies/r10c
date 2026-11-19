@@ -10,12 +10,34 @@ import {
 
 const line = { amount: 10, quantity: 2, currency: 'GTQ' };
 
+const fullLine = {
+  ...line,
+  offeringId: 'off-1',
+  name: 'Cog',
+  kind: 'good',
+  taxTreatment: 'taxed',
+  taxRate: 0.12,
+  taxableBase: 18,
+  taxAmount: 2,
+};
+
 const order = {
   id: 'o-1',
   vendorId: 'v-1',
   groupId: 'g-1',
   paymentMethod: 'card',
-  items: [line],
+  status: 'paid',
+  items: [fullLine],
+  sellerTax: {
+    taxId: '1234567-8',
+    legalName: 'Ferretería Demo',
+    taxRegime: 'general',
+    establishmentCode: '1',
+  },
+  netAmount: 18,
+  taxAmount: 2,
+  totalAmount: 20,
+  currency: 'GTQ',
 };
 
 const refused = (data: unknown) =>
@@ -62,9 +84,21 @@ describe('readPlacedOrder', () => {
       { ...order, items: [] },
       { ...order, channel: { name: 'no type' } },
       { ...order, items: [null] },
-      { ...order, items: [{ ...line, amount: Number.NaN }] },
-      { ...order, items: [{ ...line, quantity: 'two' }] },
-      { ...order, items: [{ ...line, currency: '' }] },
+      { ...order, items: [{ ...fullLine, amount: Number.NaN }] },
+      { ...order, items: [{ ...fullLine, quantity: 'two' }] },
+      { ...order, items: [{ ...fullLine, currency: '' }] },
+      // The whole fact (ADR 0078 §2): a fiscal member missing is a wrong ledger
+      // entry, not a smaller one.
+      { ...order, items: [line] },
+      { ...order, items: [{ ...fullLine, taxAmount: undefined }] },
+      { ...order, items: [{ ...fullLine, offeringId: '' }] },
+      { ...order, sellerTax: undefined },
+      { ...order, sellerTax: { ...order.sellerTax, taxRegime: '' } },
+      { ...order, netAmount: undefined },
+      { ...order, taxAmount: Number.NaN },
+      { ...order, totalAmount: '20' },
+      { ...order, status: '' },
+      { ...order, currency: undefined },
     ];
 
     for (const payload of payloads) {

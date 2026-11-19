@@ -25,6 +25,13 @@ const ORDER_MEMBERS = [
   'status',
   'placedAt',
   'paidAt',
+  // A payment link's confirmation: the seller's authorization number and when
+  // they confirmed it — the fact `order.payment-confirmed` states (ADR 0081 §4).
+  // Who confirmed stays on the order; a person's id is not a bus fact.
+  'paymentReference',
+  'paymentConfirmedAt',
+  // Why an order was cancelled: the buyer, the seller, a lapsed payment window.
+  'cancelCause',
   'netAmount',
   'taxAmount',
   'totalAmount',

@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-11-16
+- Revised: 2026-11-19 by the payment-confirmation build (#667): the wait is `@2` and provides the authorization number; the confirmation is recorded on the collection route
 - Area: business
 - Read when: a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date
 
@@ -116,13 +117,19 @@ New fragments:
   record of "this order is promised and unpaid". `pending` keeps its meaning,
   a flow in flight that nobody else may touch
   ([ADR 0058](0058-the-order-after-payment.md) §2).
-- **`order.payment-decision@1`** (wait) is answered by the two events of §4.
+- **`order.payment-decision@2`** (wait) is answered by the two events of §4.
+  A confirmation's signal carries `paymentReference`, the seller's
+  authorization number from `order.payment-confirmed`, and the wait provides
+  it to the flow.
 - **`payment.record-confirmation@1`** (retriable, crossing token) writes the
   `Payment` with method `link`, `providerReference` set to the seller's
   authorization number, and one `PaymentAllocation` for the order. It
   announces `payment.captured`. It is not a pivot. The money moved at the
   acquirer, and this step records it after the slip's point of no return, so
-  it rolls forward like `payment.record-collection@1` does for `cod`.
+  it rolls forward like `payment.record-collection@2` does for `cod`. It calls
+  the same route, `POST /api/collection`, with `tender: 'link'` and the bound
+  `paymentReference`, under the same `collection:write` crossing permission.
+  Both are money the vendor collected, so no new crossing was opened (#667).
 - **`stock.release@1`** (retriable) calls the same `DELETE
 /api/reservation/:id` the reservation's compensation calls. A compensation
   cannot run after the commit point, but this route is already total: it

@@ -3,13 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { isPaymentMethod, PaymentMethods } from './payment-method.js';
 
 describe('PaymentMethods', () => {
-  it('carries the four tenders a vendor can actually be handed', () => {
+  it('carries the tenders a vendor can actually be handed', () => {
     expect(PaymentMethods).toEqual([
       'cash',
       'card',
       'voucher',
       'transfer',
       'cod',
+      'link',
     ]);
   });
 

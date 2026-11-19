@@ -471,6 +471,7 @@ export const entity: EsEntity = {
         voucher: 'Voucher',
         transfer: 'Transfer',
         cod: 'Cash on delivery',
+        link: 'Payment link',
       },
     },
   },

@@ -581,6 +581,9 @@ describe('the receipt mail step (ADR 0076 §6)', () => {
       organization: false,
     });
     expect(receiptMail.descriptor.idempotent).toBe('edge');
+    // A seller's retried confirmation answers the first (#667).
+    expect(confirmPaymentVerb.idempotent).toBe('edge');
+    expect(setLinkVerb.idempotent).toBe('edge');
   });
 
   it('mails the buyer and answers the outcome alone', async () => {

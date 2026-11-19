@@ -527,4 +527,46 @@ describe('announcing a change', () => {
 
     expect(changes(bus)).toEqual([]);
   });
+
+  // ADR 0078 §2: the ledger line itself, beside the counter a screen reads.
+  it('announces each ledger line, with its cause, from the unit that wrote it', async () => {
+    const { run, bus } = world();
+    const receipt = Object.assign(new StockMovement('off-1', 5, 'receipt'), {
+      id: 'mv-1',
+    });
+    await run(ledger => ledger.record('org', receipt));
+    const hold = Object.assign(new Reservation('off-1', 2), {
+      id: 'res-1',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await run(ledger => ledger.take('org', hold, undefined));
+    await run(ledger => ledger.end('org', 'res-1', 'converted'));
+
+    expect(
+      bus.published
+        .filter(event => event.name === 'stock-movement.recorded')
+        .map(event => ({ audience: event.audience, data: event.data })),
+    ).toEqual([
+      {
+        audience: undefined,
+        data: expect.objectContaining({
+          id: 'mv-1',
+          organizationId: 'org',
+          quantity: 5,
+          reason: 'receipt',
+          cause: { type: 'manual', id: 'mv-1' },
+        }),
+      },
+      {
+        audience: undefined,
+        data: expect.objectContaining({
+          organizationId: 'org',
+          offeringId: 'off-1',
+          quantity: -2,
+          reason: 'sale',
+          cause: { type: 'reservation', id: 'res-1' },
+        }),
+      },
+    ]);
+  });
 });
