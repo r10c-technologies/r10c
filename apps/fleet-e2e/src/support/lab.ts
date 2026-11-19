@@ -251,6 +251,7 @@ const sellableOfferings = async (organizationId: string, atLeast: number) => {
   return published
     .map(offering => ({
       offeringId: String(offering['offeringId']),
+      name: String(offering['name']),
       amount: Number(offering['amount']),
       available: available.get(String(offering['offeringId'])) ?? 0,
     }))
@@ -274,11 +275,13 @@ export const capability = (): Capability => {
 
 export interface Segment {
   readonly vendorId: string;
-  readonly paymentMethod: 'card' | 'cod';
+  readonly paymentMethod: 'card' | 'cod' | 'link';
   readonly lines: readonly {
     readonly offeringId: string;
     readonly quantity: number;
     readonly amount: number;
+    /** The name as sold; the offering's id stands in when a spec names none. */
+    readonly name?: string;
   }[];
 }
 
@@ -286,6 +289,8 @@ export interface Started {
   readonly status: number;
   readonly flowId: string;
   readonly capability: Capability;
+  /** The body a refused start answered, so a failure names its reason. */
+  readonly problem?: unknown;
 }
 
 /** `POST /api/flow/checkout`, as the storefront starts one. */
@@ -304,10 +309,30 @@ export const startCheckout = async (
       channel: { type: 'storefront' },
       vendors: segments.map(segment => ({
         ...segment,
-        lines: segment.lines.map(line => ({ ...line, currency: 'GTQ' })),
+        lines: segment.lines.map(line => ({
+          ...line,
+          // A line names what was sold (#582).
+          name: line.name ?? line.offeringId,
+          currency: 'GTQ',
+        })),
       })),
       totals: [{ currency: 'GTQ', amount: total }],
       capabilityDigest: cap.digest,
+      // One nonce for both of the receipt's capabilities: hearing the flow,
+      // and the buyer's own cancellation or withdrawal (ADR 0058, ADR 0081 §4).
+      cancelDigest: cap.digest,
+      // A storefront checkout names where its parcels go (ADR 0076 §3); the
+      // receipt mail lands in Mailpit.
+      contact: {
+        name: 'Ana López',
+        phone: '+50255551234',
+        email: 'ana@correo.com',
+        destination: {
+          departamento: '01',
+          municipio: '0108',
+          addressLine: '5a avenida 12-34',
+        },
+      },
     }),
   });
   const body = (await res.json()) as { data?: { flowId?: string } };
@@ -315,6 +340,7 @@ export const startCheckout = async (
     status: res.status,
     flowId: body.data?.flowId ?? '',
     capability: cap,
+    ...(res.ok ? {} : { problem: body }),
   };
 };
 

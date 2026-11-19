@@ -2,6 +2,7 @@ import { Unavailable } from '@entifix/core';
 import {
   EventBusTag,
   FlowEngineTag,
+  type FlowState,
   type Subscription,
 } from '@entifix/transactions';
 import { confirmedBySeller } from '@r10c/business-ts-sales-vocabulary';
@@ -42,6 +43,20 @@ type OrderFacts = {
   readonly paymentReference?: unknown;
 };
 
+/** A flow in one of these will never park on a wait again. */
+const ENDED: ReadonlySet<FlowState> = new Set<FlowState>([
+  'completed',
+  'compensated',
+  'failed',
+  'interrupted',
+  'stranded',
+]);
+
+/** Retried by redelivery: the flow may simply not have reached its wait. */
+const notParkedYet = Effect.fail(
+  new Unavailable({ dependency: 'checkout flow' }),
+);
+
 const filled = (value: unknown): value is string =>
   typeof value === 'string' && value !== '';
 
@@ -56,6 +71,11 @@ const filled = (value: unknown): value is string =>
  *   is every cancellation that is not a link's.
  * - **Refused** — a wait already answered — is let go: a second delivery finds
  *   the wait claimed, which is the dedupe.
+ * - **Not parked, and the flow has ended** — a second delivery of an answer
+ *   the flow already took and ran past — is let go too. Delivery is
+ *   at-least-once, and the flow's id is the order's group, so asking the
+ *   engine tells "not parked yet" from "long gone". Retrying the second would
+ *   spend every attempt and quarantine an answer that had already landed.
  */
 export const startPaymentSignals = Effect.gen(function* () {
   const bus = yield* EventBusTag;
@@ -86,7 +106,13 @@ export const startPaymentSignals = Effect.gen(function* () {
         Effect.catchTags({
           FlowSignalRejected: () => Effect.void,
           FlowNotFound: () =>
-            Effect.fail(new Unavailable({ dependency: 'checkout flow' })),
+            engine.status(order.groupId as string).pipe(
+              Effect.matchEffect({
+                onFailure: () => notParkedYet,
+                onSuccess: status =>
+                  ENDED.has(status.state) ? Effect.void : notParkedYet,
+              }),
+            ),
         }),
       );
   });
