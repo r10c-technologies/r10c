@@ -53,6 +53,7 @@ const restore = (
       offeringId: OFFERING,
       quantity: 2,
       cause: 'cancellation',
+      orderId: 'order-e2e',
       ...body,
     },
     { headers: crossing(extra) },
@@ -110,7 +111,7 @@ describe('restoring stock after a cancellation', () => {
     const offeringId = `offering-ledger-${String(Date.now())}`;
     await service.client.post(
       '/api/stock-restoration',
-      { offeringId, quantity: 5, cause: 'cancellation' },
+      { offeringId, quantity: 5, cause: 'cancellation', orderId: 'order-e2e' },
       { headers: crossing() },
     );
 
@@ -119,6 +120,11 @@ describe('restoring stock after a cancellation', () => {
 
     expect(restoration).toBeDefined();
     expect(restoration?.['quantity']).toBe(5);
+    expect(restoration).toMatchObject({
+      causeType: 'product-order',
+      causeId: 'order-e2e',
+    });
+    expect(restoration?.['occurredAt']).toBeDefined();
   });
 
   /**
@@ -136,6 +142,7 @@ describe('restoring stock after a cancellation', () => {
         quantity: 3,
         reason: 'receipt',
         cause: 'cancellation',
+        orderId: 'order-e2e',
       },
       { headers: crossing() },
     );
@@ -157,7 +164,12 @@ describe('restoring stock after a cancellation', () => {
     const send = () =>
       service.client.post(
         '/api/stock-restoration',
-        { offeringId, quantity: 4, cause: 'cancellation' },
+        {
+          offeringId,
+          quantity: 4,
+          cause: 'cancellation',
+          orderId: 'order-e2e',
+        },
         { headers: crossing({ 'idempotency-key': `"${commandId}"` }) },
       );
 
@@ -186,9 +198,11 @@ describe('restoring stock after a cancellation', () => {
   it('refuses a restoration that names no cause, or one outside the two', async () => {
     const none = await restore({ cause: undefined });
     const gift = await restore({ cause: 'gift' });
+    const orderless = await restore({ orderId: undefined });
 
     expect(none.status).toBe(400);
     expect(gift.status).toBe(400);
+    expect(orderless.status).toBe(400);
     expect(none.data.code).toBe('invalidBody');
   });
 
@@ -204,7 +218,12 @@ describe('restoring stock after a cancellation', () => {
   it('refuses a session, even super-admin', async () => {
     const res = await service.client.post(
       '/api/stock-restoration',
-      { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
+      {
+        offeringId: OFFERING,
+        quantity: 1,
+        cause: 'cancellation',
+        orderId: 'order-e2e',
+      },
       { headers: { Authorization: await bearerFor(['super-admin']) } },
     );
 
@@ -222,7 +241,12 @@ describe('restoring stock after a cancellation', () => {
   it('refuses a crossing that names no organization', async () => {
     const res = await service.client.post(
       '/api/stock-restoration',
-      { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
+      {
+        offeringId: OFFERING,
+        quantity: 1,
+        cause: 'cancellation',
+        orderId: 'order-e2e',
+      },
       {
         headers: {
           'x-crossing-token': E2E_CROSSING_TOKEN,

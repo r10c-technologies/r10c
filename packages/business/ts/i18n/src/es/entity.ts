@@ -228,14 +228,26 @@ export const entity = {
   organization: {
     label: 'Organización',
     plural: 'Organizaciones',
+    useCases: {
+      setFiscalIdentity: 'Guardar datos fiscales',
+    },
     fields: {
       id: 'ID',
       name: 'Nombre',
       slug: 'Identificador',
       status: 'Estado',
+      taxId: 'NIT',
+      legalName: 'Razón social',
+      taxRegime: 'Régimen tributario',
+      establishmentCode: 'Código de establecimiento',
       updatedAt: 'Última actualización',
     },
     values: {
+      taxRegime: {
+        general: 'IVA general',
+        'small-taxpayer': 'Pequeño contribuyente',
+        simplified: 'Opcional simplificado',
+      },
       status: {
         active: 'Activa',
         suspended: 'Suspendida',
@@ -319,6 +331,10 @@ export const entity = {
       announcedAt: 'Anunciado el',
       acceptsCod: 'Acepta pago contra entrega',
       holdsStock: 'Maneja inventario',
+      taxId: 'NIT',
+      legalName: 'Razón social',
+      taxRegime: 'Régimen tributario',
+      establishmentCode: 'Código de establecimiento',
     },
   },
   'published-offering': {
@@ -746,6 +762,9 @@ export const entity = {
       offeringId: 'Producto',
       quantity: 'Cantidad',
       reason: 'Motivo',
+      occurredAt: 'Fecha',
+      causeType: 'Origen',
+      causeId: 'Referencia del origen',
     },
     values: {
       reason: {
@@ -754,6 +773,11 @@ export const entity = {
         cancellation: 'Cancelación',
         return: 'Devolución',
         adjustment: 'Ajuste',
+      },
+      causeType: {
+        manual: 'Manual',
+        reservation: 'Reserva',
+        'product-order': 'Pedido',
       },
     },
   },
@@ -809,6 +833,9 @@ export const entity = {
       flowId: 'Flujo',
       paymentMethod: 'Pago',
       amountDue: 'A cobrar en la entrega',
+      taxableBase: 'Base imponible',
+      taxAmount: 'Impuesto',
+      taxRegime: 'Régimen fiscal',
       currency: 'Moneda',
       lines: 'Líneas',
       line: {

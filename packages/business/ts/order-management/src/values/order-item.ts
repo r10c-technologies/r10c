@@ -1,4 +1,10 @@
 import { accessor } from '@entifix/core';
+import {
+  type ItemKind,
+  ItemKinds,
+  type TaxTreatment,
+  TaxTreatments,
+} from '@r10c/business-ts-tax-policy';
 
 /**
  * One line of a vendor's order.
@@ -46,6 +52,11 @@ export class OrderItem {
   #amount: number;
   #currency: string;
   #reservationId?: string;
+  #kind: ItemKind = 'good';
+  #taxTreatment: TaxTreatment = 'taxed';
+  #taxRate = 0;
+  #taxableBase = 0;
+  #taxAmount = 0;
   // #endregion
 
   // #region constructors
@@ -143,6 +154,68 @@ export class OrderItem {
   }
   set reservationId(value: string | undefined) {
     this.#reservationId = value;
+  }
+  /** What the line sells, and how it is taxed: stated by the coordinator, stored as told (ADR 0078 §6). */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.item.kind',
+    enumValues: [...ItemKinds],
+    enumLabelKey: 'entity:product-order.values.item.kind',
+  })
+  get kind(): ItemKind {
+    return this.#kind;
+  }
+  set kind(value: ItemKind) {
+    this.#kind = value;
+  }
+
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.item.taxTreatment',
+    enumValues: [...TaxTreatments],
+    enumLabelKey: 'entity:product-order.values.item.taxTreatment',
+  })
+  get taxTreatment(): TaxTreatment {
+    return this.#taxTreatment;
+  }
+  set taxTreatment(value: TaxTreatment) {
+    this.#taxTreatment = value;
+  }
+
+  /** In basis points (`1200` = 12 %). */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.item.taxRate',
+  })
+  get taxRate(): number {
+    return this.#taxRate;
+  }
+  set taxRate(value: number) {
+    this.#taxRate = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.item.taxableBase',
+    money: { unit: 'minor', currencyMember: 'currency' },
+  })
+  get taxableBase(): number {
+    return this.#taxableBase;
+  }
+  set taxableBase(value: number) {
+    this.#taxableBase = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.item.taxAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
+  })
+  get taxAmount(): number {
+    return this.#taxAmount;
+  }
+  set taxAmount(value: number) {
+    this.#taxAmount = value;
   }
   // #endregion
 }

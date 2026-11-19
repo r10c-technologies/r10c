@@ -96,6 +96,11 @@ export const errors = {
   // falla.
   // Un canal retirado sigue siendo legible, porque cada pedido hecho por él
   // sigue nombrándolo — así que hay que rechazar la venta, no ocultar el canal.
+  invalidTaxId: 'Ese NIT o CUI no es válido. Revisa los dígitos.',
+  missingName: 'Escribe el nombre a quien emitimos la factura.',
+  invalidTaxIdType: 'Elige a quién facturar.',
+  invalidFiscalIdentity:
+    'Revisa los datos fiscales: el NIT, la razón social, el régimen o el establecimiento no son válidos.',
   channelInactive: 'Ese canal de venta está inactivo.',
   notYours: 'Esa oferta pertenece a otro vendedor.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',

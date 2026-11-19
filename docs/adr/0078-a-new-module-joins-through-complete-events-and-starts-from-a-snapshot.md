@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-11-16
+- Revised: 2026-11-18 by the fiscal facts build (#659–#661): §6's open states decided as below
 - Area: messaging
 - Read when: adding accounting, cost control, services or manufacturing, or widening an event another slice keeps books from — a module consumes complete events from its activation on, starts from a snapshot, and changes no existing slice
 
@@ -195,6 +196,22 @@ and process detail stay in Notion.
 | `PaymentAllocation` | `taxableBase`, `taxAmount`, `taxRegime`; a `Refund` mirrors its share of them                           | decided                          |
 | `StockMovement`     | `occurredAt`, `cause { type, id }`                                                                      | decided                          |
 | `StockMovement`     | `unitCost?`, `costCurrency?`; for a receipt `supplierTaxId?`, `documentAuthorization?`                  | **open** (Q4)                    |
+
+**As built (2026-11-18, #659–#661).** One `taxRegime` with three values —
+`general`, `small-taxpayer`, `simplified` (open question 2). A consumer price
+always includes IVA, and the tax is rounded **once per document** and
+apportioned to the lines by largest remainder (open question 3). Each regime's
+rate is two configuration rows on transaction-service (`tax.iva.<regime>.rate`
+and `.basis`): statutory rates are public law, not commercial terms, so they
+are seeded in the repository. Every line is a `taxed` good until an offering
+declares its treatment. The seller's NIT rides `organization.announced` and the
+`published-vendor` projection, because it is printed on every document the
+seller issues (open question 7). The buyer's identity is stored on the order
+and the `order.*` payload is built member by member without it. A
+cash-on-delivery order's tax rides its shipment to the collection, so every
+`payment.captured` allocation carries its tax. A stock movement records when
+it happened and its cause — the movement itself, the hold it converted, or the
+order whose goods went back.
 
 The line's description and unit price are ADR 0079's snapshot; this record adds
 the tax members beside them. IVA is computed by one pure function, as

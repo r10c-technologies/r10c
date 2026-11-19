@@ -336,6 +336,7 @@ describe('the till', () => {
     expect(url).toBe('/api/sales/sales-channel/sales-channel-counter/sell');
     expect(JSON.parse(String(init.body))).toEqual({
       paymentMethod: 'cash',
+      buyerTax: { idType: 'cf' },
       lines: [{ offeringId: 'product-offering-1', quantity: 2 }],
     });
   });
@@ -588,6 +589,53 @@ describe('charging', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(init.body)).paymentMethod).toBe('card');
+  });
+
+  it('bills a NIT the seller typed, and waits for both its number and name', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(accepted());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    renderTill();
+
+    await user.click(await channelChoice('Mostrador principal'));
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Producto' })).toBeEnabled(),
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Producto' }),
+      'product-offering-1',
+    );
+    await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Facturar a' }),
+      'nit',
+    );
+    const next = screen.getByRole('button', { name: /Continuar/i });
+    expect(next).toBeDisabled();
+    await user.type(
+      screen.getByRole('textbox', { name: 'Número de NIT o CUI' }),
+      '12345679',
+    );
+    expect(next).toBeDisabled();
+    await user.type(
+      screen.getByRole('textbox', { name: 'Nombre en la factura' }),
+      'Ferretería Sol',
+    );
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    expect(
+      await screen.findByText(/Facturado a: 12345679 — Ferretería Sol/),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Finalizar/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body)).buyerTax).toEqual({
+      idType: 'nit',
+      taxId: '12345679',
+      name: 'Ferretería Sol',
+    });
   });
 
   it('says something generic when the service cannot be reached', async () => {

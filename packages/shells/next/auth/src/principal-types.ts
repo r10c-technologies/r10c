@@ -13,5 +13,7 @@ export interface Principal {
   readonly subject: string;
   readonly sessionId: string;
   readonly roles: readonly string[];
+  /** The organization the session is acting for, when it is in one. */
+  readonly organizationId?: string | null;
   readonly attributes: Readonly<Record<string, unknown>>;
 }

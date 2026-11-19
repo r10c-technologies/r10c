@@ -82,6 +82,11 @@ const SCREENS = [
     ready: { role: 'heading', name: 'Sesiones activas', level: 1 },
   },
   {
+    screen: 'account-organization',
+    path: '/es/account/organization',
+    ready: { role: 'heading', name: 'Datos fiscales', level: 1 },
+  },
+  {
     screen: 'user-create',
     path: '/es/users/new',
     ready: { role: 'textbox', name: 'Correo' },

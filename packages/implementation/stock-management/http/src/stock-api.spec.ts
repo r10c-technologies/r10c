@@ -157,9 +157,14 @@ describe('the crossing endpoints', () => {
 
   it('put an order’s goods back by its cause, once per key', async () => {
     const { run, refusal } = world();
-    const envelope = (quantity: number, cause?: string) => {
+    const envelope = (
+      quantity: number,
+      cause?: string,
+      orderId: string | null = 'order-1',
+    ) => {
       const payload = flatOf(StockMovement, new StockMovement('o-1', quantity));
       if (cause !== undefined) payload['cause'] = cause;
+      if (orderId !== null) payload['orderId'] = orderId;
       return payload;
     };
     const restore = (
@@ -185,6 +190,11 @@ describe('the crossing endpoints', () => {
     const unknownCause = await refusal(
       restoration.handler({ payload: envelope(2, 'gift') }),
     );
+    const orderless = await refusal(
+      restoration.handler({
+        payload: envelope(2, 'cancellation', null),
+      }),
+    );
 
     expect(restored).toMatchObject({
       data: { reason: 'cancellation', quantity: 2 },
@@ -199,5 +209,6 @@ describe('the crossing endpoints', () => {
     expect(negative).toMatchObject({ code: 'inconsistentMovement' });
     expect(causeless).toMatchObject({ code: 'invalidBody' });
     expect(unknownCause).toMatchObject({ code: 'invalidBody' });
+    expect(orderless).toMatchObject({ code: 'invalidBody' });
   });
 });

@@ -14,6 +14,9 @@ export const r10c: EsR10c = {
       sellerOrder: 'Order {{number}} · {{tender}}',
       line: '{{quantity}} × {{name}} — {{amount}}',
       orderTotal: 'Total for this order: {{amount}}',
+      ivaIncluded: 'VAT included: {{amount}}',
+      billedTo: 'Billed to: {{name}} · {{idType}} {{taxId}}',
+      billedToCf: 'Billed to: Final consumer (CF)',
       total: 'Total: {{amount}}',
       deliveryHeading: 'Delivery',
     },
@@ -33,9 +36,18 @@ export const r10c: EsR10c = {
   },
   auth: {
     nav: {
+      organization: 'My organization',
       identity: 'Identity',
       users: 'Users',
       accountSection: 'Account',
+    },
+    organization: {
+      overline: 'Organization',
+      title: 'Fiscal details',
+      subtitle:
+        'The tax ID, legal name, regime and establishment every order you sell is documented under.',
+      failed: 'Your organization’s fiscal details could not be read.',
+      saved: 'Fiscal details saved. New orders use them from now on.',
     },
     account: {
       overline: 'Account',
@@ -259,6 +271,20 @@ export const r10c: EsR10c = {
       },
       edit: 'Edit cart',
       place: 'Place order',
+      tax: {
+        legend: 'Invoicing',
+        intro:
+          'If you need an invoice under your tax ID, choose it here. Otherwise it is issued to consumidor final.',
+        idTypes: {
+          cf: 'Consumidor final (CF)',
+          nit: 'NIT',
+          cui: 'CUI (DPI)',
+        },
+        hints: {
+          taxId:
+            'No dashes needed. A NIT ends in its check digit, which may be K.',
+        },
+      },
       delivery: {
         legend: 'Delivery and contact',
         intro:
@@ -273,6 +299,9 @@ export const r10c: EsR10c = {
           zona: 'Zona',
           addressLine: 'Address',
           reference: 'Landmark',
+          taxIdType: 'Invoice to',
+          taxId: 'NIT or CUI',
+          taxName: 'Name on the invoice',
         },
         hints: {
           phone: 'Eight digits. The courier calls you on this number.',
@@ -295,6 +324,9 @@ export const r10c: EsR10c = {
       },
     },
     order: {
+      ivaIncluded: 'VAT included:',
+      billedTo: 'Billed to: {{name}} · {{idType}} {{taxId}}',
+      billedToCf: 'Billed to: Final consumer (CF)',
       statusHeading: 'Placing your order',
       pending:
         'We are confirming your order with each seller. This page updates on its own.',
@@ -462,6 +494,13 @@ export const r10c: EsR10c = {
       offering: 'Product',
       total: 'Total',
       paymentMethod: 'Payment method',
+      tax: {
+        idType: 'Bill to',
+        idTypes: { cf: 'Final consumer (CF)', nit: 'NIT', cui: 'CUI' },
+        taxId: 'NIT or CUI number',
+        name: 'Name on the invoice',
+        billedTo: 'Billed to',
+      },
       charge: 'Charge',
       sold: 'Sale recorded',
       soldDetail: 'The stock is already drawn down and the order is written.',

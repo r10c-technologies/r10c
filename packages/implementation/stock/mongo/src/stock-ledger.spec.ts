@@ -244,6 +244,8 @@ describe('ending a hold', () => {
     expect(fake.read(MOVEMENT_COLLECTION)[0]).toMatchObject({
       quantity: -3,
       reason: 'sale',
+      causeType: 'reservation',
+      causeId: 'r-1',
     });
   });
 

@@ -21,6 +21,10 @@ describe('PublishedVendor', () => {
       announcedAt: new Date('2026-10-23T10:00:00.000Z'),
       acceptsCod: false,
       holdsStock: false,
+      taxId: '',
+      legalName: '',
+      taxRegime: '',
+      establishmentCode: '',
     });
   });
 
@@ -33,6 +37,10 @@ describe('PublishedVendor', () => {
         announcedAt: new Date('2026-10-23T11:00:00.000Z'),
         acceptsCod: true,
         holdsStock: true,
+        taxId: '20000006',
+        legalName: 'Terra Studio',
+        taxRegime: 'small-taxpayer',
+        establishmentCode: '2',
       }),
     );
 
@@ -41,6 +49,12 @@ describe('PublishedVendor', () => {
     expect(vendor?.announcedAt.toISOString()).toBe('2026-10-23T11:00:00.000Z');
     expect(vendor?.acceptsCod).toBe(true);
     expect(vendor?.holdsStock).toBe(true);
+    expect([
+      vendor?.taxId,
+      vendor?.legalName,
+      vendor?.taxRegime,
+      vendor?.establishmentCode,
+    ]).toEqual(['20000006', 'Terra Studio', 'small-taxpayer', '2']);
   });
 
   it('defaults to the epoch, so an unstamped record loses every comparison', () => {

@@ -37,7 +37,7 @@ const capture = (
   body: Record<string, unknown> = {},
   extra: Record<string, string> = {},
 ) => {
-  const { orderId: named, amount = 1999, ...rest } = body;
+  const { orderId: named, amount = 1999, shares, ...rest } = body;
   // One order id for the one vendor, or every vendor's, by vendor.
   const orderId =
     typeof named === 'object' && named !== null
@@ -51,7 +51,18 @@ const capture = (
       groupId: `group-${crypto.randomUUID()}`,
       currency: 'GTQ',
       paymentMethod: 'card',
-      shares: [{ vendorId: 'vendor-1', amount }],
+      // Each share carries the tax the checkout stated (ADR 0078 §2): the
+      // general regime's 12 %, inclusive.
+      shares: (
+        (shares as Array<{ vendorId: string; amount: number }> | undefined) ?? [
+          { vendorId: 'vendor-1', amount: amount as number },
+        ]
+      ).map(share => ({
+        ...share,
+        taxableBase: Math.round((share.amount * 100) / 112),
+        taxAmount: share.amount - Math.round((share.amount * 100) / 112),
+        taxRegime: 'general',
+      })),
       orderId,
       ...rest,
     },
@@ -420,6 +431,10 @@ describe('cash on delivery', () => {
         orderId,
         vendorId: 'vendor-1',
         amount: 2500,
+        // The order's tax, carried on its shipment from the checkout.
+        taxableBase: 2232,
+        taxAmount: 268,
+        taxRegime: 'general',
         currency: 'GTQ',
       },
       { headers: crossing() },

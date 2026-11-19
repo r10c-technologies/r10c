@@ -18,6 +18,21 @@ describe('StockMovement', () => {
       offeringId: 'offering-1',
       quantity: -1,
       reason: 'sale',
+      causeId: '',
+    });
+  });
+
+  it('carries when it happened and what caused it', () => {
+    const movement = new StockMovement('offering-1', 2, 'cancellation');
+    const at = new Date('2026-11-18T00:00:00Z');
+    movement.occurredAt = at;
+    movement.causeType = 'product-order';
+    movement.causeId = 'order-1';
+
+    expect(movement).toMatchObject({
+      occurredAt: at,
+      causeType: 'product-order',
+      causeId: 'order-1',
     });
   });
 
@@ -62,7 +77,15 @@ describe('StockMovement', () => {
       column => column.name,
     );
 
-    expect(names).toEqual(['id', 'offeringId', 'quantity', 'reason']);
+    expect(names).toEqual([
+      'id',
+      'offeringId',
+      'quantity',
+      'reason',
+      'occurredAt',
+      'causeType',
+      'causeId',
+    ]);
   });
 
   it('exposes the reason as a closed enum with a label vocabulary', () => {

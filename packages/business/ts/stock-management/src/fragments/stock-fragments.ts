@@ -65,11 +65,12 @@ export const stockConvert = defineFragment({
 /**
  * Put an order's goods back, as a new `+quantity` movement — never an
  * un-conversion, since the ledger is append-only (ADR 0058). `cause` says why:
- * a cancellation, or a parcel returned (ADR 0070).
+ * a cancellation, or a parcel returned (ADR 0070). `orderId` names the order
+ * the goods go back for, which the movement records as its cause (ADR 0078 §6).
  */
 export const stockRestore = defineFragment({
   id: 'stock.restore',
-  version: 3,
+  version: 4,
   module: 'stock-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -82,6 +83,7 @@ export const stockRestore = defineFragment({
       offeringId: Schema.NonEmptyString,
       quantity: Schema.Number,
       cause: Schema.Literals(['cancellation', 'return']),
+      orderId: Schema.NonEmptyString,
     }),
     output: openStruct({ id: Schema.String }),
     failure: participantRefusal(['invalidBody', 'inconsistentMovement']),

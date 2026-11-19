@@ -1,3 +1,4 @@
+import type { OrganizationSeed } from '@r10c/implementation-auth-mongo';
 import type { SeededVendor } from '@r10c/utils-ts-fleet';
 
 /**
@@ -23,13 +24,17 @@ import type { SeededVendor } from '@r10c/utils-ts-fleet';
  * and marketplace-admin-service must agree on it; it lives in config-service.
  */
 export const organizationSeedData = (
-  vendor: Pick<SeededVendor, 'organizationId' | 'name' | 'slug'>,
-): ReadonlyArray<Record<string, unknown>> => [
+  vendor: Pick<SeededVendor, 'organizationId' | 'name' | 'slug' | 'fiscal'>,
+): ReadonlyArray<OrganizationSeed> => [
   {
-    id: vendor.organizationId,
-    name: vendor.name,
-    slug: vendor.slug,
-    status: 'active',
+    row: {
+      id: vendor.organizationId,
+      name: vendor.name,
+      slug: vendor.slug,
+      status: 'active',
+    },
+    // The organization's own to change afterwards (`set-fiscal-identity`).
+    initial: { ...vendor.fiscal },
   },
 ];
 

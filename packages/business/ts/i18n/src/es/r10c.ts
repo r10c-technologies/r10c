@@ -20,6 +20,9 @@ export const r10c = {
       sellerOrder: 'Pedido {{number}} · {{tender}}',
       line: '{{quantity}} × {{name}} — {{amount}}',
       orderTotal: 'Total de este pedido: {{amount}}',
+      ivaIncluded: 'IVA incluido: {{amount}}',
+      billedTo: 'Facturado a: {{name}} · {{idType}} {{taxId}}',
+      billedToCf: 'Facturado a: Consumidor final',
       total: 'Total: {{amount}}',
       deliveryHeading: 'Entrega',
     },
@@ -39,9 +42,19 @@ export const r10c = {
   },
   auth: {
     nav: {
+      organization: 'Mi organización',
       identity: 'Identidad',
       users: 'Usuarios',
       accountSection: 'Cuenta',
+    },
+    organization: {
+      overline: 'Organización',
+      title: 'Datos fiscales',
+      subtitle:
+        'El NIT, la razón social, el régimen y el establecimiento con que se documenta cada pedido que vendes.',
+      failed: 'No se pudieron leer los datos fiscales de tu organización.',
+      saved:
+        'Datos fiscales guardados. Los pedidos nuevos los usan desde ahora.',
     },
     account: {
       overline: 'Cuenta',
@@ -282,6 +295,20 @@ export const r10c = {
       place: 'Confirmar pedido',
       // Entrega y contacto (ADR 0076 §2). Sin código postal ni país: se
       // entrega dentro de Guatemala, por departamento, municipio y zona.
+      tax: {
+        legend: 'Facturación',
+        intro:
+          'Si necesitas factura con tu NIT, elígelo aquí. Si no, la emitimos a consumidor final.',
+        idTypes: {
+          cf: 'Consumidor final (CF)',
+          nit: 'NIT',
+          cui: 'CUI (DPI)',
+        },
+        hints: {
+          taxId:
+            'Sin guiones. El NIT termina en su dígito verificador, que puede ser K.',
+        },
+      },
       delivery: {
         legend: 'Entrega y contacto',
         intro:
@@ -296,6 +323,9 @@ export const r10c = {
           zona: 'Zona',
           addressLine: 'Dirección',
           reference: 'Referencia',
+          taxIdType: 'Facturar a',
+          taxId: 'NIT o CUI',
+          taxName: 'Nombre en la factura',
         },
         hints: {
           phone: 'Ocho dígitos. El repartidor te llama a este número.',
@@ -318,6 +348,9 @@ export const r10c = {
       },
     },
     order: {
+      ivaIncluded: 'IVA incluido:',
+      billedTo: 'Facturado a: {{name}} · {{idType}} {{taxId}}',
+      billedToCf: 'Facturado a: Consumidor final',
       statusHeading: 'Estamos registrando tu pedido',
       pending:
         'Estamos confirmando tu pedido con cada vendedor. Esta página se actualiza sola.',
@@ -500,6 +533,13 @@ export const r10c = {
       offering: 'Producto',
       total: 'Total',
       paymentMethod: 'Forma de pago',
+      tax: {
+        idType: 'Facturar a',
+        idTypes: { cf: 'Consumidor final', nit: 'NIT', cui: 'CUI' },
+        taxId: 'Número de NIT o CUI',
+        name: 'Nombre en la factura',
+        billedTo: 'Facturado a',
+      },
       charge: 'Cobrar',
       sold: 'Venta registrada',
       soldDetail: 'La existencia ya se descontó y el pedido quedó registrado.',

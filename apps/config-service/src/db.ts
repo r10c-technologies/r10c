@@ -747,6 +747,32 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'awaitReturnTimeout',
     value: String(30 * 24 * 60 * 60 * 1000),
   },
+  // IVA per tax regime (ADR 0078 §6): the coordinator breaks the tax out of
+  // each price with these, once per document. Statutory rates are public law,
+  // not commercial terms, so they are seeded here rather than kept in Notion.
+  // `inclusive`: the price includes IVA and the document breaks it out (12 %).
+  // `gross`: a pequeño contribuyente's flat rate on the gross (5 %), shown on
+  // no document.
+  ...(
+    [
+      ['general', '1200', 'inclusive'],
+      ['small-taxpayer', '500', 'gross'],
+      ['simplified', '1200', 'inclusive'],
+    ] as const
+  ).flatMap(([regime, rate, basis]) => [
+    {
+      service: 'transaction-service',
+      group_name: 'tax',
+      key: `iva.${regime}.rate`,
+      value: rate,
+    },
+    {
+      service: 'transaction-service',
+      group_name: 'tax',
+      key: `iva.${regime}.basis`,
+      value: basis,
+    },
+  ]),
   // The flow engine's announcements leave through the workflow store's own
   // outbox, under the same quarantine ceiling as every other relay.
   {

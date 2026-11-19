@@ -23,6 +23,7 @@ import {
   ORDER_CANCELLED,
   ORDER_PLACED,
   orderAudience,
+  orderEventDataOf,
 } from '@r10c/business-ts-order-contracts';
 import {
   type CancellationClaim,
@@ -230,7 +231,9 @@ export const MongoProductOrderStoreLayer = Layer.effect(
       aggregate: { type: 'product-order', id },
       version: VERSION[name],
       audience: orderAudience(data),
-      data,
+      // Built member by member, never the stored document: the buyer's fiscal
+      // identity is on the record and must reach no subscriber (ADR 0078 §2).
+      data: orderEventDataOf(data),
     });
 
     /** `from → to` on one order, inside a unit's session. */

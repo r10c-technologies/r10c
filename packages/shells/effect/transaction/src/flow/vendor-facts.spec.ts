@@ -2,7 +2,11 @@ import { InMemoryRetryBudgetLayer } from '@entifix/transactions/engine';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { httpVendorFactsLayer, VendorFactsTag } from './vendor-facts.js';
+import {
+  entitlementsBySeller,
+  httpVendorFactsLayer,
+  VendorFactsTag,
+} from './vendor-facts.js';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -26,7 +30,7 @@ const factsOf = (vendorIds: readonly string[]) =>
   Effect.runPromise(
     Effect.result(
       Effect.flatMap(VendorFactsTag, facts =>
-        facts.entitlementsOf(vendorIds),
+        Effect.map(facts.sellersOf(vendorIds), entitlementsBySeller),
       ).pipe(
         Effect.provide(
           httpVendorFactsLayer('http://catalog/api').pipe(

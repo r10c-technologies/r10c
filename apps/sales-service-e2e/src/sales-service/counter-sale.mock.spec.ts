@@ -99,6 +99,19 @@ describe('the till`s one write', () => {
     expect(res.data['code']).toBe('invalid');
   });
 
+  it('is refused 400 for a NIT that does not validate, before any token is presented', async () => {
+    const res = await sell(
+      {
+        ...ONE_LINE,
+        buyerTax: { idType: 'nit', taxId: '12345678', name: 'Sol' },
+      },
+      await bearerFor(['admin']),
+    );
+
+    expect(res.status).toBe(400);
+    expect(res.data['code']).toBe('invalidTaxId');
+  });
+
   it('is refused 404 for a channel this organization does not have', async () => {
     // Not 403: the id is the store's primary key, and a 403 would make the route
     // an oracle for which channels exist in other vendors' stores.

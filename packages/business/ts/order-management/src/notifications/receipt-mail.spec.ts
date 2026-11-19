@@ -49,10 +49,19 @@ describe('composeReceiptMail', () => {
     const mail = composeReceiptMail({
       group: aGroup(),
       orders: [
-        anOrder('AAAA-1111', 'card'),
-        anOrder('BBBB-2222', 'cod', [
-          new OrderItem('o-2', 'Foco', 1, 500, 'GTQ'),
-        ]),
+        Object.assign(anOrder('AAAA-1111', 'card'), {
+          sellerTaxRegime: 'general',
+          taxAmount: 429,
+          buyerTaxIdType: 'nit',
+          buyerTaxId: '12345679',
+          buyerTaxName: 'Ana López',
+        }),
+        Object.assign(
+          anOrder('BBBB-2222', 'cod', [
+            new OrderItem('o-2', 'Foco', 1, 500, 'GTQ'),
+          ]),
+          { sellerTaxRegime: 'small-taxpayer', taxAmount: 25 },
+        ),
       ],
       link: LINK,
       linkHours: 24,
@@ -64,6 +73,11 @@ describe('composeReceiptMail', () => {
     expect(mail?.text).toContain('Pedido BBBB-2222 · Contra entrega');
     expect(mail?.text).toMatch(/2 × Lámpara Aurora — Q\s40\.00/);
     expect(mail?.text).toMatch(/Total: Q\s45\.00/);
+    // IVA broken out for the general regime only: a pequeño contribuyente's
+    // document shows none.
+    expect(mail?.text).toMatch(/IVA incluido: Q\s4\.29/);
+    expect(mail?.text.match(/IVA incluido/g)).toHaveLength(1);
+    expect(mail?.text).toContain('Facturado a: Ana López · NIT 12345679');
     expect(mail?.text).toContain('Zona 10, ');
     expect(mail?.text).toContain('portón negro');
     expect(mail?.text).toContain('Guatemala');
@@ -90,6 +104,18 @@ describe('composeReceiptMail', () => {
     expect(mail?.text).toMatch(/Total for this order: Q\s0\.00/);
     expect(mail?.text).toContain('9999, 99');
     expect(mail?.text).not.toContain('Zona');
+    expect(mail?.text).toContain('Billed to: Final consumer (CF)');
+  });
+
+  it('bills a consumidor final when it was handed no order', () => {
+    const mail = composeReceiptMail({
+      group: aGroup(),
+      orders: [],
+      link: LINK,
+      linkHours: 24,
+    });
+
+    expect(mail?.text).toContain('Facturado a: Consumidor final');
   });
 
   it('writes nothing for a group with no contact', () => {

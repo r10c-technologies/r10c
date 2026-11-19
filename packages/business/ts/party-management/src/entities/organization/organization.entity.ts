@@ -1,5 +1,6 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import { type TaxRegime, TaxRegimes } from '@r10c/business-ts-tax-policy';
 
 /**
  * Lifecycle state of an organization. A non-`active` organization keeps its
@@ -41,6 +42,10 @@ export class Organization implements Entity {
   #name: string;
   #slug: string;
   #status: OrganizationStatus = OrganizationStatus.Active;
+  #taxId = '';
+  #legalName = '';
+  #taxRegime: TaxRegime = 'general';
+  #establishmentCode = '';
   #updatedAt?: Date;
   // #endregion
 
@@ -101,6 +106,67 @@ export class Organization implements Entity {
   }
   set status(value: OrganizationStatus) {
     this.#status = value;
+  }
+
+  /**
+   * The seller's fiscal identity — what a document issued in its name carries,
+   * copied onto every order at placement (ADR 0078 §6). Written by the
+   * organization's own `admin` through `set-fiscal-identity`, never by the
+   * generic save: the name, slug and status beside them are the operator's.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:organization.fields.taxId',
+    required: true,
+    filterable: false,
+  })
+  get taxId(): string {
+    return this.#taxId;
+  }
+  set taxId(value: string) {
+    this.#taxId = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:organization.fields.legalName',
+    required: true,
+    filterable: false,
+  })
+  get legalName(): string {
+    return this.#legalName;
+  }
+  set legalName(value: string) {
+    this.#legalName = value;
+  }
+
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:organization.fields.taxRegime',
+    enumValues: [...TaxRegimes],
+    enumLabelKey: 'entity:organization.values.taxRegime',
+    required: true,
+    filterable: false,
+  })
+  get taxRegime(): TaxRegime {
+    return this.#taxRegime;
+  }
+  set taxRegime(value: TaxRegime) {
+    this.#taxRegime = value;
+  }
+
+  /** The SAT establishment the organization sells from, as a number. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:organization.fields.establishmentCode',
+    required: true,
+    filterable: false,
+  })
+  get establishmentCode(): string {
+    return this.#establishmentCode;
+  }
+  set establishmentCode(value: string) {
+    this.#establishmentCode = value;
   }
 
   /**

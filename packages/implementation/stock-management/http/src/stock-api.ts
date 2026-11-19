@@ -238,16 +238,26 @@ export const stockCrossingEndpoints = [
   implement(restoration, ({ payload }) =>
     Effect.gen(function* () {
       const movement = yield* readStepRecord(StockMovement, payload);
-      const cause = (payload as { cause?: unknown } | undefined)?.cause;
+      // `readStepRecord` has refused a body that is not a record by now.
+      const { cause, orderId } = payload as {
+        readonly cause?: unknown;
+        readonly orderId?: unknown;
+      };
       if (cause !== 'cancellation' && cause !== 'return') {
         return yield* new InvalidBody({
           reason: "a restoration names its cause: 'cancellation' or 'return'",
+        });
+      }
+      if (typeof orderId !== 'string' || orderId === '') {
+        return yield* new InvalidBody({
+          reason: 'a restoration names the order its goods go back for',
         });
       }
       const { movement: restored } = yield* restoreStock({
         organizationId: yield* OrganizationIdTag,
         movement,
         cause,
+        orderId,
         commandId: yield* commandId,
       });
       return makeEntityEnvelope(StockMovement, restored, [

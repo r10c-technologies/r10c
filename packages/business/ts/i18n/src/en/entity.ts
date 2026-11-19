@@ -194,14 +194,26 @@ export const entity: EsEntity = {
   organization: {
     label: 'Organization',
     plural: 'Organizations',
+    useCases: {
+      setFiscalIdentity: 'Save fiscal details',
+    },
     fields: {
       id: 'ID',
       name: 'Name',
       slug: 'Slug',
       status: 'Status',
+      taxId: 'Tax ID (NIT)',
+      legalName: 'Legal name',
+      taxRegime: 'Tax regime',
+      establishmentCode: 'Establishment code',
       updatedAt: 'Last updated',
     },
     values: {
+      taxRegime: {
+        general: 'General VAT',
+        'small-taxpayer': 'Small taxpayer',
+        simplified: 'Optional simplified',
+      },
       status: {
         active: 'Active',
         suspended: 'Suspended',
@@ -285,6 +297,10 @@ export const entity: EsEntity = {
       announcedAt: 'Announced at',
       acceptsCod: 'Accepts cash on delivery',
       holdsStock: 'Holds stock',
+      taxId: 'Tax ID (NIT)',
+      legalName: 'Legal name',
+      taxRegime: 'Tax regime',
+      establishmentCode: 'Establishment code',
     },
   },
   'published-offering': {
@@ -701,6 +717,9 @@ export const entity: EsEntity = {
       offeringId: 'Product',
       quantity: 'Quantity',
       reason: 'Reason',
+      occurredAt: 'Occurred at',
+      causeType: 'Cause',
+      causeId: 'Cause reference',
     },
     values: {
       reason: {
@@ -709,6 +728,11 @@ export const entity: EsEntity = {
         cancellation: 'Cancellation',
         return: 'Return',
         adjustment: 'Adjustment',
+      },
+      causeType: {
+        manual: 'Manual',
+        reservation: 'Reservation',
+        'product-order': 'Order',
       },
     },
   },
@@ -764,6 +788,9 @@ export const entity: EsEntity = {
       flowId: 'Flow',
       paymentMethod: 'Payment',
       amountDue: 'Due on delivery',
+      taxableBase: 'Taxable base',
+      taxAmount: 'Tax',
+      taxRegime: 'Tax regime',
       currency: 'Currency',
       lines: 'Lines',
       line: {

@@ -122,6 +122,7 @@ describe('restoreStock', () => {
         organizationId: 'org',
         movement: aMovement('receipt', 2),
         cause: 'cancellation',
+        orderId: 'order-1',
         commandId: 'c',
       }),
     );
@@ -130,6 +131,7 @@ describe('restoreStock', () => {
         organizationId: 'org',
         movement: aMovement('receipt', 1),
         cause: 'return',
+        orderId: 'order-2',
         commandId: undefined,
       }),
     );
@@ -139,6 +141,7 @@ describe('restoreStock', () => {
           organizationId: 'org',
           movement: aMovement('x', -2),
           cause: 'cancellation',
+          orderId: 'order-3',
           commandId: undefined,
         }),
       ),
@@ -151,6 +154,11 @@ describe('restoreStock', () => {
       'return',
     );
     expect(refused).toMatchObject({ code: 'inconsistentMovement' });
+    expect((restored as { movement: StockMovement }).movement).toMatchObject({
+      causeType: 'product-order',
+      causeId: 'order-1',
+      occurredAt: expect.any(Date),
+    });
   });
 });
 

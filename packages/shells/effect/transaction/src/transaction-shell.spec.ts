@@ -50,6 +50,14 @@ const CONFIGURATION = fleetConfigurationOf({
     awaitDeliveryTimeout: 1_209_600_000,
     awaitReturnTimeout: 2_592_000_000,
   }),
+  tax: configurationRows({
+    'iva.general.rate': 1200,
+    'iva.general.basis': 'inclusive',
+    'iva.small-taxpayer.rate': 500,
+    'iva.small-taxpayer.basis': 'gross',
+    'iva.simplified.rate': 1200,
+    'iva.simplified.basis': 'inclusive',
+  }),
   marketplace: configurationRows({ url: 'http://marketplace.invalid/api' }),
   outbox: configurationRows({ maxAttempts: 5 }),
   breaker: flowParticipants().flatMap(participant =>

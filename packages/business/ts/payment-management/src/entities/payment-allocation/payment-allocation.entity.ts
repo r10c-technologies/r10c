@@ -43,6 +43,9 @@ export class PaymentAllocation implements Entity {
   #refunded = 0;
   #currency = '';
   #paymentMethod: PaymentMethod = 'card';
+  #taxableBase = 0;
+  #taxAmount = 0;
+  #taxRegime = '';
   // #endregion
 
   // #region accessors
@@ -182,6 +185,42 @@ export class PaymentAllocation implements Entity {
   }
   set paymentMethod(value: PaymentMethod) {
     this.#paymentMethod = value;
+  }
+  /** This order's taxable base and tax, as the checkout stated them into the capture — stored as told, never read off the order (ADR 0078 §2). */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:payment-allocation.fields.taxableBase',
+    money: { unit: 'minor', currencyMember: 'currency' },
+  })
+  get taxableBase(): number {
+    return this.#taxableBase;
+  }
+  set taxableBase(value: number) {
+    this.#taxableBase = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:payment-allocation.fields.taxAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
+  })
+  get taxAmount(): number {
+    return this.#taxAmount;
+  }
+  set taxAmount(value: number) {
+    this.#taxAmount = value;
+  }
+
+  /** The seller's `TaxRegime` at the sale. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:payment-allocation.fields.taxRegime',
+  })
+  get taxRegime(): string {
+    return this.#taxRegime;
+  }
+  set taxRegime(value: string) {
+    this.#taxRegime = value;
   }
   // #endregion
 }

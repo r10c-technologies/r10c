@@ -44,6 +44,11 @@ const commandId = Effect.map(
 const Share = Schema.Struct({
   vendorId: Schema.NonEmptyString,
   amount: Schema.Number,
+  // The order's taxable base, tax and the seller's regime, stated by the
+  // checkout from the document it priced; stored as told (ADR 0078 §2).
+  taxableBase: Schema.Number,
+  taxAmount: Schema.Number,
+  taxRegime: Schema.NonEmptyString,
 });
 
 /**
@@ -196,6 +201,9 @@ const collection = defineEndpoint({
     orderId: Schema.NonEmptyString,
     vendorId: Schema.NonEmptyString,
     amount: Schema.Number,
+    taxableBase: Schema.Number,
+    taxAmount: Schema.Number,
+    taxRegime: Schema.String,
     currency: Schema.NonEmptyString,
   }),
   success: JsonBody,
@@ -243,6 +251,9 @@ export const codEndpoints = [
           orderId: payload.orderId,
           vendorId: payload.vendorId,
           amount: payload.amount,
+          taxableBase: payload.taxableBase,
+          taxAmount: payload.taxAmount,
+          taxRegime: payload.taxRegime,
         },
         currency: payload.currency,
         commandId: yield* commandId,

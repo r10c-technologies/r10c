@@ -177,6 +177,10 @@ describe('the organization rebuild, at its fork site', () => {
         id: 'org-1',
         name: 'Demo Vendor',
         updatedAt: new Date('2026-10-23T10:00:00.000Z'),
+        taxId: '10000003',
+        legalName: 'Demo Vendor, S.A.',
+        taxRegime: 'general',
+        establishmentCode: '1',
       },
       { id: 'org-2' },
     ]);

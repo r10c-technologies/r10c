@@ -27,7 +27,16 @@ const eventOf = (name: string, data: unknown): DomainEvent => ({
 const payment = {
   paymentId: 'pay-1',
   groupId: 'g-1',
-  allocations: [{ orderId: 'o-1', vendorId: 'v-1', amount: 40 }],
+  allocations: [
+    {
+      orderId: 'o-1',
+      vendorId: 'v-1',
+      amount: 40,
+      taxableBase: 0,
+      taxAmount: 0,
+      taxRegime: 'general',
+    },
+  ],
   amount: 40,
   currency: 'GTQ',
   paymentMethod: 'card',
@@ -173,8 +182,22 @@ describe('the four folds', () => {
         eventOf('payment.captured', {
           ...payment,
           allocations: [
-            { orderId: 'o-1', vendorId: 'v-1', amount: 30 },
-            { orderId: 'o-2', vendorId: 'v-2', amount: 10 },
+            {
+              orderId: 'o-1',
+              vendorId: 'v-1',
+              amount: 30,
+              taxableBase: 0,
+              taxAmount: 0,
+              taxRegime: 'general',
+            },
+            {
+              orderId: 'o-2',
+              vendorId: 'v-2',
+              amount: 10,
+              taxableBase: 0,
+              taxAmount: 0,
+              taxRegime: 'general',
+            },
           ],
         }),
       ),

@@ -27,6 +27,12 @@ import {
 export interface DeliveryFormLabels {
   readonly legend: string;
   readonly intro: string;
+  /** The fiscal-identity group: its legend, what it is for, and each id type. */
+  readonly tax: {
+    readonly legend: string;
+    readonly intro: string;
+    readonly idTypes: Readonly<Record<'cf' | 'nit' | 'cui', string>>;
+  };
   readonly optional: string;
   readonly chooseMunicipio: string;
   readonly place: string;
@@ -69,6 +75,9 @@ const AUTOCOMPLETE: Readonly<Record<ContactField, string>> = {
   zona: 'off',
   addressLine: 'address-line1',
   reference: 'address-line2',
+  taxIdType: 'off',
+  taxId: 'off',
+  taxName: 'organization',
 };
 
 const INPUT_TYPE: Readonly<Partial<Record<ContactField, string>>> = {
@@ -77,7 +86,14 @@ const INPUT_TYPE: Readonly<Partial<Record<ContactField, string>>> = {
   zona: 'number',
 };
 
-const OPTIONAL: ReadonlySet<ContactField> = new Set(['zona', 'reference']);
+const OPTIONAL: ReadonlySet<ContactField> = new Set([
+  'zona',
+  'reference',
+  // Consumidor final needs neither; the server asks for them once a NIT or a
+  // CUI is chosen, and without script the browser cannot know which.
+  'taxId',
+  'taxName',
+]);
 
 /**
  * What the browser checks on its own when the form posts without script: the
@@ -177,7 +193,15 @@ export function DeliveryForm({
             {hint}
           </Text>
         )}
-        {name === 'municipio' ? (
+        {name === 'taxIdType' ? (
+          <Select key={state.values.taxIdType ?? ''} {...common}>
+            {(['cf', 'nit', 'cui'] as const).map(type => (
+              <option key={type} value={type}>
+                {labels.tax.idTypes[type]}
+              </option>
+            ))}
+          </Select>
+        ) : name === 'municipio' ? (
           // Keyed by the submitted value, so a refused submit re-renders the
           // choice the buyer made rather than the first option.
           <Select key={state.values.municipio ?? ''} {...common}>
@@ -305,6 +329,15 @@ export function DeliveryForm({
           {field('zona')}
           {field('addressLine')}
           {field('reference')}
+        </fieldset>
+        <fieldset className="flex min-w-0 flex-col gap-s">
+          <legend className="text-step-1 font-semibold">
+            {labels.tax.legend}
+          </legend>
+          <Text tone="muted">{labels.tax.intro}</Text>
+          {field('taxIdType')}
+          {field('taxId')}
+          {field('taxName')}
         </fieldset>
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="reviewed" value={reviewed} />

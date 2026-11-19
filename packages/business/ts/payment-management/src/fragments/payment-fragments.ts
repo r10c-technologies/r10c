@@ -12,6 +12,12 @@ const PAYMENT = openStruct({ id: Schema.String, status: Schema.String });
 const Share = openStruct({
   vendorId: Schema.NonEmptyString,
   amount: Schema.Number,
+  // The order's taxable base and tax and the seller's regime, stated from the
+  // document the coordinator computed; payment stores them as told and reads
+  // no order (ADR 0078 §2).
+  taxableBase: Schema.Number,
+  taxAmount: Schema.Number,
+  taxRegime: Schema.NonEmptyString,
 });
 
 /**
@@ -26,7 +32,7 @@ const Share = openStruct({
  */
 export const paymentCapture = defineFragment({
   id: 'payment.capture',
-  version: 3,
+  version: 4,
   module: 'payment-management',
   kind: 'pivot',
   participant: PARTICIPANT,
@@ -82,7 +88,7 @@ export const paymentRefund = defineFragment({
  */
 export const paymentRecordCollection = defineFragment({
   id: 'payment.record-collection',
-  version: 1,
+  version: 2,
   module: 'payment-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -95,6 +101,11 @@ export const paymentRecordCollection = defineFragment({
       orderId: Schema.NonEmptyString,
       vendorId: Schema.NonEmptyString,
       amount: Schema.Number,
+      // The order's tax, stated at checkout and carried on its shipment, so the
+      // cash collected records it as a card capture does (ADR 0078 §6).
+      taxableBase: Schema.Number,
+      taxAmount: Schema.Number,
+      taxRegime: Schema.String,
       currency: Schema.NonEmptyString,
     }),
     output: PAYMENT,

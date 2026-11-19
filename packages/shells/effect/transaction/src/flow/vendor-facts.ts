@@ -14,14 +14,28 @@ import { Context, Effect, Layer } from 'effect';
  * reads.
  */
 export interface VendorFacts {
-  /** Each vendor's entitlements; a vendor nothing is known about holds none. */
-  readonly entitlementsOf: (
+  /**
+   * Each vendor's published record — its entitlements and its fiscal
+   * identity — or `undefined` for a vendor nothing is known about.
+   */
+  readonly sellersOf: (
     vendorIds: readonly string[],
   ) => Effect.Effect<
-    ReadonlyMap<string, readonly string[]>,
+    ReadonlyMap<string, Readonly<Record<string, unknown>> | undefined>,
     UpstreamUnavailable | Overloaded
   >;
 }
+
+/** Each vendor's entitlements; a vendor nothing is known about holds none. */
+export const entitlementsBySeller = (
+  sellers: ReadonlyMap<string, Readonly<Record<string, unknown>> | undefined>,
+): ReadonlyMap<string, readonly string[]> =>
+  new Map(
+    [...sellers].map(([vendorId, seller]) => [
+      vendorId,
+      seller === undefined ? [] : entitlementsOfSeller(seller),
+    ]),
+  );
 
 export class VendorFactsTag extends Context.Service<
   VendorFactsTag,
@@ -32,7 +46,9 @@ const STOCK = 'stock-management';
 const SHIPPING = 'shipping-order-management';
 
 /** The entitlements a published seller's two commerce facts stand for. */
-export const entitlementsOfSeller = (seller: Record<string, unknown>) => [
+export const entitlementsOfSeller = (
+  seller: Readonly<Record<string, unknown>>,
+) => [
   ...(seller['holdsStock'] === true ? [STOCK] : []),
   ...(seller['acceptsCod'] === true ? [SHIPPING] : []),
 ];
@@ -59,7 +75,7 @@ export const httpVendorFactsLayer = (catalogUrl: string) =>
         upstream: 'marketplace-service',
       });
       return {
-        entitlementsOf: vendorIds =>
+        sellersOf: vendorIds =>
           Effect.tryPromise({
             try: () =>
               fetch(
@@ -89,10 +105,7 @@ export const httpVendorFactsLayer = (catalogUrl: string) =>
                     const seller = payload.data?.items?.find(
                       item => item['vendorId'] === vendorId,
                     );
-                    return [
-                      vendorId,
-                      seller === undefined ? [] : entitlementsOfSeller(seller),
-                    ] as const;
+                    return [vendorId, seller] as const;
                   }),
                 ),
             ),

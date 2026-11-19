@@ -1,4 +1,4 @@
-import { isStoreFault } from '@entifix/core';
+import { isStoreFault, NotFound } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
@@ -9,7 +9,8 @@ import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { type EventBus, OutboxMaxAttempts } from '@entifix/transactions';
 import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import { ORGANIZATION_ANNOUNCED } from '@r10c/business-ts-party-contracts';
-import { Effect } from 'effect';
+import { OrganizationFiscalIdentityTag } from '@r10c/business-ts-party-management';
+import { Effect, Exit } from 'effect';
 import { Layer } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -18,13 +19,26 @@ import {
   announcementOf,
   commerceOf,
   ENTITLEMENT_COLLECTION,
+  makeMongoOrganizationFiscalIdentity,
+  MongoOrganizationFiscalIdentityLayer,
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
   seedOrganizations,
   writeOrganization,
 } from './organization-announcements.js';
 
-const SEED = { id: 'org-1', name: 'Demo Vendor', slug: 'demo-vendor' };
+const FISCAL = {
+  taxId: '10000003',
+  legalName: 'Demo Vendor, S.A.',
+  taxRegime: 'general' as const,
+  establishmentCode: '1',
+};
+const SEED = {
+  id: 'org-1',
+  name: 'Demo Vendor',
+  slug: 'demo-vendor',
+  ...FISCAL,
+};
 const FIRST = new Date('2026-10-23T10:00:00.000Z');
 const LATER = new Date('2026-10-24T10:00:00.000Z');
 
@@ -58,7 +72,14 @@ describe('announcementOf', () => {
       announcedAt: FIRST.toISOString(),
       acceptsCod: false,
       holdsStock: false,
+      fiscal: FISCAL,
     });
+  });
+
+  it('announces nothing for an organization with no fiscal identity', () => {
+    expect(
+      announcementOf({ ...SEED, legalName: ' ', updatedAt: FIRST }),
+    ).toBeUndefined();
   });
 
   it('says the seller ships cash on delivery when it is provisioned to ship', () => {
@@ -282,7 +303,7 @@ describe('rebuildOrganizationAnnouncements', () => {
     const store = await storeWith({
       [ORGANIZATION_COLLECTION]: [
         { ...SEED },
-        { id: 'org-2', name: 'Two', updatedAt: FIRST },
+        { id: 'org-2', name: 'Two', updatedAt: FIRST, ...FISCAL },
       ],
     });
 
@@ -315,10 +336,125 @@ describe('seeding and the boot walk', () => {
     const store = await storeWith();
 
     await Effect.runPromise(
-      seedOrganizations([SEED]).pipe(Effect.provide(services(store))),
+      seedOrganizations([{ row: SEED }]).pipe(Effect.provide(services(store))),
     );
 
     expect(store.fake.read(ORGANIZATION_COLLECTION)).toHaveLength(1);
     expect(store.fake.read(OUTBOX_COLLECTION)).toHaveLength(1);
+  });
+});
+
+describe('the fiscal identity', () => {
+  const {
+    taxId: _t,
+    legalName: _l,
+    taxRegime: _r,
+    establishmentCode: _e,
+    ...BARE
+  } = SEED;
+
+  it('is seeded only onto a new organization', async () => {
+    const store = await storeWith();
+    const run = (seed: Record<string, unknown>, now: Date) =>
+      Effect.runPromise(
+        writeOrganization(store.client, store.db, BARE, 'auth', now, seed).pipe(
+          Effect.provideService(EventBusTag, store.bus),
+          Effect.provideService(OutboxMaxAttempts, 3),
+        ),
+      );
+    expect(await run(FISCAL, FIRST)).toBe('written');
+    expect(await run({ ...FISCAL, taxId: '20000006' }, LATER)).toBe(
+      'unchanged',
+    );
+    expect(store.fake.read(ORGANIZATION_COLLECTION)).toEqual([
+      expect.objectContaining({ taxId: '10000003' }),
+    ]);
+  });
+
+  it('is set by the organization and re-announced with its name', async () => {
+    const store = await storeWith();
+    await write(store, SEED, FIRST);
+    const writer = makeMongoOrganizationFiscalIdentity(
+      store.client,
+      store.db,
+      'auth',
+      store.bus,
+      3,
+    );
+    await Effect.runPromise(
+      writer.set('org-1', { ...FISCAL, taxRegime: 'small-taxpayer' }),
+    );
+    expect(await Effect.runPromise(writer.get('org-1'))).toEqual({
+      ...FISCAL,
+      taxRegime: 'small-taxpayer',
+    });
+    const last = store.fake.read(OUTBOX_COLLECTION).at(-1);
+    expect(last?.['event']).toMatchObject({
+      data: {
+        displayName: 'Demo Vendor',
+        fiscal: { taxRegime: 'small-taxpayer' },
+      },
+    });
+  });
+
+  it('reads no identity from an organization that has none, or a bad one', async () => {
+    const store = await storeWith({
+      [ORGANIZATION_COLLECTION]: [
+        { id: 'org-1', name: 'One' },
+        { id: 'org-2', name: 'Two', ...FISCAL, taxRegime: 'feudal' },
+      ],
+    });
+    const writer = makeMongoOrganizationFiscalIdentity(
+      store.client,
+      store.db,
+      'auth',
+      store.bus,
+      3,
+    );
+    expect(await Effect.runPromise(writer.get('org-1'))).toBeUndefined();
+    expect(await Effect.runPromise(writer.get('org-2'))).toBeUndefined();
+  });
+
+  it('answers NotFound for an organization nobody provisioned', async () => {
+    const store = await storeWith();
+    const writer = makeMongoOrganizationFiscalIdentity(
+      store.client,
+      store.db,
+      'auth',
+      store.bus,
+      3,
+    );
+    const notFound = Exit.fail(new NotFound({ entity: 'organization' }));
+    expect(await Effect.runPromiseExit(writer.set('org-9', FISCAL))).toEqual(
+      notFound,
+    );
+    expect(await Effect.runPromiseExit(writer.get('org-9'))).toEqual(notFound);
+  });
+});
+
+describe('MongoOrganizationFiscalIdentityLayer', () => {
+  it('serves the port over the store it is given', async () => {
+    const store = await storeWith();
+    await write(store, SEED, FIRST);
+    const fiscal = await Effect.runPromise(
+      Effect.flatMap(OrganizationFiscalIdentityTag, port =>
+        port.get('org-1'),
+      ).pipe(
+        Effect.provide(
+          MongoOrganizationFiscalIdentityLayer.pipe(
+            Layer.provide(
+              Layer.mergeAll(
+                Layer.succeed(MongoClientTag, store.client),
+                Layer.succeed(MongoDatabaseTag, store.db),
+                Layer.succeed(EventSourceTag, 'auth'),
+                Layer.succeed(EventBusTag, store.bus),
+                Layer.succeed(OutboxMaxAttempts, 3),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(fiscal).toEqual(FISCAL);
   });
 });

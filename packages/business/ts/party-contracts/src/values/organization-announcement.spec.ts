@@ -16,6 +16,12 @@ const ANNOUNCEMENT: OrganizationAnnouncement = {
   announcedAt: '2026-10-23T10:00:00.000Z',
   acceptsCod: true,
   holdsStock: true,
+  fiscal: {
+    taxId: '12345679',
+    legalName: 'Demo Vendor, S.A.',
+    taxRegime: 'general',
+    establishmentCode: '1',
+  },
 };
 
 const read = (data: unknown) =>
@@ -97,5 +103,21 @@ describe('readOrganizationAnnouncement', () => {
     expect(failureOf({ ...ANNOUNCEMENT, announcedAt: 'yesterday' })).toContain(
       'announcedAt',
     );
+  });
+});
+
+describe('the fiscal identity', () => {
+  it('is required, so an announcement without one is refused', () => {
+    const { fiscal: _fiscal, ...withoutFiscal } = ANNOUNCEMENT;
+    expect(failureOf(withoutFiscal)).toContain('fiscal');
+  });
+
+  it('refuses a blank regime', () => {
+    expect(
+      failureOf({
+        ...ANNOUNCEMENT,
+        fiscal: { ...ANNOUNCEMENT.fiscal, taxRegime: ' ' },
+      }),
+    ).toContain('taxRegime');
   });
 });

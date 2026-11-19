@@ -28,6 +28,8 @@ describe('Refund', () => {
       status: 'refunded',
       providerReference: 'sim_refund_ref-1',
       decidedAt,
+      taxableBase: 0,
+      taxAmount: 0,
     });
   });
 

@@ -398,6 +398,7 @@ describe('the cancellation recipe', () => {
       offeringId: 'o-1',
       quantity: 2,
       organizationId: 'v-1',
+      orderId: 'ord-1',
       cause: 'cancellation',
     });
   });
@@ -433,6 +434,9 @@ const delivery = (
   vendorId: 'v-1',
   paymentMethod,
   amountDue: paymentMethod === 'cod' ? 1000 : 0,
+  taxableBase: 893,
+  taxAmount: 107,
+  taxRegime: 'general',
   currency: 'GTQ',
   lines: [{ offeringId: 'o-1', quantity: 2 }],
   entitlements: PROVISIONED,
@@ -511,7 +515,11 @@ describe('the delivery recipe', () => {
     });
     expect(
       steps.find(step => step.step.endsWith('stock.restore'))?.parameters,
-    ).toMatchObject({ cause: 'return', organizationId: 'v-1' });
+    ).toMatchObject({
+      cause: 'return',
+      organizationId: 'v-1',
+      orderId: 'ord-1',
+    });
   });
 
   it('records the cash a courier collected, for the order’s own group and vendor', () => {
@@ -524,6 +532,9 @@ describe('the delivery recipe', () => {
       orderId: 'ord-1',
       vendorId: 'v-1',
       amount: 1000,
+      taxableBase: 893,
+      taxAmount: 107,
+      taxRegime: 'general',
       currency: 'GTQ',
     });
   });

@@ -330,6 +330,9 @@ export const MongoStockLedgerLayer = Layer.effect(
                   'sale',
                 );
                 sale.id = globalThis.crypto.randomUUID();
+                sale.occurredAt = new Date();
+                sale.causeType = 'reservation';
+                sale.causeId = reservationId;
                 yield* appendMovement(unit.handle, sale);
               }
               yield* change(

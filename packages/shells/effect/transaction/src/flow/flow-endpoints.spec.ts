@@ -4,9 +4,26 @@ import { FlowEngineTag } from '@entifix/transactions';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { TaxRulesTag } from './checkout-tax.js';
 import { DeliveryDialsTag } from './delivery-dials.js';
 import { FLOW_STARTS, flowStartEndpoints } from './flow-endpoints.js';
 import { VendorFactsTag } from './vendor-facts.js';
+
+/** A published seller holding these entitlements, documented under the general regime. */
+const sellerWith = (entitlements: readonly string[]) => ({
+  holdsStock: entitlements.includes('stock-management'),
+  acceptsCod: entitlements.includes('shipping-order-management'),
+  taxId: '10000003',
+  legalName: 'Demo Vendor, S.A.',
+  taxRegime: 'general',
+  establishmentCode: '1',
+});
+
+const TAX_RULES = {
+  general: { rateBasisPoints: 1200, basis: 'inclusive' },
+  'small-taxpayer': { rateBasisPoints: 500, basis: 'gross' },
+  simplified: { rateBasisPoints: 1200, basis: 'inclusive' },
+} as const;
 
 const [checkout, cancellation, delivery] = flowStartEndpoints;
 
@@ -47,11 +64,16 @@ const world = (facts: Record<string, readonly string[]> = {}) => {
         ).pipe(
           Effect.provideService(IdempotencyKeyTag, key),
           Effect.provideService(VendorFactsTag, {
-            entitlementsOf: vendorIds =>
+            sellersOf: vendorIds =>
               Effect.succeed(
-                new Map(vendorIds.map(id => [id, facts[id] ?? []] as const)),
+                new Map(
+                  vendorIds.map(
+                    id => [id, sellerWith(facts[id] ?? [])] as const,
+                  ),
+                ),
               ),
           }),
+          Effect.provideService(TaxRulesTag, TAX_RULES),
           Effect.provideService(FlowEngineTag, flows.service as never),
           Effect.provideService(DeliveryDialsTag, DIALS),
         ),
@@ -263,6 +285,9 @@ describe('the flow start routes', () => {
       vendorId: 'v-1',
       paymentMethod: 'cod',
       amountDue: 1000,
+      taxableBase: 893,
+      taxAmount: 107,
+      taxRegime: 'general',
       currency: 'GTQ',
       lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
       // A caller that could set these would decide when a delivery gives up.
@@ -287,5 +312,50 @@ describe('the flow start routes', () => {
     expect(await run(delivery, { shippingOrderId: 'ord-1' })).toMatchObject({
       failure: { _tag: 'Invalid' },
     });
+  });
+});
+
+describe('the checkout start’s fiscal facts', () => {
+  const start = {
+    channel: { type: 'counter' },
+    vendors: [
+      {
+        vendorId: 'v-1',
+        paymentMethod: 'cash',
+        lines: [
+          { offeringId: 'o-1', amount: 1120, quantity: 1, currency: 'GTQ' },
+        ],
+      },
+    ],
+  };
+  const sellers = new Map([['v-1', sellerWith([])]]);
+
+  it('refuses a buyer whose NIT does not validate before composing anything', () => {
+    const refused = FLOW_STARTS.checkout.refusal?.(
+      { ...start, buyerTax: { idType: 'nit', taxId: '1', name: 'A' } },
+      new Map(),
+    );
+    expect(refused?.code).toBe('invalid');
+  });
+
+  it('states each part’s tax and the buyer, and leaves an invalid buyer out', () => {
+    const state = (input: Record<string, unknown>) =>
+      FLOW_STARTS.checkout.state(
+        input,
+        new Map(),
+        'flow-1',
+        DIALS,
+        sellers,
+        TAX_RULES,
+      ) as { buyerTax?: unknown; vendors: Array<Record<string, unknown>> };
+    const stated = state(start);
+    expect(stated.buyerTax).toEqual({ idType: 'cf', taxId: 'CF', name: '' });
+    expect(stated.vendors[0]).toMatchObject({
+      taxAmount: 120,
+      netAmount: 1000,
+    });
+    expect(
+      state({ ...start, buyerTax: { idType: 'nit', taxId: '1' } }).buyerTax,
+    ).toBeUndefined();
   });
 });

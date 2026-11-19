@@ -2,6 +2,8 @@ import { endpointGroup, entityApi } from '@entifix/service-shell';
 import {
   authFlowEndpoints,
   entityIdentifierApi,
+  organizationApi,
+  organizationEndpoints,
   sessionEndpoints,
   userDeviceApi,
   userIdentityApi,
@@ -31,6 +33,8 @@ export const endpoints = [
   entityApi(entityIdentifierApi),
   entityApi(userDeviceApi),
   endpointGroup('user-sessions', ...userSessionEndpoints),
+  entityApi(organizationApi),
+  endpointGroup('organization-fiscal', ...organizationEndpoints),
 ] as const;
 
 /** How this slice's endpoints answer and log a failure (ADR 0064). */

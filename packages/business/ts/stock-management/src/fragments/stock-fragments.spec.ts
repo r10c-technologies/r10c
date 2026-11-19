@@ -35,7 +35,7 @@ describe('stock fragments', () => {
     expect(STOCK_FRAGMENTS.map(fragmentRef)).toEqual([
       'stock.reserve@2',
       'stock.convert@3',
-      'stock.restore@3',
+      'stock.restore@4',
     ]);
     expect(new Set(STOCK_FRAGMENTS.map(f => f.module))).toEqual(
       new Set(['stock-management']),

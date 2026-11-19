@@ -5,6 +5,7 @@ import {
   type PaymentShare,
   RefundDeclined,
 } from '@r10c/business-ts-payment-contracts';
+import { taxShareOf } from '@r10c/business-ts-tax-policy';
 import { Effect, Option, Schema } from 'effect';
 
 import { Payment } from '../entities/payment';
@@ -108,6 +109,9 @@ const allocationsOf = (payment: Payment, shares: readonly RequestedShare[]) =>
       refunded: 0,
       currency: payment.currency,
       paymentMethod: payment.paymentMethod,
+      taxableBase: share.taxableBase,
+      taxAmount: share.taxAmount,
+      taxRegime: share.taxRegime,
     }),
   );
 
@@ -292,6 +296,11 @@ export const refundPayment = (input: {
       {
         id: globalThis.crypto.randomUUID(),
         status: 'pending' as Refund['status'],
+        // Its share of the base and tax the capture carried. Read against the
+        // allocation as loaded: two partial refunds racing on one order can
+        // each see the other's amount missing and round a centavo apart; the
+        // guarded `$inc` below still bounds the money itself.
+        ...taxShareOf(allocation, allocation.refunded, amount),
       },
     );
     const reservation = yield* ledger.reserveRefund(refund, commandId);
@@ -329,8 +338,17 @@ export const refundPayment = (input: {
       // what the deduplication key is built from.
       paymentId: allocation.paymentId,
       groupId: allocation.groupId,
+      // The refund's own share of the allocation's tax, so a consumer
+      // reversing the sale reverses exactly what was given back.
       allocations: [
-        { orderId, vendorId: allocation.vendorId, amount: refund.amount },
+        {
+          orderId,
+          vendorId: allocation.vendorId,
+          amount: refund.amount,
+          taxableBase: refund.taxableBase,
+          taxAmount: refund.taxAmount,
+          taxRegime: allocation.taxRegime,
+        },
       ],
       amount: refund.amount,
       currency: allocation.currency,

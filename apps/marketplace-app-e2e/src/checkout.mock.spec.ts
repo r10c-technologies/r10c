@@ -96,6 +96,13 @@ test.describe('a checkout', () => {
       'Tarjeta',
     );
     await expect(page.getByTestId('order-total')).toBeVisible();
+    // The IVA the price includes, and whom the receipt is billed to.
+    await expect(order.getByTestId('vendor-order-iva')).toContainText(
+      'IVA incluido:',
+    );
+    await expect(page.getByTestId('order-billed-to')).toHaveText(
+      'Facturado a: Consumidor final',
+    );
 
     // #585: a number to quote and the seller's own, where the parcel goes
     // with the phone masked, until when it can be read — and no UUID.

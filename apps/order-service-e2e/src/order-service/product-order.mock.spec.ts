@@ -1,4 +1,5 @@
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
+import { documentOrderBody } from '@r10c/business-ts-order-management/testing';
 
 import { startMockService } from '../support/mock-service';
 import {
@@ -8,6 +9,19 @@ import {
   E2E_PARTY_ID,
   signTokenFor,
 } from '../support/tokens';
+
+/**
+ * Posts as the flow does: a step writing an order states its fiscal facts
+ * (ADR 0078 §6), so every order body here is documented first.
+ */
+const post: typeof service.client.post = (path, body, config) =>
+  service.client.post(
+    path,
+    path === '/api/product-order'
+      ? (documentOrderBody(body as Record<string, unknown>) as typeof body)
+      : body,
+    config,
+  );
 
 /**
  * Writing and reading an order.
@@ -63,7 +77,7 @@ const ORDER_SHAPE = {
 };
 
 const openGroup = (id: string, data: Record<string, unknown> = {}) =>
-  service.client.post(
+  post(
     '/api/checkout-group',
     { id, buyerId: 'party-user-2', ...data },
     { headers: crossing() },
@@ -77,7 +91,7 @@ const place = (
   items: ReadonlyArray<ReturnType<typeof line>>,
   extra: Record<string, string> = {},
 ) =>
-  service.client.post(
+  post(
     '/api/product-order',
     {
       ...ORDER_SHAPE,
@@ -134,7 +148,7 @@ describe('placing an order', () => {
   });
 
   it('refuses an order into a group nobody opened', async () => {
-    const res = await service.client.post(
+    const res = await post(
       '/api/product-order',
       {
         ...ORDER_SHAPE,
@@ -159,7 +173,7 @@ describe('placing an order', () => {
 
 describe('the write takes a crossing token and no session', () => {
   it('refuses a session, even an admin one', async () => {
-    const res = await service.client.post(
+    const res = await post(
       '/api/product-order',
       { ...ORDER_SHAPE, items: [line('offering-g')] },
       { headers: { Authorization: await bearerFor(['admin']) } },
@@ -268,7 +282,7 @@ describe('a read is scoped to the caller, from the principal', () => {
 
   it('shows a buyer only what they placed', async () => {
     const mine = await place([line('offering-scope-c')]);
-    const theirs = await service.client.post(
+    const theirs = await post(
       '/api/product-order',
       {
         ...ORDER_SHAPE,
@@ -291,7 +305,7 @@ describe('a read is scoped to the caller, from the principal', () => {
    * receipt.
    */
   it('cannot be widened by a query string naming another buyer', async () => {
-    const theirs = await service.client.post(
+    const theirs = await post(
       '/api/product-order',
       {
         ...ORDER_SHAPE,
@@ -312,7 +326,7 @@ describe('a read is scoped to the caller, from the principal', () => {
 
   it('shows an operator every order', async () => {
     const mine = await place([line('offering-scope-f')]);
-    const theirs = await service.client.post(
+    const theirs = await post(
       '/api/product-order',
       {
         ...ORDER_SHAPE,
@@ -347,7 +361,7 @@ describe('a read is scoped to the caller, from the principal', () => {
   });
 
   it('answers 404 for one order the caller may not read', async () => {
-    const theirs = await service.client.post(
+    const theirs = await post(
       '/api/product-order',
       {
         ...ORDER_SHAPE,
@@ -512,7 +526,7 @@ describe('the checkout group', () => {
     const groupId = crypto.randomUUID();
     await openGroup(groupId);
     for (const vendorId of ['vendor-ga', 'vendor-gb']) {
-      await service.client.post(
+      await post(
         '/api/product-order',
         {
           ...ORDER_SHAPE,
@@ -586,7 +600,7 @@ const asOperator = async () => ({
 
 describe('the flows’ moves on an order', () => {
   const move = (id: string, step: string, body: object = {}) =>
-    service.client.post(`/api/product-order/${id}/${step}`, body, {
+    post(`/api/product-order/${id}/${step}`, body, {
       headers: crossing(),
     });
 
@@ -626,7 +640,7 @@ describe('the flows’ moves on an order', () => {
   it('refuses a session, because a move is a flow’s step', async () => {
     const placed = await place([line('offering-ms')]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/confirmed`,
       {},
       { headers: { Authorization: await bearerFor(['super-admin']) } },
@@ -646,7 +660,7 @@ describe('the cancellation claim', () => {
   it('refuses an order that is not paid', async () => {
     const placed = await place([line('offering-ca')]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/cancelling`,
       {},
       { headers: crossing() },
@@ -657,7 +671,7 @@ describe('the cancellation claim', () => {
   });
 
   it('answers 404 for an order that is not there', async () => {
-    const res = await service.client.post(
+    const res = await post(
       '/api/product-order/no-such-order/cancelling',
       {},
       { headers: crossing() },
@@ -669,7 +683,7 @@ describe('the cancellation claim', () => {
   it('refuses a session, because the claim is a saga step', async () => {
     const placed = await place([line('offering-cd')]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/cancelling`,
       {},
       { headers: { Authorization: await bearerFor(['admin']) } },
@@ -717,7 +731,7 @@ describe('settling a cancellation', () => {
     const placed = await place([line('offering-sa')]);
     const id = placed.data.data.id as string;
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${id}/closed`,
       { outcome: 'cancelled' },
       { headers: crossing({ 'idempotency-key': '"cmd-settle-a"' }) },
@@ -728,7 +742,7 @@ describe('settling a cancellation', () => {
   });
 
   it('answers 404 for an order that is not there', async () => {
-    const res = await service.client.post(
+    const res = await post(
       '/api/product-order/no-such-order/closed',
       { outcome: 'cancelled' },
       { headers: crossing({ 'idempotency-key': '"cmd-settle-missing"' }) },
@@ -740,7 +754,7 @@ describe('settling a cancellation', () => {
   it('refuses a session, like every other step', async () => {
     const placed = await place([line('offering-sc')]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/closed`,
       { outcome: 'cancelled' },
       { headers: { Authorization: await bearerFor(['admin']) } },
@@ -762,7 +776,7 @@ describe('the buyer’s own cancel', () => {
   const withCapability = async (): Promise<string> => {
     const groupId = crypto.randomUUID();
     await openGroup(groupId, { cancelDigest: await digestOfNonce() });
-    const res = await service.client.post(
+    const res = await post(
       '/api/product-order',
       { ...ORDER_SHAPE, groupId, items: [line('offering-cap')] },
       { headers: crossing() },
@@ -796,7 +810,7 @@ describe('the buyer’s own cancel', () => {
   it('refuses a nonce that does not match, and says nothing about why', async () => {
     const id = await withCapability();
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${id}/buyer-cancellation`,
       { cancelNonce: 'd'.repeat(64) },
       { headers: { Authorization: undefined } },
@@ -809,7 +823,7 @@ describe('the buyer’s own cancel', () => {
   it('refuses a request carrying no nonce at all', async () => {
     const id = await withCapability();
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${id}/buyer-cancellation`,
       {},
       { headers: { Authorization: undefined } },
@@ -826,7 +840,7 @@ describe('the buyer’s own cancel', () => {
   it('refuses every nonce on an order whose group carries no digest', async () => {
     const placed = await place([line('offering-bc')]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/buyer-cancellation`,
       { cancelNonce: NONCE },
       { headers: { Authorization: undefined } },
@@ -840,7 +854,7 @@ describe('the buyer’s own cancel', () => {
    * anyone presenting a nonce they do not have.
    */
   it('answers an absent order the same way it answers a bad nonce', async () => {
-    const res = await service.client.post(
+    const res = await post(
       '/api/product-order/no-such-order/buyer-cancellation',
       { cancelNonce: NONCE },
       { headers: { Authorization: undefined } },
@@ -862,7 +876,7 @@ describe('the buyer’s own cancel', () => {
   it('tells a buyer whose payment is still pending to retry', async () => {
     const id = await withCapability();
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${id}/buyer-cancellation`,
       { cancelNonce: NONCE },
       { headers: { Authorization: undefined } },
@@ -882,7 +896,7 @@ describe('a vendor or operator asking to cancel', () => {
     const groupId = crypto.randomUUID();
     await openGroup(groupId);
     const write = (vendorId: string) =>
-      service.client.post(
+      post(
         '/api/product-order',
         {
           ...ORDER_SHAPE,
@@ -895,12 +909,12 @@ describe('a vendor or operator asking to cancel', () => {
     const a = await write('vendor-va');
     const b = await write('vendor-vb');
 
-    const own = await service.client.post(
+    const own = await post(
       `/api/product-order/${a.data.data.id as string}/cancel`,
       {},
       { headers: await asVendorOf('vendor-va') },
     );
-    const theirs = await service.client.post(
+    const theirs = await post(
       `/api/product-order/${b.data.data.id as string}/cancel`,
       {},
       { headers: await asVendorOf('vendor-va') },
@@ -916,7 +930,7 @@ describe('a vendor or operator asking to cancel', () => {
   it('refuses an operator an order that is not paid', async () => {
     const placed = await place([line('offering-ve')]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/cancel`,
       {},
       { headers: await asOperator() },
@@ -931,7 +945,7 @@ describe('a vendor or operator asking to cancel', () => {
       { ...line('offering-vc'), vendorId: 'vendor-vc' },
     ]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/cancel`,
       {},
       { headers: await asVendorOf('vendor-elsewhere') },
@@ -943,7 +957,7 @@ describe('a vendor or operator asking to cancel', () => {
   it('refuses a crossing token, because asking is a person’s act', async () => {
     const placed = await place([line('offering-vd')]);
 
-    const res = await service.client.post(
+    const res = await post(
       `/api/product-order/${placed.data.data.id as string}/cancel`,
       {},
       { headers: crossing() },

@@ -17,7 +17,11 @@ import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { redirect } from 'next/navigation';
 
 import { tendersOffered } from '../cart/checkout-start';
-import { CONTACT_FIELDS, refusedState } from '../cart/delivery-contact';
+import {
+  BUYER_TAX_ERROR_CODES,
+  CONTACT_FIELDS,
+  refusedState,
+} from '../cart/delivery-contact';
 import { DeliveryForm } from '../cart/delivery-form';
 import { readPricedCart } from '../cart/priced-cart';
 import { reviewedTotalsOf } from '../cart/priced-cart-state';
@@ -204,12 +208,21 @@ export async function CheckoutReviewPage({
             retry={retry}
             initial={refusedState(
               refused,
-              CONTACT_ERROR_CODES,
+              [...CONTACT_ERROR_CODES, ...BUYER_TAX_ERROR_CODES],
               parts.map(part => part.vendorId),
             )}
             labels={{
               legend: t('storefront.review.delivery.legend'),
               intro: t('storefront.review.delivery.intro'),
+              tax: {
+                legend: t('storefront.review.tax.legend'),
+                intro: t('storefront.review.tax.intro'),
+                idTypes: {
+                  cf: t('storefront.review.tax.idTypes.cf'),
+                  nit: t('storefront.review.tax.idTypes.nit'),
+                  cui: t('storefront.review.tax.idTypes.cui'),
+                },
+              },
               optional: t('storefront.review.delivery.optional'),
               chooseMunicipio: t('storefront.review.delivery.chooseMunicipio'),
               place: t('storefront.review.place'),
@@ -220,12 +233,16 @@ export async function CheckoutReviewPage({
                 ]),
               ) as Record<(typeof CONTACT_FIELDS)[number], string>,
               hints: {
+                taxId: t('storefront.review.tax.hints.taxId'),
                 phone: t('storefront.review.delivery.hints.phone'),
                 email: t('storefront.review.delivery.hints.email'),
                 reference: t('storefront.review.delivery.hints.reference'),
               },
               errors: Object.fromEntries(
-                CONTACT_ERROR_CODES.map(code => [code, tErrors(code)]),
+                [...CONTACT_ERROR_CODES, ...BUYER_TAX_ERROR_CODES].map(code => [
+                  code,
+                  tErrors(code),
+                ]),
               ),
               payment: {
                 tender: {

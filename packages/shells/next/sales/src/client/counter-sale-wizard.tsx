@@ -27,6 +27,7 @@ import {
   Select,
   Stack,
   Text,
+  TextInput,
   useLocale,
   useTranslateKey,
   useUiPreference,
@@ -114,6 +115,13 @@ export const lastChannelKey = (
 
 /** How the money arrived. The set `Payment.paymentMethod` accepts. */
 const PAYMENT_METHODS = ['cash', 'card', 'voucher', 'transfer'] as const;
+
+/**
+ * How the buyer is documented: consumidor final unless they give a NIT or a
+ * CUI. Validated by sales-service and again by the coordinator, under the same
+ * codes the storefront shows (ADR 0078 §6).
+ */
+const TAX_ID_TYPES = ['cf', 'nit', 'cui'] as const;
 
 /** One line of the sale, as the draft carries it — every value a string. */
 interface Line {
@@ -270,8 +278,14 @@ export function CounterSaleWizard({
   const lines = readLines(
     (readStepDraft(state, 'lines')['lines'] ?? []) as readonly EntityRowDraft[],
   );
-  const paymentMethod =
-    (readStepDraft(state, 'payment')['paymentMethod'] as string) ?? 'cash';
+  const payment = readStepDraft(state, 'payment') as Partial<
+    Record<'paymentMethod' | 'taxIdType' | 'taxId' | 'taxName', string>
+  >;
+  const paymentMethod = payment.paymentMethod ?? 'cash';
+  const taxIdType = payment.taxIdType ?? 'cf';
+  const taxId = payment.taxId ?? '';
+  const taxName = payment.taxName ?? '';
+  const identified = taxIdType !== 'cf';
 
   const [pendingOffering, setPendingOffering] = useState('');
   const [pendingQuantity, setPendingQuantity] = useState(1);
@@ -367,12 +381,15 @@ export function CounterSaleWizard({
       },
     });
 
-  const setPaymentMethod = (method: string) =>
+  const setPayment = (patch: Partial<typeof payment>) =>
     save({
       ...state,
       steps: {
         ...state.steps,
-        payment: { kind: 'form', values: { paymentMethod: method } },
+        payment: {
+          kind: 'form',
+          values: { paymentMethod, taxIdType, taxId, taxName, ...patch },
+        },
       },
     });
 
@@ -418,6 +435,9 @@ export function CounterSaleWizard({
         },
         body: JSON.stringify({
           paymentMethod,
+          buyerTax: identified
+            ? { idType: taxIdType, taxId, name: taxName }
+            : { idType: 'cf' },
           lines: lines.map(line => ({
             offeringId: line.offeringId,
             quantity: line.quantity,
@@ -445,7 +465,9 @@ export function CounterSaleWizard({
       ? channelId !== undefined
       : activeStep === 'lines'
         ? lines.length > 0
-        : true;
+        : activeStep === 'payment'
+          ? !identified || (taxId.trim() !== '' && taxName.trim() !== '')
+          : true;
 
   if (receiptId !== undefined) {
     return (
@@ -611,7 +633,9 @@ export function CounterSaleWizard({
           <Select
             id="counter-sale-payment-method"
             value={paymentMethod}
-            onChange={event => setPaymentMethod(event.target.value)}
+            onChange={event =>
+              setPayment({ paymentMethod: event.target.value })
+            }
           >
             {PAYMENT_METHODS.map(method => (
               <option key={method} value={method}>
@@ -619,6 +643,42 @@ export function CounterSaleWizard({
               </option>
             ))}
           </Select>
+          <label htmlFor="counter-sale-tax-id-type">
+            {translateKey('r10c:sales.counterSale.tax.idType')}
+          </label>
+          <Select
+            id="counter-sale-tax-id-type"
+            value={taxIdType}
+            onChange={event => setPayment({ taxIdType: event.target.value })}
+          >
+            {TAX_ID_TYPES.map(type => (
+              <option key={type} value={type}>
+                {translateKey(`r10c:sales.counterSale.tax.idTypes.${type}`)}
+              </option>
+            ))}
+          </Select>
+          {identified && (
+            <>
+              <label htmlFor="counter-sale-tax-id">
+                {translateKey('r10c:sales.counterSale.tax.taxId')}
+              </label>
+              <TextInput
+                id="counter-sale-tax-id"
+                value={taxId}
+                autoComplete="off"
+                onChange={event => setPayment({ taxId: event.target.value })}
+              />
+              <label htmlFor="counter-sale-tax-name">
+                {translateKey('r10c:sales.counterSale.tax.name')}
+              </label>
+              <TextInput
+                id="counter-sale-tax-name"
+                value={taxName}
+                autoComplete="off"
+                onChange={event => setPayment({ taxName: event.target.value })}
+              />
+            </>
+          )}
         </Stack>
       )}
 
@@ -642,6 +702,12 @@ export function CounterSaleWizard({
               />
             </Text>
           ))}
+          <Text>
+            {translateKey('r10c:sales.counterSale.tax.billedTo')}:{' '}
+            {identified
+              ? `${taxId} — ${taxName}`
+              : translateKey('r10c:sales.counterSale.tax.idTypes.cf')}
+          </Text>
           <Text>
             {translateKey('r10c:sales.counterSale.total')}:{' '}
             <Money

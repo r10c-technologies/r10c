@@ -33,6 +33,7 @@
     "@entifix/testing-e2e": "catalog:",
     "@entifix/zitadel": "catalog:",
     "@entifix/testing-unit": "catalog:",
+    "@entifix/transactions": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@r10c/utils-ts-fleet": "workspace:*"
   },

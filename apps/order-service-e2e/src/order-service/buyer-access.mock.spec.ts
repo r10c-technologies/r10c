@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { defineServiceE2e } from '@entifix/testing-e2e/service';
+import { documentOrderBody } from '@r10c/business-ts-order-management/testing';
 
 import { sentMail, startMockService } from '../support/mock-service';
 import {
@@ -9,6 +10,19 @@ import {
   E2E_ORGANIZATION_ID,
   E2E_STOREFRONT_TOKEN,
 } from '../support/tokens';
+
+/**
+ * Posts as the flow does: a step writing an order states its fiscal facts
+ * (ADR 0078 §6), so every order body here is documented first.
+ */
+const post: typeof service.client.post = (path, body, config) =>
+  service.client.post(
+    path,
+    path === '/api/product-order'
+      ? (documentOrderBody(body as Record<string, unknown>) as typeof body)
+      : body,
+    config,
+  );
 
 /**
  * The buyer's way back to an order (ADR 0076 §6): the receipt mail a
@@ -48,7 +62,7 @@ const CONTACT = {
 /** `null` opens a counter sale's group, which names no contact. */
 const checkout = async (nonce: string, contact: unknown = CONTACT) => {
   const groupId = crypto.randomUUID();
-  const opened = await service.client.post(
+  const opened = await post(
     '/api/checkout-group',
     {
       id: groupId,
@@ -59,7 +73,7 @@ const checkout = async (nonce: string, contact: unknown = CONTACT) => {
     { headers: crossing() },
   );
   expect(opened.status).toBe(200);
-  const placed = await service.client.post(
+  const placed = await post(
     '/api/product-order',
     {
       vendorId: E2E_ORGANIZATION_ID,
@@ -82,11 +96,7 @@ const checkout = async (nonce: string, contact: unknown = CONTACT) => {
 };
 
 const mailReceipt = (groupId: string, headers: object = crossing()) =>
-  service.client.post(
-    `/api/checkout-group/${groupId}/receipt-mail`,
-    {},
-    { headers },
-  );
+  post(`/api/checkout-group/${groupId}/receipt-mail`, {}, { headers });
 
 const tokenOf = (text: string) =>
   decodeURIComponent(/token=([^\s"]+)/.exec(text)?.[1] ?? '');
@@ -97,7 +107,7 @@ const readReceipt = (groupId: string, nonce: string) =>
   });
 
 const redeem = (token: string, nonce: string) =>
-  service.client.post(
+  post(
     '/api/checkout-group/access',
     { token, capabilityDigest: digest(nonce) },
     { headers: anonymous },
@@ -170,13 +180,8 @@ describe('redeeming the mailed link', () => {
   it('refuses a wrong token, and a missing one', async () => {
     expect((await redeem('guess', 'n')).status).toBe(401);
     expect(
-      (
-        await service.client.post(
-          '/api/checkout-group/access',
-          {},
-          { headers: anonymous },
-        )
-      ).status,
+      (await post('/api/checkout-group/access', {}, { headers: anonymous }))
+        .status,
     ).toBe(401);
   });
 
@@ -194,7 +199,7 @@ describe('redeeming the mailed link', () => {
 
 describe('find my order', () => {
   const lookup = (body: object, headers: object = storefront()) =>
-    service.client.post('/api/checkout-group/send-access-link', body, {
+    post('/api/checkout-group/send-access-link', body, {
       headers,
     });
   const storefront = () => ({

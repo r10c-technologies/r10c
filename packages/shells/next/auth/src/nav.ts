@@ -5,6 +5,7 @@ import {
 } from '@entifix/authz';
 import { ACCOUNT_DESTINATIONS } from '@entifix/next-shell/server';
 import { UserIdentity } from '@r10c/business-ts-authn';
+import { SET_FISCAL_IDENTITY } from '@r10c/business-ts-party-management';
 
 /** Presentation only, and this shell's to choose — the account list has none. */
 const ACCOUNT_ICONS: Record<string, string> = {
@@ -45,6 +46,14 @@ export const AUTH_NAV: GuardedNavSection[] = [
         // opened a form for a record with no id.
         workspace: screenAddress({ type: 'master', key: 'user-identity' }),
         permission: permissionForEntity(UserIdentity, 'read'),
+      },
+      {
+        // The organization's own fiscal identity (ADR 0078 §6): its own
+        // record rather than a master, so it carries no workspace address.
+        label: 'r10c:auth.nav.organization',
+        href: '/account/organization',
+        icon: '▣',
+        permission: SET_FISCAL_IDENTITY,
       },
     ],
   },

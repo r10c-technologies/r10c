@@ -35,6 +35,12 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../../business/ts/tax-policy/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/party-management/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/authz-grants/tsconfig.lib.json"
     },
     {

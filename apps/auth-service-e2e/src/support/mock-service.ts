@@ -27,7 +27,13 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeRedis } from '@entifix/testing-unit/drivers';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   ZitadelActionsLayer,
   ZitadelManagementTag,
@@ -49,6 +55,7 @@ import {
   makeRedisProviderSessionIndex,
   makeSessionIdentityProvider,
   membershipSeedData,
+  MongoOrganizationFiscalIdentityLayer,
   policy,
   ProviderSessionIndexTag,
   seedIdentityProvider,
@@ -166,7 +173,21 @@ const base = Layer.mergeAll(
     // which is what makes her sessions carry no tenant scope.
     individual: individualSeedData,
     membership: membershipSeedData('e2e-organization'),
+    // The organization Alan acts for, so its fiscal identity can be set.
+    organization: [
+      {
+        id: 'e2e-organization',
+        name: 'E2E Organization',
+        slug: 'e2e-organization',
+        status: 'active',
+      },
+    ],
   }).layer,
+  // What the organization store announces through; under `mock` nothing
+  // consumes it.
+  Layer.succeed(EventBusTag, makeRecordingEventBus()),
+  Layer.succeed(OutboxMaxAttempts, 5),
+  Layer.succeed(EventSourceTag, 'auth'),
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(
@@ -209,6 +230,7 @@ const withAccounts = Layer.provideMerge(
     SessionScopeResolverLayer,
     UserDeviceRepositoryLayer,
     NotificationLayer,
+    MongoOrganizationFiscalIdentityLayer,
     // What the generic user and identifier reads open their repository from.
     MongoRepositoryFactoryLayer,
     // The host's own bindings for the authn routes — the provider ports over

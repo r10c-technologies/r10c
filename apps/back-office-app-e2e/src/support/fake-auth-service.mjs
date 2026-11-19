@@ -1,7 +1,9 @@
 /**
- * The one auth-service route the back office's **server** calls in the `mock`
+ * The auth-service routes the back office's **server** calls in the `mock`
  * profile: `GET /api/me`, which the `(account)` and `(back-office)` layouts
- * use to resolve the principal before rendering (`loadPrincipal`).
+ * use to resolve the principal before rendering (`loadPrincipal`), and the
+ * organization's fiscal identity — read by `/account/organization` and set by
+ * its server action, kept in memory for the run.
  *
  * Every other request a mock journey makes leaves the browser, where
  * `@msw/playwright` answers it. This one never does — the layout runs inside
@@ -40,8 +42,47 @@ export const principalOf = authorization => {
   const attributes = Object.fromEntries(
     Object.entries(rest).filter(([claim]) => claim !== 'exp'),
   );
-  return { userId, subject, sessionId, roles, attributes };
+  return {
+    userId,
+    subject,
+    sessionId,
+    roles,
+    // What the real verifier maps the token's active organization to.
+    organizationId: claims.activeOrganizationId ?? null,
+    attributes,
+  };
 };
+
+/** Each organization's fiscal identity, as the last save left it. */
+const fiscalIdentities = new Map([
+  [
+    'e2e-organization',
+    {
+      taxId: '10000003',
+      legalName: 'Tienda Demo, S.A.',
+      taxRegime: 'general',
+      establishmentCode: '1',
+    },
+  ],
+]);
+
+const json = (response, status, body) =>
+  response
+    .writeHead(status, {
+      'content-type':
+        status >= 400 ? 'application/problem+json' : 'application/json',
+    })
+    .end(JSON.stringify(body));
+
+const readBody = request =>
+  new Promise(resolve => {
+    let raw = '';
+    request.on('data', chunk => (raw += chunk));
+    request.on('end', () => resolve(raw === '' ? {} : JSON.parse(raw)));
+  });
+
+const FISCAL_PATH =
+  /^\/api\/organization\/([^/]+)\/(fiscal-identity|set-fiscal-identity)$/;
 
 const server = createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://localhost');
@@ -68,11 +109,35 @@ const server = createServer((request, response) => {
       .end(JSON.stringify(principal));
     return;
   }
-  response
-    .writeHead(404, { 'content-type': 'application/problem+json' })
-    .end(
-      JSON.stringify({ type: 'about:blank', code: 'notFound', status: 404 }),
-    );
+  const fiscal = FISCAL_PATH.exec(url.pathname);
+  if (fiscal !== null) {
+    const principal = principalOf(request.headers.authorization);
+    const [, organizationId, route] = fiscal;
+    // Only the organization the session acts for, as auth-service answers.
+    if (principal === null || principal.organizationId !== organizationId) {
+      json(response, 404, {
+        type: 'about:blank',
+        code: 'notFound',
+        status: 404,
+      });
+      return;
+    }
+    if (request.method === 'GET' && route === 'fiscal-identity') {
+      json(response, 200, {
+        id: organizationId,
+        fiscal: fiscalIdentities.get(organizationId) ?? null,
+      });
+      return;
+    }
+    if (request.method === 'POST' && route === 'set-fiscal-identity') {
+      void readBody(request).then(body => {
+        fiscalIdentities.set(organizationId, body);
+        json(response, 200, { data: { id: organizationId, ...body } });
+      });
+      return;
+    }
+  }
+  json(response, 404, { type: 'about:blank', code: 'notFound', status: 404 });
 });
 
 server.listen(FAKE_AUTH_PORT);

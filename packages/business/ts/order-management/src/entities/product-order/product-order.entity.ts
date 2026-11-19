@@ -4,6 +4,12 @@ import {
   type OrderTender,
   OrderTenders,
 } from '@r10c/business-ts-sales-vocabulary';
+import {
+  type BuyerTaxIdType,
+  BuyerTaxIdTypes,
+  type TaxRegime,
+  TaxRegimes,
+} from '@r10c/business-ts-tax-policy';
 
 import { OrderItem } from '../../values/order-item';
 import {
@@ -65,6 +71,17 @@ export class ProductOrder implements Entity {
   #items: readonly OrderItem[] = [];
   #placedAt?: Date;
   #paidAt?: Date;
+  #sellerTaxId = '';
+  #sellerLegalName = '';
+  #sellerTaxRegime: TaxRegime = 'general';
+  #sellerEstablishmentCode = '';
+  #buyerTaxIdType: BuyerTaxIdType = 'cf';
+  #buyerTaxId = '';
+  #buyerTaxName = '';
+  #netAmount = 0;
+  #taxAmount = 0;
+  #totalAmount = 0;
+  #currency = '';
   // #endregion
 
   // #region constructors
@@ -323,6 +340,147 @@ export class ProductOrder implements Entity {
   }
   set paidAt(value: Date | undefined) {
     this.#paidAt = value;
+  }
+  /** The seller's NIT, copied from the published vendor at placement and never updated (ADR 0078 §6). */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.sellerTaxId',
+    filterable: false,
+  })
+  get sellerTaxId(): string {
+    return this.#sellerTaxId;
+  }
+  set sellerTaxId(value: string) {
+    this.#sellerTaxId = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.sellerLegalName',
+    filterable: false,
+  })
+  get sellerLegalName(): string {
+    return this.#sellerLegalName;
+  }
+  set sellerLegalName(value: string) {
+    this.#sellerLegalName = value;
+  }
+
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.sellerTaxRegime',
+    enumValues: [...TaxRegimes],
+    enumLabelKey: 'entity:organization.values.taxRegime',
+    filterable: false,
+  })
+  get sellerTaxRegime(): TaxRegime {
+    return this.#sellerTaxRegime;
+  }
+  set sellerTaxRegime(value: TaxRegime) {
+    this.#sellerTaxRegime = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.sellerEstablishmentCode',
+    filterable: false,
+  })
+  get sellerEstablishmentCode(): string {
+    return this.#sellerEstablishmentCode;
+  }
+  set sellerEstablishmentCode(value: string) {
+    this.#sellerEstablishmentCode = value;
+  }
+
+  /** How the buyer is documented: a NIT, a CUI or consumidor final. Personal data: stored here and never put on an `order.*` event (ADR 0078 §2). */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.buyerTaxIdType',
+    enumValues: [...BuyerTaxIdTypes],
+    enumLabelKey: 'entity:product-order.values.buyerTaxIdType',
+    filterable: false,
+  })
+  get buyerTaxIdType(): BuyerTaxIdType {
+    return this.#buyerTaxIdType;
+  }
+  set buyerTaxIdType(value: BuyerTaxIdType) {
+    this.#buyerTaxIdType = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.buyerTaxId',
+    filterable: false,
+  })
+  get buyerTaxId(): string {
+    return this.#buyerTaxId;
+  }
+  set buyerTaxId(value: string) {
+    this.#buyerTaxId = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.buyerTaxName',
+    filterable: false,
+  })
+  get buyerTaxName(): string {
+    return this.#buyerTaxName;
+  }
+  set buyerTaxName(value: string) {
+    this.#buyerTaxName = value;
+  }
+
+  /** The document's taxable base, its tax and its total, stated by the coordinator from `taxDocument` and stored as told. */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.netAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
+    filterable: false,
+  })
+  get netAmount(): number {
+    return this.#netAmount;
+  }
+  set netAmount(value: number) {
+    this.#netAmount = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.taxAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
+    filterable: false,
+  })
+  get taxAmount(): number {
+    return this.#taxAmount;
+  }
+  set taxAmount(value: number) {
+    this.#taxAmount = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.totalAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
+    filterable: false,
+  })
+  get totalAmount(): number {
+    return this.#totalAmount;
+  }
+  set totalAmount(value: number) {
+    this.#totalAmount = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.currency',
+    filterable: false,
+  })
+  get currency(): string {
+    return this.#currency;
+  }
+  set currency(value: string) {
+    this.#currency = value;
   }
   // #endregion
 }

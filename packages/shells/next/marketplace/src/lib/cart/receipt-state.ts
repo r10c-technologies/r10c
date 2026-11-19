@@ -277,11 +277,37 @@ export interface ReceiptDelivery {
  * offering (#582). Personal data never enters the cookie (ADR 0076 §1), and
  * names are long while the cookie is 4 KB.
  */
+/** Whom a receipt is documented to: a NIT or CUI, or consumidor final. */
+export interface ReceiptBilledTo {
+  readonly idType: 'nit' | 'cui' | 'cf';
+  readonly taxId: string;
+  readonly name: string;
+}
+
 export interface ReceiptDetails {
   readonly delivery?: ReceiptDelivery;
   /** The name each line was sold under, keyed `<orderId>/<offeringId>`. */
   readonly lineNames: ReadonlyMap<string, string>;
+  /**
+   * The IVA each order's price includes, keyed by order id — only for a
+   * seller whose document breaks it out: a pequeño contribuyente's shows
+   * none (ADR 0078 §6).
+   */
+  readonly ivaIncluded: ReadonlyMap<string, number>;
+  readonly billedTo?: ReceiptBilledTo;
 }
+
+const billedToOf = (
+  data: Record<string, unknown>,
+): ReceiptBilledTo | undefined => {
+  const { buyerTaxIdType: idType, buyerTaxId, buyerTaxName } = data;
+  if (idType !== 'nit' && idType !== 'cui' && idType !== 'cf') return undefined;
+  return {
+    idType,
+    taxId: typeof buyerTaxId === 'string' ? buyerTaxId : '',
+    name: typeof buyerTaxName === 'string' ? buyerTaxName : '',
+  };
+};
 
 /** The key {@link ReceiptDetails.lineNames} holds a line's name under. */
 export const lineNameKey = (orderId: string, offeringId: string) =>
@@ -328,9 +354,18 @@ export const receiptDetailsOf = (
   const orders = payload['orders'];
   if (!isRecord(group) || !Array.isArray(orders)) return undefined;
   const lineNames = new Map<string, string>();
+  const ivaIncluded = new Map<string, number>();
+  let billedTo: ReceiptBilledTo | undefined;
   for (const envelope of orders) {
     const data = isRecord(envelope) ? envelope['data'] : undefined;
     if (!isRecord(data) || !filled(data['id'])) continue;
+    billedTo ??= billedToOf(data);
+    if (
+      typeof data['taxAmount'] === 'number' &&
+      data['sellerTaxRegime'] !== 'small-taxpayer'
+    ) {
+      ivaIncluded.set(data['id'], data['taxAmount']);
+    }
     const items = Array.isArray(data['items']) ? data['items'] : [];
     for (const item of items) {
       if (
@@ -346,7 +381,12 @@ export const receiptDetailsOf = (
     }
   }
   const delivery = deliveryOf(group['contact']);
-  return { ...(delivery === undefined ? {} : { delivery }), lineNames };
+  return {
+    ...(delivery === undefined ? {} : { delivery }),
+    lineNames,
+    ivaIncluded,
+    ...(billedTo === undefined ? {} : { billedTo }),
+  };
 };
 
 /** The receipt once the buyer cancelled one of its orders. */

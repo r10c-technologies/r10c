@@ -43,15 +43,17 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-authn": "workspace:*",
     "@entifix/authz": "catalog:",
-    "@entifix/react-controls": "catalog:",
-    "@entifix/react-integration": "catalog:",
     "@entifix/core": "catalog:",
     "@entifix/i18n": "catalog:",
-    "@entifix/rest": "catalog:",
-    "@entifix/next-shell": "catalog:",
     "@entifix/next-i18n": "catalog:",
-    "@r10c/business-ts-authz-grants": "workspace:*"
+    "@entifix/next-shell": "catalog:",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/react-integration": "catalog:",
+    "@entifix/rest": "catalog:",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-party-management": "workspace:*",
+    "@r10c/business-ts-tax-policy": "workspace:*"
   }
 }
