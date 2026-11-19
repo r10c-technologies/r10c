@@ -13,7 +13,12 @@ export {
 } from './app-layer.js';
 export { endpoints, policy } from './endpoints.js';
 export { TaxRulesTag } from './flow/checkout-tax.js';
-export { type DeliveryDials, DeliveryDialsTag } from './flow/delivery-dials.js';
+export {
+  type DeliveryDials,
+  DeliveryDialsTag,
+  type PaymentDials,
+  PaymentDialsTag,
+} from './flow/delivery-dials.js';
 export {
   httpVendorFactsLayer,
   type VendorFacts,

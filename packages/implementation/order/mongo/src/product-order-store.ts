@@ -21,6 +21,7 @@ import {
 import {
   drawOrderNumber,
   ORDER_CANCELLED,
+  ORDER_PAYMENT_CONFIRMED,
   ORDER_PLACED,
   orderAudience,
   orderEventDataOf,
@@ -147,6 +148,12 @@ export const ensureProductOrderIndexes = (db: Db) =>
         { name: 'vendorId_1_placedAt_-1' },
       );
       await orders.createIndex({ groupId: 1 }, { name: 'groupId_1' });
+      // What the payment-expiry sweep walks: the orders still waiting, by
+      // when they stop (ADR 0081 §4).
+      await orders.createIndex(
+        { status: 1, paymentDueAt: 1 },
+        { name: 'status_1_paymentDueAt_1' },
+      );
       await orders.createIndex(
         { number: 1 },
         { name: NUMBER_INDEX, unique: true },
@@ -209,17 +216,21 @@ export const MongoProductOrderStoreLayer = Layer.effect(
         ? Effect.succeed(undefined)
         : revive(document);
 
-    // A vendor order's announced lifecycle is linear — placed, then possibly
-    // cancelled — so each event is a fixed version of its order.
-    const VERSION: Record<
-      typeof ORDER_PLACED | typeof ORDER_CANCELLED,
-      number
-    > = {
+    // A vendor order's announced lifecycle is linear — placed, its payment
+    // confirmed when a seller confirms one, then possibly cancelled — so each
+    // event is a fixed version of its order, and a cancellation outranks a
+    // confirmation whether or not one came first.
+    type OrderEventName =
+      | typeof ORDER_PLACED
+      | typeof ORDER_PAYMENT_CONFIRMED
+      | typeof ORDER_CANCELLED;
+    const VERSION: Record<OrderEventName, number> = {
       [ORDER_PLACED]: 1,
-      [ORDER_CANCELLED]: 2,
+      [ORDER_PAYMENT_CONFIRMED]: 2,
+      [ORDER_CANCELLED]: 3,
     };
     const event = (
-      name: typeof ORDER_PLACED | typeof ORDER_CANCELLED,
+      name: OrderEventName,
       id: string,
       data: SerializedOrder,
     ): OutboxEvent => ({
@@ -485,6 +496,133 @@ export const MongoProductOrderStoreLayer = Layer.effect(
             ? yield* revive(outcome.value)
             : undefined;
         }),
+
+      awaitPayment: (orderId, paymentDueAt, commandId) =>
+        Effect.gen(function* () {
+          const outcome = yield* units.run(
+            unit =>
+              Effect.flatMap(
+                shift(
+                  unit.handle.session,
+                  unit.handle.db,
+                  orderId,
+                  statusesBefore('await-payment'),
+                  { status: 'awaiting-payment', paymentDueAt },
+                ),
+                moved =>
+                  moved === null
+                    ? Effect.fail(new NotMoved())
+                    : Effect.succeed(moved),
+              ),
+            claimFor(commandId),
+          );
+          if (outcome._tag === 'committed') return yield* revive(outcome.value);
+          if (outcome._tag === 'duplicate') return yield* current(orderId);
+          return undefined;
+        }),
+
+      // One conditional write on `awaiting-payment`, and its announcement in
+      // the same unit: of a confirmation and an expiry racing on one order,
+      // exactly one matches (ADR 0081 §4).
+      confirmPayment: (orderId, confirmation) =>
+        Effect.gen(function* () {
+          const outcome = yield* units.run(
+            unit =>
+              Effect.flatMap(
+                shift(
+                  unit.handle.session,
+                  unit.handle.db,
+                  orderId,
+                  statusesBefore('confirm-payment'),
+                  {
+                    status: 'paid',
+                    paidAt: confirmation.confirmedAt,
+                    paymentReference: confirmation.reference,
+                    paymentConfirmedBy: confirmation.confirmedBy,
+                    paymentConfirmedAt: confirmation.confirmedAt,
+                  },
+                ),
+                moved => {
+                  if (moved === null) return Effect.fail(new NotMoved());
+                  unit.emit(event(ORDER_PAYMENT_CONFIRMED, orderId, moved));
+                  return Effect.succeed(moved);
+                },
+              ),
+            { afterCommit },
+          );
+          return outcome._tag === 'committed'
+            ? yield* revive(outcome.value)
+            : undefined;
+        }),
+
+      endAwaitingPayment: (orderId, cause, now) =>
+        Effect.gen(function* () {
+          const outcome = yield* units.run(
+            unit =>
+              Effect.flatMap(
+                Effect.tryPromise({
+                  try: () =>
+                    unit.handle.db.collection(ORDER_COLLECTION).findOneAndUpdate(
+                      {
+                        id: orderId,
+                        status: { $in: [...statusesBefore('end-awaiting-payment')] },
+                        ...(cause === 'payment-expired'
+                          ? { paymentDueAt: { $lt: now } }
+                          : {}),
+                      },
+                      { $set: { status: 'cancelled', cancelCause: cause } },
+                      {
+                        returnDocument: 'after',
+                        ...WITHOUT_ID,
+                        session: unit.handle.session,
+                      },
+                    ),
+                  catch: mongoUnitFault,
+                }),
+                moved => {
+                  if (moved === null) return Effect.fail(new NotMoved());
+                  unit.emit(event(ORDER_CANCELLED, orderId, moved));
+                  return Effect.succeed(moved);
+                },
+              ),
+            { afterCommit },
+          );
+          return outcome._tag === 'committed'
+            ? yield* revive(outcome.value)
+            : undefined;
+        }),
+
+      overduePayments: now =>
+        Effect.tryPromise({
+          try: () =>
+            orders
+              .find(
+                { status: 'awaiting-payment', paymentDueAt: { $lt: now } },
+                { projection: { _id: 0, id: 1 } },
+              )
+              .limit(BATCH)
+              .toArray(),
+          catch: storeUnavailable,
+        }).pipe(Effect.map(rows => rows.map(row => String(row['id'])))),
+
+      setPaymentLink: (orderId, link) =>
+        Effect.tryPromise({
+          try: () =>
+            orders.findOneAndUpdate(
+              { id: orderId, status: 'awaiting-payment' },
+              {
+                $set: {
+                  paymentLinkUrl: link.url,
+                  paymentLinkProviderKey: link.providerKey,
+                  paymentLinkProviderName: link.providerName,
+                  paymentLinkSetBy: link.setBy,
+                  paymentLinkSetAt: link.setAt,
+                },
+              },
+              { returnDocument: 'after', ...WITHOUT_ID },
+            ),
+          catch: storeUnavailable,
+        }).pipe(Effect.flatMap(reviveOrNone)),
 
       markPaid: (claim, orderId, paidAt) =>
         Effect.map(

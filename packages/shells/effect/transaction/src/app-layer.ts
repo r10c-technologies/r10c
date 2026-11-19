@@ -7,7 +7,11 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { deliveryDialsLayer } from './flow/delivery-dials.js';
+import {
+  deliveryDialsLayer,
+  paymentDialsLayer,
+} from './flow/delivery-dials.js';
+import { startPaymentSignals } from './flow/payment-signals.js';
 import { startShippingSignals } from './flow/shipping-signals.js';
 import { taxRulesLayer } from './flow/tax-rules.js';
 import { httpVendorFactsLayer } from './flow/vendor-facts.js';
@@ -98,16 +102,20 @@ export const transactionComposition =
           yield* workflowComposition(configuration, participants, runner),
           httpVendorFactsLayer(catalogUrl),
           yield* deliveryDialsLayer(configuration),
+          yield* paymentDialsLayer(configuration),
           yield* taxRulesLayer(configuration),
         ),
         connections,
       );
-      // The delivery flow's waits are answered here, on the process that
-      // serves the starts; a runner-only replica walks flows and listens to
-      // nothing. The queue is `work`, so a second replica of this process
-      // would share it rather than signal twice.
+      // The delivery flow's waits and a payment-link checkout's are answered
+      // here, on the process that serves the starts; a runner-only replica
+      // walks flows and listens to nothing. Each queue is `work`, so a second
+      // replica of this process would share it rather than signal twice.
       return Layer.provideMerge(
-        Layer.effectDiscard(startShippingSignals),
+        Layer.mergeAll(
+          Layer.effectDiscard(startShippingSignals),
+          Layer.effectDiscard(startPaymentSignals),
+        ),
         flows,
       );
     });

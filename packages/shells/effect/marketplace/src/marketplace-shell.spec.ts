@@ -99,6 +99,7 @@ describe('the two projections', () => {
       announcedAt: '2026-10-23T10:00:00.000Z',
       acceptsCod: false,
       holdsStock: true,
+      acceptsLink: false,
       fiscal: {
         taxId: '10000003',
         legalName: 'Demo Vendor, S.A.',

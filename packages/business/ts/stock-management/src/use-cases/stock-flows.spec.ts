@@ -5,6 +5,7 @@ import { Reservation } from '../entities/reservation/index.js';
 import { StockMovement } from '../entities/stock-movement/index.js';
 import {
   InsufficientStock,
+  ReservationMaxHoldSecondsTag,
   ReservationTtlSecondsTag,
   type StockLedger,
   StockLedgerTag,
@@ -26,7 +27,11 @@ const ledger: StockLedger = {
 };
 
 const run = <A, E>(
-  effect: Effect.Effect<A, E, StockLedgerTag | ReservationTtlSecondsTag>,
+  effect: Effect.Effect<
+    A,
+    E,
+    StockLedgerTag | ReservationTtlSecondsTag | ReservationMaxHoldSecondsTag
+  >,
 ) =>
   Effect.runPromise(
     effect.pipe(
@@ -34,6 +39,7 @@ const run = <A, E>(
         Layer.mergeAll(
           Layer.succeed(StockLedgerTag, ledger),
           Layer.succeed(ReservationTtlSecondsTag, 900),
+          Layer.succeed(ReservationMaxHoldSecondsTag, 3600),
         ),
       ),
     ),
@@ -63,6 +69,45 @@ describe('takeReservation', () => {
       before + 900_000,
     );
   });
+
+  it('lives as long as the step stated, within the bound', async () => {
+    const before = Date.now();
+
+    const outcome = await run(
+      takeReservation({
+        organizationId: 'org',
+        reservation: aHold(1),
+        commandId: 'c',
+        holdSeconds: 3600,
+      }),
+    );
+
+    const reservation = (outcome as { reservation: Reservation }).reservation;
+    expect((reservation.expiresAt as Date).getTime()).toBeGreaterThanOrEqual(
+      before + 3_600_000,
+    );
+  });
+
+  it.each([3601, 0, 1.5, '60'])(
+    'refuses a stated hold of %s seconds',
+    async holdSeconds => {
+      const refused = await run(
+        Effect.flip(
+          takeReservation({
+            organizationId: 'org',
+            reservation: aHold(1),
+            commandId: undefined,
+            holdSeconds,
+          }),
+        ),
+      );
+
+      expect(refused).toMatchObject({
+        _tag: 'InvalidBody',
+        message: 'a hold lives between 1 and 3600 seconds',
+      });
+    },
+  );
 
   it('refuses a quantity that cannot be held', async () => {
     const refused = await run(

@@ -5,6 +5,7 @@ import { Effect, Schema } from 'effect';
 import type { Reservation } from '../entities/reservation';
 import type { StockMovement } from '../entities/stock-movement';
 import {
+  ReservationMaxHoldSecondsTag,
   ReservationTtlSecondsTag,
   StockLedgerTag,
 } from '../ports/stock-ledger';
@@ -23,13 +24,40 @@ export class InconsistentMovement extends Failure.invalid<InconsistentMovement>(
 ) {}
 
 /**
+ * How long a hold lives: the default, or what the coordinator stated — a whole
+ * number of seconds no longer than `maxHoldSeconds` (ADR 0081 §3). Anything
+ * else is the step's body to refuse, never a hold quietly shortened.
+ */
+const holdSecondsOf = (stated: unknown) =>
+  Effect.gen(function* () {
+    if (stated === undefined) return yield* ReservationTtlSecondsTag;
+    const max = yield* ReservationMaxHoldSecondsTag;
+    if (
+      typeof stated !== 'number' ||
+      !Number.isInteger(stated) ||
+      stated <= 0 ||
+      stated > max
+    ) {
+      return yield* Effect.fail(
+        new InvalidBody({
+          reason: `a hold lives between 1 and ${String(max)} seconds`,
+        }),
+      );
+    }
+    return stated;
+  });
+
+/**
  * Take a hold — the checkout flow's `reserve` step, for the organization the
- * crossing named. The id, the status and the expiry are this domain's.
+ * crossing named. The id, the status and the expiry are this domain's; how
+ * long it lives may be stated, within this domain's bound.
  */
 export const takeReservation = (input: {
   readonly organizationId: string;
   readonly reservation: Reservation;
   readonly commandId: string | undefined;
+  /** Seconds the hold lives, as the step stated it, or `undefined`. */
+  readonly holdSeconds?: unknown;
 }) =>
   Effect.gen(function* () {
     const { reservation } = input;
@@ -40,7 +68,7 @@ export const takeReservation = (input: {
         }),
       );
     }
-    const ttlSeconds = yield* ReservationTtlSecondsTag;
+    const ttlSeconds = yield* holdSecondsOf(input.holdSeconds);
     reservation.id = globalThis.crypto.randomUUID();
     reservation.status = 'held';
     reservation.expiresAt = new Date(Date.now() + ttlSeconds * MILLISECONDS);

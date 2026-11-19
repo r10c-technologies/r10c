@@ -248,13 +248,18 @@ export async function CheckoutReviewPage({
                 tender: {
                   card: t('storefront.review.payment.card'),
                   cod: t('storefront.review.payment.cod'),
+                  link: t('storefront.review.payment.link'),
                 },
                 only: {
                   card: t('storefront.review.payment.onlyCard'),
                   cod: t('storefront.review.payment.onlyCod'),
+                  link: t('storefront.review.payment.linkHint'),
                 },
-                simulated: t('storefront.review.payment.simulated'),
-                codHint: t('storefront.review.payment.codHint'),
+                hint: {
+                  card: t('storefront.review.payment.simulated'),
+                  cod: t('storefront.review.payment.codHint'),
+                  link: t('storefront.review.payment.linkHint'),
+                },
                 required: t('storefront.review.payment.required'),
               },
             }}

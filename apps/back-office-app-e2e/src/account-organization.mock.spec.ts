@@ -33,3 +33,32 @@ test('saves the fiscal identity, and opens on it next time', async ({
     'Tienda Demo Renombrada, S.A.',
   );
 });
+
+/**
+ * Whether the organization takes payment links (ADR 0081 §1): its own form
+ * beside the fiscal one, saved through a server action and read back on the
+ * next visit.
+ */
+test('switches payment links on, and opens on it next time', async ({
+  page,
+}) => {
+  await page.goto('/es/account/organization');
+
+  const accepts = page.getByRole('checkbox', {
+    name: 'Acepto pagos con un enlace que envío',
+  });
+  await expect(accepts).not.toBeChecked();
+
+  await accepts.check();
+  await page.getByRole('button', { name: 'Guardar enlaces de pago' }).click();
+  await expect(
+    page.getByText('Guardado. Las compras nuevas lo siguen desde ahora.'),
+  ).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page.getByRole('checkbox', {
+      name: 'Acepto pagos con un enlace que envío',
+    }),
+  ).toBeChecked();
+});

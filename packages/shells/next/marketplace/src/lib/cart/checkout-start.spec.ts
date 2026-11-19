@@ -49,6 +49,11 @@ describe('tenders', () => {
     expect(tendersOffered({ acceptsCod: true })).toEqual(['card', 'cod']);
     expect(tendersOffered({ acceptsCod: false })).toEqual(['card']);
     expect(tendersOffered(undefined)).toEqual(['card']);
+    expect(tendersOffered({ acceptsCod: true, acceptsLink: true })).toEqual([
+      'card',
+      'cod',
+      'link',
+    ]);
   });
 });
 

@@ -161,6 +161,66 @@ export const makeInMemoryOrderStores = (): {
         );
         return settled === 'replayed' ? undefined : settled;
       }),
+    awaitPayment: (orderId, paymentDueAt, commandId) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (order === undefined) return undefined;
+        if (commandId !== undefined && commands.has(commandId)) {
+          return copyOrder(order);
+        }
+        if (order.status !== 'pending') return undefined;
+        order.status = 'awaiting-payment';
+        order.paymentDueAt = paymentDueAt;
+        if (commandId !== undefined) commands.set(commandId, true);
+        return copyOrder(order);
+      }),
+    confirmPayment: (orderId, confirmation) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (order?.status !== 'awaiting-payment') return undefined;
+        order.status = 'paid';
+        order.paidAt = confirmation.confirmedAt;
+        order.paymentReference = confirmation.reference;
+        order.paymentConfirmedBy = confirmation.confirmedBy;
+        order.paymentConfirmedAt = confirmation.confirmedAt;
+        return copyOrder(order);
+      }),
+    endAwaitingPayment: (orderId, cause, now) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (order?.status !== 'awaiting-payment') return undefined;
+        if (
+          cause === 'payment-expired' &&
+          // Every waiting order was stamped by `awaitPayment`.
+          !((order.paymentDueAt as Date).getTime() < now.getTime())
+        ) {
+          return undefined;
+        }
+        order.status = 'cancelled';
+        order.cancelCause = cause;
+        return copyOrder(order);
+      }),
+    overduePayments: now =>
+      Effect.sync(() =>
+        Array.from(orders.values())
+          .filter(
+            order =>
+              order.status === 'awaiting-payment' &&
+              (order.paymentDueAt as Date).getTime() < now.getTime(),
+          )
+          .map(order => String(order.id)),
+      ),
+    setPaymentLink: (orderId, link) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (order?.status !== 'awaiting-payment') return undefined;
+        order.paymentLinkUrl = link.url;
+        order.paymentLinkProviderKey = link.providerKey;
+        order.paymentLinkProviderName = link.providerName;
+        order.paymentLinkSetBy = link.setBy;
+        order.paymentLinkSetAt = link.setAt;
+        return copyOrder(order);
+      }),
     markPaid: ({ consumer, eventId }, orderId, paidAt) =>
       Effect.sync(() => {
         const key = `${consumer}:${eventId}`;

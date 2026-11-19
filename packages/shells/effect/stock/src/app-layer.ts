@@ -1,7 +1,10 @@
 import type { MongoClientTag } from '@entifix/mongo';
 import { startTenantOutboxRelay } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
-import { ReservationTtlSecondsTag } from '@r10c/business-ts-stock-management';
+import {
+  ReservationMaxHoldSecondsTag,
+  ReservationTtlSecondsTag,
+} from '@r10c/business-ts-stock-management';
 import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
   crossingTokenLayer,
@@ -77,6 +80,10 @@ export const stockComposition =
       const reservationTtlSeconds = yield* store
         .in('reservation')
         .getNumber('ttlSeconds');
+      // The longest hold a crossing caller may state (ADR 0081 §3).
+      const reservationMaxHoldSeconds = yield* store
+        .in('reservation')
+        .getNumber('maxHoldSeconds');
 
       const connections = Layer.mergeAll(
         yield* fleetTenantMongoLayer(configuration, ['stock']),
@@ -88,6 +95,7 @@ export const stockComposition =
         yield* fleetBusLayer(configuration),
         yield* fleetOutboxLayer(configuration, STOCK_SLICE),
         Layer.succeed(ReservationTtlSecondsTag, reservationTtlSeconds),
+        Layer.succeed(ReservationMaxHoldSecondsTag, reservationMaxHoldSeconds),
       );
 
       // The demo vendor's stock, written on first boot into `stock_<id>`.

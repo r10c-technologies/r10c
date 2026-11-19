@@ -20,3 +20,21 @@ export class VendorDoesNotShip extends Failure.declined<VendorDoesNotShip>()(
       `vendor ${vendorId} does not ship, so it cannot sell on the storefront`,
   },
 ) {}
+
+/** The code a checkout paying by link a seller who takes none answers. */
+export const VENDOR_DOES_NOT_TAKE_LINKS = 'vendorDoesNotTakeLinks';
+
+/**
+ * A basket paying a seller by payment link when the published vendor says that
+ * seller takes none. Refused at the start, by the coordinator, from what it
+ * verified — never from the caller's word (ADR 0081 §1).
+ */
+export class VendorDoesNotTakeLinks extends Failure.declined<VendorDoesNotTakeLinks>()(
+  'VendorDoesNotTakeLinks',
+  VENDOR_DOES_NOT_TAKE_LINKS,
+  { vendorId: Schema.String },
+  {
+    message: ({ vendorId }) =>
+      `vendor ${vendorId} does not take payment links`,
+  },
+) {}

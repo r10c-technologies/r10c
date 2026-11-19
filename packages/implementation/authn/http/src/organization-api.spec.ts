@@ -4,14 +4,16 @@ import {
   type FiscalIdentity,
   InvalidFiscalIdentity,
   OrganizationFiscalIdentityTag,
+  OrganizationPaymentLinkAcceptanceTag,
 } from '@r10c/business-ts-party-management';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { organizationApi, organizationEndpoints } from './organization-api.js';
 
-const [setFiscalIdentity] = organizationApi.options.useCases;
-const [readFiscalIdentity] = organizationEndpoints;
+const [setFiscalIdentity, setPaymentLinkAcceptance] =
+  organizationApi.options.useCases;
+const [readFiscalIdentity, readPaymentLinkAcceptance] = organizationEndpoints;
 
 const FISCAL: FiscalIdentity = {
   taxId: '10000003',
@@ -95,6 +97,74 @@ describe('GET fiscal-identity', () => {
     );
     expect(await read('org-2', 'org-2')).toEqual(
       Exit.succeed({ id: 'org-2', fiscal: null }),
+    );
+  });
+
+  it('answers NotFound for any organization but the active one', async () => {
+    expect(await read('org-1', 'org-2')).toEqual(
+      Exit.fail(new NotFound({ entity: 'organization' })),
+    );
+  });
+});
+
+const acceptanceStore = () => {
+  const rows = new Map<string, boolean>([['org-1', false]]);
+  return {
+    rows,
+    port: {
+      get: (id: string) =>
+        rows.has(id)
+          ? Effect.succeed(rows.get(id) === true)
+          : Effect.fail(new NotFound({ entity: 'organization' })),
+      set: (id: string, accepts: boolean) =>
+        Effect.sync(() => {
+          rows.set(id, accepts);
+        }),
+    },
+  };
+};
+
+describe('set-payment-link-acceptance', () => {
+  it('writes the active organization its own choice, and refuses another', async () => {
+    const { rows, port } = acceptanceStore();
+    const run = (id: string, active: string) =>
+      Effect.runPromiseExit(
+        setPaymentLinkAcceptance
+          .handler(
+            { params: { id }, payload: { accepts: true } },
+            context(active),
+          )
+          .pipe(
+            Effect.provideService(OrganizationPaymentLinkAcceptanceTag, port),
+          ),
+      );
+    expect(await run('org-1', 'org-1')).toEqual(
+      Exit.succeed({ accepts: true }),
+    );
+    expect(rows.get('org-1')).toBe(true);
+    expect(await run('org-2', 'org-1')).toEqual(
+      Exit.fail(new NotFound({ entity: 'organization' })),
+    );
+  });
+});
+
+describe('GET payment-link-acceptance', () => {
+  const read = (id: string, organizationId: string) =>
+    Effect.runPromiseExit(
+      readPaymentLinkAcceptance.handler({ params: { id } } as never).pipe(
+        Effect.provideService(
+          OrganizationPaymentLinkAcceptanceTag,
+          acceptanceStore().port,
+        ),
+        Effect.provideService(RequestPrincipalTag, {
+          organizationId,
+        } as never),
+      ) as Effect.Effect<unknown, unknown>,
+    );
+
+  it('answers the caller its own organization’s choice', async () => {
+    expect(await read('org-1', 'org-1')).toEqual(
+      Exit.succeed({ id: 'org-1', accepts: false }),
     );
   });
 

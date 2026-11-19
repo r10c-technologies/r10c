@@ -66,6 +66,9 @@ const fiscalIdentities = new Map([
   ],
 ]);
 
+/** Each organization's payment-link acceptance, as the last save left it. */
+const paymentLinkAcceptance = new Map([['e2e-organization', false]]);
+
 const json = (response, status, body) =>
   response
     .writeHead(status, {
@@ -82,7 +85,7 @@ const readBody = request =>
   });
 
 const FISCAL_PATH =
-  /^\/api\/organization\/([^/]+)\/(fiscal-identity|set-fiscal-identity)$/;
+  /^\/api\/organization\/([^/]+)\/(fiscal-identity|set-fiscal-identity|payment-link-acceptance|set-payment-link-acceptance)$/;
 
 const server = createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://localhost');
@@ -133,6 +136,20 @@ const server = createServer((request, response) => {
       void readBody(request).then(body => {
         fiscalIdentities.set(organizationId, body);
         json(response, 200, { data: { id: organizationId, ...body } });
+      });
+      return;
+    }
+    if (request.method === 'GET' && route === 'payment-link-acceptance') {
+      json(response, 200, {
+        id: organizationId,
+        accepts: paymentLinkAcceptance.get(organizationId) === true,
+      });
+      return;
+    }
+    if (request.method === 'POST' && route === 'set-payment-link-acceptance') {
+      void readBody(request).then(body => {
+        paymentLinkAcceptance.set(organizationId, body.accepts === true);
+        json(response, 200, { data: { accepts: body.accepts === true } });
       });
       return;
     }

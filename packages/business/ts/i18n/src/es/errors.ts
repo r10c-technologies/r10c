@@ -167,6 +167,12 @@ export const errors = {
   // Cada uno nombra un campo del formulario, que los muestra junto a él.
   vendorDoesNotShip:
     'Este vendedor todavía no hace envíos, así que no se le puede comprar en la tienda. Quita sus productos del carrito.',
+  vendorDoesNotTakeLinks:
+    'Este vendedor no acepta links de pago. Elige otra forma de pagarle.',
+  orderNotAwaitingPayment:
+    'Este pedido ya no espera su pago: se confirmó, venció o el comprador lo retiró. Si el comprador pagó un pedido vencido, devuélvele el dinero por tu proveedor de pagos: r10c nunca lo tuvo.',
+  invalidPaymentDetails:
+    'Revisa los datos del pago: un link es una dirección https del proveedor que elegiste, y el número de autorización no puede ir vacío.',
   contactNameRequired: 'Escribe tu nombre.',
   phoneNotGuatemalan:
     'Escribe un teléfono de Guatemala de ocho dígitos, por ejemplo 5555-1234.',

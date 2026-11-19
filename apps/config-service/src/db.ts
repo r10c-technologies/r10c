@@ -747,6 +747,23 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'awaitReturnTimeout',
     value: String(30 * 24 * 60 * 60 * 1000),
   },
+  // How long a payment-link order waits for the seller to confirm it was paid,
+  // in milliseconds — 48 hours (ADR 0081 §3, Q16) — and the grace either side
+  // of it: the order expires at the window, the flow's wait strands at window
+  // + grace, and each stock hold lives window + 2 × grace, so the hold always
+  // outlives the decision. Stated into every checkout by the coordinator.
+  {
+    service: 'transaction-service',
+    group_name: 'checkout',
+    key: 'paymentWindow',
+    value: String(48 * 60 * 60 * 1000),
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'checkout',
+    key: 'paymentWindowGrace',
+    value: String(60 * 60 * 1000),
+  },
   // IVA per tax regime (ADR 0078 §6): the coordinator breaks the tax out of
   // each price with these, once per document. Statutory rates are public law,
   // not commercial terms, so they are seeded here rather than kept in Notion.
@@ -979,6 +996,28 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'order',
     key: 'receiptDays',
     value: '30',
+  },
+  // How often order-service looks for payment-link orders still waiting past
+  // their window, and cancels them (ADR 0081 §4). The window itself is
+  // transaction-service's `checkout.paymentWindow`, stated into each flow:
+  // two rows meaning one number would drift.
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'paymentExpirySweepMs',
+    value: '60000',
+  },
+  // The payment-link providers a seller may name — an open dictionary of public
+  // facts, one row per provider: a display name and the hosts its links are
+  // served from (ADR 0081 §10). ⚠️ **No real provider is seeded.** Which ones
+  // r10c lists is a position on whom we work with, so the names live in Notion
+  // and reach an environment as that environment's own rows (ADR 0025,
+  // ADR 0080 §8). `other` takes any host, and the seller may type a name.
+  {
+    service: 'order-service',
+    group_name: 'paymentLinkProvider',
+    key: 'other',
+    value: '{"name":"Other","hosts":[]}',
   },
   // The buyer's way back (ADR 0076 §6). A mailed access link is redeemable for
   // a day; a lookup ("find my order") mails one at most every five minutes per
@@ -1701,6 +1740,16 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'reservation',
     key: 'ttlSeconds',
     value: '900',
+  },
+  // The longest hold a crossing caller may state for itself. A payment-link
+  // order's hold must outlive the seller's decision — the payment window plus
+  // twice its grace — so this bounds that, and nothing else may ask for more
+  // (ADR 0081 §3).
+  {
+    service: 'stock-service',
+    group_name: 'reservation',
+    key: 'maxHoldSeconds',
+    value: '259200',
   },
   {
     service: 'stock-service',

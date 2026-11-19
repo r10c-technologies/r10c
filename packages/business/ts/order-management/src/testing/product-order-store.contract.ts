@@ -56,6 +56,22 @@ const ENDED = new Date('2026-11-01T00:00:00.000Z');
 const SWEPT_AT = new Date('2026-11-02T00:00:00.000Z');
 
 const paid = { consumer: 'order', eventId: 'e-1' };
+
+const DUE = new Date('2026-10-28T09:00:00.000Z');
+const BEFORE_DUE = new Date('2026-10-28T08:59:59.000Z');
+const AFTER_DUE = new Date('2026-10-28T09:00:01.000Z');
+const CONFIRMATION = {
+  reference: 'AUTH-123',
+  confirmedBy: 'staff-1',
+  confirmedAt: new Date('2026-10-27T15:00:00.000Z'),
+};
+const LINK = {
+  url: 'https://pay.example/a',
+  providerKey: 'other',
+  providerName: 'Mi banco',
+  setBy: 'staff-1',
+  setAt: new Date('2026-10-26T12:00:00.000Z'),
+};
 const PAID_AT = '2026-10-26T10:00:00.000Z';
 
 /** The two stores over one `order` store, as one world. */
@@ -440,6 +456,112 @@ export const describeProductOrderStoreContract = (
       expect(settled).toMatchObject({ id: 'ord-1', status: 'cancelled' });
       expect(redelivered).toBeUndefined();
       expect(again).toBeUndefined();
+    });
+
+    it('moves a link order to waiting once, stamping when it stops waiting', async () => {
+      const { orders } = await placed();
+
+      const waiting = await run(orders.awaitPayment('ord-1', DUE, 'w-1'));
+      const replayed = await run(orders.awaitPayment('ord-1', DUE, 'w-1'));
+      const again = await run(orders.awaitPayment('ord-1', DUE, undefined));
+
+      expect(waiting).toMatchObject({ status: 'awaiting-payment' });
+      expect(new Date(waiting?.paymentDueAt as Date).toISOString()).toBe(
+        DUE.toISOString(),
+      );
+      expect(replayed?.status).toBe('awaiting-payment');
+      expect(again).toBeUndefined();
+      expect(
+        await run(orders.awaitPayment('nope', DUE, undefined)),
+      ).toBeUndefined();
+    });
+
+    it('confirms a waiting payment once, recording who and with what', async () => {
+      const { orders } = await placed();
+      const early = await run(orders.confirmPayment('ord-1', CONFIRMATION));
+      await run(orders.awaitPayment('ord-1', DUE, undefined));
+
+      const confirmed = await run(orders.confirmPayment('ord-1', CONFIRMATION));
+      const twice = await run(orders.confirmPayment('ord-1', CONFIRMATION));
+
+      expect(early).toBeUndefined();
+      expect(confirmed).toMatchObject({
+        status: 'paid',
+        paymentReference: 'AUTH-123',
+        paymentConfirmedBy: 'staff-1',
+      });
+      expect(new Date(confirmed?.paidAt as Date).toISOString()).toBe(
+        CONFIRMATION.confirmedAt.toISOString(),
+      );
+      expect(twice).toBeUndefined();
+    });
+
+    it('expires a waiting order only once it is overdue, and then a confirmation loses', async () => {
+      const { orders } = await placed();
+      await run(orders.awaitPayment('ord-1', DUE, undefined));
+
+      const early = await run(
+        orders.endAwaitingPayment('ord-1', 'payment-expired', BEFORE_DUE),
+      );
+      const notYet = await run(orders.overduePayments(BEFORE_DUE));
+      const overdue = await run(orders.overduePayments(AFTER_DUE));
+      const expired = await run(
+        orders.endAwaitingPayment('ord-1', 'payment-expired', AFTER_DUE),
+      );
+      const late = await run(orders.confirmPayment('ord-1', CONFIRMATION));
+
+      expect(early).toBeUndefined();
+      expect(notYet).toEqual([]);
+      expect(overdue).toEqual(['ord-1']);
+      expect(expired).toMatchObject({
+        status: 'cancelled',
+        cancelCause: 'payment-expired',
+      });
+      expect(late).toBeUndefined();
+      expect(await run(orders.overduePayments(AFTER_DUE))).toEqual([]);
+    });
+
+    it('lets a buyer withdraw a waiting order before it is due', async () => {
+      const { orders } = await placed();
+      await run(orders.awaitPayment('ord-1', DUE, undefined));
+
+      const withdrawn = await run(
+        orders.endAwaitingPayment('ord-1', 'buyer', BEFORE_DUE),
+      );
+
+      expect(withdrawn).toMatchObject({
+        status: 'cancelled',
+        cancelCause: 'buyer',
+      });
+      expect(
+        await run(orders.endAwaitingPayment('nope', 'buyer', BEFORE_DUE)),
+      ).toBeUndefined();
+      expect(
+        await run(orders.confirmPayment('nope', CONFIRMATION)),
+      ).toBeUndefined();
+      expect(await run(orders.setPaymentLink('nope', LINK))).toBeUndefined();
+    });
+
+    it('sets a payment link on a waiting order, the last one winning', async () => {
+      const { orders } = await placed();
+      const early = await run(orders.setPaymentLink('ord-1', LINK));
+      await run(orders.awaitPayment('ord-1', DUE, undefined));
+
+      await run(orders.setPaymentLink('ord-1', LINK));
+      const second = await run(
+        orders.setPaymentLink('ord-1', {
+          ...LINK,
+          url: 'https://pay.example/b',
+        }),
+      );
+
+      expect(early).toBeUndefined();
+      expect(second).toMatchObject({
+        paymentLinkUrl: 'https://pay.example/b',
+        paymentLinkProviderKey: 'other',
+        paymentLinkProviderName: 'Mi banco',
+        paymentLinkSetBy: 'staff-1',
+      });
     });
   });
 };

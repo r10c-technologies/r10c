@@ -30,6 +30,7 @@ import { flowCatalog } from '@r10c/shells-effect-flow-catalog';
 import {
   DeliveryDialsTag,
   endpoints,
+  PaymentDialsTag,
   policy,
   SERVICE_NAME,
   TaxRulesTag,
@@ -91,6 +92,10 @@ export const DELIVERY_DIALS = { awaitDeliveryMs: 600_000, awaitReturnMs: 300 };
 const MockAppLayer = Layer.mergeAll(
   Layer.succeed(FlowEngineTag, engine),
   Layer.succeed(DeliveryDialsTag, DELIVERY_DIALS),
+  Layer.succeed(PaymentDialsTag, {
+    paymentWindowMs: 172_800_000,
+    paymentGraceMs: 3_600_000,
+  }),
   Layer.succeed(VendorFactsTag, {
     sellersOf: vendorIds =>
       Effect.succeed(

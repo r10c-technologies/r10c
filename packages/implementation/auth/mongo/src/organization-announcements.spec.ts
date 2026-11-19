@@ -9,7 +9,10 @@ import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { type EventBus, OutboxMaxAttempts } from '@entifix/transactions';
 import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import { ORGANIZATION_ANNOUNCED } from '@r10c/business-ts-party-contracts';
-import { OrganizationFiscalIdentityTag } from '@r10c/business-ts-party-management';
+import {
+  OrganizationFiscalIdentityTag,
+  OrganizationPaymentLinkAcceptanceTag,
+} from '@r10c/business-ts-party-management';
 import { Effect, Exit } from 'effect';
 import { Layer } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
@@ -20,7 +23,9 @@ import {
   commerceOf,
   ENTITLEMENT_COLLECTION,
   makeMongoOrganizationFiscalIdentity,
+  makeMongoOrganizationPaymentLinkAcceptance,
   MongoOrganizationFiscalIdentityLayer,
+  MongoOrganizationPaymentLinkAcceptanceLayer,
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
   seedOrganizations,
@@ -72,8 +77,15 @@ describe('announcementOf', () => {
       announcedAt: FIRST.toISOString(),
       acceptsCod: false,
       holdsStock: false,
+      acceptsLink: false,
       fiscal: FISCAL,
     });
+  });
+
+  it('says the seller takes payment links when its organization says so', () => {
+    expect(
+      announcementOf({ ...SEED, acceptsPaymentLink: true, updatedAt: FIRST }),
+    ).toMatchObject({ acceptsLink: true });
   });
 
   it('announces nothing for an organization with no fiscal identity', () => {
@@ -456,5 +468,77 @@ describe('MongoOrganizationFiscalIdentityLayer', () => {
       ),
     );
     expect(fiscal).toEqual(FISCAL);
+  });
+});
+
+describe('the payment-link acceptance', () => {
+  const acceptance = (store: Awaited<ReturnType<typeof storeWith>>) =>
+    makeMongoOrganizationPaymentLinkAcceptance(
+      store.client,
+      store.db,
+      'auth',
+      store.bus,
+      3,
+    );
+
+  it('reads false until the organization says otherwise', async () => {
+    const store = await storeWith();
+    await write(store, SEED, FIRST);
+    expect(await Effect.runPromise(acceptance(store).get('org-1'))).toBe(false);
+  });
+
+  it('is set by the organization and re-announced as the seller’s acceptsLink', async () => {
+    const store = await storeWith();
+    await write(store, SEED, FIRST);
+    const port = acceptance(store);
+
+    await Effect.runPromise(port.set('org-1', true));
+    expect(await Effect.runPromise(port.get('org-1'))).toBe(true);
+    expect(store.fake.read(OUTBOX_COLLECTION).at(-1)?.['event']).toMatchObject({
+      data: { displayName: 'Demo Vendor', acceptsLink: true },
+    });
+
+    await Effect.runPromise(port.set('org-1', false));
+    expect(await Effect.runPromise(port.get('org-1'))).toBe(false);
+    expect(store.fake.read(OUTBOX_COLLECTION).at(-1)?.['event']).toMatchObject({
+      data: { acceptsLink: false },
+    });
+  });
+
+  it('answers NotFound for an organization nobody provisioned', async () => {
+    const store = await storeWith();
+    const port = acceptance(store);
+    const notFound = Exit.fail(new NotFound({ entity: 'organization' }));
+    expect(await Effect.runPromiseExit(port.set('org-9', true))).toEqual(
+      notFound,
+    );
+    expect(await Effect.runPromiseExit(port.get('org-9'))).toEqual(notFound);
+  });
+});
+
+describe('MongoOrganizationPaymentLinkAcceptanceLayer', () => {
+  it('serves the port over the store it is given', async () => {
+    const store = await storeWith();
+    await write(store, { ...SEED, acceptsPaymentLink: true }, FIRST);
+    const accepts = await Effect.runPromise(
+      Effect.flatMap(OrganizationPaymentLinkAcceptanceTag, port =>
+        port.get('org-1'),
+      ).pipe(
+        Effect.provide(
+          MongoOrganizationPaymentLinkAcceptanceLayer.pipe(
+            Layer.provide(
+              Layer.mergeAll(
+                Layer.succeed(MongoClientTag, store.client),
+                Layer.succeed(MongoDatabaseTag, store.db),
+                Layer.succeed(EventSourceTag, 'auth'),
+                Layer.succeed(EventBusTag, store.bus),
+                Layer.succeed(OutboxMaxAttempts, 3),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(accepts).toBe(true);
   });
 });

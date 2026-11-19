@@ -10,10 +10,13 @@ import { Option, Schema } from 'effect';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
 
-/** How a buyer pays one seller: a card at checkout, or cash on delivery. */
-export type Tender = 'card' | 'cod';
+/**
+ * How a buyer pays one seller: a card at checkout, cash on delivery, or a
+ * payment link the seller sends and confirms (ADR 0081).
+ */
+export type Tender = 'card' | 'cod' | 'link';
 
-const TENDERS: readonly Tender[] = ['card', 'cod'];
+const TENDERS: readonly Tender[] = ['card', 'cod', 'link'];
 
 /** The form field prefix a seller's tender travels under, `method:<id>`. */
 export const TENDER_PREFIX = 'method:';
@@ -30,13 +33,20 @@ export const tenderOf = (value: unknown): Tender | undefined =>
 export const tenderField = (vendorId: string) => `${TENDER_PREFIX}${vendorId}`;
 
 /**
- * The tenders a seller takes: a card always, and cash on delivery only where
- * the published vendor says they collect it — a hint the checkout's own
- * eligibility step still enforces (ADR 0070).
+ * The tenders a seller takes: a card always; cash on delivery only where the
+ * published vendor says they collect it — a hint the checkout's own
+ * eligibility step still enforces (ADR 0070); and a payment link only where it
+ * says they take one, which the coordinator enforces (ADR 0081 §1).
  */
 export const tendersOffered = (
-  vendor: { readonly acceptsCod?: boolean } | undefined,
-): readonly Tender[] => (vendor?.acceptsCod === true ? TENDERS : ['card']);
+  vendor:
+    | { readonly acceptsCod?: boolean; readonly acceptsLink?: boolean }
+    | undefined,
+): readonly Tender[] => [
+  'card',
+  ...(vendor?.acceptsCod === true ? (['cod'] as const) : []),
+  ...(vendor?.acceptsLink === true ? (['link'] as const) : []),
+];
 
 /** One cart line priced from the published offering. */
 export interface PricedLine {

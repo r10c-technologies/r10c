@@ -9,6 +9,7 @@ import { makeAppLayer } from '@r10c/shells-effect-transaction';
 export {
   DeliveryDialsTag,
   endpoints,
+  PaymentDialsTag,
   policy,
   TaxRulesTag,
   VendorFactsTag,

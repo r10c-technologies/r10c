@@ -14,6 +14,7 @@ import {
   CheckoutGroupStoreTag,
   digestOf,
   OrderItem,
+  PaymentLinkProvidersTag,
   ProductOrder,
   ProductOrderStoreTag,
   ReceiptDays,
@@ -75,13 +76,17 @@ const world = (windows = { cancelWindowSeconds: 600, receiptDays: 30 }) => {
     Layer.succeed(FlowStarterTag, flows),
     Layer.succeed(CancelWindowSeconds, windows.cancelWindowSeconds),
     Layer.succeed(ReceiptDays, windows.receiptDays),
+    Layer.succeed(PaymentLinkProvidersTag, [
+      { key: 'other', name: 'Other', hosts: [] },
+    ]),
   );
   type R =
     | ProductOrderStoreTag
     | CheckoutGroupStoreTag
     | FlowStarterTag
     | CancelWindowSeconds
-    | ReceiptDays;
+    | ReceiptDays
+    | PaymentLinkProvidersTag;
   return {
     stores,
     started,
@@ -97,7 +102,8 @@ const world = (windows = { cancelWindowSeconds: 600, receiptDays: 30 }) => {
 const keyed = <A, E, R>(effect: Effect.Effect<A, E, R>, key: string) =>
   Effect.provideService(effect, IdempotencyKeyTag, key);
 
-const [cancel] = productOrderApi.options.useCases;
+const [cancel, confirmPaymentVerb, setLinkVerb] =
+  productOrderApi.options.useCases;
 const [
   buyerCancellation,
   buyerReceiptRead,
@@ -106,6 +112,8 @@ const [
   claim,
   release,
   confirm,
+  providersRead,
+  awaitingPayment,
   dispatch,
   close,
 ] = productOrderEndpoints;
@@ -625,5 +633,98 @@ describe('find my order (ADR 0076 §6)', () => {
 
     expect(answer).toEqual({ accepted: true });
     expect(notifier.sent).toEqual([]);
+  });
+});
+
+describe('a payment-link order (ADR 0081)', () => {
+  const own = context({
+    partyRole: 'vendor',
+    organizationId: 'v-1',
+    partyId: 'staff-1',
+  });
+  const waiting = async (w: ReturnType<typeof world>) => {
+    const orderId = await seeded(w);
+    const moved = await w.run(
+      keyed(
+        at(awaitingPayment, {
+          params: { id: orderId },
+          payload: { paymentWindowMs: 60_000 },
+        }),
+        'w-1',
+      ),
+    );
+    return { orderId, moved };
+  };
+
+  it('waits by crossing, for the window the coordinator stated', async () => {
+    const w = world();
+    const { moved } = await waiting(w);
+
+    expect(moved.data.status).toBe('awaiting-payment');
+    expect(awaitingPayment.descriptor.guard).toMatchObject({
+      kind: 'crossing',
+    });
+  });
+
+  it('takes the seller’s link and their confirmation, recording who', async () => {
+    const w = world();
+    const { orderId } = await waiting(w);
+
+    const linked = (await w.run(
+      setLinkVerb.handler(
+        {
+          params: { id: orderId },
+          payload: { url: 'https://pay.example/1', providerKey: 'other' },
+        },
+        own,
+      ) as never,
+    )) as { data: Record<string, unknown> };
+    const paid = (await w.run(
+      confirmPaymentVerb.handler(
+        { params: { id: orderId }, payload: { reference: 'AUTH-1' } },
+        own,
+      ) as never,
+    )) as { data: Record<string, unknown> };
+    const userOnly = await w.refusal(
+      confirmPaymentVerb.handler(
+        { params: { id: orderId }, payload: { reference: 'AUTH-1' } },
+        context({ partyRole: 'operator', userId: 'u-1' }),
+      ) as never,
+    );
+
+    expect(linked.data).toMatchObject({
+      paymentLinkUrl: 'https://pay.example/1',
+      paymentLinkSetBy: 'staff-1',
+    });
+    expect(paid.data).toMatchObject({
+      status: 'paid',
+      paymentReference: 'AUTH-1',
+      paymentConfirmedBy: 'staff-1',
+    });
+    expect(userOnly.code).toBe('orderNotAwaitingPayment');
+  });
+
+  it('lists the providers a seller may name', async () => {
+    const w = world();
+
+    expect(await w.run(at(providersRead, {}) as never)).toEqual({
+      items: [{ key: 'other', name: 'Other', hosts: [] }],
+    });
+  });
+
+  it('lets the buyer withdraw it on the spot, with no flow', async () => {
+    const w = world();
+    const { orderId } = await waiting(w);
+
+    const answer = (await w.run(
+      at(buyerCancellation, {
+        params: { id: orderId },
+        payload: { cancelNonce: NONCE },
+      }),
+    )) as unknown as { meta: { type: string }; data: { status: string } };
+
+    expect(answer.meta.type).toBe('entity');
+    expect(answer.data.status).toBe('cancelled');
+    expect(w.started).toEqual([]);
   });
 });

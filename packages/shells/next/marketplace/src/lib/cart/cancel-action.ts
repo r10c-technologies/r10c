@@ -21,6 +21,8 @@ import {
 } from './cancel-ticket';
 import { orderServiceUrl } from './checkout-config';
 import { readReceipt } from './receipt-cookie';
+import { withCancelled } from './receipt-state';
+import { writeReceiptCookie } from './receipt-write';
 
 /**
  * The buyer cancelling **one vendor order** from their receipt, with the
@@ -105,6 +107,12 @@ async function cancelConfirmed(formData: FormData) {
         maxAge: CANCEL_TTL_SECONDS,
       },
     );
+  }
+
+  // Withdrawn already: the receipt says so now, with nothing to wait on.
+  if (start.kind === 'withdrawn') {
+    await writeReceiptCookie(withCancelled(receipt, orderId));
+    redirect(back('cancelled'));
   }
 
   // `redirect` throws to unwind the action, so it comes last on every path.

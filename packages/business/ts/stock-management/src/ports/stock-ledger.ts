@@ -120,3 +120,12 @@ export class ReservationTtlSecondsTag extends Context.Service<
   ReservationTtlSecondsTag,
   number
 >()('ReservationTtlSecondsTag') {}
+
+/**
+ * The longest hold a crossing caller may state, from config-service: a caller
+ * naming an expiry is bounded by the store that honours it (ADR 0081 §3).
+ */
+export class ReservationMaxHoldSecondsTag extends Context.Service<
+  ReservationMaxHoldSecondsTag,
+  number
+>()('ReservationMaxHoldSecondsTag') {}

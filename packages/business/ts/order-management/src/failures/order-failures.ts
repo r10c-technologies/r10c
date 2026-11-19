@@ -62,3 +62,33 @@ export class CancelNotAuthorized extends Failure.unauthenticated<CancelNotAuthor
   {},
   { message: () => 'the order cannot be cancelled from here' },
 ) {}
+
+/**
+ * A payment-link move on an order no longer waiting for its payment: the
+ * window lapsed and expired it, the buyer withdrew it, or it was confirmed
+ * already. A confirmation that lost to an expiry is refused with this, and the
+ * money the buyer paid goes back through the seller's acquirer — the platform
+ * never held it (ADR 0081 §4).
+ */
+export class OrderNotAwaitingPayment extends Failure.conflict<OrderNotAwaitingPayment>()(
+  'OrderNotAwaitingPayment',
+  'orderNotAwaitingPayment',
+  { orderId: Schema.String, standing: Schema.String },
+  {
+    message: ({ standing }) =>
+      `an order in '${standing}' is not waiting for its payment`,
+  },
+) {}
+
+/**
+ * A payment link or confirmation the order cannot carry: a link that is not
+ * `https`, too long, from a provider nobody configured or from a host its
+ * provider does not serve links from; a confirmation with no authorization
+ * number (ADR 0081 §10). `field` names which member, for the form to point at.
+ */
+export class InvalidPaymentDetails extends Failure.invalid<InvalidPaymentDetails>()(
+  'InvalidPaymentDetails',
+  'invalidPaymentDetails',
+  { field: Schema.String, reason: Schema.String },
+  { message: ({ reason }) => reason },
+) {}

@@ -29,7 +29,10 @@ describe('the seeded tenancy', () => {
           slug: vendor.slug,
         }),
         // Proposed only to a new organization: the vendor owns it afterwards.
-        initial: vendor.fiscal,
+        initial: {
+          ...vendor.fiscal,
+          acceptsPaymentLink: vendor.acceptsPaymentLink,
+        },
       })),
     );
   });

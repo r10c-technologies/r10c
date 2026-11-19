@@ -10,6 +10,9 @@ import {
 
 /** The whole lifecycle, stated once more by hand: every pair not here is illegal. */
 const LEGAL: Record<string, string> = {
+  'pending await-payment': 'awaiting-payment',
+  'awaiting-payment confirm-payment': 'paid',
+  'awaiting-payment end-awaiting-payment': 'cancelled',
   'pending confirm': 'confirmed',
   'paid confirm': 'confirmed',
   'confirmed mark-dispatched': 'dispatched',
@@ -47,5 +50,6 @@ describe('statusesBefore', () => {
   it('names the statuses a move’s conditional write matches', () => {
     expect(statusesBefore('confirm')).toEqual(['pending', 'paid']);
     expect(statusesBefore('claim-cancel')).toEqual(['paid', 'confirmed']);
+    expect(statusesBefore('confirm-payment')).toEqual(['awaiting-payment']);
   });
 });

@@ -21,6 +21,7 @@ import {
 import {
   type FiscalIdentity,
   OrganizationFiscalIdentityTag,
+  OrganizationPaymentLinkAcceptanceTag,
 } from '@r10c/business-ts-party-management';
 import { isTaxRegime } from '@r10c/business-ts-tax-policy';
 import { Effect, Layer } from 'effect';
@@ -82,6 +83,8 @@ export const announcementOf = (
     announcedAt: updatedAt.toISOString(),
     acceptsCod: commerce.acceptsCod,
     holdsStock: commerce.holdsStock,
+    // Authored on the organization itself, not provisioned (ADR 0081 §1).
+    acceptsLink: row['acceptsPaymentLink'] === true,
     fiscal,
   };
 };
@@ -322,6 +325,51 @@ export const rebuildOrganizationAnnouncements = (
     return report;
   });
 
+const readOrganization = (
+  db: Db,
+  organizationId: string,
+): Effect.Effect<Document, NotFound | Unavailable> =>
+  Effect.gen(function* () {
+    const stored = yield* Effect.tryPromise({
+      try: () =>
+        db.collection(ORGANIZATION_COLLECTION).findOne({ id: organizationId }),
+      catch: storeUnavailable,
+    });
+    if (stored === null) {
+      return yield* Effect.fail(new NotFound({ entity: 'organization' }));
+    }
+    return stored;
+  });
+
+/**
+ * Members the organization states about itself, written through
+ * {@link writeOrganization} so the record and its announcement stay one unit.
+ * An organization is provisioned by the operator, never created here — an
+ * unknown id answers `NotFound` rather than upserting a nameless row.
+ */
+const writeOwnMembers = (
+  client: MongoClient,
+  db: Db,
+  source: string,
+  bus: EventBus,
+  maxAttempts: number,
+  organizationId: string,
+  members: Readonly<Record<string, unknown>>,
+): Effect.Effect<void, NotFound | EntifixFailure> =>
+  Effect.gen(function* () {
+    yield* readOrganization(db, organizationId);
+    yield* writeOrganization(
+      client,
+      db,
+      { id: organizationId, ...members },
+      source,
+      new Date(),
+    ).pipe(
+      Effect.provideService(EventBusTag, bus),
+      Effect.provideService(OutboxMaxAttempts, maxAttempts),
+    );
+  });
+
 /**
  * The organization's own statement of its fiscal identity
  * (`set-fiscal-identity`), written through {@link writeOrganization} so the
@@ -341,53 +389,23 @@ export const makeMongoOrganizationFiscalIdentity = (
   get: (
     organizationId: string,
   ): Effect.Effect<FiscalIdentity | undefined, NotFound | Unavailable> =>
-    Effect.gen(function* () {
-      const stored = yield* Effect.tryPromise({
-        try: () =>
-          db
-            .collection(ORGANIZATION_COLLECTION)
-            .findOne({ id: organizationId }),
-        catch: storeUnavailable,
-      });
-      if (stored === null) {
-        return yield* Effect.fail(new NotFound({ entity: 'organization' }));
-      }
-      const fiscal = fiscalOf(stored);
-      return fiscal !== undefined && isTaxRegime(fiscal.taxRegime)
-        ? { ...fiscal, taxRegime: fiscal.taxRegime }
-        : undefined;
-    }),
+    readOrganization(db, organizationId).pipe(
+      Effect.map(stored => {
+        const fiscal = fiscalOf(stored);
+        return fiscal !== undefined && isTaxRegime(fiscal.taxRegime)
+          ? { ...fiscal, taxRegime: fiscal.taxRegime }
+          : undefined;
+      }),
+    ),
   set: (
     organizationId: string,
     identity: FiscalIdentity,
   ): Effect.Effect<void, NotFound | EntifixFailure> =>
-    Effect.gen(function* () {
-      const stored = yield* Effect.tryPromise({
-        try: () =>
-          db
-            .collection(ORGANIZATION_COLLECTION)
-            .findOne({ id: organizationId }, { projection: { _id: 1 } }),
-        catch: storeUnavailable,
-      });
-      if (stored === null) {
-        return yield* Effect.fail(new NotFound({ entity: 'organization' }));
-      }
-      yield* writeOrganization(
-        client,
-        db,
-        {
-          id: organizationId,
-          taxId: identity.taxId,
-          legalName: identity.legalName,
-          taxRegime: identity.taxRegime,
-          establishmentCode: identity.establishmentCode,
-        },
-        source,
-        new Date(),
-      ).pipe(
-        Effect.provideService(EventBusTag, bus),
-        Effect.provideService(OutboxMaxAttempts, maxAttempts),
-      );
+    writeOwnMembers(client, db, source, bus, maxAttempts, organizationId, {
+      taxId: identity.taxId,
+      legalName: identity.legalName,
+      taxRegime: identity.taxRegime,
+      establishmentCode: identity.establishmentCode,
     }),
 });
 
@@ -399,6 +417,48 @@ export const MongoOrganizationFiscalIdentityLayer = Layer.effect(
   OrganizationFiscalIdentityTag,
   Effect.gen(function* () {
     return makeMongoOrganizationFiscalIdentity(
+      yield* MongoClientTag,
+      yield* MongoDatabaseTag,
+      yield* EventSourceTag,
+      yield* EventBusTag,
+      yield* OutboxMaxAttempts,
+    );
+  }),
+);
+
+/**
+ * The organization's own choice to take payment links
+ * (`set-payment-link-acceptance`, ADR 0081 §1), written through
+ * {@link writeOrganization} so the published vendor's `acceptsLink` follows in
+ * the same unit.
+ */
+export const makeMongoOrganizationPaymentLinkAcceptance = (
+  client: MongoClient,
+  db: Db,
+  source: string,
+  bus: EventBus,
+  maxAttempts: number,
+) => ({
+  get: (
+    organizationId: string,
+  ): Effect.Effect<boolean, NotFound | Unavailable> =>
+    readOrganization(db, organizationId).pipe(
+      Effect.map(stored => stored['acceptsPaymentLink'] === true),
+    ),
+  set: (
+    organizationId: string,
+    accepts: boolean,
+  ): Effect.Effect<void, NotFound | EntifixFailure> =>
+    writeOwnMembers(client, db, source, bus, maxAttempts, organizationId, {
+      acceptsPaymentLink: accepts,
+    }),
+});
+
+/** The payment-link acceptance port over the `auth` store (ADR 0081 §1). */
+export const MongoOrganizationPaymentLinkAcceptanceLayer = Layer.effect(
+  OrganizationPaymentLinkAcceptanceTag,
+  Effect.gen(function* () {
+    return makeMongoOrganizationPaymentLinkAcceptance(
       yield* MongoClientTag,
       yield* MongoDatabaseTag,
       yield* EventSourceTag,

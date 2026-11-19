@@ -196,6 +196,7 @@ export const entity: EsEntity = {
     plural: 'Organizations',
     useCases: {
       setFiscalIdentity: 'Save fiscal details',
+      setPaymentLinkAcceptance: 'Save payment links',
     },
     fields: {
       id: 'ID',
@@ -206,6 +207,7 @@ export const entity: EsEntity = {
       legalName: 'Legal name',
       taxRegime: 'Tax regime',
       establishmentCode: 'Establishment code',
+      acceptsPaymentLink: 'Takes payment links',
       updatedAt: 'Last updated',
     },
     values: {
@@ -297,6 +299,7 @@ export const entity: EsEntity = {
       announcedAt: 'Announced at',
       acceptsCod: 'Accepts cash on delivery',
       holdsStock: 'Holds stock',
+      acceptsLink: 'Takes payment links',
       taxId: 'Tax ID (NIT)',
       legalName: 'Legal name',
       taxRegime: 'Tax regime',
@@ -405,10 +408,21 @@ export const entity: EsEntity = {
       channel: 'Sales channel',
       placedAt: 'Placed at',
       paidAt: 'Paid at',
+      paymentDueAt: 'Payment due by',
+      paymentReference: 'Authorization number',
+      paymentConfirmedBy: 'Payment confirmed by',
+      paymentConfirmedAt: 'Payment confirmed at',
+      paymentLinkUrl: 'Payment link',
+      paymentLinkProviderKey: 'Link provider key',
+      paymentLinkProviderName: 'Link provider',
+      paymentLinkSetBy: 'Link set by',
+      paymentLinkSetAt: 'Link set at',
+      cancelCause: 'Cancelled because',
     },
     values: {
       status: {
         pending: 'Pending',
+        'awaiting-payment': 'Awaiting payment',
         paid: 'Paid',
         confirmed: 'Confirmed',
         cancelling: 'Cancelling',
@@ -420,9 +434,12 @@ export const entity: EsEntity = {
         card: 'Card',
         cash: 'Cash',
         cod: 'Cash on delivery',
+        link: 'Payment link',
       },
     },
     useCases: {
+      confirmPayment: 'Confirm payment',
+      setPaymentLink: 'Set payment link',
       cancel: 'Cancel order',
       cancelConfirm:
         'The buyer will be refunded and the units will go back into your stock. This cannot be undone: charging again is a new purchase.',

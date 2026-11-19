@@ -42,6 +42,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // the authority sales-service checks before presenting that token on a
     // seller's behalf (ADR 0056).
     `${SALES_DOMAIN}:sales-channel:sell`,
+    // Confirming that a buyer paid a payment link, with its authorization
+    // number — staff work at the counter, as `sell` is (ADR 0081). A verb on
+    // the order rather than a `write`, narrowed to the vendor's own orders.
+    `${ORDER_DOMAIN}:product-order:confirm-payment`,
     // Seeing what is in stock. Recording a movement is an `admin` act — see the
     // note there for why these are named per entity rather than wildcarded.
     `${STOCK_DOMAIN}:stock-item:read`,
@@ -178,6 +182,12 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // depend only on `layer:entifix`/`layer:utils`, so it cannot reach a domain
     // package. The source scan in `@r10c/slices` keeps the two from drifting.
     `${ORDER_DOMAIN}:product-order:cancel`,
+    // A payment-link order's two verbs (ADR 0081): setting the link the buyer
+    // pays by, and confirming the payment with its authorization number. Each
+    // is one conditional write on `awaiting-payment`, on the vendor's own
+    // orders only, and neither is a `write`. Literals for the reason above.
+    `${ORDER_DOMAIN}:product-order:set-payment-link`,
+    `${ORDER_DOMAIN}:product-order:confirm-payment`,
     // The organization's own fiscal identity — the NIT, legal name, regime and
     // establishment every order it sells is documented under (ADR 0078 §6).
     // A verb rather than `organization:write`, because the record's name, slug
@@ -185,6 +195,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // organization, which the use case enforces. A literal for the standing
     // reason above; the `@r10c/slices` source scan keeps it honest.
     'party-management:organization:set-fiscal-identity',
+    // Whether the organization takes payment by a link it sends the buyer
+    // (ADR 0081 §1) — a promise only the seller keeps, so its own `admin`
+    // makes it, for its active organization alone. A literal, as above.
+    'party-management:organization:set-payment-link-acceptance',
     // A vendor's shipments: reading them, handing a parcel to a courier, and
     // recording what the courier reported. Four verbs rather than a `write`,
     // because each is a different act with a different consequence — a

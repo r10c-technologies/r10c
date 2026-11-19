@@ -52,6 +52,7 @@
     "@entifix/transactions": "catalog:",
     "@entifix/workflow": "catalog:",
     "@r10c/business-ts-flow-contracts": "workspace:*",
+    "@r10c/business-ts-sales-vocabulary": "workspace:*",
     "@r10c/business-ts-tax-policy": "workspace:*",
     "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",

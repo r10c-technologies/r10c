@@ -4,6 +4,17 @@ import { Context, type Effect } from 'effect';
 import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
 import type { OrderTransition } from '../values/order-transition';
+import type { PaymentLink } from '../values/payment-link';
+
+/** What the seller confirmed a payment link with, and who and when. */
+export interface PaymentConfirmation {
+  readonly reference: string;
+  readonly confirmedBy: string;
+  readonly confirmedAt: Date;
+}
+
+/** Why an order waiting on its payment stopped waiting without one. */
+export type AwaitingPaymentEnd = 'payment-expired' | 'buyer';
 
 /** How placing an order went: a new order, or the one a repeated command placed. */
 export type OrderPlacement =
@@ -51,7 +62,14 @@ export interface ProductOrderStore {
    */
   readonly move: (
     orderId: string,
-    transition: Exclude<OrderTransition, 'claim-cancel' | 'settle-cancel'>,
+    transition: Exclude<
+      OrderTransition,
+      | 'claim-cancel'
+      | 'settle-cancel'
+      | 'await-payment'
+      | 'confirm-payment'
+      | 'end-awaiting-payment'
+    >,
     commandId: string | undefined,
   ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
   /** Claim a `paid` or `confirmed` order for cancellation, remembering which. */
@@ -67,6 +85,49 @@ export interface ProductOrderStore {
   readonly settleCancellation: (
     orderId: string,
     commandId: string | undefined,
+  ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
+  /**
+   * A payment-link order's commit point: `pending → awaiting-payment`,
+   * stamping when it stops waiting. A repeated command answers the order as
+   * it stands; `undefined` when it stood anywhere else.
+   */
+  readonly awaitPayment: (
+    orderId: string,
+    paymentDueAt: Date,
+    commandId: string | undefined,
+  ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
+  /**
+   * The seller's confirmation: `awaiting-payment → paid`, recording the
+   * authorization number, and announcing `order.payment-confirmed` in the
+   * same unit. `undefined` when the order was not waiting — an expiry or a
+   * withdrawal won (ADR 0081 §4).
+   */
+  readonly confirmPayment: (
+    orderId: string,
+    confirmation: PaymentConfirmation,
+  ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
+  /**
+   * An order that stops waiting without its payment: `awaiting-payment →
+   * cancelled`, recording why, and announcing `order.cancelled` in the same
+   * unit. An expiry matches only an order whose `paymentDueAt` is before
+   * `now`. `undefined` when it was not waiting (or not yet due).
+   */
+  readonly endAwaitingPayment: (
+    orderId: string,
+    cause: AwaitingPaymentEnd,
+    now: Date,
+  ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
+  /** The ids of every order still waiting whose window ended before `now`. */
+  readonly overduePayments: (
+    now: Date,
+  ) => Effect.Effect<readonly string[], StoreFault>;
+  /**
+   * Set the link the buyer pays by, on an order still waiting; the last one
+   * set wins. `undefined` when the order was not waiting.
+   */
+  readonly setPaymentLink: (
+    orderId: string,
+    link: PaymentLink & { readonly setBy: string; readonly setAt: Date },
   ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
   /** Fold one order's share of a capture: `pending → paid`, once per claim. */
   readonly markPaid: (

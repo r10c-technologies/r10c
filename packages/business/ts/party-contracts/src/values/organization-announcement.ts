@@ -56,6 +56,15 @@ export interface OrganizationAnnouncement {
    */
   readonly holdsStock: boolean;
   /**
+   * Whether the organization takes payment links — paid through its own
+   * acquirer and confirmed by its staff (ADR 0081 §1). Authored by the
+   * organization's `admin` rather than provisioned: it names a tender, not a
+   * domain. Public, because the storefront offers it per seller; never
+   * authoritative, because the coordinator refuses a link to a seller whose
+   * published record says otherwise.
+   */
+  readonly acceptsLink: boolean;
+  /**
    * The seller's fiscal identity, which the checkout copies onto every order
    * it writes for this seller (ADR 0078 §6). **Required**: an order placed
    * without it is a fact that cannot be recovered later, so an announcement
@@ -142,6 +151,7 @@ export const OrganizationAnnouncementSchema = openStruct({
   // and absent reads as a seller who does not ship cash on delivery.
   acceptsCod: Schema.optional(Schema.Boolean),
   holdsStock: Schema.optional(Schema.Boolean),
+  acceptsLink: Schema.optional(Schema.Boolean),
   fiscal: SellerFiscalIdentitySchema,
 });
 
@@ -173,6 +183,7 @@ export const readOrganizationAnnouncement = (
       announcedAt,
       acceptsCod,
       holdsStock,
+      acceptsLink,
       fiscal,
     }) => ({
       organizationId,
@@ -180,6 +191,7 @@ export const readOrganizationAnnouncement = (
       announcedAt,
       acceptsCod: acceptsCod === true,
       holdsStock: holdsStock === true,
+      acceptsLink: acceptsLink === true,
       fiscal: {
         taxId: fiscal.taxId,
         legalName: fiscal.legalName,

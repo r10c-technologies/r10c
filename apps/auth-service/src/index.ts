@@ -44,6 +44,7 @@ export {
   makeMongoSessionScopeResolver,
   makeMongoUserDeviceRepository,
   MongoOrganizationFiscalIdentityLayer,
+  MongoOrganizationPaymentLinkAcceptanceLayer,
   OUTBOX_COLLECTION,
 } from '@r10c/implementation-auth-mongo';
 export {

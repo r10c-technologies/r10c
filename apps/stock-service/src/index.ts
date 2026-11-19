@@ -26,7 +26,10 @@ export { seedStock };
  * from config-service, and a tag it cannot name is a layer it cannot build.
  */
 export { stockItemTempData, stockMovementTempData } from './stock-temp-data';
-export { ReservationTtlSecondsTag } from '@r10c/business-ts-stock-management';
+export {
+  ReservationMaxHoldSecondsTag,
+  ReservationTtlSecondsTag,
+} from '@r10c/business-ts-stock-management';
 export { STOCK_ITEM_COLLECTION } from '@r10c/implementation-stock-mongo';
 
 export const SERVICE_NAME = '@r10c/stock-service';

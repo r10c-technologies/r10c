@@ -98,7 +98,9 @@ export function OrderStatusIsland({
     void Effect.runPromise(readStatus(statusHref)).then(
       body => {
         if (!live || body === undefined) return;
-        if (body.state === 'completed') ended();
+        // A checkout parked on a seller's confirmation has landed what the
+        // receipt shows: it settles as a completed one does (ADR 0081 §2).
+        if (body.state === 'completed' || body.state === 'waiting') ended();
         else if (ENDED_BADLY.has(body.state)) failedFlow();
       },
       () => undefined,

@@ -24,7 +24,10 @@ import type { SeededVendor } from '@r10c/utils-ts-fleet';
  * and marketplace-admin-service must agree on it; it lives in config-service.
  */
 export const organizationSeedData = (
-  vendor: Pick<SeededVendor, 'organizationId' | 'name' | 'slug' | 'fiscal'>,
+  vendor: Pick<
+    SeededVendor,
+    'organizationId' | 'name' | 'slug' | 'fiscal' | 'acceptsPaymentLink'
+  >,
 ): ReadonlyArray<OrganizationSeed> => [
   {
     row: {
@@ -34,7 +37,10 @@ export const organizationSeedData = (
       status: 'active',
     },
     // The organization's own to change afterwards (`set-fiscal-identity`).
-    initial: { ...vendor.fiscal },
+    initial: {
+      ...vendor.fiscal,
+      acceptsPaymentLink: vendor.acceptsPaymentLink,
+    },
   },
 ];
 

@@ -13,7 +13,18 @@ export const ORDER_PLACED = 'order.placed';
 
 export const ORDER_CANCELLED = 'order.cancelled';
 
-export const ORDER_EVENTS = [ORDER_PLACED, ORDER_CANCELLED] as const;
+/**
+ * A seller confirmed the payment a payment-link order waited on. Published
+ * because a subscriber exists: the checkout flow's wait is answered by it
+ * (ADR 0068, ADR 0081 §4).
+ */
+export const ORDER_PAYMENT_CONFIRMED = 'order.payment-confirmed';
+
+export const ORDER_EVENTS = [
+  ORDER_PLACED,
+  ORDER_PAYMENT_CONFIRMED,
+  ORDER_CANCELLED,
+] as const;
 
 /** One line, as an order event carries it. */
 const OrderLineSchema = openStruct({

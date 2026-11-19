@@ -38,6 +38,7 @@ export const r10c = {
       card: 'Tarjeta',
       cod: 'Contra entrega',
       cash: 'Efectivo',
+      link: 'Link de pago',
     },
   },
   auth: {
@@ -55,6 +56,13 @@ export const r10c = {
       failed: 'No se pudieron leer los datos fiscales de tu organización.',
       saved:
         'Datos fiscales guardados. Los pedidos nuevos los usan desde ahora.',
+      paymentLink: {
+        title: 'Enlaces de pago',
+        hint: 'Los compradores pueden elegir pagar con un enlace que tú les envías. Tú confirmas cada pago; un pedido sin pagar se cancela cuando vence su plazo.',
+        accepts: 'Acepto pagos con un enlace que envío',
+        failed: 'No se pudo leer si aceptas enlaces de pago.',
+        saved: 'Guardado. Las compras nuevas lo siguen desde ahora.',
+      },
     },
     account: {
       overline: 'Cuenta',
@@ -289,6 +297,9 @@ export const r10c = {
         onlyCard:
           'Pagas con tarjeta. Pago simulado: no te pedimos datos de tarjeta ni te cobramos nada.',
         onlyCod: 'Pagas en efectivo cuando llegue el paquete.',
+        link: 'Link de pago',
+        linkHint:
+          'El vendedor te envía un link de pago y, cuando le pagas, lo confirma. Tu pedido te espera 48 horas.',
         required: 'Elige cómo le pagas a este vendedor.',
       },
       edit: 'Editar carrito',
@@ -345,6 +356,7 @@ export const r10c = {
       method: {
         card: 'Tarjeta',
         cod: 'Contra entrega',
+        link: 'Link de pago',
       },
     },
     order: {
@@ -389,6 +401,19 @@ export const r10c = {
       cancelConfirm: 'Cancelar pedido y reembolsar',
       cancelKeep: 'Conservar el pedido',
       cancelledTag: 'Cancelado',
+      // Un pedido con link de pago (ADR 0081): espera a que el vendedor
+      // confirme el pago, y el comprador paga por el link que el vendedor pone.
+      payment: {
+        awaiting: 'Esperando el pago',
+        until: 'El vendedor te guarda este pedido hasta el {{time}}.',
+        noLink:
+          'El vendedor te enviará un link de pago. También aparecerá aquí.',
+        pay: 'Pagar con {{provider}}',
+        unlisted:
+          'Este link es del propio vendedor y abre {{host}}. Paga solo si lo reconoces.',
+        expired:
+          'Este pedido venció antes de que el vendedor confirmara un pago. Si pagaste, pide al vendedor que te devuelva el dinero.',
+      },
       cancelledAll: 'Todos los pedidos de esta compra quedaron cancelados.',
       cancelWindow: 'Puedes cancelar este pedido hasta las {{time}}.',
       cancelledHeading: 'Pedido cancelado',
@@ -465,6 +490,21 @@ export const r10c = {
     home: {
       latest: 'Últimos pedidos',
       none: 'Aún no ha recibido pedidos.',
+    },
+    // La región de un pedido con link de pago (ADR 0081): el vendedor pone el
+    // link con el que paga el comprador y confirma el pago con su número de
+    // autorización.
+    payment: {
+      heading: 'Link de pago',
+      due: 'Esperando el pago hasta el {{time}}. Después el pedido se cancela y su inventario vuelve a la venta.',
+      linkSet: 'Link puesto ({{provider}}): {{url}}',
+      confirmed: 'Pagado. Autorización {{reference}}, confirmada el {{time}}.',
+      provider: 'Proveedor del link',
+      providerName: 'Nombre del proveedor (opcional)',
+      url: 'Link de pago (https)',
+      setLink: 'Poner link de pago',
+      reference: 'Número de autorización',
+      confirm: 'Confirmar pago',
     },
   },
   fulfilment: {

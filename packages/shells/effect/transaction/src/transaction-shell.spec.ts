@@ -50,6 +50,10 @@ const CONFIGURATION = fleetConfigurationOf({
     awaitDeliveryTimeout: 1_209_600_000,
     awaitReturnTimeout: 2_592_000_000,
   }),
+  checkout: configurationRows({
+    paymentWindow: 172_800_000,
+    paymentWindowGrace: 3_600_000,
+  }),
   tax: configurationRows({
     'iva.general.rate': 1200,
     'iva.general.basis': 'inclusive',

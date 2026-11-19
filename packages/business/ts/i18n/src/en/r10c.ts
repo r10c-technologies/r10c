@@ -32,6 +32,7 @@ export const r10c: EsR10c = {
       card: 'Card',
       cod: 'Cash on delivery',
       cash: 'Cash',
+      link: 'Payment link',
     },
   },
   auth: {
@@ -48,6 +49,13 @@ export const r10c: EsR10c = {
         'The tax ID, legal name, regime and establishment every order you sell is documented under.',
       failed: 'Your organization’s fiscal details could not be read.',
       saved: 'Fiscal details saved. New orders use them from now on.',
+      paymentLink: {
+        title: 'Payment links',
+        hint: 'Buyers can choose to pay by a link you send them. You confirm each payment yourself; an unpaid order is cancelled when its window ends.',
+        accepts: 'Take payment by a link I send',
+        failed: 'Whether you take payment links could not be read.',
+        saved: 'Saved. New checkouts follow it from now on.',
+      },
     },
     account: {
       overline: 'Account',
@@ -267,6 +275,9 @@ export const r10c: EsR10c = {
         onlyCard:
           'You pay by card. Simulated payment: no card details are asked for and nothing is charged.',
         onlyCod: 'You pay in cash when the parcel arrives.',
+        link: 'Payment link',
+        linkHint:
+          'The seller sends you a payment link. Your order waits for 48 hours until they confirm your payment.',
         required: 'Choose how you pay this seller.',
       },
       edit: 'Edit cart',
@@ -321,6 +332,7 @@ export const r10c: EsR10c = {
       method: {
         card: 'Card',
         cod: 'Cash on delivery',
+        link: 'Payment link',
       },
     },
     order: {
@@ -341,6 +353,19 @@ export const r10c: EsR10c = {
       reference: 'Order number',
       vendorNumber: 'Order {{number}}',
       receiptUntil: 'You can come back to this receipt until {{date}}.',
+      // A payment-link order (ADR 0081): it waits for the seller to confirm
+      // the payment, and the buyer pays by the link the seller sets.
+      payment: {
+        awaiting: 'Waiting for payment',
+        until: 'The seller holds this order for you until {{time}}.',
+        noLink:
+          'The seller will send you a payment link. It will also appear here.',
+        pay: 'Pay with {{provider}}',
+        unlisted:
+          'This link is the seller’s own, and opens {{host}}. Pay only if you recognise it.',
+        expired:
+          'This order expired before the seller confirmed a payment. If you paid, ask the seller for your money back.',
+      },
       delivery: {
         heading: 'Delivery',
         phone: 'Phone: •••• {{ending}}',
@@ -432,6 +457,20 @@ export const r10c: EsR10c = {
     home: {
       latest: 'Latest orders',
       none: 'No orders yet.',
+    },
+    // A payment-link order's region (ADR 0081): the seller sets the link the
+    // buyer pays by, and confirms the payment with its authorization number.
+    payment: {
+      heading: 'Payment link',
+      due: 'Waiting for payment until {{time}}. After that the order is cancelled and its stock goes back on sale.',
+      linkSet: 'Link set ({{provider}}): {{url}}',
+      confirmed: 'Paid. Authorization {{reference}}, confirmed {{time}}.',
+      provider: 'Link provider',
+      providerName: 'Provider name (optional)',
+      url: 'Payment link (https)',
+      setLink: 'Set payment link',
+      reference: 'Authorization number',
+      confirm: 'Confirm payment',
     },
   },
   fulfilment: {

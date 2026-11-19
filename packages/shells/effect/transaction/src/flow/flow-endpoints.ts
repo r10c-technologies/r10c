@@ -19,7 +19,11 @@ import {
   UpstreamUnavailable,
 } from '@entifix/core';
 import { FlowEngineTag } from '@entifix/transactions';
-import { VendorDoesNotShip } from '@r10c/business-ts-flow-contracts';
+import {
+  VendorDoesNotShip,
+  VendorDoesNotTakeLinks,
+} from '@r10c/business-ts-flow-contracts';
+import { confirmedBySeller } from '@r10c/business-ts-sales-vocabulary';
 import type { TaxRules } from '@r10c/business-ts-tax-policy';
 import {
   cancellationRecipe,
@@ -35,7 +39,11 @@ import {
   taxedPart,
   TaxRulesTag,
 } from './checkout-tax.js';
-import { type DeliveryDials, DeliveryDialsTag } from './delivery-dials.js';
+import {
+  DeliveryDialsTag,
+  type FlowDials,
+  PaymentDialsTag,
+} from './delivery-dials.js';
 import { entitlementsBySeller, VendorFactsTag } from './vendor-facts.js';
 
 type Body = Readonly<Record<string, unknown>>;
@@ -69,15 +77,16 @@ interface FlowStart {
     input: Body,
     entitlements: ReadonlyMap<string, readonly string[]>,
     flowId: string,
-    dials: DeliveryDials,
+    dials: FlowDials,
     sellers: Sellers,
     rules: TaxRules,
   ) => Body;
-  /** A refusal the verified entitlements decide before anything is composed. */
+  /** A refusal what the coordinator verified decides before anything is composed. */
   readonly refusal?: (
     input: Body,
     entitlements: ReadonlyMap<string, readonly string[]>,
-  ) => VendorDoesNotShip | Invalid | undefined;
+    sellers: Sellers,
+  ) => VendorDoesNotShip | VendorDoesNotTakeLinks | Invalid | undefined;
 }
 
 const vendorPartsOf = (input: Body): readonly Body[] =>
@@ -105,13 +114,17 @@ export const FLOW_STARTS = {
     // The coordinator states what it verified: each vendor's entitlements,
     // the seller's fiscal identity and each line's tax, and the buyer's
     // fiscal identity normalized (ADR 0078 §6). None is the caller's word.
-    state: (input, entitlements, flowId, _dials, sellers, rules) => {
+    state: (input, entitlements, flowId, dials, sellers, rules) => {
       const buyerTax = buyerTaxOfStart(input);
       // The caller's own statement never survives: only the normalized one.
       const { buyerTax: _stated, ...rest } = input;
       return {
         ...rest,
         groupId: flowId,
+        // How long a payment-link segment waits, and the grace either side —
+        // configuration, never the caller's (ADR 0081 §3).
+        paymentWindowMs: dials.paymentWindowMs,
+        paymentGraceMs: dials.paymentGraceMs,
         ...(buyerTax.ok ? { buyerTax: buyerTax.value } : {}),
         vendors: vendorPartsOf(input).map(part => ({
           ...taxedPart(part, sellers.get(String(part['vendorId'])), rules),
@@ -122,9 +135,22 @@ export const FLOW_STARTS = {
     // A storefront sale is shipped, so a seller who does not ship is refused
     // here rather than becoming an order nothing will move (ADR 0076 §3); a
     // buyer's NIT that does not validate is refused before anything runs.
-    refusal: (input, entitlements) => {
+    refusal: (input, entitlements, sellers) => {
       const buyerTax = buyerTaxOfStart(input);
       if (!buyerTax.ok) return buyerTax.refusal;
+      // A seller paid by link must take links, by what the published vendor
+      // says rather than the caller (ADR 0081 §1).
+      const unlinked = vendorPartsOf(input).find(
+        part =>
+          isString(part['paymentMethod']) &&
+          confirmedBySeller(part['paymentMethod']) &&
+          sellers.get(String(part['vendorId']))?.['acceptsLink'] !== true,
+      );
+      if (unlinked !== undefined) {
+        return new VendorDoesNotTakeLinks({
+          vendorId: String(unlinked['vendorId']),
+        });
+      }
       if (recordOf(input['channel'])?.['type'] !== 'storefront')
         return undefined;
       // A part naming no vendor is the start's decoding to refuse, not this.
@@ -215,6 +241,7 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         DuplicateKey,
         StaleRevision,
         VendorDoesNotShip,
+        VendorDoesNotTakeLinks,
       ],
       guard: {
         kind: 'crossing',
@@ -231,11 +258,14 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         const key = yield* IdempotencyKeyTag;
         const input = recordOf(payload) ?? {};
         const facts = yield* VendorFactsTag;
-        const dials = yield* DeliveryDialsTag;
+        const dials = {
+          ...(yield* DeliveryDialsTag),
+          ...(yield* PaymentDialsTag),
+        };
         const rules = yield* TaxRulesTag;
         const sellers = yield* facts.sellersOf(start.vendorsOf(input));
         const entitlements = entitlementsBySeller(sellers);
-        const refused = start.refusal?.(input, entitlements);
+        const refused = start.refusal?.(input, entitlements, sellers);
         if (refused !== undefined) return yield* refused;
         const flowId = globalThis.crypto.randomUUID();
         const slip = yield* compose(

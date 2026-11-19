@@ -82,6 +82,16 @@ export class ProductOrder implements Entity {
   #taxAmount = 0;
   #totalAmount = 0;
   #currency = '';
+  #paymentDueAt?: Date;
+  #paymentReference?: string;
+  #paymentConfirmedBy?: string;
+  #paymentConfirmedAt?: Date;
+  #paymentLinkUrl?: string;
+  #paymentLinkProviderKey?: string;
+  #paymentLinkProviderName?: string;
+  #paymentLinkSetBy?: string;
+  #paymentLinkSetAt?: Date;
+  #cancelCause?: string;
   // #endregion
 
   // #region constructors
@@ -481,6 +491,163 @@ export class ProductOrder implements Entity {
   }
   set currency(value: string) {
     this.#currency = value;
+  }
+
+  /**
+   * When a payment-link order stops waiting: its checkout's commit point plus
+   * the payment window the coordinator stated. Past it the expiry sweep cancels
+   * the order, unless the seller confirmed first (ADR 0081 §3–4). Server-owned,
+   * and writable anyway, as {@link paidAt} is.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.paymentDueAt',
+    sortable: true,
+    filterable: true,
+  })
+  get paymentDueAt(): Date | undefined {
+    return this.#paymentDueAt;
+  }
+  set paymentDueAt(value: Date | undefined) {
+    this.#paymentDueAt = value;
+  }
+
+  /**
+   * The authorization number the seller confirmed a payment link with — the
+   * record that money moved at their acquirer, kept after any receipt image is
+   * deleted (ADR 0081 §4, §9).
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.paymentReference',
+    filterable: true,
+  })
+  get paymentReference(): string | undefined {
+    return this.#paymentReference;
+  }
+  set paymentReference(value: string | undefined) {
+    this.#paymentReference = value;
+  }
+
+  /**
+   * Who confirmed the payment: the user id of the seller's staff member.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.paymentConfirmedBy',
+    references: { entity: 'party-management:individual' },
+  })
+  get paymentConfirmedBy(): string | undefined {
+    return this.#paymentConfirmedBy;
+  }
+  set paymentConfirmedBy(value: string | undefined) {
+    this.#paymentConfirmedBy = value;
+  }
+
+  /**
+   * When the seller confirmed the payment.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.paymentConfirmedAt',
+    sortable: true,
+  })
+  get paymentConfirmedAt(): Date | undefined {
+    return this.#paymentConfirmedAt;
+  }
+  set paymentConfirmedAt(value: Date | undefined) {
+    this.#paymentConfirmedAt = value;
+  }
+
+  /**
+   * The payment link the seller pasted, `https` only; the last one set wins
+   * (ADR 0081 §10). Not personal data, and never on the bus.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.paymentLinkUrl',
+  })
+  get paymentLinkUrl(): string | undefined {
+    return this.#paymentLinkUrl;
+  }
+  set paymentLinkUrl(value: string | undefined) {
+    this.#paymentLinkUrl = value;
+  }
+
+  /**
+   * Which link provider the URL is from, as a dictionary key — `other` when
+   * the seller named none of the configured ones.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.paymentLinkProviderKey',
+  })
+  get paymentLinkProviderKey(): string | undefined {
+    return this.#paymentLinkProviderKey;
+  }
+  set paymentLinkProviderKey(value: string | undefined) {
+    this.#paymentLinkProviderKey = value;
+  }
+
+  /**
+   * The provider's display name, copied when the link was set: a dictionary
+   * edit changes no past order (ADR 0081 §10).
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.paymentLinkProviderName',
+  })
+  get paymentLinkProviderName(): string | undefined {
+    return this.#paymentLinkProviderName;
+  }
+  set paymentLinkProviderName(value: string | undefined) {
+    this.#paymentLinkProviderName = value;
+  }
+
+  /**
+   * Who set the link: the user id of the seller's staff member.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.paymentLinkSetBy',
+    references: { entity: 'party-management:individual' },
+  })
+  get paymentLinkSetBy(): string | undefined {
+    return this.#paymentLinkSetBy;
+  }
+  set paymentLinkSetBy(value: string | undefined) {
+    this.#paymentLinkSetBy = value;
+  }
+
+  /**
+   * When the link was last set.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.paymentLinkSetAt',
+  })
+  get paymentLinkSetAt(): Date | undefined {
+    return this.#paymentLinkSetAt;
+  }
+  set paymentLinkSetAt(value: Date | undefined) {
+    this.#paymentLinkSetAt = value;
+  }
+
+  /**
+   * Why an order waiting on its payment was cancelled: `payment-expired` when
+   * its window lapsed, `buyer` when the buyer withdrew it (ADR 0081 §4).
+   * Absent for every other cancellation, which a flow records.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.cancelCause',
+    filterable: true,
+  })
+  get cancelCause(): string | undefined {
+    return this.#cancelCause;
+  }
+  set cancelCause(value: string | undefined) {
+    this.#cancelCause = value;
   }
   // #endregion
 }

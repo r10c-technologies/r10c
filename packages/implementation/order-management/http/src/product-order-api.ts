@@ -25,6 +25,7 @@ import {
   FlowNotStarted,
 } from '@r10c/business-ts-flow-contracts';
 import {
+  awaitPayment,
   buyerReceipt,
   CancelNotAuthorized,
   cancelOrderAsBuyer,
@@ -34,12 +35,17 @@ import {
   CheckoutGroup,
   checkoutGroupNarrowing,
   CheckoutGroupStoreTag,
+  confirmPayment,
+  ConfirmPaymentUC,
   moveOrder,
   openGroup,
   orderNarrowing,
   OrderNotCancellable,
   OrderNotTransitionable,
   orderScopeFor,
+  type PaymentConfirmationPayload,
+  type PaymentLinkPayload,
+  PaymentLinkProvidersTag,
   PaymentPending,
   placeOrder,
   ProductOrder,
@@ -49,6 +55,8 @@ import {
   sendAccessLink,
   SendAccessLinkUC,
   sendReceiptMail,
+  setPaymentLink,
+  SetPaymentLinkUC,
 } from '@r10c/business-ts-order-management';
 import { Effect, Option, Schema } from 'effect';
 
@@ -86,6 +94,19 @@ const stringOf = (body: unknown, member: string) => {
   const value = (body as Record<string, unknown> | undefined)?.[member];
   return typeof value === 'string' ? value : undefined;
 };
+
+/**
+ * Who a staff verb was performed by: the party behind the session, or its
+ * user id for an account with no party record.
+ */
+const actorOf = (context: EntityApiContext) => {
+  const principal = principalOf(context);
+  return principal.partyId ?? String(principal.userId);
+};
+
+/** A verb's permission guard admits nobody without a verified principal. */
+const principalOf = (context: EntityApiContext) =>
+  context.principal as NonNullable<EntityApiContext['principal']>;
 
 /** The lines a write carried, as sent — before a line's vendor is dropped. */
 const rawLinesOf = (payload: unknown): readonly unknown[] => {
@@ -163,6 +184,38 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
           orderId: idOf(request),
           scope: orderScopeFor(context.principal ?? {}),
         }).pipe(Effect.map(acceptedEnvelope)),
+    }),
+    // A payment-link order's two staff verbs (ADR 0081 §4, §10). Each is one
+    // conditional write on `awaiting-payment`, answered with the order as it
+    // moved: the decision is made at that write, and the checkout waiting on
+    // a confirmation carries on by the event it announces.
+    verbEndpoint(ConfirmPaymentUC, {
+      guard: { kind: 'permission' },
+      handler: (request: EntityApiRequest, context: EntityApiContext) =>
+        confirmPayment({
+          orderId: idOf(request),
+          scope: orderScopeFor(principalOf(context)),
+          payload: request.payload as PaymentConfirmationPayload,
+          confirmedBy: actorOf(context),
+        }).pipe(
+          Effect.map(order =>
+            envelopeOf(order, context.links.record(idOf(request))),
+          ),
+        ),
+    }),
+    verbEndpoint(SetPaymentLinkUC, {
+      guard: { kind: 'permission' },
+      handler: (request: EntityApiRequest, context: EntityApiContext) =>
+        setPaymentLink({
+          orderId: idOf(request),
+          scope: orderScopeFor(principalOf(context)),
+          payload: request.payload as PaymentLinkPayload,
+          setBy: actorOf(context),
+        }).pipe(
+          Effect.map(order =>
+            envelopeOf(order, context.links.record(idOf(request))),
+          ),
+        ),
     }),
   ],
 });
@@ -265,6 +318,34 @@ const buyerCancellation = defineEndpoint({
   guard: { kind: 'public' },
   accepted: true,
 });
+
+/**
+ * `GET /api/payment-link-provider` — the providers a seller may name when
+ * setting a link: the configured dictionary, public facts only (ADR 0081
+ * §10). Read by whoever may read orders, which is whoever sets a link.
+ */
+const paymentLinkProviders = defineEndpoint({
+  name: 'payment-link-providers',
+  method: 'GET',
+  path: '/api/payment-link-provider',
+  success: Schema.Struct({
+    items: Schema.Array(
+      Schema.Struct({
+        key: Schema.String,
+        name: Schema.String,
+        hosts: Schema.Array(Schema.String),
+      }),
+    ),
+  }),
+  errors: [],
+  guard: {
+    kind: 'permission',
+    permission: 'order-management:product-order:read',
+  },
+});
+
+/** The body of an order withdrawn while it waited for a payment link. */
+const withdrawnEnvelope = (order: ProductOrder) => envelopeOf(order, []);
 
 /**
  * `GET /api/checkout-group/:id/buyer-receipt` — the buyer's receipt read back
@@ -394,6 +475,23 @@ const confirmed = defineEndpoint({
   idempotent: 'unit',
 });
 
+/**
+ * `POST /:id/awaiting-payment {paymentWindowMs}` — a payment-link order's
+ * commit point: `pending → awaiting-payment`, stamped to stop waiting at the
+ * window the coordinator states (ADR 0081 §3).
+ */
+const awaitingPayment = defineEndpoint({
+  name: 'awaiting-payment',
+  method: 'POST',
+  path: `${BASE}/:id/awaiting-payment`,
+  params,
+  payload: JsonBody,
+  success: JsonBody,
+  errors: [...MOVE_ERRORS, InvalidBody],
+  guard: crossing,
+  idempotent: 'unit',
+});
+
 /** `POST /:id/dispatched` — the shipment left with a courier. */
 const dispatched = defineEndpoint({
   name: 'dispatched',
@@ -461,7 +559,15 @@ export const productOrderEndpoints = [
       orderId: id,
       nonce: stringOf(payload, 'cancelNonce'),
       capabilityDigest: stringOf(payload, 'capabilityDigest'),
-    }).pipe(Effect.map(acceptedEnvelope)),
+    }).pipe(
+      // A cancellation started is a flow to follow; an order that only waited
+      // for its payment link is withdrawn on the spot (ADR 0081 §4).
+      Effect.map(answer =>
+        answer._tag === 'withdrawn'
+          ? withdrawnEnvelope(answer.order)
+          : acceptedEnvelope(answer.accepted),
+      ),
+    ),
   ),
   implement(buyerReceiptRead, ({ params: { id }, headers }) =>
     buyerReceipt({ groupId: id, nonce: headers['x-cancel-nonce'] }).pipe(
@@ -507,6 +613,20 @@ export const productOrderEndpoints = [
     }),
   ),
   implement(confirmed, ({ params: { id } }) => answerMove(id, 'confirm')),
+  implement(paymentLinkProviders, () =>
+    Effect.map(PaymentLinkProvidersTag, providers => ({ items: providers })),
+  ),
+  implement(awaitingPayment, ({ params: { id }, payload }) =>
+    Effect.gen(function* () {
+      const order = yield* awaitPayment({
+        orderId: id,
+        paymentWindowMs: (payload as { paymentWindowMs?: unknown } | undefined)
+          ?.paymentWindowMs,
+        commandId: yield* commandId,
+      });
+      return envelopeOf(order, recordLinks(id));
+    }),
+  ),
   implement(dispatched, ({ params: { id } }) =>
     answerMove(id, 'mark-dispatched'),
   ),

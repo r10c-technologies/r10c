@@ -21,5 +21,7 @@ export * from './entities/organization';
 export * from './entities/party-role';
 export * from './failures/organization-failures';
 export * from './ports/organization-fiscal-identity';
+export * from './ports/organization-payment-link-acceptance';
 export * from './use-cases/set-fiscal-identity';
+export * from './use-cases/set-payment-link-acceptance';
 export * from './values';

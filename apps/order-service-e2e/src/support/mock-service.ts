@@ -44,6 +44,7 @@ import {
   AccessLinkIntervalSeconds,
   BuyerNotifierTag,
   CancelWindowSeconds,
+  PaymentLinkProvidersTag,
   ReceiptDays,
   StorefrontUrl,
 } from '@r10c/business-ts-order-management';
@@ -168,6 +169,10 @@ const connections = Layer.mergeAll(
   Layer.succeed(AccessLinkHours, 24),
   Layer.succeed(AccessLinkIntervalSeconds, 300),
   Layer.succeed(StorefrontUrl, 'http://shop.test'),
+  // The dictionary as the lab seeds it: `other`, and nothing real (ADR 0081).
+  Layer.succeed(PaymentLinkProvidersTag, [
+    { key: 'other', name: 'Other', hosts: [] },
+  ]),
   // Every mail this profile sends, kept for the specs to read rather than
   // handed to an SMTP server.
   Layer.succeed(BuyerNotifierTag, sentMail),

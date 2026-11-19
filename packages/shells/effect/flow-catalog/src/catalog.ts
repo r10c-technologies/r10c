@@ -10,6 +10,7 @@ import { BuyerContactSchema } from '@r10c/business-ts-order-contracts';
 import { ORDER_FRAGMENTS } from '@r10c/business-ts-order-management';
 import { PAYMENT_FRAGMENTS } from '@r10c/business-ts-payment-management';
 import {
+  confirmedBySeller,
   OrderTenders,
   SalesChannelTypes,
 } from '@r10c/business-ts-sales-vocabulary';
@@ -32,9 +33,29 @@ export const flowCatalog = defineCatalog([
 
 /**
  * The tenders a checkout can be composed for — the one set the order, payment
- * and shipping records carry, `cod` included (ADR 0070).
+ * and shipping records carry, `cod` and `link` included (ADR 0070, ADR 0081).
  */
 export const PAYMENT_METHODS = OrderTenders;
+
+/** A positive whole number of milliseconds. */
+const Millis = Schema.Int.check(Schema.isGreaterThan(0));
+
+/**
+ * What a payment-link checkout's waits are correlated with: the order's group
+ * and its vendor. Both are known when the flow is composed — the group is the
+ * flow's own id — while the order's id is minted by a step, so the
+ * coordinator's `order.*` consumer signals by them (ADR 0081 §4).
+ */
+export const paymentCorrelation = (groupId: string, vendorId: string) =>
+  `payment:${groupId}:${vendorId}`;
+
+/** What a payment-link order's wait is answered with. */
+export const PAYMENT_OUTCOMES = {
+  confirmed: 'confirmed',
+  cancelled: 'cancelled',
+} as const;
+
+const AWAIT_PAYMENT = 'order.payment-decision';
 
 /** The entitlement a vendor holds to ship what it sells. */
 const SHIPPING = 'shipping-order-management';
@@ -121,6 +142,13 @@ export const CheckoutStart = openStruct({
   /** The locale the buyer checked out in. */
   locale: Schema.optionalKey(Schema.String),
   /**
+   * How long a payment-link segment waits for its seller's confirmation, and
+   * the grace either side, stated by the coordinator from its configuration —
+   * never the caller's (ADR 0081 §3). Required when any segment pays by link.
+   */
+  paymentWindowMs: Schema.optionalKey(Millis),
+  paymentGraceMs: Schema.optionalKey(Millis),
+  /**
    * The buyer's fiscal identity, normalized by the coordinator — consumidor
    * final when none was given. Stored on each order, never announced on
    * `order.*` (ADR 0078 §2).
@@ -137,6 +165,13 @@ export const CheckoutStart = openStruct({
     start => start.channel.type !== 'storefront' || start.contact !== undefined,
     { message: 'a storefront checkout names the buyer’s contact' },
   ),
+  Schema.makeFilter(
+    start =>
+      !start.vendors.some(part => confirmedBySeller(part.paymentMethod)) ||
+      (start.paymentWindowMs !== undefined &&
+        start.paymentGraceMs !== undefined),
+    { message: 'a checkout paying by link states its payment window' },
+  ),
 );
 export type CheckoutStart = typeof CheckoutStart.Type;
 
@@ -151,8 +186,26 @@ const partOf = (
 ): VendorPart =>
   vendors.find(part => part.vendorId === segment?.vendor) as VendorPart;
 
-/** Money taken at checkout — card online, card or cash at a counter. */
-const paysNow = (part: VendorPart) => part.paymentMethod !== 'cod';
+/**
+ * Money taken at checkout — card online, card or cash at a counter. Cash on
+ * delivery is collected later by a courier, and a payment link is paid
+ * outside the platform and confirmed by its seller.
+ */
+const paysNow = (part: VendorPart) =>
+  part.paymentMethod !== 'cod' && !confirmedBySeller(part.paymentMethod);
+
+/** A segment paid by a link its seller confirms (ADR 0081). */
+const byLink = (segment: SlipSegment | undefined) =>
+  segment?.paymentMethod !== undefined &&
+  confirmedBySeller(segment.paymentMethod);
+
+/** Both windows of a link checkout; the start refuses one missing them. */
+const windowsOf = (start: CheckoutStart) => ({
+  window: start.paymentWindowMs as number,
+  grace: start.paymentGraceMs as number,
+});
+
+const SECOND = 1000;
 
 const atCounter = (start: CheckoutStart) => start.channel.type !== 'storefront';
 
@@ -183,12 +236,58 @@ const audienceOf = (
 ];
 
 /**
- * Checkout (ADR 0069, ADR 0070). Open the buyer's group under the flow's id;
- * per vendor, check a cash-on-delivery seller may take it, hold each line and
- * write that vendor's order; take the money for every vendor paying now in one
- * capture — the pivot — or, for a basket all on delivery, pass `flow.commit`;
- * then per vendor convert its holds and confirm its order, and open its
- * shipment (from the storefront) or hand the goods over (at a counter).
+ * The shipment a storefront segment opens: the courier's copy of the buyer's
+ * contact, the lines under the names they were sold as, and what a courier
+ * collects — at the checkout's commit point for a card or cash-on-delivery
+ * order, and once its seller confirmed for a link order.
+ */
+const openShipment = (
+  _context: unknown,
+  start: CheckoutStart,
+  segment: SlipSegment | undefined,
+) => {
+  const part = partOf(start.vendors, segment);
+  // Only a storefront sale ships, and `CheckoutStart` refuses one
+  // that names no contact.
+  const contact = start.contact as NonNullable<
+    CheckoutStart['contact']
+  >;
+  return {
+    // The courier's copy: who receives it and where, never the
+    // email (ADR 0076 §1). The order's number is the write's.
+    destination: {
+      name: contact.name,
+      phone: contact.phone,
+      destination: contact.destination,
+    },
+    organizationId: part.vendorId,
+    paymentMethod: part.paymentMethod,
+    amountDue: part.paymentMethod === 'cod' ? totalOf(part.lines) : 0,
+    taxableBase: part.netAmount,
+    taxAmount: part.taxAmount,
+    taxRegime: part.sellerTax?.taxRegime,
+    currency: part.lines[0]?.currency,
+    lines: part.lines.map(line => ({
+      offeringId: line.offeringId,
+      name: line.name,
+      quantity: line.quantity,
+    })),
+  };
+};
+
+/**
+ * Checkout (ADR 0069, ADR 0070, ADR 0081). Open the buyer's group under the
+ * flow's id; per vendor, check a cash-on-delivery seller may take it, hold each
+ * line and write that vendor's order; take the money for every vendor paying
+ * now in one capture — the pivot — or, for a basket all on delivery or by
+ * link, pass `flow.commit`; then per vendor convert its holds and confirm its
+ * order, and open its shipment (from the storefront) or hand the goods over
+ * (at a counter).
+ *
+ * A vendor paid by link is committed and then waits: its order waits for the
+ * seller's confirmation, and on it the segment does then what a card segment
+ * did at the commit point — or, the window lapsed or the buyer withdrew, lets
+ * its holds go.
  *
  * Every segment is one vendor, carrying its own tender and the entitlements
  * verified for it, so a mixed basket captures only the card vendors' shares.
@@ -243,10 +342,18 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           }),
         },
         {
-          ref: 'stock.reserve@2',
-          parameters: (_context, _start, segment) => ({
-            organizationId: segment?.vendor,
-          }),
+          ref: 'stock.reserve@3',
+          parameters: (_context, start, segment) => {
+            if (!byLink(segment)) return { organizationId: segment?.vendor };
+            // A link order's hold outlives the seller's decision: the order
+            // expires at the window, the wait strands at window + grace, and
+            // the hold lasts window + 2 × grace (ADR 0081 §3).
+            const { window, grace } = windowsOf(start);
+            return {
+              organizationId: segment?.vendor,
+              holdSeconds: Math.ceil((window + 2 * grace) / SECOND),
+            };
+          },
         },
         {
           ref: 'order.write@6',
@@ -314,52 +421,39 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       steps: [
         {
           ref: 'stock.convert@3',
+          when: (_context, _start, segment) => !byLink(segment),
           parameters: (_context, _start, segment) => ({
             organizationId: segment?.vendor,
           }),
         },
-        { ref: 'order.confirm@2' },
+        {
+          ref: 'order.confirm@2',
+          when: (_context, _start, segment) => !byLink(segment),
+        },
+        // A link segment is committed and then waits: its order is marked
+        // promised and unpaid until the seller confirms (ADR 0081 §2).
+        {
+          ref: 'order.await-payment@1',
+          when: (_context, _start, segment) => byLink(segment),
+          parameters: (_context, start) => ({
+            paymentWindowMs: windowsOf(start).window,
+          }),
+        },
         {
           ref: 'fulfilment.open@5',
           when: (_context, start, segment) =>
-            !atCounter(start) && holds(segment, SHIPPING),
-          parameters: (_context, start, segment) => {
-            const part = partOf(start.vendors, segment);
-            // Only a storefront sale ships, and `CheckoutStart` refuses one
-            // that names no contact.
-            const contact = start.contact as NonNullable<
-              CheckoutStart['contact']
-            >;
-            return {
-              // The courier's copy: who receives it and where, never the
-              // email (ADR 0076 §1). The order's number is the write's.
-              destination: {
-                name: contact.name,
-                phone: contact.phone,
-                destination: contact.destination,
-              },
-              organizationId: part.vendorId,
-              paymentMethod: part.paymentMethod,
-              amountDue: part.paymentMethod === 'cod' ? totalOf(part.lines) : 0,
-              taxableBase: part.netAmount,
-              taxAmount: part.taxAmount,
-              taxRegime: part.sellerTax?.taxRegime,
-              currency: part.lines[0]?.currency,
-              lines: part.lines.map(line => ({
-                offeringId: line.offeringId,
-                name: line.name,
-                quantity: line.quantity,
-              })),
-            };
-          },
+            !byLink(segment) && !atCounter(start) && holds(segment, SHIPPING),
+          parameters: openShipment,
         },
         {
           ref: 'order.mark-dispatched@2',
-          when: (_context, start) => atCounter(start),
+          when: (_context, start, segment) =>
+            !byLink(segment) && atCounter(start),
         },
         {
           ref: 'order.close@2',
-          when: (_context, start) => atCounter(start),
+          when: (_context, start, segment) =>
+            !byLink(segment) && atCounter(start),
           parameters: () => ({ outcome: 'fulfilled' }),
         },
       ],
@@ -367,12 +461,89 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
     {
       // The storefront buyer's receipt and their way back to it, by mail —
       // after the commit point, so a failed send retries rather than undoes a
-      // sale (ADR 0076 §6). A counter sale has nobody to write to.
+      // sale (ADR 0076 §6). A counter sale has nobody to write to. Before any
+      // link segment waits: the receipt is where the buyer finds the link.
       name: 'notify',
       steps: [
         {
           ref: 'order.notify-buyer@1',
           when: (_context, start) => !atCounter(start),
+        },
+      ],
+    },
+    {
+      // A link segment waits for its seller's decision (ADR 0081 §2–4). The
+      // order's status is the arbiter, so a timeout firing means a signal was
+      // lost, and the flow strands for a person rather than deciding.
+      name: 'await-payment',
+      perSegment: true,
+      steps: [
+        {
+          ref: `${AWAIT_PAYMENT}@1`,
+          when: (_context, _start, segment) => byLink(segment),
+          parameters: (_context, start, segment) => {
+            const { window, grace } = windowsOf(start);
+            return {
+              correlation: paymentCorrelation(
+                start.groupId,
+                String(segment?.vendor),
+              ),
+              timeoutMs: window + grace,
+              onTimeout: 'strand',
+            };
+          },
+        },
+      ],
+    },
+    {
+      // Paid: what a card segment did at the commit point, now.
+      name: 'paid',
+      perSegment: true,
+      on: { wait: AWAIT_PAYMENT, outcomes: [PAYMENT_OUTCOMES.confirmed] },
+      steps: [
+        {
+          ref: 'stock.convert@3',
+          when: (_context, _start, segment) => byLink(segment),
+          parameters: (_context, _start, segment) => ({
+            organizationId: segment?.vendor,
+          }),
+        },
+        {
+          ref: 'order.confirm@2',
+          when: (_context, _start, segment) => byLink(segment),
+        },
+        {
+          ref: 'fulfilment.open@5',
+          when: (_context, start, segment) =>
+            byLink(segment) && !atCounter(start) && holds(segment, SHIPPING),
+          parameters: openShipment,
+        },
+        {
+          ref: 'order.mark-dispatched@2',
+          when: (_context, start, segment) =>
+            byLink(segment) && atCounter(start),
+        },
+        {
+          ref: 'order.close@2',
+          when: (_context, start, segment) =>
+            byLink(segment) && atCounter(start),
+          parameters: () => ({ outcome: 'fulfilled' }),
+        },
+      ],
+    },
+    {
+      // Never paid — the window lapsed or the buyer withdrew: the order is
+      // already cancelled by that write, and its stock goes back on sale.
+      name: 'unpaid',
+      perSegment: true,
+      on: { wait: AWAIT_PAYMENT, outcomes: [PAYMENT_OUTCOMES.cancelled] },
+      steps: [
+        {
+          ref: 'stock.release@1',
+          when: (_context, _start, segment) => byLink(segment),
+          parameters: (_context, _start, segment) => ({
+            organizationId: segment?.vendor,
+          }),
         },
       ],
     },
@@ -504,9 +675,6 @@ export const DELIVERY_OUTCOMES = {
   unanswered: 'unanswered',
   returned: 'returned',
 } as const;
-
-/** A positive whole number of milliseconds. */
-const Millis = Schema.Int.check(Schema.isGreaterThan(0));
 
 /**
  * What a delivery starts from: the shipment as fulfilment-service stored it —

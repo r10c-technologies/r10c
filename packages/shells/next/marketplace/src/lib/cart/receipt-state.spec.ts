@@ -283,6 +283,94 @@ describe('the receipt’s numbers (ADR 0076 §5)', () => {
   });
 });
 
+describe('receiptDetailsOf, for a payment-link order', () => {
+  const read = (orders: unknown[]) =>
+    receiptDetailsOf({ group: { data: { id: 'g-1' } }, orders });
+
+  it('reads a waiting order’s due time and the seller’s link', () => {
+    const details = read([
+      {
+        data: {
+          id: 'o-1',
+          paymentMethod: 'link',
+          status: 'awaiting-payment',
+          paymentDueAt: '2026-11-21T10:00:00.000Z',
+          paymentLinkUrl: 'https://pay.example/p/1',
+          paymentLinkProviderKey: 'other',
+          paymentLinkProviderName: 'Mi banco',
+        },
+      },
+      { data: { id: 'o-2', paymentMethod: 'card', status: 'paid' } },
+    ]);
+
+    expect(details?.payments.get('o-1')).toEqual({
+      awaiting: true,
+      dueAt: '2026-11-21T10:00:00.000Z',
+      expired: false,
+      link: {
+        url: 'https://pay.example/p/1',
+        host: 'pay.example',
+        providerName: 'Mi banco',
+        unlisted: true,
+      },
+    });
+    expect(details?.payments.has('o-2')).toBe(false);
+  });
+
+  it('reads a waiting order whose seller set no link yet', () => {
+    const details = read([
+      { data: { id: 'o-1', paymentMethod: 'link', status: 'awaiting-payment' } },
+    ]);
+
+    expect(details?.payments.get('o-1')).toEqual({
+      awaiting: true,
+      expired: false,
+    });
+  });
+
+  it.each(['http://pay.example/p', 'not a url'])(
+    'shows no link that is not https: %s',
+    url => {
+      const details = read([
+        {
+          data: {
+            id: 'o-1',
+            paymentMethod: 'link',
+            status: 'awaiting-payment',
+            paymentLinkUrl: url,
+          },
+        },
+      ]);
+
+      expect(details?.payments.get('o-1')).toEqual({
+        awaiting: true,
+        expired: false,
+      });
+    },
+  );
+
+  it('names an unnamed provider by its host, and reads an expired order', () => {
+    const details = read([
+      {
+        data: {
+          id: 'o-1',
+          paymentMethod: 'link',
+          status: 'cancelled',
+          cancelCause: 'payment-expired',
+          paymentLinkUrl: 'https://pay.acq.example/1',
+          paymentLinkProviderKey: 'acq',
+        },
+      },
+    ]);
+
+    expect(details?.payments.get('o-1')).toMatchObject({
+      awaiting: false,
+      expired: true,
+      link: { providerName: 'pay.acq.example', unlisted: false },
+    });
+  });
+});
+
 describe('receiptDetailsOf', () => {
   const readBack = (contact: unknown, items: unknown[]) => ({
     group: { data: { id: 'g-1', contact } },

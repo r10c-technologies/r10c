@@ -25,6 +25,21 @@ describe('cancelStartOf', () => {
   });
 
   /** #387: a cancel clicked before `payment.captured` was consumed. */
+  it('reads a 202 order cancelled on the spot as withdrawn', () => {
+    expect(
+      cancelStartOf(202, {
+        meta: { type: 'entity' },
+        data: { id: 'o-1', status: 'cancelled' },
+      }),
+    ).toEqual({ kind: 'withdrawn' });
+    expect(
+      cancelStartOf(202, {
+        meta: { type: 'entity' },
+        data: { id: 'o-1', status: 'paid' },
+      }),
+    ).toEqual({ kind: 'failed' });
+  });
+
   it('reads a pending payment as worth retrying', () => {
     expect(cancelStartOf(409, { code: 'paymentPending' })).toEqual({
       kind: 'pending',

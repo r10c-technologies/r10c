@@ -8,6 +8,9 @@ import {
   AccessLinkHours,
   AccessLinkIntervalSeconds,
   CancelWindowSeconds,
+  type PaymentLinkProvider,
+  paymentLinkProviderOf,
+  PaymentLinkProvidersTag,
   ReceiptDays,
   StorefrontUrl,
 } from '@r10c/business-ts-order-management';
@@ -27,10 +30,14 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { startPaymentExpirySweep } from './payment-expiry-sweep.js';
 import { startPaymentStatusProjection } from './payment-status.js';
 import { startReceiptRedactionSweep } from './receipt-redaction-sweep.js';
 
 const SERVICE_NAME = 'order-service';
+
+/** The configuration group whose rows are the payment-link providers. */
+export const PAYMENT_LINK_PROVIDER_GROUP = 'paymentLinkProvider';
 
 /** The **slice** this service publishes as — never the deployment, never the domain (ADR 0029). */
 export const ORDER_SLICE = 'order';
@@ -95,6 +102,20 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       .in('order')
       .getNumber('accessLinkIntervalSeconds');
     const storefrontUrl = yield* store.in('order').getString('storefrontUrl');
+    // How often unpaid payment-link orders are looked for past their window
+    // (ADR 0081 §4). The window itself is the coordinator's row, not ours.
+    const paymentExpirySweepMs = yield* store
+      .in('order')
+      .getNumber('paymentExpirySweepMs');
+    // The payment-link providers a seller may name: an open dictionary, one
+    // row per provider, public facts only (ADR 0081 §10). A row that does not
+    // read as a provider drops out rather than admitting any host.
+    const providers = (
+      configuration.plain[PAYMENT_LINK_PROVIDER_GROUP] ?? []
+    ).flatMap((row): PaymentLinkProvider[] => {
+      const provider = paymentLinkProviderOf(row.key, row.value);
+      return provider === undefined ? [] : [provider];
+    });
     // Where the buyer's mail goes out: Mailpit in the lab. Not dialled at
     // boot — a mail server that is down fails the notify step, which retries,
     // and never stops orders being taken.
@@ -138,6 +159,7 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       Layer.succeed(AccessLinkHours, accessLinkHours),
       Layer.succeed(AccessLinkIntervalSeconds, accessLinkIntervalSeconds),
       Layer.succeed(StorefrontUrl, storefrontUrl.replace(/\/+$/, '')),
+      Layer.succeed(PaymentLinkProvidersTag, providers),
       smtpBuyerNotifierLayer(smtpOptions),
       httpFlowStarterLayer({
         url: coordinatorUrl,
@@ -174,6 +196,8 @@ export const orderComposition = (configuration: FleetConfiguration) =>
         Layer.effectDiscard(startPaymentStatusProjection),
         // The buyer's contact leaves once its job is done (ADR 0076 §4).
         Layer.effectDiscard(startReceiptRedactionSweep),
+        // A payment-link order its buyer never paid lets go at its window.
+        Layer.effectDiscard(startPaymentExpirySweep(paymentExpirySweepMs)),
       ),
       stored,
     );

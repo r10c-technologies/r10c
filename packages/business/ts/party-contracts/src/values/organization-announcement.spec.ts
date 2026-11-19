@@ -16,6 +16,7 @@ const ANNOUNCEMENT: OrganizationAnnouncement = {
   announcedAt: '2026-10-23T10:00:00.000Z',
   acceptsCod: true,
   holdsStock: true,
+  acceptsLink: true,
   fiscal: {
     taxId: '12345679',
     legalName: 'Demo Vendor, S.A.',

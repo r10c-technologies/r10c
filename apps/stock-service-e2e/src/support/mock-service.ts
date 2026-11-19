@@ -46,6 +46,7 @@ import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
   endpoints,
   policy,
+  ReservationMaxHoldSecondsTag,
   ReservationTtlSecondsTag,
   seedStock,
   SERVICE_NAME,
@@ -123,6 +124,7 @@ const MockAppLayer = (() => {
       makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
     ),
     Layer.succeed(ReservationTtlSecondsTag, RESERVATION_TTL_SECONDS),
+    Layer.succeed(ReservationMaxHoldSecondsTag, 259_200),
     // Records what the ledger announces; under `mock` nothing consumes it.
     Layer.succeed(EventBusTag, makeRecordingEventBus()),
     Layer.succeed(OutboxMaxAttempts, 5),

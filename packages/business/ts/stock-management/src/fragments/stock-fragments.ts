@@ -15,10 +15,15 @@ const REQUIRES = { entitlements: ['stock-management'] } as const;
  * Take a hold on one line's stock. Compensated by releasing it, and
  * commutative: two holds on one item commute, because a hold is a conditional
  * `$inc` rather than a read-modify-write (ADR 0010).
+ *
+ * `holdSeconds`, when the coordinator states it, is how long this hold lives —
+ * a payment-link order's must outlive the seller's decision (ADR 0081 §3) —
+ * bounded by stock-service's own `reservation.maxHoldSeconds`. Without it the
+ * hold keeps the default.
  */
 export const stockReserve = defineFragment({
   id: 'stock.reserve',
-  version: 2,
+  version: 3,
   module: 'stock-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -32,6 +37,7 @@ export const stockReserve = defineFragment({
     input: openStruct({
       offeringId: Schema.NonEmptyString,
       quantity: Schema.Number,
+      holdSeconds: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
     }),
     output: openStruct({ id: ReservationId }),
     failure: participantRefusal(['invalidBody', 'insufficientStock']),
@@ -51,6 +57,30 @@ export const stockConvert = defineFragment({
   kind: 'retriable',
   participant: PARTICIPANT,
   call: { method: 'POST', path: '/api/reservation/:reservationId/conversion' },
+  cardinality: 'perLine',
+  isolation: 'commutative',
+  requires: REQUIRES,
+  consumes: { reservationId: ReservationId },
+  contract: {
+    input: openStruct({ reservationId: ReservationId }),
+    output: openStruct({ id: ReservationId, status: Schema.String }),
+    failure: participantRefusal([]),
+  },
+});
+
+/**
+ * Release a hold after the commit point — a payment-link order the buyer never
+ * paid (ADR 0081 §2). The same route a reservation's compensation calls, which
+ * is already total: it answers `200` whether the hold was released, swept or
+ * never there, so retrying it is safe.
+ */
+export const stockRelease = defineFragment({
+  id: 'stock.release',
+  version: 1,
+  module: 'stock-management',
+  kind: 'retriable',
+  participant: PARTICIPANT,
+  call: { method: 'DELETE', path: '/api/reservation/:reservationId' },
   cardinality: 'perLine',
   isolation: 'commutative',
   requires: REQUIRES,
@@ -94,5 +124,6 @@ export const stockRestore = defineFragment({
 export const STOCK_FRAGMENTS = [
   stockReserve,
   stockConvert,
+  stockRelease,
   stockRestore,
 ] as const;

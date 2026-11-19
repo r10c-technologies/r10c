@@ -46,6 +46,7 @@ export class Organization implements Entity {
   #legalName = '';
   #taxRegime: TaxRegime = 'general';
   #establishmentCode = '';
+  #acceptsPaymentLink = false;
   #updatedAt?: Date;
   // #endregion
 
@@ -167,6 +168,24 @@ export class Organization implements Entity {
   }
   set establishmentCode(value: string) {
     this.#establishmentCode = value;
+  }
+
+  /**
+   * Whether the organization takes payment by a link it sends the buyer
+   * (ADR 0081 §1). Authored by the organization's own `admin` through
+   * `set-payment-link-acceptance`, never provisioned, and announced as the
+   * published vendor's `acceptsLink`.
+   */
+  @accessor({
+    type: 'boolean',
+    labelKey: 'entity:organization.fields.acceptsPaymentLink',
+    filterable: false,
+  })
+  get acceptsPaymentLink(): boolean {
+    return this.#acceptsPaymentLink;
+  }
+  set acceptsPaymentLink(value: boolean) {
+    this.#acceptsPaymentLink = value;
   }
 
   /**

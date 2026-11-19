@@ -35,6 +35,7 @@ export class PublishedVendor implements Entity {
   #announcedAt = new Date(0);
   #acceptsCod = false;
   #holdsStock = false;
+  #acceptsLink = false;
   #taxId = '';
   #legalName = '';
   #taxRegime = '';
@@ -152,6 +153,24 @@ export class PublishedVendor implements Entity {
   }
   set holdsStock(value: boolean) {
     this.#holdsStock = value;
+  }
+
+  /**
+   * Whether this seller takes payment links, as its organization's `admin`
+   * set it and auth-service announced it (ADR 0081 §1). A storefront hint the
+   * review offers the tender from; the coordinator refuses a link to a seller
+   * this says does not take one.
+   */
+  @accessor({
+    type: 'boolean',
+    labelKey: 'entity:published-vendor.fields.acceptsLink',
+    filterable: true,
+  })
+  get acceptsLink(): boolean {
+    return this.#acceptsLink;
+  }
+  set acceptsLink(value: boolean) {
+    this.#acceptsLink = value;
   }
   /**
    * The seller's NIT, as announced — what the checkout copies onto every order

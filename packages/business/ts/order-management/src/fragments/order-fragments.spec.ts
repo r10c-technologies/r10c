@@ -5,6 +5,7 @@ import {
   ORDER_FRAGMENTS,
   orderClaimCancel,
   orderOpenGroup,
+  orderPaymentDecision,
   orderWrite,
 } from './order-fragments.js';
 
@@ -15,6 +16,8 @@ describe('order fragments', () => {
       'order.write@6',
       'order.claim-cancel@3',
       'order.confirm@2',
+      'order.await-payment@1',
+      'order.payment-decision@1',
       'order.mark-dispatched@2',
       'order.close@2',
       'order.notify-buyer@1',
@@ -35,11 +38,17 @@ describe('order fragments', () => {
     expect(orderClaimCancel.isolation).toBe('semanticLock');
   });
 
+  it('wait for the seller’s decision on a payment link, answered either way', () => {
+    expect(orderPaymentDecision.kind).toBe('wait');
+    expect(orderPaymentDecision.outcomes).toEqual(['confirmed', 'cancelled']);
+  });
+
   it('roll every move after the commit point forward rather than back', () => {
     expect(
       ORDER_FRAGMENTS.filter(f => f.kind === 'retriable').map(f => f.id),
     ).toEqual([
       'order.confirm',
+      'order.await-payment',
       'order.mark-dispatched',
       'order.close',
       'order.notify-buyer',
