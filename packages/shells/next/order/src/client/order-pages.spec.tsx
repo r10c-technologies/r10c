@@ -54,6 +54,7 @@ const adapters = (): OrderAdapters => ({
   productOrderRest: Context.make(EntityRepositoryTag, repository),
   metadata: real.metadata,
   productOrderUseCases: real.productOrderUseCases,
+  paymentLink: real.paymentLink,
 });
 
 const renderPage = (page: ReactElement) =>

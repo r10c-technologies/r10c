@@ -19,6 +19,7 @@ const adapters: OrderAdapters = {
   productOrderRest: repository(),
   metadata: real.metadata,
   productOrderUseCases: real.productOrderUseCases,
+  paymentLink: real.paymentLink,
 };
 
 const wrapperWith = (supplied?: OrderAdapters) =>
