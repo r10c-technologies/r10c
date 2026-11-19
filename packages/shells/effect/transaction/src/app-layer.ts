@@ -9,6 +9,7 @@ import { Effect, Layer } from 'effect';
 
 import { deliveryDialsLayer } from './flow/delivery-dials.js';
 import { startShippingSignals } from './flow/shipping-signals.js';
+import { taxRulesLayer } from './flow/tax-rules.js';
 import { httpVendorFactsLayer } from './flow/vendor-facts.js';
 import {
   type Participant,
@@ -97,6 +98,7 @@ export const transactionComposition =
           yield* workflowComposition(configuration, participants, runner),
           httpVendorFactsLayer(catalogUrl),
           yield* deliveryDialsLayer(configuration),
+          yield* taxRulesLayer(configuration),
         ),
         connections,
       );

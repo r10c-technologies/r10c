@@ -60,7 +60,7 @@ export const orderOpenGroup = defineFragment({
  */
 export const orderWrite = defineFragment({
   id: 'order.write',
-  version: 5,
+  version: 6,
   module: 'order-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -81,8 +81,28 @@ export const orderWrite = defineFragment({
         openStruct({
           offeringId: Schema.NonEmptyString,
           name: Schema.NonEmptyString,
+          // Each line's tax, stated by the coordinator once per document
+          // (ADR 0078 §6) and stored as told.
+          kind: Schema.NonEmptyString,
+          taxTreatment: Schema.NonEmptyString,
+          taxRate: Schema.Number,
+          taxableBase: Schema.Number,
+          taxAmount: Schema.Number,
         }),
       ),
+      // The seller's fiscal identity, copied from the published vendor, and
+      // the buyer's — consumidor final when they gave none.
+      sellerTaxId: Schema.NonEmptyString,
+      sellerLegalName: Schema.NonEmptyString,
+      sellerTaxRegime: Schema.NonEmptyString,
+      sellerEstablishmentCode: Schema.NonEmptyString,
+      buyerTaxIdType: Schema.NonEmptyString,
+      buyerTaxId: Schema.NonEmptyString,
+      buyerTaxName: Schema.String,
+      netAmount: Schema.Number,
+      taxAmount: Schema.Number,
+      totalAmount: Schema.Number,
+      currency: Schema.NonEmptyString,
     }),
     output: openStruct({
       id: OrderId,

@@ -60,6 +60,10 @@ export interface PaymentShare {
   readonly vendorId: string;
   /** Minor units. */
   readonly amount: number;
+  /** The order's taxable base and tax, in minor units, and the seller's regime. */
+  readonly taxableBase: number;
+  readonly taxAmount: number;
+  readonly taxRegime: string;
 }
 
 /**
@@ -234,6 +238,11 @@ const PaymentShareSchema = openStruct({
   orderId: Schema.NonEmptyString,
   vendorId: Schema.NonEmptyString,
   amount: Schema.Finite,
+  // The tax the checkout stated into a capture, or carried on a shipment to a
+  // cash-on-delivery collection (ADR 0078 §6).
+  taxableBase: Schema.Finite,
+  taxAmount: Schema.Finite,
+  taxRegime: Schema.String,
 });
 
 export const PaymentOutcomeSchema = openStruct({
@@ -275,11 +284,16 @@ export const readPaymentOutcome = (
     raw => ({
       paymentId: raw.paymentId,
       groupId: raw.groupId,
-      allocations: raw.allocations.map(({ orderId, vendorId, amount }) => ({
-        orderId,
-        vendorId,
-        amount,
-      })),
+      allocations: raw.allocations.map(
+        ({ orderId, vendorId, amount, taxableBase, taxAmount, taxRegime }) => ({
+          orderId,
+          vendorId,
+          amount,
+          taxableBase,
+          taxAmount,
+          taxRegime,
+        }),
+      ),
       amount: raw.amount,
       currency: raw.currency,
       paymentMethod: raw.paymentMethod,

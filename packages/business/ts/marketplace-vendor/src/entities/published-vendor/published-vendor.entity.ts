@@ -35,6 +35,10 @@ export class PublishedVendor implements Entity {
   #announcedAt = new Date(0);
   #acceptsCod = false;
   #holdsStock = false;
+  #taxId = '';
+  #legalName = '';
+  #taxRegime = '';
+  #establishmentCode = '';
   // #endregion
 
   // #region constructors
@@ -148,6 +152,68 @@ export class PublishedVendor implements Entity {
   }
   set holdsStock(value: boolean) {
     this.#holdsStock = value;
+  }
+  /**
+   * The seller's NIT, as announced — what the checkout copies onto every order
+   * it writes for this seller (ADR 0078 §6). A NIT is printed on every
+   * document a seller issues, which is why a public projection may carry it.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-vendor.fields.taxId',
+    filterable: false,
+  })
+  get taxId(): string {
+    return this.#taxId;
+  }
+  set taxId(value: string) {
+    this.#taxId = value;
+  }
+
+  /**
+   * The name the seller's documents are issued under.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-vendor.fields.legalName',
+    filterable: false,
+  })
+  get legalName(): string {
+    return this.#legalName;
+  }
+  set legalName(value: string) {
+    this.#legalName = value;
+  }
+
+  /**
+   * The seller's `TaxRegime`, which decides how the coordinator breaks the
+   * tax out of each price.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-vendor.fields.taxRegime',
+    filterable: false,
+  })
+  get taxRegime(): string {
+    return this.#taxRegime;
+  }
+  set taxRegime(value: string) {
+    this.#taxRegime = value;
+  }
+
+  /**
+   * The SAT establishment the seller sells from.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-vendor.fields.establishmentCode',
+    filterable: false,
+  })
+  get establishmentCode(): string {
+    return this.#establishmentCode;
+  }
+  set establishmentCode(value: string) {
+    this.#establishmentCode = value;
   }
   // #endregion
 }

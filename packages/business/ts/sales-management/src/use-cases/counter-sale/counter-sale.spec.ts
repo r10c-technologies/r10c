@@ -14,7 +14,11 @@ import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { SalesChannel } from '../../entities/sales-channel/index.js';
-import { sellAtCounter, validateSalesChannel } from './counter-sale.js';
+import {
+  counterBuyerTax,
+  sellAtCounter,
+  validateSalesChannel,
+} from './counter-sale.js';
 
 const channelOf = (id: string, status: string, type = 'counter') =>
   Object.assign(new SalesChannel(), { id, name: `Till ${id}`, type, status });
@@ -94,6 +98,39 @@ describe('validateSalesChannel', () => {
   });
 });
 
+describe('counterBuyerTax', () => {
+  const refusal = (input: Parameters<typeof counterBuyerTax>[0]) =>
+    Effect.runSync(
+      counterBuyerTax(input).pipe(
+        Effect.as(undefined),
+        Effect.catch(failure => Effect.succeed(failure.code)),
+      ),
+    );
+
+  it('documents a NIT the till gave, normalized, and a consumidor final by default', () => {
+    expect(
+      Effect.runSync(
+        counterBuyerTax({ idType: 'nit', taxId: '1234567-9', name: ' Sol ' }),
+      ),
+    ).toEqual({ idType: 'nit', taxId: '12345679', name: 'Sol' });
+    expect(Effect.runSync(counterBuyerTax(undefined))).toMatchObject({
+      idType: 'cf',
+      taxId: 'CF',
+    });
+  });
+
+  it('refuses under the codes the storefront and the coordinator use', () => {
+    expect(refusal({ idType: 'passport' })).toBe('invalidTaxIdType');
+    expect(refusal({ idType: 'nit', taxId: '12345678', name: 'Sol' })).toBe(
+      'invalidTaxId',
+    );
+    expect(refusal({ idType: 'cui', taxId: '12', name: 'Sol' })).toBe(
+      'invalidTaxId',
+    );
+    expect(refusal({ idType: 'nit', taxId: '12345679' })).toBe('missingName');
+  });
+});
+
 describe('sellAtCounter', () => {
   it('starts the checkout at published prices, with the channel on it, and answers the flow', async () => {
     const { sold, started } = world();
@@ -105,6 +142,8 @@ describe('sellAtCounter', () => {
         key: 'sale-1',
         input: {
           channel: { type: 'counter', id: 'c-open', name: 'Till c-open' },
+          // Nothing given at the till: a consumidor final.
+          buyerTax: { idType: 'cf', taxId: 'CF', name: '' },
           vendors: [
             {
               vendorId: 'org-1',

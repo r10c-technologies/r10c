@@ -142,6 +142,36 @@ export const foreignLinesProblem = (
     : undefined;
 
 /**
+ * Why an order's fiscal facts cannot be stored as they were stated, or
+ * `undefined`. They are recorded at placement or never (ADR 0078 §4), so an
+ * order the coordinator stated without them — or whose lines do not add up to
+ * the document — is refused rather than placed half-described.
+ */
+export const fiscalFactsProblem = (order: ProductOrder): string | undefined => {
+  if (
+    order.sellerTaxId === '' ||
+    order.sellerLegalName === '' ||
+    order.sellerEstablishmentCode === ''
+  )
+    return 'an order carries its seller’s fiscal identity';
+  if (order.buyerTaxId === '')
+    return 'an order names its buyer, or consumidor final';
+  const gross = order.items.reduce(
+    (sum, line) => sum + line.amount * line.quantity,
+    0,
+  );
+  const tax = order.items.reduce((sum, line) => sum + line.taxAmount, 0);
+  const base = order.items.reduce((sum, line) => sum + line.taxableBase, 0);
+  if (
+    order.totalAmount !== gross ||
+    order.taxAmount !== tax ||
+    order.netAmount !== base
+  )
+    return 'an order’s lines add up to its document';
+  return undefined;
+};
+
+/**
  * Place one vendor's order — the checkout's per-vendor write — into a group
  * already opened. The id, the status and the placing time are this domain's
  * to write, never the caller's.
@@ -166,6 +196,8 @@ export const placeOrder = (input: {
     const foreign = foreignLinesProblem(order.vendorId, input.rawLines);
     if (foreign !== undefined)
       return yield* new InvalidBody({ reason: foreign });
+    const fiscal = fiscalFactsProblem(order);
+    if (fiscal !== undefined) return yield* new InvalidBody({ reason: fiscal });
 
     order.id = globalThis.crypto.randomUUID();
     order.number = drawOrderNumber();

@@ -170,7 +170,16 @@ describe('the settlement fold', () => {
       data: {
         paymentId: 'pay-1',
         groupId: 'g-1',
-        allocations: [{ orderId: 'o-1', vendorId: 'v-1', amount: 40 }],
+        allocations: [
+          {
+            orderId: 'o-1',
+            vendorId: 'v-1',
+            amount: 40,
+            taxableBase: 0,
+            taxAmount: 0,
+            taxRegime: 'general',
+          },
+        ],
         amount: 40,
         currency: 'GTQ',
         paymentMethod: 'card',

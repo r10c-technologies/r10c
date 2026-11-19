@@ -11,6 +11,7 @@
 export { AUTH_NAV } from './nav';
 export type { Principal } from './principal-types';
 export { AccountPage } from './server/account-page';
+export { OrganizationPage } from './server/organization-page';
 export { authorizationHeader, loadPrincipal } from './server/principal';
 export { allowedRedirectOrigins, safeRedirect } from './server/redirect';
 export {

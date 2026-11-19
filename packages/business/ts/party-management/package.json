@@ -41,8 +41,11 @@
     }
   },
   "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@entifix/core": "catalog:",
+    "@r10c/business-ts-tax-policy": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "@entifix/core": "catalog:"
+    "effect": "4.0.7"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"

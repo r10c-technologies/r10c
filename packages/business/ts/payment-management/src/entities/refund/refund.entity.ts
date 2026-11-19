@@ -49,6 +49,8 @@ export class Refund implements Entity {
   #status: RefundStatus = 'pending';
   #providerReference?: string;
   #decidedAt?: Date;
+  #taxableBase = 0;
+  #taxAmount = 0;
   // #endregion
 
   // #region constructors
@@ -191,6 +193,30 @@ export class Refund implements Entity {
   }
   set decidedAt(value: Date | undefined) {
     this.#decidedAt = value;
+  }
+  /** This refund's share of its allocation's base and tax — `taxShareOf`, so partial refunds that reach the whole capture give back exactly what it carried (ADR 0078 §6). */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:refund.fields.taxableBase',
+    money: { unit: 'minor', currencyMember: 'currency' },
+  })
+  get taxableBase(): number {
+    return this.#taxableBase;
+  }
+  set taxableBase(value: number) {
+    this.#taxableBase = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:refund.fields.taxAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
+  })
+  get taxAmount(): number {
+    return this.#taxAmount;
+  }
+  set taxAmount(value: number) {
+    this.#taxAmount = value;
   }
   // #endregion
 }

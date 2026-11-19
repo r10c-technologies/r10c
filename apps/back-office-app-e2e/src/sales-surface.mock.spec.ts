@@ -170,6 +170,8 @@ test('rings up a sale through the channel’s own sell verb, and waits on its ch
   expect(sale?.idempotencyKey).toMatch(/^".+"$/);
   expect(sale?.body).toEqual({
     paymentMethod: 'cash',
+    // Nothing typed at the till: documented to a consumidor final.
+    buyerTax: { idType: 'cf' },
     lines: [{ offeringId: 'product-offering-1', quantity: 1 }],
   });
 });

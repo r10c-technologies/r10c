@@ -48,6 +48,7 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-contracts": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
+    "@r10c/business-ts-tax-policy": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.7",
     "mongodb": "7.9.0"

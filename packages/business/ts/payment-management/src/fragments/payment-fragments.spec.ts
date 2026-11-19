@@ -38,10 +38,10 @@ const captureIn = (paymentMethod: string): Slip => ({
 describe('payment fragments', () => {
   it('are two irreversible pivots, a retried refund and collection, and a read-only check', () => {
     expect(PAYMENT_FRAGMENTS.map(fragmentRef)).toEqual([
-      'payment.capture@3',
+      'payment.capture@4',
       'payment.refund@2',
       'payment.refund-after-delivery@1',
-      'payment.record-collection@1',
+      'payment.record-collection@2',
       'payment.cod-eligible@1',
     ]);
     expect(

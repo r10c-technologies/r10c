@@ -49,7 +49,15 @@ export interface StockMovementRecord {
   /** Signed: positive is `in`, negative is `out`. */
   quantity: number;
   reason: MovementReason;
+  /** ISO-8601, as a written movement stores it. */
+  occurredAt: string;
+  /** A seeded movement stands for one the vendor recorded: its own cause. */
+  causeType: 'manual';
+  causeId: string;
 }
+
+/** When the seeded ledger begins; each later movement is a minute after. */
+const SEEDED_FROM = Date.parse('2026-01-01T00:00:00.000Z');
 
 /** A fold as it is stored — the `StockItem` wire shape. */
 export interface StockItemRecord {
@@ -119,11 +127,17 @@ export const stockMovementTempDataFor = (
   vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
 ): readonly StockMovementRecord[] =>
   Array.from({ length: stockedOf(vendor) }, (_, index) =>
-    movementsFor(index).map((movement, position) => ({
-      id: `${vendor.idPrefix}stock-movement-${index + 1}-${position + 1}`,
-      offeringId: offeringId(vendor, index),
-      ...movement,
-    })),
+    movementsFor(index).map((movement, position) => {
+      const id = `${vendor.idPrefix}stock-movement-${index + 1}-${position + 1}`;
+      return {
+        id,
+        offeringId: offeringId(vendor, index),
+        ...movement,
+        occurredAt: new Date(SEEDED_FROM + position * 60_000).toISOString(),
+        causeType: 'manual' as const,
+        causeId: id,
+      };
+    }),
   ).flat();
 
 /** The demo vendor's ledger. */

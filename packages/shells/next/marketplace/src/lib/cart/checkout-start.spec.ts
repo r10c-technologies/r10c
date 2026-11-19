@@ -117,6 +117,21 @@ describe('checkoutStartBody', () => {
       locale: 'es',
     });
   });
+
+  it('carries the buyer’s fiscal identity when the form stated one', () => {
+    expect(
+      checkoutStartBody({
+        parts: [],
+        cancelDigest: 'cd',
+        capabilityDigest: 'fd',
+        contact: {},
+        buyerTax: { idType: 'nit', taxId: '12345679', name: 'Ferre SA' },
+        locale: 'es',
+      }),
+    ).toMatchObject({
+      buyerTax: { idType: 'nit', taxId: '12345679', name: 'Ferre SA' },
+    });
+  });
 });
 
 describe('acceptedFlowId', () => {

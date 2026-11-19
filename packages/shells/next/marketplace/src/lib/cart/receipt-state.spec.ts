@@ -345,6 +345,51 @@ describe('receiptDetailsOf', () => {
     });
   });
 
+  it('reads the IVA each order includes, and whom the receipt is billed to', () => {
+    const details = receiptDetailsOf({
+      group: { data: { id: 'g-1' } },
+      orders: [
+        {
+          data: {
+            id: 'o-a',
+            sellerTaxRegime: 'general',
+            taxAmount: 429,
+            buyerTaxIdType: 'nit',
+            buyerTaxId: '12345679',
+            buyerTaxName: 'Ana López',
+          },
+        },
+        // A pequeño contribuyente's document shows no IVA.
+        {
+          data: { id: 'o-b', sellerTaxRegime: 'small-taxpayer', taxAmount: 25 },
+        },
+        { data: { id: 'o-c', taxAmount: 'junk', buyerTaxIdType: 'cf' } },
+      ],
+    });
+
+    expect([...(details?.ivaIncluded ?? [])]).toEqual([['o-a', 429]]);
+    expect(details?.billedTo).toEqual({
+      idType: 'nit',
+      taxId: '12345679',
+      name: 'Ana López',
+    });
+  });
+
+  it('bills nobody it cannot name, and a consumidor final with blanks', () => {
+    const of = (data: Record<string, unknown>) =>
+      receiptDetailsOf({
+        group: { data: {} },
+        orders: [{ data: { id: 'o', ...data } }],
+      })?.billedTo;
+
+    expect(of({ buyerTaxIdType: 'passport' })).toBeUndefined();
+    expect(of({ buyerTaxIdType: 'cf', buyerTaxId: 7 })).toEqual({
+      idType: 'cf',
+      taxId: '',
+      name: '',
+    });
+  });
+
   it('answers nothing for an answer that is not a read-back', () => {
     expect(receiptDetailsOf(undefined)).toBeUndefined();
     expect(receiptDetailsOf({ group: 7, orders: [] })).toBeUndefined();

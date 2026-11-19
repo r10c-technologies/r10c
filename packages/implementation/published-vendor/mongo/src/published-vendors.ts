@@ -53,6 +53,10 @@ const applyAnnouncement = (db: Db, announcement: OrganizationAnnouncement) =>
       vendor.announcedAt = at;
       vendor.acceptsCod = announcement.acceptsCod;
       vendor.holdsStock = announcement.holdsStock;
+      vendor.taxId = announcement.fiscal.taxId;
+      vendor.legalName = announcement.fiscal.legalName;
+      vendor.taxRegime = announcement.fiscal.taxRegime;
+      vendor.establishmentCode = announcement.fiscal.establishmentCode;
       try {
         await db.collection(VENDOR_COLLECTION).updateOne(
           {

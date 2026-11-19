@@ -2,6 +2,10 @@ import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 
 import {
+  type MovementCauseType,
+  MovementCauseTypes,
+} from '../../values/movement-cause';
+import {
   type MovementReason,
   MovementReasons,
 } from '../../values/movement-reason';
@@ -19,6 +23,12 @@ import {
  * `quantity` is **signed**, so a movement is one field rather than a quantity
  * plus a direction that can disagree with its {@link reason}.
  *
+ * `occurredAt` and the cause (`causeType` + `causeId`) are server-owned: the
+ * use case that writes a movement states them, whatever a caller sent, so a
+ * ledger line can be dated and joined to the hold or the order behind it
+ * (ADR 0078 §6). Writable rather than `readonly`, since a readonly member is
+ * dropped from serialization both ways.
+ *
  * Tenant plane, `stock` store.
  */
 @entity({
@@ -33,6 +43,9 @@ export class StockMovement implements Entity {
   #offeringId: string;
   #quantity: number;
   #reason: MovementReason;
+  #occurredAt?: Date;
+  #causeType?: MovementCauseType;
+  #causeId = '';
   // #endregion
 
   // #region constructors
@@ -103,6 +116,46 @@ export class StockMovement implements Entity {
   }
   set reason(value: MovementReason) {
     this.#reason = value;
+  }
+
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:stock-movement.fields.occurredAt',
+    sortable: true,
+    filterable: true,
+  })
+  get occurredAt(): Date | undefined {
+    return this.#occurredAt;
+  }
+  set occurredAt(value: Date | undefined) {
+    this.#occurredAt = value;
+  }
+
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:stock-movement.fields.causeType',
+    enumValues: MovementCauseTypes,
+    enumLabelKey: 'entity:stock-movement.values.causeType',
+    filterable: true,
+  })
+  get causeType(): MovementCauseType | undefined {
+    return this.#causeType;
+  }
+  set causeType(value: MovementCauseType | undefined) {
+    this.#causeType = value;
+  }
+
+  /** The movement's own id, the hold's, or the order's — by {@link causeType}. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:stock-movement.fields.causeId',
+    filterable: true,
+  })
+  get causeId(): string {
+    return this.#causeId;
+  }
+  set causeId(value: string) {
+    this.#causeId = value;
   }
   // #endregion
 }

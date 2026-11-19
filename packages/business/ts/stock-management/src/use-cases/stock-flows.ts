@@ -75,6 +75,9 @@ export const recordMovement = (input: {
       );
     }
     movement.id = globalThis.crypto.randomUUID();
+    movement.occurredAt = new Date();
+    movement.causeType = 'manual';
+    movement.causeId = movement.id;
     const ledger = yield* StockLedgerTag;
     return yield* ledger.record(input.organizationId, movement);
   });
@@ -94,6 +97,8 @@ export const restoreStock = (input: {
   readonly organizationId: string;
   readonly movement: StockMovement;
   readonly cause: RestorationCause;
+  /** The order whose goods go back: the movement's cause. */
+  readonly orderId: string;
   readonly commandId: string | undefined;
 }) =>
   Effect.gen(function* () {
@@ -107,6 +112,9 @@ export const restoreStock = (input: {
       );
     }
     movement.id = globalThis.crypto.randomUUID();
+    movement.occurredAt = new Date();
+    movement.causeType = 'product-order';
+    movement.causeId = input.orderId;
     const ledger = yield* StockLedgerTag;
     return yield* ledger.restore(
       input.organizationId,

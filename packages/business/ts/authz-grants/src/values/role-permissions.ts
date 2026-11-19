@@ -178,6 +178,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // depend only on `layer:entifix`/`layer:utils`, so it cannot reach a domain
     // package. The source scan in `@r10c/slices` keeps the two from drifting.
     `${ORDER_DOMAIN}:product-order:cancel`,
+    // The organization's own fiscal identity — the NIT, legal name, regime and
+    // establishment every order it sells is documented under (ADR 0078 §6).
+    // A verb rather than `organization:write`, because the record's name, slug
+    // and status are the operator's; and only the caller's active
+    // organization, which the use case enforces. A literal for the standing
+    // reason above; the `@r10c/slices` source scan keeps it honest.
+    'party-management:organization:set-fiscal-identity',
     // A vendor's shipments: reading them, handing a parcel to a courier, and
     // recording what the courier reported. Four verbs rather than a `write`,
     // because each is a different act with a different consequence — a

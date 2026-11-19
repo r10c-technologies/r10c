@@ -22,13 +22,15 @@ describe('the seeded tenancy', () => {
 
   it('names each organization after its seeded vendor', () => {
     expect(SEEDED_VENDORS.flatMap(organizationSeedData)).toEqual(
-      SEEDED_VENDORS.map(vendor =>
-        expect.objectContaining({
+      SEEDED_VENDORS.map(vendor => ({
+        row: expect.objectContaining({
           id: vendor.organizationId,
           name: vendor.name,
           slug: vendor.slug,
         }),
-      ),
+        // Proposed only to a new organization: the vendor owns it afterwards.
+        initial: vendor.fiscal,
+      })),
     );
   });
 

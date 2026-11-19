@@ -1,4 +1,5 @@
 import { contactProblems } from '@r10c/business-ts-order-contracts';
+import { buyerTaxOf, type BuyerTaxProblem } from '@r10c/business-ts-tax-policy';
 
 /**
  * The review step's delivery and contact fields, by form name. Kept flat on
@@ -14,6 +15,11 @@ export const CONTACT_FIELDS = [
   'zona',
   'addressLine',
   'reference',
+  // Whom the order's documents are issued to (ADR 0078 §6): consumidor final
+  // unless the buyer names a NIT or a CUI.
+  'taxIdType',
+  'taxId',
+  'taxName',
 ] as const;
 
 export type ContactField = (typeof CONTACT_FIELDS)[number];
@@ -109,8 +115,40 @@ export const contactErrors = (
     const field = fieldOf(problem.pointer);
     errors[field] ??= problem.code;
   }
+  const buyerTax = buyerTaxOfValues(values);
+  if (!buyerTax.ok) errors[TAX_FIELD_OF[buyerTax.problem]] ??= buyerTax.problem;
   return errors;
 };
+
+/** The field each fiscal-identity problem lands on. */
+const TAX_FIELD_OF: Readonly<Record<BuyerTaxProblem, ContactField>> = {
+  invalidTaxIdType: 'taxIdType',
+  invalidTaxId: 'taxId',
+  missingName: 'taxName',
+};
+
+/** Every code the fiscal-identity fields can answer with. */
+export const BUYER_TAX_ERROR_CODES: readonly BuyerTaxProblem[] = Object.keys(
+  TAX_FIELD_OF,
+) as BuyerTaxProblem[];
+
+/**
+ * The buyer's fiscal identity from the form: consumidor final under the
+ * receiver's name unless they chose a NIT or a CUI — the rule the coordinator
+ * applies again, so the form refuses what the checkout would.
+ */
+export const buyerTaxOfValues = (values: ContactValues) =>
+  buyerTaxOf(
+    {
+      idType:
+        values.taxIdType === undefined || values.taxIdType === ''
+          ? 'cf'
+          : values.taxIdType,
+      taxId: values.taxId ?? '',
+      name: values.taxName ?? '',
+    },
+    values.name ?? '',
+  );
 
 /** The query member a refused post without script returns its codes on. */
 export const REFUSED_PARAM = 'refused';

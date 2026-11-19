@@ -55,7 +55,37 @@ export interface OrganizationAnnouncement {
    * segment against, rather than trusting what the caller said (ADR 0066).
    */
   readonly holdsStock: boolean;
+  /**
+   * The seller's fiscal identity, which the checkout copies onto every order
+   * it writes for this seller (ADR 0078 §6). **Required**: an order placed
+   * without it is a fact that cannot be recovered later, so an announcement
+   * missing it is refused rather than read as blank (ADR 0049 as revised by
+   * ADR 0078). A seller's NIT is printed on every document they issue, which
+   * is why a projection any storefront visitor may read can carry it.
+   */
+  readonly fiscal: SellerFiscalIdentity;
 }
+
+/** What a seller's documents are issued under. */
+export interface SellerFiscalIdentity {
+  readonly taxId: string;
+  readonly legalName: string;
+  /**
+   * `tax-policy`'s `TaxRegime`, carried as a string: a contract package is
+   * `business:policy` and may not import another, so the consumer narrows it
+   * with `isTaxRegime` where it applies a rule.
+   */
+  readonly taxRegime: string;
+  readonly establishmentCode: string;
+}
+
+/** The schema of {@link SellerFiscalIdentity}, shared by every contract that carries it. */
+export const SellerFiscalIdentitySchema = Schema.Struct({
+  taxId: Schema.String.check(Schema.isPattern(/\S/)),
+  legalName: Schema.String.check(Schema.isPattern(/\S/)),
+  taxRegime: Schema.String.check(Schema.isPattern(/\S/)),
+  establishmentCode: Schema.String.check(Schema.isPattern(/\S/)),
+});
 
 /**
  * The message id, and therefore the **deduplication key**:
@@ -112,6 +142,7 @@ export const OrganizationAnnouncementSchema = openStruct({
   // and absent reads as a seller who does not ship cash on delivery.
   acceptsCod: Schema.optional(Schema.Boolean),
   holdsStock: Schema.optional(Schema.Boolean),
+  fiscal: SellerFiscalIdentitySchema,
 });
 
 // Audience-free: an announcement is folded into the published-vendor
@@ -136,11 +167,24 @@ export const readOrganizationAnnouncement = (
         ),
       ),
     ),
-    ({ organizationId, displayName, announcedAt, acceptsCod, holdsStock }) => ({
+    ({
+      organizationId,
+      displayName,
+      announcedAt,
+      acceptsCod,
+      holdsStock,
+      fiscal,
+    }) => ({
       organizationId,
       displayName,
       announcedAt,
       acceptsCod: acceptsCod === true,
       holdsStock: holdsStock === true,
+      fiscal: {
+        taxId: fiscal.taxId,
+        legalName: fiscal.legalName,
+        taxRegime: fiscal.taxRegime,
+        establishmentCode: fiscal.establishmentCode,
+      },
     }),
   );

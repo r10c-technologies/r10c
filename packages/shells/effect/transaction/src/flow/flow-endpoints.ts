@@ -20,6 +20,7 @@ import {
 } from '@entifix/core';
 import { FlowEngineTag } from '@entifix/transactions';
 import { VendorDoesNotShip } from '@r10c/business-ts-flow-contracts';
+import type { TaxRules } from '@r10c/business-ts-tax-policy';
 import {
   cancellationRecipe,
   checkoutRecipe,
@@ -28,8 +29,14 @@ import {
 } from '@r10c/shells-effect-flow-catalog';
 import { Effect } from 'effect';
 
+import {
+  buyerTaxOfStart,
+  type SellerRecord,
+  taxedPart,
+  TaxRulesTag,
+} from './checkout-tax.js';
 import { type DeliveryDials, DeliveryDialsTag } from './delivery-dials.js';
-import { VendorFactsTag } from './vendor-facts.js';
+import { entitlementsBySeller, VendorFactsTag } from './vendor-facts.js';
 
 type Body = Readonly<Record<string, unknown>>;
 
@@ -51,6 +58,8 @@ const isString = (value: unknown): value is string =>
  * delivery the windows it waits in, which are configuration. Whatever the
  * caller sent for any of them is overwritten.
  */
+type Sellers = ReadonlyMap<string, SellerRecord | undefined>;
+
 interface FlowStart {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each recipe has its own input
   readonly recipe: Recipe<any>;
@@ -61,12 +70,14 @@ interface FlowStart {
     entitlements: ReadonlyMap<string, readonly string[]>,
     flowId: string,
     dials: DeliveryDials,
+    sellers: Sellers,
+    rules: TaxRules,
   ) => Body;
   /** A refusal the verified entitlements decide before anything is composed. */
   readonly refusal?: (
     input: Body,
     entitlements: ReadonlyMap<string, readonly string[]>,
-  ) => VendorDoesNotShip | undefined;
+  ) => VendorDoesNotShip | Invalid | undefined;
 }
 
 const vendorPartsOf = (input: Body): readonly Body[] =>
@@ -91,17 +102,29 @@ export const FLOW_STARTS = {
       vendorPartsOf(input)
         .map(part => part['vendorId'])
         .filter(isString),
-    state: (input, entitlements, flowId) => ({
-      ...input,
-      groupId: flowId,
-      vendors: vendorPartsOf(input).map(part => ({
-        ...part,
-        entitlements: entitlements.get(String(part['vendorId'])) ?? [],
-      })),
-    }),
+    // The coordinator states what it verified: each vendor's entitlements,
+    // the seller's fiscal identity and each line's tax, and the buyer's
+    // fiscal identity normalized (ADR 0078 §6). None is the caller's word.
+    state: (input, entitlements, flowId, _dials, sellers, rules) => {
+      const buyerTax = buyerTaxOfStart(input);
+      // The caller's own statement never survives: only the normalized one.
+      const { buyerTax: _stated, ...rest } = input;
+      return {
+        ...rest,
+        groupId: flowId,
+        ...(buyerTax.ok ? { buyerTax: buyerTax.value } : {}),
+        vendors: vendorPartsOf(input).map(part => ({
+          ...taxedPart(part, sellers.get(String(part['vendorId'])), rules),
+          entitlements: entitlements.get(String(part['vendorId'])) ?? [],
+        })),
+      };
+    },
     // A storefront sale is shipped, so a seller who does not ship is refused
-    // here rather than becoming an order nothing will move (ADR 0076 §3).
+    // here rather than becoming an order nothing will move (ADR 0076 §3); a
+    // buyer's NIT that does not validate is refused before anything runs.
     refusal: (input, entitlements) => {
+      const buyerTax = buyerTaxOfStart(input);
+      if (!buyerTax.ok) return buyerTax.refusal;
       if (recordOf(input['channel'])?.['type'] !== 'storefront')
         return undefined;
       // A part naming no vendor is the start's decoding to refuse, not this.
@@ -209,9 +232,9 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
         const input = recordOf(payload) ?? {};
         const facts = yield* VendorFactsTag;
         const dials = yield* DeliveryDialsTag;
-        const entitlements = yield* facts.entitlementsOf(
-          start.vendorsOf(input),
-        );
+        const rules = yield* TaxRulesTag;
+        const sellers = yield* facts.sellersOf(start.vendorsOf(input));
+        const entitlements = entitlementsBySeller(sellers);
         const refused = start.refusal?.(input, entitlements);
         if (refused !== undefined) return yield* refused;
         const flowId = globalThis.crypto.randomUUID();
@@ -221,7 +244,7 @@ const startEndpoint = (name: keyof typeof FLOW_STARTS) => {
           COORDINATOR,
           recordOf(payload) === undefined
             ? payload
-            : start.state(input, entitlements, flowId, dials),
+            : start.state(input, entitlements, flowId, dials, sellers, rules),
           { flowId, composedAt: new Date().toISOString() },
         );
         const engine = yield* FlowEngineTag;

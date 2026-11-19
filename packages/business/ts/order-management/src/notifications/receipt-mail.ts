@@ -99,8 +99,26 @@ export const composeReceiptMail = (input: {
       fillMailTemplate(copy.receipt.orderTotal, {
         amount: money(locale, total, currency),
       }),
+      // A pequeño contribuyente's document shows no IVA (ADR 0078 §6): its
+      // tax is on the gross, not broken out of the price.
+      ...(order.sellerTaxRegime === 'small-taxpayer'
+        ? []
+        : [
+            fillMailTemplate(copy.receipt.ivaIncluded, {
+              amount: money(locale, order.taxAmount, currency),
+            }),
+          ]),
     ];
   });
+  const buyer = orders[0];
+  const billedTo =
+    buyer === undefined || buyer.buyerTaxIdType === 'cf'
+      ? copy.receipt.billedToCf
+      : fillMailTemplate(copy.receipt.billedTo, {
+          name: buyer.buyerTaxName,
+          idType: buyer.buyerTaxIdType.toUpperCase(),
+          taxId: buyer.buyerTaxId,
+        });
   const totals = group.totals.map(total =>
     fillMailTemplate(copy.receipt.total, {
       amount: money(locale, total.amount, total.currency),
@@ -122,6 +140,7 @@ export const composeReceiptMail = (input: {
       [fillMailTemplate(copy.receipt.intro, { number: group.number })],
       ...sellerOrders,
       totals,
+      [billedTo],
       [copy.receipt.deliveryHeading, contact.name, ...place],
       [fillMailTemplate(copy.access.link, { hours: linkHours })],
     ],

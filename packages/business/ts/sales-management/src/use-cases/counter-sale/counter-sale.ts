@@ -8,6 +8,13 @@ import { NotFound } from '@entifix/core';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { InvalidBody } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import {
+  type BuyerTax,
+  BuyerTaxIdInvalid,
+  BuyerTaxIdTypeUnknown,
+  BuyerTaxNameRequired,
+  buyerTaxOf,
+} from '@r10c/business-ts-tax-policy';
 import { Effect } from 'effect';
 
 import { SalesChannel } from '../../entities/sales-channel';
@@ -59,6 +66,33 @@ const totalsOf = (lines: readonly PricedLine[]) => {
 };
 
 /**
+ * The buyer's fiscal identity as the till gave it, or the typed refusal the
+ * storefront and the coordinator answer the same input with. Absent is a
+ * consumidor final.
+ */
+export const counterBuyerTax = (
+  input: CounterSalePayload['buyerTax'],
+): Effect.Effect<
+  BuyerTax,
+  BuyerTaxIdTypeUnknown | BuyerTaxIdInvalid | BuyerTaxNameRequired
+> => {
+  const outcome = buyerTaxOf(input ?? {});
+  if (outcome.ok) return Effect.succeed(outcome.value);
+  switch (outcome.problem) {
+    case 'invalidTaxIdType':
+      return Effect.fail(new BuyerTaxIdTypeUnknown({}));
+    case 'invalidTaxId':
+      return Effect.fail(
+        new BuyerTaxIdInvalid({
+          idType: input?.idType === 'cui' ? 'cui' : 'nit',
+        }),
+      );
+    case 'missingName':
+      return Effect.fail(new BuyerTaxNameRequired({}));
+  }
+};
+
+/**
  * Sell at the counter: **the same checkout the storefront starts**, with a
  * channel on it (ADR 0056). This process presents a crossing token on the
  * seller's behalf, so everything a token could abuse is decided here first —
@@ -94,6 +128,7 @@ export const sellAtCounter = (input: {
       return yield* new NotFound({ entity: 'sales-channel' });
     }
     const channel = yield* SellAtChannelUC.run(found);
+    const buyerTax = yield* counterBuyerTax(sale.buyerTax);
 
     const prices = yield* PublishedPriceReaderTag;
     const priced: PricedLine[] = [];
@@ -129,6 +164,11 @@ export const sellAtCounter = (input: {
           type: channel.type,
           id: String(channel.id),
           name: channel.name,
+        },
+        buyerTax: {
+          idType: buyerTax.idType,
+          taxId: buyerTax.taxId,
+          name: buyerTax.name,
         },
         vendors: [
           {

@@ -353,6 +353,9 @@
     },
     {
       "path": "./packages/implementation/order-management/smtp"
+    },
+    {
+      "path": "./packages/business/ts/tax-policy"
     }
   ],
   "compilerOptions": {

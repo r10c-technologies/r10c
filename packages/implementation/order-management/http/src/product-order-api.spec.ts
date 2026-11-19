@@ -20,6 +20,7 @@ import {
   StorefrontUrl,
 } from '@r10c/business-ts-order-management';
 import {
+  documentOrder,
   makeInMemoryOrderStores,
   makeRecordingBuyerNotifier,
 } from '@r10c/business-ts-order-management/testing';
@@ -47,12 +48,14 @@ const context = (principal?: Record<string, unknown>): EntityApiContext => ({
 const operator = context({ partyRole: 'operator' });
 
 const anOrder = (vendorId = 'v-1') =>
-  Object.assign(new ProductOrder('buyer-1'), {
-    vendorId,
-    groupId: GROUP,
-    paymentMethod: 'card',
-    items: [new OrderItem('offering-1', 'Lámpara Aurora', 1, 10, 'GTQ')],
-  });
+  documentOrder(
+    Object.assign(new ProductOrder('buyer-1'), {
+      vendorId,
+      groupId: GROUP,
+      paymentMethod: 'card',
+      items: [new OrderItem('offering-1', 'Lámpara Aurora', 1, 10, 'GTQ')],
+    }),
+  );
 
 /**
  * One pair of stores per case; the coordinator accepts every cancellation and

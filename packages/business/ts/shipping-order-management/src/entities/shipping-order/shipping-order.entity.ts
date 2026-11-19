@@ -49,6 +49,9 @@ export class ShippingOrder implements Entity {
   #flowId?: string;
   #paymentMethod: OrderTender = 'card';
   #amountDue = 0;
+  #taxableBase = 0;
+  #taxAmount = 0;
+  #taxRegime = '';
   #currency = '';
   #lines: readonly ShippingLine[] = [];
   #status: ShippingStatus = 'awaiting-dispatch';
@@ -192,6 +195,49 @@ export class ShippingOrder implements Entity {
   }
   set amountDue(value: number) {
     this.#amountDue = value;
+  }
+
+  /**
+   * The order's taxable base and tax, and the seller's regime, as the checkout
+   * stated them: what a cash collection records into its allocation, so money
+   * taken at the door carries its tax like money taken by card (ADR 0078 §6).
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:shipping-order.fields.taxableBase',
+    money: { unit: 'minor', currencyMember: 'currency' },
+    filterable: false,
+  })
+  get taxableBase(): number {
+    return this.#taxableBase;
+  }
+  set taxableBase(value: number) {
+    this.#taxableBase = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:shipping-order.fields.taxAmount',
+    money: { unit: 'minor', currencyMember: 'currency' },
+    filterable: false,
+  })
+  get taxAmount(): number {
+    return this.#taxAmount;
+  }
+  set taxAmount(value: number) {
+    this.#taxAmount = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:shipping-order.fields.taxRegime',
+    filterable: false,
+  })
+  get taxRegime(): string {
+    return this.#taxRegime;
+  }
+  set taxRegime(value: string) {
+    this.#taxRegime = value;
   }
 
   @accessor({

@@ -28,6 +28,18 @@ export interface SeededVendor {
   readonly idPrefix: string;
   /** How many specifications, and so offerings, its catalog is seeded with. */
   readonly offerings: number;
+  /**
+   * The fiscal identity the organization is seeded with — written only when
+   * the organization is first created, so a vendor's own edit survives a
+   * boot. Illustrative NITs with valid check characters, and one vendor per
+   * rule: `general` breaks IVA out of the price, `small-taxpayer` does not.
+   */
+  readonly fiscal: {
+    readonly taxId: string;
+    readonly legalName: string;
+    readonly taxRegime: 'general' | 'small-taxpayer' | 'simplified';
+    readonly establishmentCode: string;
+  };
 }
 
 export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
@@ -37,6 +49,12 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
     slug: 'demo-vendor',
     idPrefix: '',
     offerings: 60,
+    fiscal: {
+      taxId: '10000003',
+      legalName: 'Demo Vendor, Sociedad Anónima',
+      taxRegime: 'general',
+      establishmentCode: '1',
+    },
   },
   {
     organizationId: 'second-organization',
@@ -49,6 +67,12 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
     // (`second-product-offering-10`) — what a basket spanning both vendors
     // needs to be bought at all.
     offerings: 24,
+    fiscal: {
+      taxId: '20000006',
+      legalName: 'Second Vendor',
+      taxRegime: 'small-taxpayer',
+      establishmentCode: '1',
+    },
   },
 ];
 

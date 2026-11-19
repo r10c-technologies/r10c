@@ -102,7 +102,7 @@ describe('Every call a flow makes is declared on both ends (ADR 0065)', () => {
     );
 
     expect(undeclaredCalls(planted, fragments)).toEqual([
-      'stock.restore@3 POST /api/stock-restoration: not exposed by stock-service',
+      'stock.restore@4 POST /api/stock-restoration: not exposed by stock-service',
     ]);
   });
 });

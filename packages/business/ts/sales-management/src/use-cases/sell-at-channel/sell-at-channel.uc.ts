@@ -24,6 +24,18 @@ export const CounterSalePayload = Schema.Struct({
   ).check(Schema.isMinLength(1)),
   /** Card or cash: what a counter takes. Cash on delivery is the storefront's. */
   paymentMethod: Schema.Literals(['card', 'cash']),
+  /**
+   * Whom the sale is documented to: a NIT or CUI the buyer gave, or consumidor
+   * final when absent. Checked by {@link sellAtCounter} before any token is
+   * presented (ADR 0078 §6).
+   */
+  buyerTax: Schema.optional(
+    Schema.Struct({
+      idType: Schema.String,
+      taxId: Schema.optional(Schema.String),
+      name: Schema.optional(Schema.String),
+    }),
+  ),
 });
 
 export type CounterSalePayload = typeof CounterSalePayload.Type;

@@ -42,7 +42,16 @@ describePaymentLedgerContract('the Mongo ledger', () =>
 const outcome = (paymentId = 'pay-1'): PaymentOutcome => ({
   paymentId,
   groupId: 'group-1',
-  allocations: [{ orderId: 'order-1', vendorId: 'vendor-1', amount: 40 }],
+  allocations: [
+    {
+      orderId: 'order-1',
+      vendorId: 'vendor-1',
+      amount: 40,
+      taxableBase: 0,
+      taxAmount: 0,
+      taxRegime: 'general',
+    },
+  ],
   amount: 40,
   currency: 'GTQ',
   paymentMethod: 'card',

@@ -15,6 +15,7 @@ import {
   CheckoutGroupStoreTag,
   ProductOrderStoreTag,
 } from '../ports/product-order-store.js';
+import { documentOrder } from '../testing/fiscal-facts.js';
 import { makeInMemoryOrderStores } from '../testing/in-memory-product-order-store.js';
 import { makeRecordingBuyerNotifier } from '../testing/recording-buyer-notifier.js';
 import {
@@ -31,6 +32,7 @@ import {
   cancellationInput,
   cancelOrderAsBuyer,
   cancelOrderAsStaff,
+  fiscalFactsProblem,
   foreignLinesProblem,
   issueAccessLink,
   moveOrder,
@@ -45,12 +47,14 @@ const GROUP = '7b6f2b0e-6a0c-4b8e-9d55-0f0e6a3a1c11';
 const NONCE = 'the-nonce';
 
 const anOrder = (vendorId = 'v-1', groupId = GROUP) =>
-  Object.assign(new ProductOrder('buyer-1'), {
-    vendorId,
-    groupId,
-    paymentMethod: 'card',
-    items: [new OrderItem('o-1', 'Lámpara Aurora', 2, 10, 'GTQ')],
-  });
+  documentOrder(
+    Object.assign(new ProductOrder('buyer-1'), {
+      vendorId,
+      groupId,
+      paymentMethod: 'card',
+      items: [new OrderItem('o-1', 'Lámpara Aurora', 2, 10, 'GTQ')],
+    }),
+  );
 
 const aGroup = (extra: Partial<CheckoutGroup> = {}) =>
   Object.assign(new CheckoutGroup(), {
@@ -295,10 +299,19 @@ describe('placeOrder', () => {
       { vendorId: 'v-2' },
     ]);
     const nowhere = await place(anOrder('v-1', 'never-opened'));
-
-    expect([empty, vendorless, groupless, twoVendors].map(r => r.code)).toEqual(
-      ['invalidBody', 'invalidBody', 'invalidBody', 'invalidBody'],
+    const undocumented = await place(
+      Object.assign(anOrder(), { sellerTaxId: '' }),
     );
+
+    expect(
+      [empty, vendorless, groupless, twoVendors, undocumented].map(r => r.code),
+    ).toEqual([
+      'invalidBody',
+      'invalidBody',
+      'invalidBody',
+      'invalidBody',
+      'invalidBody',
+    ]);
     expect(nowhere.code).toBe('notFound');
   });
 });
@@ -794,5 +807,37 @@ describe('the buyer’s mail', () => {
 
     expect(answers).toEqual(Array(6).fill({ accepted: true }));
     expect(notifier.sent).toEqual([]);
+  });
+});
+
+describe('fiscalFactsProblem', () => {
+  it('passes an order the coordinator documented', () => {
+    expect(fiscalFactsProblem(anOrder())).toBeUndefined();
+  });
+
+  it('refuses an order with no seller, no buyer, or sums that disagree', () => {
+    expect(
+      fiscalFactsProblem(Object.assign(anOrder(), { sellerTaxId: '' })),
+    ).toContain('seller');
+    expect(
+      fiscalFactsProblem(Object.assign(anOrder(), { sellerLegalName: '' })),
+    ).toContain('seller');
+    expect(
+      fiscalFactsProblem(
+        Object.assign(anOrder(), { sellerEstablishmentCode: '' }),
+      ),
+    ).toContain('seller');
+    expect(
+      fiscalFactsProblem(Object.assign(anOrder(), { buyerTaxId: '' })),
+    ).toContain('buyer');
+    expect(
+      fiscalFactsProblem(Object.assign(anOrder(), { totalAmount: 1 })),
+    ).toContain('add up');
+    expect(
+      fiscalFactsProblem(Object.assign(anOrder(), { taxAmount: 1 })),
+    ).toContain('add up');
+    expect(
+      fiscalFactsProblem(Object.assign(anOrder(), { netAmount: 1 })),
+    ).toContain('add up');
   });
 });

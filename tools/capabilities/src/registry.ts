@@ -2,6 +2,7 @@ import { authnCapabilities } from './capabilities/authn.capabilities.js';
 import { catalogReferenceCapabilities } from './capabilities/catalog-reference.capabilities.js';
 import { marketplaceCatalogCapabilities } from './capabilities/marketplace-catalog.capabilities.js';
 import { orderManagementCapabilities } from './capabilities/order-management.capabilities.js';
+import { partyManagementCapabilities } from './capabilities/party-management.capabilities.js';
 import { productConfigurationManagementCapabilities } from './capabilities/product-configuration-management.capabilities.js';
 import { salesManagementCapabilities } from './capabilities/sales-management.capabilities.js';
 import { shippingOrderManagementCapabilities } from './capabilities/shipping-order-management.capabilities.js';
@@ -18,6 +19,7 @@ export const CAPABILITIES: readonly Capability[] = [
   ...catalogReferenceCapabilities,
   ...marketplaceCatalogCapabilities,
   ...orderManagementCapabilities,
+  ...partyManagementCapabilities,
   ...productConfigurationManagementCapabilities,
   ...salesManagementCapabilities,
   ...shippingOrderManagementCapabilities,

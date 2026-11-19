@@ -36,6 +36,9 @@ export const deliveryInput = (
   vendorId: organizationId,
   paymentMethod: order.paymentMethod,
   amountDue: order.amountDue,
+  taxableBase: order.taxableBase,
+  taxAmount: order.taxAmount,
+  taxRegime: order.taxRegime,
   currency: order.currency,
   lines: order.lines.map(line => ({
     offeringId: line.offeringId,

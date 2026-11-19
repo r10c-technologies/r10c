@@ -32,6 +32,7 @@ import {
   endpoints,
   policy,
   SERVICE_NAME,
+  TaxRulesTag,
   VendorFactsTag,
 } from '@r10c/transaction-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
@@ -91,17 +92,28 @@ const MockAppLayer = Layer.mergeAll(
   Layer.succeed(FlowEngineTag, engine),
   Layer.succeed(DeliveryDialsTag, DELIVERY_DIALS),
   Layer.succeed(VendorFactsTag, {
-    entitlementsOf: vendorIds =>
+    sellersOf: vendorIds =>
       Effect.succeed(
         new Map(
           vendorIds.map(id => [
             id,
-            id === PROVISIONED_VENDOR
-              ? ['stock-management', 'shipping-order-management']
-              : [],
+            {
+              holdsStock: id === PROVISIONED_VENDOR,
+              acceptsCod: id === PROVISIONED_VENDOR,
+              taxId: '10000003',
+              legalName: 'Demo Vendor, S.A.',
+              taxRegime: 'general',
+              establishmentCode: '1',
+            },
           ]),
         ),
       ),
+  }),
+  // The statutory rules the lab seeds (ADR 0078 §6).
+  Layer.succeed(TaxRulesTag, {
+    general: { rateBasisPoints: 1200, basis: 'inclusive' },
+    'small-taxpayer': { rateBasisPoints: 500, basis: 'gross' },
+    simplified: { rateBasisPoints: 1200, basis: 'inclusive' },
   }),
   Layer.succeed(
     TokenServiceTag,

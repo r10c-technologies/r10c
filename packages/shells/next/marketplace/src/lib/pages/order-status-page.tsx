@@ -242,6 +242,20 @@ async function ReceiptView({
         <DeliveryCard locale={locale} delivery={details.delivery} />
       )}
 
+      {details?.billedTo === undefined ? undefined : (
+        <Card>
+          <Text data-testid="order-billed-to">
+            {details.billedTo.idType === 'cf'
+              ? t('storefront.order.billedToCf')
+              : t('storefront.order.billedTo', {
+                  name: details.billedTo.name,
+                  idType: details.billedTo.idType.toUpperCase(),
+                  taxId: details.billedTo.taxId,
+                })}
+          </Text>
+        </Card>
+      )}
+
       {outcome === 'failed' ? (
         <Alert tone="danger" data-testid="cancel-failed">
           {t('storefront.order.cancelFailed')}
@@ -363,6 +377,8 @@ async function VendorOrderCard({
     })),
   );
 
+  const iva = details?.ivaIncluded.get(order.orderId);
+
   return (
     <Card>
       <Stack gap="s" data-testid={`vendor-order-${order.vendorId}`}>
@@ -415,14 +431,27 @@ async function VendorOrderCard({
           ))
         )}
         <Cluster justify="between" gap="s">
-          <Text weight="semibold">
-            <Money
-              amount={order.total.amount}
-              currency={order.total.currency}
-              unit="minor"
-              locale={locale}
-            />
-          </Text>
+          <Stack gap="3xs">
+            <Text weight="semibold">
+              <Money
+                amount={order.total.amount}
+                currency={order.total.currency}
+                unit="minor"
+                locale={locale}
+              />
+            </Text>
+            {iva === undefined ? undefined : (
+              <Text muted data-testid="vendor-order-iva">
+                {t('storefront.order.ivaIncluded')}{' '}
+                <Money
+                  amount={iva}
+                  currency={order.total.currency}
+                  unit="minor"
+                  locale={locale}
+                />
+              </Text>
+            )}
+          </Stack>
           {/* Asks first, with or without JavaScript: the title names the
               order, the message states the refund, and only the confirming
               post acts (a3-2, entifix ADR 0026). */}

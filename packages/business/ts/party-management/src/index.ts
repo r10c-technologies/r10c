@@ -19,4 +19,7 @@ export { PARTY_DOMAIN } from './domain';
 export * from './entities/individual';
 export * from './entities/organization';
 export * from './entities/party-role';
+export * from './failures/organization-failures';
+export * from './ports/organization-fiscal-identity';
+export * from './use-cases/set-fiscal-identity';
 export * from './values';

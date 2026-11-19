@@ -14,6 +14,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../../../business/ts/tax-policy/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/party-management/tsconfig.lib.json"
     },
     {

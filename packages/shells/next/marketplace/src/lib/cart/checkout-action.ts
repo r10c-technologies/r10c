@@ -29,9 +29,11 @@ import {
   tendersOffered,
 } from './checkout-start';
 import {
+  buyerTaxOfValues,
   type CheckoutFormState,
   contactErrors,
   contactOf,
+  type ContactValues,
   contactValuesOf,
   namesNoContact,
   refusalQuery,
@@ -147,7 +149,7 @@ export async function placeOrder(
     }
     return refused;
   }
-  return start(formData, contactOf(values));
+  return start(formData, contactOf(values), buyerTaxBodyOf(values));
 }
 
 /**
@@ -166,10 +168,20 @@ export async function checkout(formData: FormData) {
       )}`,
     );
   }
-  return start(formData, contactOf(values));
+  return start(formData, contactOf(values), buyerTaxBodyOf(values));
 }
 
-const start = async (formData: FormData, contact: unknown): Promise<never> => {
+/** The buyer's fiscal identity as the start states it, once the form passed it. */
+const buyerTaxBodyOf = (values: ContactValues) => {
+  const buyerTax = buyerTaxOfValues(values);
+  return buyerTax.ok ? buyerTax.value : undefined;
+};
+
+const start = async (
+  formData: FormData,
+  contact: unknown,
+  buyerTax: unknown,
+): Promise<never> => {
   const locale = String(formData.get('locale') ?? '');
   // Re-priced here rather than trusted from the review: the published price
   // at the moment the flow starts is the one the buyer pays.
@@ -204,6 +216,7 @@ const start = async (formData: FormData, contact: unknown): Promise<never> => {
         digestFlowCapability(ticket.capability),
       ),
       contact,
+      ...(buyerTax === undefined ? {} : { buyerTax }),
       locale,
     }),
     ticket.idempotencyKey,

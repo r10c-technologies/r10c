@@ -10,6 +10,7 @@ export {
   DeliveryDialsTag,
   endpoints,
   policy,
+  TaxRulesTag,
   VendorFactsTag,
 } from '@r10c/shells-effect-transaction';
 

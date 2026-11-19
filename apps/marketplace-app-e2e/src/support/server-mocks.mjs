@@ -393,6 +393,15 @@ const flowStatusHandler = http.get(FLOW_STATUS_URL, ({ request, params }) => {
   });
 });
 
+/** The IVA a 12 % IVA-inclusive gross carries, rounded once per document. */
+const ivaIncludedIn = lines => {
+  const gross = lines.reduce(
+    (sum, line) => sum + line.amount * line.quantity,
+    0,
+  );
+  return gross - Math.round((gross * 10000) / 11200);
+};
+
 /** The vendor order a flow wrote for one seller's part of its basket. */
 const orderIdOf = (flowId, vendorId) =>
   flowId.startsWith('e2e-flow-payment-pending-')
@@ -453,6 +462,13 @@ const buyerReceiptHandler = http.get(
           paymentMethod: part.paymentMethod,
           status: 'paid',
           items: part.lines,
+          // The IVA the coordinator states for a general-regime seller: the
+          // price includes it, so it is broken out of the gross (ADR 0078 §6).
+          sellerTaxRegime: 'general',
+          taxAmount: ivaIncludedIn(part.lines),
+          buyerTaxIdType: 'cf',
+          buyerTaxId: 'CF',
+          buyerTaxName: '',
         },
       })),
     });

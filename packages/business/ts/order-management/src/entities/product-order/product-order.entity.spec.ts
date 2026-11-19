@@ -19,6 +19,11 @@ const lineData = (amount: number) => ({
   amount,
   currency: 'EUR',
   reservationId: 'res-1',
+  kind: 'good',
+  taxTreatment: 'taxed',
+  taxRate: 0,
+  taxableBase: 0,
+  taxAmount: 0,
 });
 
 const anOrder = () =>
@@ -47,6 +52,18 @@ describe('ProductOrder', () => {
       items: [lineData(1000)],
       placedAt: PLACED,
       paidAt: PAID,
+      // Undocumented until a checkout states them (ADR 0078 §6).
+      sellerTaxId: '',
+      sellerLegalName: '',
+      sellerTaxRegime: 'general',
+      sellerEstablishmentCode: '',
+      buyerTaxIdType: 'cf',
+      buyerTaxId: '',
+      buyerTaxName: '',
+      netAmount: 0,
+      taxAmount: 0,
+      totalAmount: 0,
+      currency: '',
     });
   });
 

@@ -125,6 +125,8 @@ export interface CheckoutStartBody {
   readonly capabilityDigest: string;
   /** Who bought and where it goes, nested as the coordinator reads it. */
   readonly contact: unknown;
+  /** Whom the orders are documented to; the coordinator normalizes it. */
+  readonly buyerTax?: unknown;
   /** The locale the buyer checked out in, which their mail is written in. */
   readonly locale: string;
 }
@@ -134,6 +136,7 @@ export const checkoutStartBody = (input: {
   readonly cancelDigest: string;
   readonly capabilityDigest: string;
   readonly contact: unknown;
+  readonly buyerTax?: unknown;
   readonly locale: string;
 }): CheckoutStartBody => ({
   channel: { type: 'storefront' },
@@ -142,6 +145,7 @@ export const checkoutStartBody = (input: {
   cancelDigest: input.cancelDigest,
   capabilityDigest: input.capabilityDigest,
   contact: input.contact,
+  ...(input.buyerTax === undefined ? {} : { buyerTax: input.buyerTax }),
   locale: input.locale,
 });
 

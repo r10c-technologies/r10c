@@ -479,9 +479,9 @@
       "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "fulfilment.open@4",
+      "ref": "fulfilment.open@5",
       "id": "fulfilment.open",
-      "version": 4,
+      "version": 5,
       "module": "shipping-order-management",
       "kind": "retriable",
       "cardinality": "perVendor",
@@ -633,6 +633,39 @@
                   }
                 ]
               },
+              "taxableBase": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxAmount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxRegime": {
+                "type": "string"
+              },
               "currency": {
                 "type": "string",
                 "minLength": 1
@@ -687,6 +720,9 @@
               "destination",
               "paymentMethod",
               "amountDue",
+              "taxableBase",
+              "taxAmount",
+              "taxRegime",
               "currency",
               "lines"
             ],
@@ -754,7 +790,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "162b3fe20cc5ba"
+      "fingerprint": "01d8a9a8a8c3a2"
     },
     {
       "ref": "fulfilment.release@2",
@@ -1737,9 +1773,9 @@
       "fingerprint": "10fcc91164045e"
     },
     {
-      "ref": "order.write@5",
+      "ref": "order.write@6",
       "id": "order.write",
-      "version": 5,
+      "version": 6,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "perVendor",
@@ -1811,11 +1847,69 @@
                     "name": {
                       "type": "string",
                       "minLength": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "taxTreatment": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "taxRate": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    },
+                    "taxableBase": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    },
+                    "taxAmount": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "offeringId",
-                    "name"
+                    "name",
+                    "kind",
+                    "taxTreatment",
+                    "taxRate",
+                    "taxableBase",
+                    "taxAmount"
                   ],
                   "allOf": [
                     {
@@ -1824,13 +1918,100 @@
                     }
                   ]
                 }
+              },
+              "sellerTaxId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sellerLegalName": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sellerTaxRegime": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sellerEstablishmentCode": {
+                "type": "string",
+                "minLength": 1
+              },
+              "buyerTaxIdType": {
+                "type": "string",
+                "minLength": 1
+              },
+              "buyerTaxId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "buyerTaxName": {
+                "type": "string"
+              },
+              "netAmount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxAmount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "totalAmount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "required": [
               "groupId",
               "vendorId",
               "paymentMethod",
-              "items"
+              "items",
+              "sellerTaxId",
+              "sellerLegalName",
+              "sellerTaxRegime",
+              "sellerEstablishmentCode",
+              "buyerTaxIdType",
+              "buyerTaxId",
+              "buyerTaxName",
+              "netAmount",
+              "taxAmount",
+              "totalAmount",
+              "currency"
             ],
             "allOf": [
               {
@@ -1904,12 +2085,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1f406c1b01b445"
+      "fingerprint": "17f94e1c55a5d2"
     },
     {
-      "ref": "payment.capture@3",
+      "ref": "payment.capture@4",
       "id": "payment.capture",
-      "version": 3,
+      "version": 4,
       "module": "payment-management",
       "kind": "pivot",
       "cardinality": "one",
@@ -1981,11 +2162,48 @@
                           ]
                         }
                       ]
+                    },
+                    "taxableBase": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    },
+                    "taxAmount": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    },
+                    "taxRegime": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
                     "vendorId",
-                    "amount"
+                    "amount",
+                    "taxableBase",
+                    "taxAmount",
+                    "taxRegime"
                   ],
                   "allOf": [
                     {
@@ -2072,7 +2290,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0817be67af17e5"
+      "fingerprint": "14506473a8cd0f"
     },
     {
       "ref": "payment.cod-eligible@1",
@@ -2187,9 +2405,9 @@
       "fingerprint": "13b9bbb4650965"
     },
     {
-      "ref": "payment.record-collection@1",
+      "ref": "payment.record-collection@2",
       "id": "payment.record-collection",
-      "version": 1,
+      "version": 2,
       "module": "payment-management",
       "kind": "retriable",
       "cardinality": "one",
@@ -2238,6 +2456,39 @@
                   }
                 ]
               },
+              "taxableBase": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxAmount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "taxRegime": {
+                "type": "string"
+              },
               "currency": {
                 "type": "string",
                 "minLength": 1
@@ -2248,6 +2499,9 @@
               "orderId",
               "vendorId",
               "amount",
+              "taxableBase",
+              "taxAmount",
+              "taxRegime",
               "currency"
             ],
             "allOf": [
@@ -2317,7 +2571,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "01d132e382c7d6"
+      "fingerprint": "12908616e9e143"
     },
     {
       "ref": "payment.refund-after-delivery@1",
@@ -2791,9 +3045,9 @@
       "fingerprint": "1bb2ba0ee1a7c5"
     },
     {
-      "ref": "stock.restore@3",
+      "ref": "stock.restore@4",
       "id": "stock.restore",
-      "version": 3,
+      "version": 4,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",
@@ -2844,12 +3098,17 @@
                   "cancellation",
                   "return"
                 ]
+              },
+              "orderId": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "required": [
               "offeringId",
               "quantity",
-              "cause"
+              "cause",
+              "orderId"
             ],
             "allOf": [
               {
@@ -2911,7 +3170,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1fb5b487b86c0f"
+      "fingerprint": "1b6ab4dbd2d592"
     }
   ]
 }

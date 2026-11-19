@@ -18,6 +18,9 @@
       "path": "../../packages/shells/next/i18n-catalog"
     },
     {
+      "path": "../../packages/business/ts/tax-policy"
+    },
+    {
       "path": "../../packages/business/ts/stock-management"
     },
     {
@@ -30,9 +33,6 @@
       "path": "../../packages/business/ts/sales-management"
     },
     {
-      "path": "../../packages/business/ts/flow-contracts"
-    },
-    {
       "path": "../../packages/business/ts/product-configuration-management"
     },
     {
@@ -42,10 +42,16 @@
       "path": "../../packages/business/ts/payment-contracts"
     },
     {
+      "path": "../../packages/business/ts/party-management"
+    },
+    {
       "path": "../../packages/business/ts/order-management"
     },
     {
       "path": "../../packages/business/ts/order-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/flow-contracts"
     },
     {
       "path": "../../packages/business/ts/configuration"

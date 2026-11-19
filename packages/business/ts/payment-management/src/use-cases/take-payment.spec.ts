@@ -24,8 +24,22 @@ import {
 } from './take-payment.js';
 
 const SHARES = [
-  { orderId: 'order-1', vendorId: 'vendor-1', amount: 30 },
-  { orderId: 'order-2', vendorId: 'vendor-2', amount: 10 },
+  {
+    orderId: 'order-1',
+    vendorId: 'vendor-1',
+    amount: 30,
+    taxableBase: 27,
+    taxAmount: 3,
+    taxRegime: 'general',
+  },
+  {
+    orderId: 'order-2',
+    vendorId: 'vendor-2',
+    amount: 10,
+    taxableBase: 10,
+    taxAmount: 0,
+    taxRegime: 'small-taxpayer',
+  },
 ];
 
 const aPayment = () => new Payment('group-1', 40, 'GTQ');
@@ -76,7 +90,7 @@ describe('sharesProblem', () => {
     [40, [], 'a payment must pay for at least one order'],
     [
       40,
-      [{ orderId: 'o', vendorId: 'v', amount: 0 }],
+      [{ ...SHARES[0], orderId: 'o', vendorId: 'v', amount: 0 }],
       'every order share must be positive',
     ],
     [
@@ -225,7 +239,14 @@ describe('recordCollection', () => {
   const collect = (commandId: string | undefined, amount = 25) =>
     recordCollection({
       groupId: 'group-1',
-      share: { orderId: 'order-3', vendorId: 'vendor-3', amount },
+      share: {
+        orderId: 'order-3',
+        vendorId: 'vendor-3',
+        amount,
+        taxableBase: 0,
+        taxAmount: 0,
+        taxRegime: 'general',
+      },
       currency: 'GTQ',
       commandId,
     });

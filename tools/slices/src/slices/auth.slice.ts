@@ -62,6 +62,10 @@ export const authSlice: SliceDeclaration = {
     'GET /api/entity-identifier/$metadata',
     'GET /api/user-device/$metadata',
     'POST /api/user-device/:id/sign-out-session',
+    // The organization's own fiscal identity (ADR 0078 §6).
+    'GET /api/organization/$metadata',
+    'GET /api/organization/:id/fiscal-identity',
+    'POST /api/organization/:id/set-fiscal-identity',
   ],
   dependantAPIs: [
     'GET /api/config/:service',

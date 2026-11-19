@@ -50,6 +50,12 @@ const Line = openStruct({
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
   amount: Schema.Number,
   currency: Schema.NonEmptyString,
+  // Stated by the coordinator, never the caller (ADR 0078 §6).
+  kind: Schema.optionalKey(Schema.String),
+  taxTreatment: Schema.optionalKey(Schema.String),
+  taxRate: Schema.optionalKey(Schema.Number),
+  taxableBase: Schema.optionalKey(Schema.Number),
+  taxAmount: Schema.optionalKey(Schema.Number),
 });
 type Line = typeof Line.Type;
 
@@ -65,6 +71,22 @@ const VendorPart = openStruct({
   paymentMethod: Schema.Literals(PAYMENT_METHODS),
   lines: Schema.Array(Line).check(Schema.isMinLength(1)),
   entitlements: Schema.optionalKey(Schema.Array(Schema.String)),
+  /**
+   * The seller's fiscal identity and the document's sums, **stated by the
+   * coordinator** from the published vendor and the tax rules — overwritten,
+   * like the entitlements, whatever the caller sent (ADR 0078 §6).
+   */
+  sellerTax: Schema.optionalKey(
+    openStruct({
+      taxId: Schema.String,
+      legalName: Schema.String,
+      taxRegime: Schema.String,
+      establishmentCode: Schema.String,
+    }),
+  ),
+  netAmount: Schema.optionalKey(Schema.Number),
+  taxAmount: Schema.optionalKey(Schema.Number),
+  totalAmount: Schema.optionalKey(Schema.Number),
 });
 type VendorPart = typeof VendorPart.Type;
 
@@ -98,6 +120,18 @@ export const CheckoutStart = openStruct({
   contact: Schema.optionalKey(BuyerContactSchema),
   /** The locale the buyer checked out in. */
   locale: Schema.optionalKey(Schema.String),
+  /**
+   * The buyer's fiscal identity, normalized by the coordinator — consumidor
+   * final when none was given. Stored on each order, never announced on
+   * `order.*` (ADR 0078 §2).
+   */
+  buyerTax: Schema.optionalKey(
+    openStruct({
+      idType: Schema.String,
+      taxId: Schema.String,
+      name: Schema.String,
+    }),
+  ),
 }).check(
   Schema.makeFilter(
     start => start.channel.type !== 'storefront' || start.contact !== undefined,
@@ -215,13 +249,26 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           }),
         },
         {
-          ref: 'order.write@5',
+          ref: 'order.write@6',
           parameters: (_context, start, segment) => {
             const part = partOf(start.vendors, segment);
             return {
               vendorId: part.vendorId,
               paymentMethod: part.paymentMethod,
               items: part.lines,
+              // An order is documented at placement or never; a part the
+              // coordinator could not state is refused by the write.
+              sellerTaxId: part.sellerTax?.taxId,
+              sellerLegalName: part.sellerTax?.legalName,
+              sellerTaxRegime: part.sellerTax?.taxRegime,
+              sellerEstablishmentCode: part.sellerTax?.establishmentCode,
+              buyerTaxIdType: start.buyerTax?.idType ?? 'cf',
+              buyerTaxId: start.buyerTax?.taxId ?? 'CF',
+              buyerTaxName: start.buyerTax?.name ?? '',
+              netAmount: part.netAmount,
+              taxAmount: part.taxAmount,
+              totalAmount: part.totalAmount,
+              currency: part.lines[0]?.currency,
               ...(start.buyerId === undefined
                 ? {}
                 : { buyerId: start.buyerId }),
@@ -235,7 +282,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       name: 'pay',
       steps: [
         {
-          ref: 'payment.capture@3',
+          ref: 'payment.capture@4',
           when: (_context, start) => start.vendors.some(paysNow),
           parameters: (_context, start) => {
             const paying = start.vendors.filter(paysNow);
@@ -245,6 +292,9 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
               shares: paying.map(part => ({
                 vendorId: part.vendorId,
                 amount: totalOf(part.lines),
+                taxableBase: part.netAmount,
+                taxAmount: part.taxAmount,
+                taxRegime: part.sellerTax?.taxRegime,
               })),
               ...(start.channel.id === undefined
                 ? {}
@@ -270,7 +320,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
         },
         { ref: 'order.confirm@2' },
         {
-          ref: 'fulfilment.open@4',
+          ref: 'fulfilment.open@5',
           when: (_context, start, segment) =>
             !atCounter(start) && holds(segment, SHIPPING),
           parameters: (_context, start, segment) => {
@@ -291,6 +341,9 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
               organizationId: part.vendorId,
               paymentMethod: part.paymentMethod,
               amountDue: part.paymentMethod === 'cod' ? totalOf(part.lines) : 0,
+              taxableBase: part.netAmount,
+              taxAmount: part.taxAmount,
+              taxRegime: part.sellerTax?.taxRegime,
               currency: part.lines[0]?.currency,
               lines: part.lines.map(line => ({
                 offeringId: line.offeringId,
@@ -411,9 +464,10 @@ export const cancellationRecipe: Recipe<CancellationStart> = {
       perSegment: true,
       steps: [
         {
-          ref: 'stock.restore@3',
+          ref: 'stock.restore@4',
           parameters: (_context, start) => ({
             organizationId: start.vendorId,
+            orderId: start.orderId,
             cause: 'cancellation',
           }),
         },
@@ -467,6 +521,9 @@ export const DeliveryStart = openStruct({
   vendorId: Schema.NonEmptyString,
   paymentMethod: Schema.Literals(PAYMENT_METHODS),
   amountDue: Schema.Number,
+  taxableBase: Schema.Number,
+  taxAmount: Schema.Number,
+  taxRegime: Schema.String,
   currency: Schema.NonEmptyString,
   lines: Schema.Array(ReturnedLine).check(Schema.isMinLength(1)),
   buyerId: Schema.optionalKey(Schema.String),
@@ -546,13 +603,16 @@ export const deliveryRecipe: Recipe<DeliveryStart> = {
       on: { wait: AWAIT_DELIVERY, outcomes: [DELIVERY_OUTCOMES.delivered] },
       steps: [
         {
-          ref: 'payment.record-collection@1',
+          ref: 'payment.record-collection@2',
           when: (_context, start) => start.paymentMethod === 'cod',
           parameters: (_context, start) => ({
             groupId: start.groupId,
             orderId: start.orderId,
             vendorId: start.vendorId,
             amount: start.amountDue,
+            taxableBase: start.taxableBase,
+            taxAmount: start.taxAmount,
+            taxRegime: start.taxRegime,
             currency: start.currency,
           }),
         },
@@ -586,9 +646,10 @@ export const deliveryRecipe: Recipe<DeliveryStart> = {
           }),
         },
         {
-          ref: 'stock.restore@3',
+          ref: 'stock.restore@4',
           parameters: (_context, start) => ({
             organizationId: start.vendorId,
+            orderId: start.orderId,
             cause: 'return',
           }),
         },

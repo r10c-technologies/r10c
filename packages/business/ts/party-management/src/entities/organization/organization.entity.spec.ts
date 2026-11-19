@@ -24,6 +24,10 @@ describe('Organization', () => {
       name: 'Acme Supplies',
       slug: 'acme',
       status: 'active',
+      taxId: '',
+      legalName: '',
+      taxRegime: 'general',
+      establishmentCode: '',
     });
   });
 
@@ -56,8 +60,26 @@ describe('Organization', () => {
       ['name', 'string'],
       ['slug', 'string'],
       ['status', 'enum'],
+      ['taxId', 'string'],
+      ['legalName', 'string'],
+      ['taxRegime', 'enum'],
+      ['establishmentCode', 'string'],
       ['updatedAt', 'date'],
     ]);
+  });
+
+  it('holds its fiscal identity', () => {
+    const organization = new Organization('Demo Vendor', 'demo-vendor');
+    organization.taxId = '12345679';
+    organization.legalName = 'Demo, S.A.';
+    organization.taxRegime = 'simplified';
+    organization.establishmentCode = '1';
+    expect([
+      organization.taxId,
+      organization.legalName,
+      organization.taxRegime,
+      organization.establishmentCode,
+    ]).toEqual(['12345679', 'Demo, S.A.', 'simplified', '1']);
   });
 
   it('holds the moment of its last write, which its announcement is stamped with', () => {

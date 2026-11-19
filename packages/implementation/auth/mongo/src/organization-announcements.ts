@@ -1,4 +1,4 @@
-import { type EntifixFailure, Unavailable } from '@entifix/core';
+import { type EntifixFailure, NotFound, Unavailable } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
@@ -16,8 +16,14 @@ import {
 import {
   organizationAnnouncedEvent,
   type OrganizationAnnouncement,
+  type SellerFiscalIdentity,
 } from '@r10c/business-ts-party-contracts';
-import { Effect } from 'effect';
+import {
+  type FiscalIdentity,
+  OrganizationFiscalIdentityTag,
+} from '@r10c/business-ts-party-management';
+import { isTaxRegime } from '@r10c/business-ts-tax-policy';
+import { Effect, Layer } from 'effect';
 import type { Db, Document, MongoClient } from 'mongodb';
 
 /** Where an organization lives — its entity key, as every collection name is. */
@@ -65,6 +71,8 @@ export const announcementOf = (
   const { id, name, updatedAt } = row;
   if (typeof id !== 'string' || id === '') return undefined;
   if (typeof name !== 'string' || name.trim() === '') return undefined;
+  const fiscal = fiscalOf(row);
+  if (fiscal === undefined) return undefined;
   if (!(updatedAt instanceof Date) || Number.isNaN(updatedAt.getTime())) {
     return undefined;
   }
@@ -74,7 +82,26 @@ export const announcementOf = (
     announcedAt: updatedAt.toISOString(),
     acceptsCod: commerce.acceptsCod,
     holdsStock: commerce.holdsStock,
+    fiscal,
   };
+};
+
+const filled = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim() !== '';
+
+/**
+ * The stored fiscal identity, or `undefined` while any member is blank. An
+ * organization with none cannot be sold from — every order copies it — so it
+ * is not announced at all rather than announced half-described (ADR 0078 §6).
+ */
+const fiscalOf = (row: Document): SellerFiscalIdentity | undefined => {
+  const { taxId, legalName, taxRegime, establishmentCode } = row;
+  return filled(taxId) &&
+    filled(legalName) &&
+    filled(taxRegime) &&
+    filled(establishmentCode)
+    ? { taxId, legalName, taxRegime, establishmentCode }
+    : undefined;
 };
 
 const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
@@ -109,6 +136,13 @@ export const writeOrganization = (
   row: Readonly<Record<string, unknown>>,
   source: string,
   now: Date,
+  /**
+   * Members written only when the organization does not exist yet — what a
+   * seed proposes and the organization itself then owns. The fiscal identity
+   * is seeded this way, so a boot never overwrites what an `admin` stated
+   * through `set-fiscal-identity`.
+   */
+  initial: Readonly<Record<string, unknown>> = {},
 ): Effect.Effect<
   'written' | 'unchanged',
   EntifixFailure,
@@ -144,7 +178,10 @@ export const writeOrganization = (
                   .findOne({ organizationId: row['id'] }, { session }),
               catch: mongoUnitFault,
             });
-            const written = { ...row, updatedAt: now };
+            const written =
+              stored === null
+                ? { ...initial, ...row, updatedAt: now }
+                : { ...row, updatedAt: now };
             yield* Effect.tryPromise({
               try: () =>
                 organizations.updateOne(
@@ -154,8 +191,11 @@ export const writeOrganization = (
                 ),
               catch: mongoUnitFault,
             });
+            // Announced from the whole record, not from the members this write
+            // set: a write of the fiscal identity alone still re-states the
+            // name beside it.
             const announcement = announcementOf(
-              written,
+              { ...stored, ...written },
               commerceOf(entitlement),
             );
             if (announcement !== undefined) {
@@ -177,15 +217,19 @@ export const writeOrganization = (
   });
 
 /** Seeds the organizations through {@link writeOrganization}, one at a time. */
-export const seedOrganizations = (
-  rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
-) =>
+/** One organization a seed proposes: its row, and what only a new one gets. */
+export interface OrganizationSeed {
+  readonly row: Readonly<Record<string, unknown>>;
+  readonly initial?: Readonly<Record<string, unknown>>;
+}
+
+export const seedOrganizations = (seeds: ReadonlyArray<OrganizationSeed>) =>
   Effect.gen(function* () {
     const client = yield* MongoClientTag;
     const db = yield* MongoDatabaseTag;
     const source = yield* EventSourceTag;
-    for (const row of rows) {
-      yield* writeOrganization(client, db, row, source, new Date());
+    for (const { row, initial } of seeds) {
+      yield* writeOrganization(client, db, row, source, new Date(), initial);
     }
   });
 
@@ -277,3 +321,89 @@ export const rebuildOrganizationAnnouncements = (
 
     return report;
   });
+
+/**
+ * The organization's own statement of its fiscal identity
+ * (`set-fiscal-identity`), written through {@link writeOrganization} so the
+ * record and its announcement stay one unit: the published vendor projection
+ * is what every new order copies the identity from.
+ *
+ * An organization is provisioned by the operator, never created here — an
+ * unknown id answers `NotFound` rather than upserting a nameless row.
+ */
+export const makeMongoOrganizationFiscalIdentity = (
+  client: MongoClient,
+  db: Db,
+  source: string,
+  bus: EventBus,
+  maxAttempts: number,
+) => ({
+  get: (
+    organizationId: string,
+  ): Effect.Effect<FiscalIdentity | undefined, NotFound | Unavailable> =>
+    Effect.gen(function* () {
+      const stored = yield* Effect.tryPromise({
+        try: () =>
+          db
+            .collection(ORGANIZATION_COLLECTION)
+            .findOne({ id: organizationId }),
+        catch: storeUnavailable,
+      });
+      if (stored === null) {
+        return yield* Effect.fail(new NotFound({ entity: 'organization' }));
+      }
+      const fiscal = fiscalOf(stored);
+      return fiscal !== undefined && isTaxRegime(fiscal.taxRegime)
+        ? { ...fiscal, taxRegime: fiscal.taxRegime }
+        : undefined;
+    }),
+  set: (
+    organizationId: string,
+    identity: FiscalIdentity,
+  ): Effect.Effect<void, NotFound | EntifixFailure> =>
+    Effect.gen(function* () {
+      const stored = yield* Effect.tryPromise({
+        try: () =>
+          db
+            .collection(ORGANIZATION_COLLECTION)
+            .findOne({ id: organizationId }, { projection: { _id: 1 } }),
+        catch: storeUnavailable,
+      });
+      if (stored === null) {
+        return yield* Effect.fail(new NotFound({ entity: 'organization' }));
+      }
+      yield* writeOrganization(
+        client,
+        db,
+        {
+          id: organizationId,
+          taxId: identity.taxId,
+          legalName: identity.legalName,
+          taxRegime: identity.taxRegime,
+          establishmentCode: identity.establishmentCode,
+        },
+        source,
+        new Date(),
+      ).pipe(
+        Effect.provideService(EventBusTag, bus),
+        Effect.provideService(OutboxMaxAttempts, maxAttempts),
+      );
+    }),
+});
+
+/**
+ * The organization's fiscal identity port over the `auth` store — what
+ * `set-fiscal-identity` reads and writes through (ADR 0078 §6).
+ */
+export const MongoOrganizationFiscalIdentityLayer = Layer.effect(
+  OrganizationFiscalIdentityTag,
+  Effect.gen(function* () {
+    return makeMongoOrganizationFiscalIdentity(
+      yield* MongoClientTag,
+      yield* MongoDatabaseTag,
+      yield* EventSourceTag,
+      yield* EventBusTag,
+      yield* OutboxMaxAttempts,
+    );
+  }),
+);

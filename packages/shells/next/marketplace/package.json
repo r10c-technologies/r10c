@@ -56,6 +56,7 @@
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@r10c/business-ts-order-contracts": "workspace:*",
+    "@r10c/business-ts-tax-policy": "workspace:*",
     "@r10c/implementation-catalog-reference-next": "workspace:*",
     "@r10c/implementation-marketplace-catalog-next": "workspace:*",
     "@r10c/implementation-marketplace-vendor-next": "workspace:*",

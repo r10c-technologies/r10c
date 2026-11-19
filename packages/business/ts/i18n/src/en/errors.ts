@@ -78,6 +78,11 @@ export const errors: EsErrors = {
   insufficientStock: 'There is not enough stock to reserve.',
   flowNotStarted:
     'This could not be started. Check what was asked and try again.',
+  invalidTaxId: 'That NIT or CUI is not valid. Check the digits.',
+  missingName: 'Write the name the invoice is issued to.',
+  invalidTaxIdType: 'Choose whom to invoice.',
+  invalidFiscalIdentity:
+    'Check the fiscal details: the NIT, legal name, regime or establishment is not valid.',
   channelInactive: 'That sales channel is retired.',
   notYours: 'That offering belongs to another vendor.',
   identifierRequired: 'An account needs at least one identifier.',

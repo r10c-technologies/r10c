@@ -109,10 +109,10 @@ export const stockMovementCrud: EntityCrud<StockMovement> = makeEntityCrud(
     catalogKey: STOCK_MOVEMENT_SURFACE.entityKey,
     repository: 'stockMovementRest',
     write: 'stockMovementWriter',
-    // Server-owned: `record-movement.ts` assigns it with `randomUUID()`, so
-    // asking an operator to type one would be asking for a value the service
-    // overwrites.
-    hiddenFields: ['id'],
+    // Server-owned: `recordMovement` assigns the id with `randomUUID()` and
+    // states when and why it happened, so asking an operator to type any of
+    // them would be asking for values the service overwrites.
+    hiddenFields: ['id', 'occurredAt', 'causeType', 'causeId'],
     metadata: 'metadata',
   },
 );

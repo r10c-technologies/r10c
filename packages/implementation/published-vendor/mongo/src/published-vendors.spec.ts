@@ -21,6 +21,12 @@ const NAMED: OrganizationAnnouncement = {
   announcedAt: '2026-10-23T10:00:00.000Z',
   acceptsCod: true,
   holdsStock: true,
+  fiscal: {
+    taxId: '10000003',
+    legalName: 'Demo Vendor, S.A.',
+    taxRegime: 'general',
+    establishmentCode: '1',
+  },
 };
 const RENAMED: OrganizationAnnouncement = {
   ...NAMED,
@@ -85,6 +91,10 @@ describe('applying an announcement', () => {
         announcedAt: new Date(NAMED.announcedAt),
         acceptsCod: true,
         holdsStock: true,
+        taxId: '10000003',
+        legalName: 'Demo Vendor, S.A.',
+        taxRegime: 'general',
+        establishmentCode: '1',
       },
     ]);
   });

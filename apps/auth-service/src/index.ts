@@ -43,6 +43,7 @@ export {
   makeMongoAccountRepository,
   makeMongoSessionScopeResolver,
   makeMongoUserDeviceRepository,
+  MongoOrganizationFiscalIdentityLayer,
   OUTBOX_COLLECTION,
 } from '@r10c/implementation-auth-mongo';
 export {

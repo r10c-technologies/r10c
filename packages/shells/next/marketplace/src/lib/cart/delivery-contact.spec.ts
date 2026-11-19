@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buyerTaxOfValues,
   contactErrors,
   contactFieldName,
   contactOf,
@@ -113,5 +114,35 @@ describe('a refusal carried on the address (#725)', () => {
     expect(refusedState(undefined, CODES, [])).toBe(EMPTY_CHECKOUT_FORM);
     expect(refusedState('', CODES, [])).toBe(EMPTY_CHECKOUT_FORM);
     expect(refusedState(['a'], CODES, [])).toBe(EMPTY_CHECKOUT_FORM);
+  });
+});
+
+describe('the fiscal identity fields', () => {
+  it('documents a buyer who chose nothing as consumidor final, by the receiver', () => {
+    expect(buyerTaxOfValues({ name: 'Ana López' })).toEqual({
+      ok: true,
+      value: { idType: 'cf', taxId: 'CF', name: 'Ana López' },
+    });
+    expect(buyerTaxOfValues({ taxIdType: '' })).toMatchObject({ ok: true });
+  });
+
+  it('marks the field each problem belongs to', () => {
+    expect(contactErrors({ ...typed, taxIdType: 'nit', taxId: '1' })).toEqual({
+      taxId: 'invalidTaxId',
+    });
+    expect(
+      contactErrors({ ...typed, taxIdType: 'nit', taxId: '1234567-9' }),
+    ).toEqual({ taxName: 'missingName' });
+    expect(contactErrors({ ...typed, taxIdType: 'dpi' })).toEqual({
+      taxIdType: 'invalidTaxIdType',
+    });
+    expect(
+      contactErrors({
+        ...typed,
+        taxIdType: 'nit',
+        taxId: '1234567-9',
+        taxName: 'Ferre SA',
+      }),
+    ).toEqual({});
   });
 });

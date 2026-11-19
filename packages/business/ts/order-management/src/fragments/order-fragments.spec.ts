@@ -12,7 +12,7 @@ describe('order fragments', () => {
   it('are pinned and owned by order-management', () => {
     expect(ORDER_FRAGMENTS.map(fragmentRef)).toEqual([
       'order.open-group@3',
-      'order.write@5',
+      'order.write@6',
       'order.claim-cancel@3',
       'order.confirm@2',
       'order.mark-dispatched@2',

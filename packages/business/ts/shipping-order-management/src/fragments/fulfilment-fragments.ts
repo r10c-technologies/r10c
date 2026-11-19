@@ -33,7 +33,7 @@ const MOVE_REFUSAL = participantRefusal([
  */
 export const fulfilmentOpen = defineFragment({
   id: 'fulfilment.open',
-  version: 4,
+  version: 5,
   module: 'shipping-order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -61,6 +61,11 @@ export const fulfilmentOpen = defineFragment({
       }),
       paymentMethod: Schema.NonEmptyString,
       amountDue: Schema.Number,
+      // The order's tax as the checkout stated it, for a collection to record
+      // (ADR 0078 §6).
+      taxableBase: Schema.Number,
+      taxAmount: Schema.Number,
+      taxRegime: Schema.String,
       currency: Schema.NonEmptyString,
       // What goes in the parcel, under the name it was sold as (#582).
       lines: Schema.Array(
