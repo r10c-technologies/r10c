@@ -29,3 +29,22 @@ test('names an order by its number in the list and on its own page', async ({
       .last(),
   ).toHaveText(PAID_ORDER_NUMBER);
 });
+
+/**
+ * A row a vendor scans (#556): the number, what was bought — the first
+ * product, by the name it was sold under — and none of the ids that are always
+ * the reader's own organization or mean nothing to them.
+ */
+test('reads an order row by its number and what was bought', async ({
+  page,
+}) => {
+  await page.goto('/es/order/product-order');
+
+  const row = page
+    .locator(':is(tr, article):visible')
+    .filter({ hasText: PAID_ORDER_NUMBER })
+    .first();
+  await expect(row).toContainText('Aurora Desk Lamp');
+  await expect(row).not.toContainText('buyer-1');
+  await expect(row).not.toContainText('group-1');
+});

@@ -1,6 +1,8 @@
 import {
   AWAITING_SHIPMENT_2_ID,
+  AWAITING_SHIPMENT_2_NUMBER,
   AWAITING_SHIPMENT_ID,
+  AWAITING_SHIPMENT_NUMBER,
   DELIVERY_FLOW_ID,
   DISPATCHED_SHIPMENT_ID,
   dispatches,
@@ -29,9 +31,42 @@ test.beforeEach(() => {
 test('opens on the shipments awaiting dispatch', async ({ page }) => {
   await page.goto('/fulfilment/shipping-order');
 
-  await expect(record(page, /ord-a1/).first()).toBeVisible();
+  await expect(record(page, AWAITING_SHIPMENT_NUMBER).first()).toBeVisible();
   // A dispatched parcel is one filter change away, not on the worklist.
-  await expect(record(page, /ord-d1/)).toHaveCount(0);
+  await expect(record(page, 'D1D1-0003')).toHaveCount(0);
+});
+
+test('says on each row what goes in the parcel and where it goes (#557)', async ({
+  page,
+}) => {
+  await page.goto('/fulfilment/shipping-order');
+
+  const cod = record(page, AWAITING_SHIPMENT_NUMBER).first();
+  await expect(cod).toContainText('2 × Aurora Desk Lamp');
+  await expect(cod).toContainText('Mixco, Guatemala');
+  // 50 minor units is 0,50 quetzales, and only cash on delivery is collected.
+  await expect(cod).toContainText(/0,50\sGTQ/);
+  const card = record(page, AWAITING_SHIPMENT_2_NUMBER).first();
+  await expect(card).toContainText('2 × Aurora Desk Lamp');
+  await expect(card).not.toContainText('GTQ');
+});
+
+test('names a shipment by its order number, never by an id (#557)', async ({
+  page,
+}) => {
+  const uuid =
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|ord-a1/;
+
+  await page.goto('/fulfilment/shipping-order');
+  await expect(record(page, AWAITING_SHIPMENT_NUMBER).first()).toBeVisible();
+  await expect(page.getByRole('main')).not.toContainText(uuid);
+
+  await page.goto(`/fulfilment/shipping-order/${AWAITING_SHIPMENT_ID}`);
+  await page.getByRole('button', { name: 'Despachar' }).click();
+  const confirm = page.getByRole('alertdialog');
+  await expect(confirm).toContainText(AWAITING_SHIPMENT_NUMBER);
+  await expect(confirm).not.toContainText(uuid);
+  await confirm.getByRole('button', { name: 'Cancelar' }).click();
 });
 
 test('reads what the courier collects as money, never as minor units', async ({
@@ -157,13 +192,13 @@ test('dispatches a selection from the worklist, and names the shipment that coul
 }) => {
   await page.goto('/fulfilment/shipping-order');
   // One of the two was held by a cancellation after the list loaded.
-  await expect(record(page, /ord-a2/).first()).toBeVisible();
+  await expect(record(page, AWAITING_SHIPMENT_2_NUMBER).first()).toBeVisible();
   moveShipment(AWAITING_SHIPMENT_2_ID, 'held');
 
-  await record(page, /ord-a1/)
+  await record(page, AWAITING_SHIPMENT_NUMBER)
     .getByRole('checkbox')
     .check();
-  await record(page, /ord-a2/)
+  await record(page, AWAITING_SHIPMENT_2_NUMBER)
     .getByRole('checkbox')
     .check();
   await page

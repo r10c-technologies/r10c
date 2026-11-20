@@ -59,7 +59,7 @@ const SCREENS = [
   {
     screen: 'operaciones-shipment-worklist',
     path: '/es/fulfilment/shipping-order',
-    ready: { record: /ord-a1/ },
+    ready: { record: 'A1A1-0001' },
   },
   {
     screen: 'shipment-detail',

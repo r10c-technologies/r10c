@@ -382,25 +382,53 @@ const shipment = (
   orderId: string,
   orderNumber: string,
   status: string,
+  paymentMethod = 'cod',
 ) => ({
   id,
   orderId,
   orderNumber,
   groupId: 'group-1',
   flowId: 'checkout-flow-1',
-  paymentMethod: 'cod',
+  paymentMethod,
   amountDue: 50,
   currency: 'GTQ',
+  destination: [
+    {
+      name: 'Ana López',
+      phone: '+50255550123',
+      departamento: 'Guatemala',
+      municipio: 'Mixco',
+      addressLine: '4a calle 5-10',
+    },
+  ],
   lines: [
     { offeringId: 'product-offering-1', name: 'Aurora Desk Lamp', quantity: 2 },
   ],
   status,
 });
 
-/** The shipments a seeded vendor holds: two awaiting, one out, one refused. */
+/** What names each shipment: its order's number (ADR 0076 §5). */
+export const AWAITING_SHIPMENT_NUMBER = 'A1A1-0001';
+export const AWAITING_SHIPMENT_2_NUMBER = 'A2A2-0002';
+
+/**
+ * The shipments a seeded vendor holds: two awaiting — one cash on delivery,
+ * one paid by card — one out, one refused.
+ */
 export const shipmentSeed = () => [
-  shipment(AWAITING_SHIPMENT_ID, 'ord-a1', 'A1A1-0001', 'awaiting-dispatch'),
-  shipment(AWAITING_SHIPMENT_2_ID, 'ord-a2', 'A2A2-0002', 'awaiting-dispatch'),
+  shipment(
+    AWAITING_SHIPMENT_ID,
+    'ord-a1',
+    AWAITING_SHIPMENT_NUMBER,
+    'awaiting-dispatch',
+  ),
+  shipment(
+    AWAITING_SHIPMENT_2_ID,
+    'ord-a2',
+    AWAITING_SHIPMENT_2_NUMBER,
+    'awaiting-dispatch',
+    'card',
+  ),
   shipment(DISPATCHED_SHIPMENT_ID, 'ord-d1', 'D1D1-0003', 'dispatched'),
   shipment(REFUSED_SHIPMENT_ID, 'ord-r1', 'R1R1-0004', 'refused'),
 ];

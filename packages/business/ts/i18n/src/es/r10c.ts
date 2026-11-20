@@ -527,6 +527,11 @@ export const r10c = {
       latest: 'Últimos pedidos',
       none: 'Aún no ha recibido pedidos.',
     },
+    // La columna de productos de la lista: el primero y cuántos más (#556).
+    list: {
+      itemsMore_one: '{{name}} y 1 más',
+      itemsMore_other: '{{name}} y {{count}} más',
+    },
     // La región de un pedido con link de pago (ADR 0081): el vendedor pone el
     // link con el que paga el comprador y confirma el pago con su número de
     // autorización.
@@ -552,6 +557,10 @@ export const r10c = {
     },
     home: {
       awaitingDispatch: 'Envíos por despachar',
+    },
+    // Una línea del contenido del paquete en la lista: «2 × Lámpara» (#557).
+    list: {
+      line: '{{quantity}} × {{name}}',
     },
     whatsapp: {
       heading: 'Comprador',
