@@ -5,6 +5,7 @@ import { endpoints, makeAppLayer, policy } from '@r10c/shells-effect-config';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { config as loadEnv } from 'dotenv';
 
+import { seedRowsFor } from './cluster-seed';
 import { SEED_ROWS } from './db';
 
 /**
@@ -29,5 +30,6 @@ makeService({
   description: fleetToken,
   endpoints,
   policy,
-  appLayer: makeAppLayer({ seedRows: SEED_ROWS }),
+  // The lab's rows, or a cluster's rewrite of them (#683, `cluster-seed.ts`).
+  appLayer: makeAppLayer({ seedRows: seedRowsFor(process.env, SEED_ROWS) }),
 });

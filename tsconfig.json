@@ -359,6 +359,9 @@
     },
     {
       "path": "./tools/cluster"
+    },
+    {
+      "path": "./tools/infra"
     }
   ],
   "compilerOptions": {

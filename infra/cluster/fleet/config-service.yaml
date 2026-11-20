@@ -41,9 +41,17 @@ spec:
                 secretKeyRef:
                   name: config-service-database
                   key: url
+            - name: CONFIG_SEED_PROFILE
+              value: cluster
+            - name: CONFIG_SEED_FILE
+              value: /seed/seed.json
           envFrom:
             - configMapRef:
                 name: fleet-env
+          volumeMounts:
+            - name: seed
+              mountPath: /seed
+              readOnly: true
           lifecycle:
             preStop:
               sleep:
@@ -78,6 +86,10 @@ spec:
             capabilities:
               drop:
                 - ALL
+      volumes:
+        - name: seed
+          secret:
+            secretName: config-seed
 ---
 apiVersion: v1
 kind: Service

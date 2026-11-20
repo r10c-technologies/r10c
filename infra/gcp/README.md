@@ -16,6 +16,8 @@ and tflint on every change, and no CI job holds a GCP or Atlas credential.
 | `gke.tf`      | the zonal Standard cluster and its fleet pool, scaled to zero when down                           | #678  |
 | `sql.tf`      | one Cloud SQL Postgres instance: `postgres` (configuration), `workflow`, `zitadel`; backups, PITR | #679  |
 | `atlas.tf`    | the Atlas project, a Flex cluster in GCP `us-central1`, the access list holding the NAT address   | #680  |
+| `secrets.tf`  | one Secret Manager container per secret, by who supplies it; never a value                        | #683  |
+| `registry.tf` | the Artifact Registry repository the up command pushes to, keeping two versions per image         | #685  |
 | `outputs.tf`  | what the up and down commands and the manifests read                                              | —     |
 
 ## Validate locally
@@ -38,9 +40,12 @@ upgrade is a reviewed change to `.terraform.lock.hcl`.
   before the first `tofu init`; the runbook's bootstrap step creates them
   (#693).
 - **The size of the fleet pool and Cloud SQL's activation policy.** The up and
-  down commands own them (#685), so both are in `ignore_changes`.
-- **Secret values and database users.** Secret Manager holds them, and how a
-  value reaches a pod is #683's.
+  down commands own them (#685), so both are in `ignore_changes`, as is the
+  pool's autoscaling.
+- **Secret values and database users.** Secret Manager holds the values; the
+  up command (`tools/infra`) mints the generated ones, sets the Cloud SQL and
+  Atlas users from them, and writes them into the cluster as Kubernetes
+  Secrets. A value in this code would be a value in the state bucket.
 
 ## The Atlas tier, measured
 

@@ -11,3 +11,4 @@
 # (infra/cluster/README.md).
 /infra/cluster/vendor/*/install.yaml
 /infra/cluster/vendor/*/cluster-operator.yml
+/infra/cluster/vendor/*/cert-manager.yaml

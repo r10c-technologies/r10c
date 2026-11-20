@@ -15,12 +15,45 @@ export interface Origin {
   readonly origin: number;
   /** The Nx project, unscoped — also the cluster `Service` name. */
   readonly app: string;
+  /** Its public hostname's first label in a cluster: `<host>.<domain>`. */
+  readonly host: string;
 }
 
 export const ORIGINS: readonly Origin[] = [
-  { origin: 3000, app: 'marketplace-app' },
-  { origin: 3001, app: 'back-office-app' },
+  { origin: 3000, app: 'marketplace-app', host: 'shop' },
+  { origin: 3001, app: 'back-office-app', host: 'office' },
 ];
+
+/**
+ * The identity provider's public hostname in a cluster, and what is behind it
+ * (ADR 0018): the hosted login under its own prefix, Zitadel everywhere else.
+ * The lab reaches both on their NodePorts instead, so only the cluster routes
+ * them.
+ */
+export const IDENTITY = {
+  host: 'id',
+  app: 'zitadel',
+  port: 8080,
+  login: { app: 'zitadel-login', port: 3000, prefix: '/ui/v2/login' },
+} as const;
+
+/**
+ * The domain the rendered manifests name until the up command substitutes the
+ * real one (`tools/infra`). `.invalid` is reserved (RFC 2606), so a manifest
+ * applied without the substitution can never answer for anyone's real name.
+ */
+export const DOMAIN_PLACEHOLDER = 'r10c.invalid';
+
+/**
+ * The edge's public address until the up command substitutes the one
+ * `infra/gcp` reserved (`tofu output edge_address`). TEST-NET-1 (RFC 5737), so
+ * an unsubstituted manifest can claim no one's address.
+ */
+export const ADDRESS_PLACEHOLDER = '192.0.2.1';
+
+/** A public hostname under the placeholder domain. */
+export const publicHost = (host: string): string =>
+  `${host}.${DOMAIN_PLACEHOLDER}`;
 
 /**
  * Where Next listens behind an origin: `320N`. Derived, never written down a

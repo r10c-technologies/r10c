@@ -154,7 +154,7 @@
           "prune"
         ],
         "options": {
-          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/transaction-service:local apps/transaction-service/dist"
+          "command": "node tools/docker/check-installs.cjs apps/transaction-service/dist && docker build -f tools/docker/service.Dockerfile -t r10c/transaction-service:local apps/transaction-service/dist"
         }
       }
     }
@@ -192,6 +192,7 @@
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.7",
     "jose": "6.2.14",
+    "mongodb": "7.9.0",
     "tslib": "2.9.1"
   },
   "devDependencies": {

@@ -27,3 +27,48 @@ output "atlas_connection_string" {
   description = "The SRV connection string, without credentials. Each service's user is #683's."
   value       = mongodbatlas_flex_cluster.fleet.connection_strings.standard_srv
 }
+
+output "project_id" {
+  description = "The project every gcloud call in the up and down commands names."
+  value       = var.project_id
+}
+
+output "region" {
+  description = "Where Cloud SQL, the registry and the secrets live."
+  value       = var.region
+}
+
+output "zone" {
+  description = "Where the cluster and its pool live."
+  value       = var.zone
+}
+
+output "node_pool" {
+  description = "The pool the up and down commands resize."
+  value       = google_container_node_pool.fleet.name
+}
+
+output "registry" {
+  description = "Where the up command pushes the fleet's images."
+  value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.fleet.repository_id}"
+}
+
+output "domain" {
+  description = "The public domain the manifests' placeholder is replaced with."
+  value       = var.domain
+}
+
+output "atlas_project_id" {
+  description = "The Atlas project the up command creates each service's database user in."
+  value       = mongodbatlas_project.fleet.id
+}
+
+output "secret_prefix" {
+  description = "Every secret's id starts with it."
+  value       = "${var.name}-"
+}
+
+output "node_pool_max" {
+  description = "The autoscaling ceiling the up command turns autoscaling back on with."
+  value       = var.fleet_max_nodes
+}

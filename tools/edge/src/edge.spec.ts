@@ -75,11 +75,27 @@ describe('the route table', () => {
     );
   });
 
-  it('renders one HTTPRoute per origin, named for its app', () => {
+  it('renders one HTTPRoute per origin, named for its app, then identity and the redirect', () => {
     expect(
       gatewayManifests()['httproutes.yaml']?.map(
         route => (route as { metadata: { name: string } }).metadata.name,
       ),
-    ).toEqual(ORIGINS.map(origin => origin.app));
+    ).toEqual([
+      ...ORIGINS.map(origin => origin.app),
+      'zitadel',
+      'https-redirect',
+    ]);
+  });
+
+  it('serves every public hostname under the one certificate', () => {
+    const [, certificate] = gatewayManifests()['tls.yaml'] as [
+      unknown,
+      { spec: { dnsNames: string[] } },
+    ];
+    expect(certificate.spec.dnsNames).toEqual([
+      'shop.r10c.invalid',
+      'office.r10c.invalid',
+      'id.r10c.invalid',
+    ]);
   });
 });

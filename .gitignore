@@ -94,3 +94,4 @@ apps/*/AGENTS.md
 
 # Playwright output
 test-results/
+/infra/.overlay/

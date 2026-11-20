@@ -136,7 +136,7 @@
           "prune"
         ],
         "options": {
-          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/payment-service:local apps/payment-service/dist"
+          "command": "node tools/docker/check-installs.cjs apps/payment-service/dist && docker build -f tools/docker/service.Dockerfile -t r10c/payment-service:local apps/payment-service/dist"
         }
       }
     }

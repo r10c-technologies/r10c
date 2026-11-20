@@ -21,6 +21,7 @@
  * environment; the ladder supplies all three.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { request } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -56,8 +57,38 @@ const SEED_REVISION = process.env['ZITADEL_SEED_REVISION'] ?? '0';
  * session :3001 established — and :3001 now establishes it on the very origin
  * the rest of the back office is served from.
  */
-const REDIRECT_URIS = ['http://localhost:3001/api/auth/callback'];
-const POST_LOGOUT_URIS = ['http://localhost:3001/'];
+const listFrom = (name, fallback) =>
+  (process.env[name] ?? fallback).split(',').filter(Boolean);
+const REDIRECT_URIS = listFrom(
+  'ZITADEL_REDIRECT_URIS',
+  'http://localhost:3001/api/auth/callback',
+);
+const POST_LOGOUT_URIS = listFrom(
+  'ZITADEL_POST_LOGOUT_URIS',
+  'http://localhost:3001/',
+);
+
+/**
+ * The instance's public host, when the seed reaches Zitadel by some other
+ * address. A cluster's Zitadel answers only for its external domain, and the
+ * up command reaches it through a port-forward (`tools/infra`), so every
+ * request names the domain as its `Host` — which `fetch` refuses to send,
+ * hence the plain `http.request` below. Unset in the lab, where the issuer
+ * already is the domain.
+ */
+const HOST_HEADER = process.env['ZITADEL_HOST_HEADER'] ?? '';
+
+/**
+ * Where the instance sends mail: Mailpit in the lab, the cluster's provider
+ * otherwise (#692). Plain SMTP without credentials unless they are given.
+ */
+const SMTP = {
+  host: process.env['ZITADEL_SMTP_HOST'] ?? 'mailpit:1025',
+  user: process.env['ZITADEL_SMTP_USER'] ?? '',
+  password: process.env['ZITADEL_SMTP_PASSWORD'] ?? '',
+  tls: process.env['ZITADEL_SMTP_TLS'] === 'true',
+  senderAddress: process.env['ZITADEL_SMTP_SENDER'] ?? 'no-reply@r10c.local',
+};
 
 /**
  * Where Zitadel POSTs a logout token when a session it owns ends. Note the host:
@@ -144,15 +175,40 @@ const log = message => console.log(`  ${message}`);
  * and a real status for others, so both are folded into one thrown Error —
  * a silent half-seeded instance is worse than a loud stop.
  */
+const send = (method, url, headers, body) =>
+  HOST_HEADER === ''
+    ? fetch(url, { method, headers, ...(body === undefined ? {} : { body }) })
+    : new Promise((resolve, reject) => {
+        const call = request(
+          url,
+          { method, headers: { ...headers, host: HOST_HEADER } },
+          response => {
+            let text = '';
+            response.setEncoding('utf8');
+            response.on('data', chunk => (text += chunk));
+            response.on('end', () =>
+              resolve({
+                ok: (response.statusCode ?? 500) < 400,
+                status: response.statusCode ?? 500,
+                text: async () => text,
+              }),
+            );
+          },
+        );
+        call.on('error', reject);
+        call.end(body);
+      });
+
 const api = async (method, path, body) => {
-  const response = await fetch(`${ISSUER}${path}`, {
+  const response = await send(
     method,
-    headers: {
+    `${ISSUER}${path}`,
+    {
       authorization: `Bearer ${pat}`,
       'content-type': 'application/json',
     },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
+    body === undefined ? undefined : JSON.stringify(body),
+  );
   const text = await response.text();
   const payload = text === '' ? {} : JSON.parse(text);
   if (!response.ok) {
@@ -484,28 +540,28 @@ const ensureSmtp = async () => {
     query: { limit: 100 },
   });
   const existing = (found.result ?? []).find(
-    config => config.host === 'mailpit:1025',
+    config => config.host === SMTP.host,
   );
   const id =
     existing?.id ??
     (
       await api('POST', '/admin/v1/smtp', {
-        senderAddress: 'no-reply@r10c.local',
-        senderName: 'r10c (local)',
-        host: 'mailpit:1025',
-        user: '',
-        password: '',
-        tls: false,
-        description: 'Mailpit (local dev)',
+        senderAddress: SMTP.senderAddress,
+        senderName: 'r10c',
+        host: SMTP.host,
+        user: SMTP.user,
+        password: SMTP.password,
+        tls: SMTP.tls,
+        description: `r10c (${SMTP.host})`,
       })
     ).id;
 
   if (existing?.state === 'SMTP_CONFIG_ACTIVE') {
-    log('smtp: Mailpit already active');
+    log(`smtp: ${SMTP.host} already active`);
     return;
   }
   await api('POST', `/admin/v1/smtp/${id}/_activate`, {});
-  log('smtp: Mailpit configured and activated');
+  log(`smtp: ${SMTP.host} configured and activated`);
 };
 
 // --------------------------------------------------------------------- idp

@@ -36,6 +36,31 @@ spec:
                 secretKeyRef:
                   name: fleet-token
                   key: token
+            - name: POSTHOG_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: posthog
+                  key: POSTHOG_KEY
+            - name: POSTHOG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: posthog
+                  key: POSTHOG_HOST
+            - name: COORDINATOR_CROSSING_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: storefront-tokens
+                  key: coordinator
+            - name: ORDER_LOOKUP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: storefront-tokens
+                  key: lookup
+            - name: STOREFRONT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cloud-endpoints
+                  key: STOREFRONT_ORIGIN
           envFrom:
             - configMapRef:
                 name: fleet-env
