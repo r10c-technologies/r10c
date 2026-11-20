@@ -1,0 +1,205 @@
+# The identity provider (ADR 0016, ADR 0083 §3): Zitadel in the cluster, its
+# database in Cloud SQL. Zitadel itself is stateless; what it writes at first
+# init beyond its database is the two machine users' personal access tokens.
+#
+# Differences from the lab's (infra/local/zitadel), each on purpose:
+#
+# - The database is Cloud SQL's private address, which only the cloud knows:
+#   `ZITADEL_DATABASE_POSTGRES_HOST` comes from the `cloud-endpoints`
+#   ConfigMap the up command writes from `tofu output sql_private_address`
+#   (#685). Cloud SQL accepts encrypted connections only (`ssl_mode =
+#   ENCRYPTED_ONLY` in infra/gcp/sql.tf), so both users connect `require`.
+# - The public domain is the same ConfigMap's, served over HTTPS on 443 with
+#   TLS ended at the edge, so the container itself serves plain HTTP.
+# - No outgoing-HTTP denylist override: the lab removes `192.168.0.0/16` only
+#   because its auth-service runs on the host. Here every callback is a
+#   cluster or public address, and Zitadel's own default list stands.
+# - The PATs land on a small `retained` volume rather than an `emptyDir`, so a
+#   pod restarted after first init still holds them; the `pat-reader` sidecar
+#   stays, because the image is distroless and the seed step reads the token
+#   through it (#683, #685).
+#
+# This tag and the hosted login's in `zitadel-login.yaml` are ONE tag, and the
+# same one the lab runs: `pnpm nx test @r10c/docs-check` fails the build when
+# any of the four disagree.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zitadel
+  labels:
+    app: zitadel
+spec:
+  replicas: 1
+  # One ReadWriteOnce volume for the PATs: a rolling update would wait forever
+  # for the old pod to let go of it.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: zitadel
+  template:
+    metadata:
+      labels:
+        app: zitadel
+    spec:
+      # Kubernetes injects a legacy env var per Service in the namespace, and
+      # the Service named `zitadel` produces `ZITADEL_PORT=tcp://…`, which
+      # Zitadel reads as its own listen port and dies on.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: zitadel
+          image: ghcr.io/zitadel/zitadel:v4.16.2
+          # start-from-init is idempotent: it initialises the instance on an
+          # empty database and only serves on one that already has it.
+          args:
+            - start-from-init
+            - --masterkeyFromEnv
+            - --tlsMode
+            - external
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: machinekey
+              mountPath: /machinekey
+          # ZITADEL_MASTERKEY, both database passwords and the first-instance
+          # admin password; their values are #683's.
+          envFrom:
+            - secretRef:
+                name: zitadel-secret
+          env:
+            - name: ZITADEL_DATABASE_POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: cloud-endpoints
+                  key: SQL_PRIVATE_ADDRESS
+            - name: ZITADEL_DATABASE_POSTGRES_PORT
+              value: '5432'
+            - name: ZITADEL_DATABASE_POSTGRES_DATABASE
+              value: zitadel
+            - name: ZITADEL_DATABASE_POSTGRES_USER_USERNAME
+              value: zitadel
+            - name: ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE
+              value: require
+            - name: ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME
+              value: postgres
+            - name: ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE
+              value: require
+            - name: ZITADEL_EXTERNALDOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: cloud-endpoints
+                  key: IDENTITY_DOMAIN
+            - name: ZITADEL_EXTERNALPORT
+              value: '443'
+            - name: ZITADEL_EXTERNALSECURE
+              value: 'true'
+            - name: ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME
+              value: zitadel-admin
+            # The seed's machine user and the hosted login's, exactly as in
+            # the lab; see infra/local/zitadel/deployment.yaml for why each
+            # token is extracted rather than configured.
+            - name: ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME
+              value: r10c-seed
+            - name: ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME
+              value: r10c seed
+            - name: ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE
+              value: '2100-01-01T00:00:00Z'
+            - name: ZITADEL_FIRSTINSTANCE_PATPATH
+              value: /machinekey/seed.pat
+            - name: ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME
+              value: login-client
+            - name: ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME
+              value: r10c login client
+            - name: ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE
+              value: '2100-01-01T00:00:00Z'
+            - name: ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH
+              value: /machinekey/login-client.pat
+          # First init runs every migration behind an open socket, so the
+          # startup probe gives it minutes before liveness may restart it.
+          startupProbe:
+            httpGet:
+              path: /debug/healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /debug/healthz
+              port: http
+            periodSeconds: 20
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /debug/ready
+              port: http
+            periodSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '768Mi'
+              cpu: '750m'
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+        - name: pat-reader
+          image: busybox:1.36
+          command: ['sh', '-c', 'sleep infinity']
+          volumeMounts:
+            - name: machinekey
+              mountPath: /machinekey
+              readOnly: true
+          resources:
+            requests:
+              memory: '8Mi'
+              cpu: '5m'
+            limits:
+              memory: '16Mi'
+              cpu: '20m'
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: machinekey
+          persistentVolumeClaim:
+            claimName: zitadel-machinekey
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zitadel-machinekey
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: retained
+  resources:
+    requests:
+      # pd-balanced's minimum; the tokens are a few hundred bytes.
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zitadel
+  labels:
+    app: zitadel
+spec:
+  selector:
+    app: zitadel
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

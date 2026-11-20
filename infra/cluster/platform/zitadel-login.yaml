@@ -1,0 +1,104 @@
+# The hosted login, a second container (ADR 0018): the core serves nothing
+# under `/ui/v2/login`, so a fleet without this answers 404 at sign-in while
+# every probe stays green.
+#
+# Pinned to the SAME tag as the core in `zitadel.yaml` and the lab's two
+# copies; `@r10c/docs-check` fails the build when the four disagree.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zitadel-login
+  labels:
+    app: zitadel-login
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zitadel-login
+  template:
+    metadata:
+      labels:
+        app: zitadel-login
+    spec:
+      # Same reason as the core: `ZITADEL_PORT=tcp://…` is a name both images
+      # read as their own configuration.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: zitadel-login
+          image: ghcr.io/zitadel/zitadel-login:v4.16.2
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # Server-to-server, inside the cluster. The browser never uses it.
+            - name: ZITADEL_API_URL
+              value: http://zitadel:8080
+            # Zitadel resolves the instance from the Host header, and
+            # `zitadel` is not one of its domains: the request names the
+            # public one, without a port, as the lab names `localhost`.
+            - name: CUSTOM_REQUEST_HEADERS
+              valueFrom:
+                configMapKeyRef:
+                  name: cloud-endpoints
+                  key: IDENTITY_HOST_HEADER
+            - name: NEXT_PUBLIC_BASE_PATH
+              value: /ui/v2/login
+            # A file, not a value: the app blocks until it appears rather
+            # than crash-looping, so the Secret may arrive after the pod.
+            - name: ZITADEL_SERVICE_USER_TOKEN_FILE
+              value: /login-client/login-client.pat
+          volumeMounts:
+            - name: login-client
+              mountPath: /login-client
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /ui/v2/login/healthy
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /ui/v2/login/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        # The login client's PAT, copied out of the core's volume by the seed
+        # step (#685), as the lab's L6 rung does.
+        - name: login-client
+          secret:
+            secretName: zitadel-login-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zitadel-login
+  labels:
+    app: zitadel-login
+spec:
+  selector:
+    app: zitadel-login
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

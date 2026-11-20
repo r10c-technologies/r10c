@@ -27,6 +27,9 @@ packages/
 tools/entifix/               the swap kit: run against a local entifix, put the release back
 .entifix/                   this checkout's own entifix clone (gitignored, after entifix:checkout)
 infra/local/                minikube platform (MongoDB, Redis, Postgres, Zitadel, otel-lgtm)
+infra/gcp/                  the cloud, in OpenTofu — declared, applied from MVP-7 (ADR 0083)
+infra/cluster/              what runs in the cluster: platform, rendered fleet, edge, vendored operators
+tools/docker/               the two Dockerfiles every service and Next app builds its image from
 docs/                       this documentation
 nx.json  tsconfig.base.json  pnpm-workspace.yaml  package.json (root)
 ```
@@ -134,7 +137,8 @@ as foreign.
 The route table is `tools/edge/src/routes.ts`. `pnpm nx run @r10c/edge:generate`
 renders it into `tools/edge/envoy.yaml` and the cluster's Envoy Gateway
 manifests under `infra/cluster/edge/`, which nothing applies yet and CI
-validates with `kubeconform -strict`; a hand-edit to either fails
+renders and validates with the rest of `infra/cluster/`
+([its README](../infra/cluster/README.md)); a hand-edit to either fails
 `@r10c/docs-check`. Both Playwright configs start the edge beside `next start`
 (reusing a running one) and probe through it, so an e2e run exercises the same path the browser takes.
 

@@ -1,0 +1,34 @@
+# The bus (ADR 0083 §3): RabbitMQ through its Cluster Operator
+# (vendor/rabbitmq-cluster-operator), because a managed broker has no stop and
+# quorum queues with `x-delivery-limit` (ADR 0030) need a real one.
+#
+# One replica, accepted for a demo and listed in the runbook as a single point
+# of failure. The image is the lab's exact tag (infra/local/rabbitmq): 4.3 is
+# the release whose delivery limit counts only failed deliveries (#181).
+#
+# The operator writes the credentials into the `rabbitmq-default-user` Secret;
+# the bus URI row every service reads is built from it by #683.
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  image: rabbitmq:4.3.5-management
+  persistence:
+    # The disk survives the pool at zero and the cluster object being
+    # deleted, through the class's `Retain`.
+    storageClassName: retained
+    storage: 2Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  rabbitmq:
+    additionalConfig: |
+      # Every queue the fleet declares states its own type; this only keeps
+      # a stray declaration durable.
+      default_queue_type = quorum

@@ -1,0 +1,14 @@
+# Everything inside the cluster (ADR 0083 §7), applied with
+# `kubectl apply --server-side -k infra/cluster` by the up command (#685) and
+# by nothing before MVP-7. CI renders it and validates every document.
+#
+# The fleet's own resources go to the `r10c` namespace; each vendored release
+# keeps the namespace it ships with.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - vendor/envoy-gateway
+  - vendor/rabbitmq-cluster-operator
+  - platform
+  - fleet
+  - edge

@@ -1,0 +1,8 @@
+# The RabbitMQ Cluster Operator's own release manifest, unmodified:
+# https://github.com/rabbitmq/cluster-operator/releases/download/v2.23.1/cluster-operator.yml
+# Upgrading is replacing the file with a newer release's, so the diff is the
+# upgrade (ADR 0083 §7). It installs into its own `rabbitmq-system` namespace.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cluster-operator.yml

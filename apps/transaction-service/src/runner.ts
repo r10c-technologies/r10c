@@ -7,11 +7,14 @@ import { DEFAULT_PORT } from './index';
  * A further runner of transaction-service's flow engine (ADR 0066): no HTTP,
  * its shards assigned in the `workflow` store beside replica 0's, so a runner
  * dying is the normal case the engine runs under. Its runner port derives
- * from the service port and `WORKFLOW_REPLICA` (default 1) — `35103` here.
+ * from the service port and `WORKFLOW_REPLICA` (default 1) — `35103` here —
+ * and it registers at `WORKFLOW_RUNNER_HOST` when a cluster hands it the pod's
+ * address, at the `workflow.runnerHost` row otherwise.
  */
 makeWorker({
   appLayer: makeRunnerLayer({
     servicePort: Number(process.env.PORT) || DEFAULT_PORT,
     replica: Number(process.env.WORKFLOW_REPLICA) || 1,
+    host: process.env.WORKFLOW_RUNNER_HOST,
   }),
 });

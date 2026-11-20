@@ -356,6 +356,9 @@
     },
     {
       "path": "./packages/business/ts/tax-policy"
+    },
+    {
+      "path": "./tools/cluster"
     }
   ],
   "compilerOptions": {

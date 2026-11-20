@@ -1,0 +1,262 @@
+# Telemetry (ADR 0001, ADR 0083 §3): an OpenTelemetry Collector agent on
+# every node and one gateway in front of Grafana Cloud.
+#
+# - Every service reads one `otel.endpoint` row, so it cannot name "the agent
+#   on my node". The agent's Service does it instead: `internalTrafficPolicy:
+#   Local` keeps a pod's telemetry on its own node's agent, and a DaemonSet is
+#   billed as part of a node rather than per pod (ADR 0083 §2). The row's
+#   cloud value, `http://otel-agent:4318`, is #683's seed.
+# - The gateway is the one process that holds the Grafana Cloud credential and
+#   the one place sampling and limits are set (#684). It reads the endpoint
+#   and the basic-auth pair from the `grafana-cloud` Secret.
+# - Both answer `health_check` on 13133, which is what their probes ask: the
+#   OTLP ports accept a connection before the pipelines are running.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-agent
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 0.0.0.0:4318
+          grpc:
+            endpoint: 0.0.0.0:4317
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      batch: {}
+    exporters:
+      otlp:
+        endpoint: otel-gateway:4317
+        tls:
+          insecure: true
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-agent
+  labels:
+    app: otel-agent
+spec:
+  selector:
+    matchLabels:
+      app: otel-agent
+  template:
+    metadata:
+      labels:
+        app: otel-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: otel-agent
+          image: otel/opentelemetry-collector-contrib:0.164.0
+          args: ['--config=/conf/config.yaml']
+          ports:
+            - name: otlp-http
+              containerPort: 4318
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: health
+              containerPort: 13133
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: health
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: '64Mi'
+              cpu: '50m'
+            limits:
+              memory: '256Mi'
+              cpu: '250m'
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config
+          configMap:
+            name: otel-agent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-agent
+  labels:
+    app: otel-agent
+spec:
+  selector:
+    app: otel-agent
+  internalTrafficPolicy: Local
+  ports:
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-gateway
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      basicauth/grafana:
+        client_auth:
+          username: ${env:GRAFANA_CLOUD_INSTANCE_ID}
+          password: ${env:GRAFANA_CLOUD_TOKEN}
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      batch: {}
+    exporters:
+      otlphttp/grafana:
+        endpoint: ${env:GRAFANA_CLOUD_OTLP_ENDPOINT}
+        auth:
+          authenticator: basicauth/grafana
+    service:
+      extensions: [health_check, basicauth/grafana]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/grafana]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/grafana]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/grafana]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-gateway
+  labels:
+    app: otel-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-gateway
+  template:
+    metadata:
+      labels:
+        app: otel-gateway
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: otel-gateway
+          image: otel/opentelemetry-collector-contrib:0.164.0
+          args: ['--config=/conf/config.yaml']
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: health
+              containerPort: 13133
+          # GRAFANA_CLOUD_OTLP_ENDPOINT, GRAFANA_CLOUD_INSTANCE_ID and
+          # GRAFANA_CLOUD_TOKEN; their values are #684's.
+          envFrom:
+            - secretRef:
+                name: grafana-cloud
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: health
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config
+          configMap:
+            name: otel-gateway
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-gateway
+  labels:
+    app: otel-gateway
+spec:
+  selector:
+    app: otel-gateway
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc

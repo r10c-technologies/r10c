@@ -4,7 +4,12 @@ export {
   nextCluster,
   REALTIME_CLUSTER,
 } from './envoy.js';
-export { GATEWAY, gatewayManifests } from './gateway.js';
+export {
+  FLEET_NAMESPACE,
+  GATEWAY,
+  gatewayKustomization,
+  gatewayManifests,
+} from './gateway.js';
 export { ENVOY_FILE, GATEWAY_DIR, renderEdge } from './render.js';
 export {
   CONTAINER,

@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import prettier from 'prettier';
 
 import { envoyConfig } from './envoy.js';
-import { gatewayManifests } from './gateway.js';
+import { gatewayKustomization, gatewayManifests } from './gateway.js';
 import { HEARTBEAT_S, IDLE_TIMEOUT_S } from './routes.js';
 import { toYaml, toYamlStream } from './yaml.js';
 
@@ -29,6 +29,8 @@ export const GATEWAY_DIR = 'infra/cluster/edge';
 
 const unformatted = (): Readonly<Record<string, string>> => ({
   [ENVOY_FILE]: HEADER + toYaml(envoyConfig()),
+  [`${GATEWAY_DIR}/kustomization.yaml`]:
+    HEADER + toYaml(gatewayKustomization()),
   ...Object.fromEntries(
     Object.entries(gatewayManifests()).map(([file, documents]) => [
       `${GATEWAY_DIR}/${file}`,

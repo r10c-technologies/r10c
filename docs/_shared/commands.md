@@ -37,6 +37,12 @@ pnpm nx run @r10c/edge:free-ports   # remove the container, free 3000/3001
 pnpm nx run @r10c/edge:generate     # re-render envoy.yaml + infra/cluster/edge/
                                     # after editing tools/edge/src/routes.ts
 
+# The cluster (ADR 0083): nothing is applied before MVP-7. The fleet's
+# workloads are rendered from FLEET and ORIGINS; each app builds an image,
+# tagged :local and never pushed (infra/cluster/README.md).
+pnpm nx run @r10c/cluster:generate  # re-render infra/cluster/fleet/
+pnpm nx run order-service:container # docker build r10c/order-service:local
+
 # Dev — unified convention for EVERY app/service (each starts its own deps)
 pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-service
                                            #        AND marketplace-admin-service:

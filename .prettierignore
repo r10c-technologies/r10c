@@ -7,3 +7,7 @@
 /packages/shells/effect/flow-catalog/catalog-snapshot.json
 # Written by @r10c/slices' event-contracts spec on UPDATE_EVENT_CONTRACTS=1.
 /tools/slices/event-contracts.json
+# Upstream release manifests, kept byte for byte so an upgrade is a clean diff
+# (infra/cluster/README.md).
+/infra/cluster/vendor/*/install.yaml
+/infra/cluster/vendor/*/cluster-operator.yml

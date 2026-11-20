@@ -146,6 +146,16 @@
         "options": {
           "command": "bash tools/free-ports.sh 3103 9103 34103 35103"
         }
+      },
+      "container": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "prune"
+        ],
+        "options": {
+          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/transaction-service:local apps/transaction-service/dist"
+        }
       }
     }
   },

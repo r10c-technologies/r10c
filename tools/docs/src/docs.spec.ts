@@ -13,19 +13,25 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
+import { FLEET_DIR, renderCluster } from '@r10c/cluster';
 import {
   ENVOY_FILE,
   envoyConfig,
   gatewayManifests,
   HEARTBEAT_S,
+  ORIGINS,
   REALTIME,
   renderEdge,
+  toYaml,
+  toYamlStream,
   UPSTREAM_OFFSET,
+  upstreamOf,
   type Yaml,
 } from '@r10c/edge';
 import {
   declaredEntityClasses,
   declaredEntityDomains,
+  FLEET,
   SLICES,
 } from '@r10c/slices';
 import { describe, expect, it } from 'vitest';
@@ -1381,6 +1387,10 @@ describe('The Zitadel core and its hosted login are one tag', () => {
   // encode is "these two agree", not "someone should remember".
   const CORE = 'infra/local/zitadel/deployment.yaml';
   const LOGIN = 'infra/local/zitadel-login/deployment.yaml';
+  // The cluster's copies (ADR 0083): the lab and the cloud run one identity
+  // provider version, or a sign-in that works locally proves nothing there.
+  const CLUSTER_CORE = 'infra/cluster/platform/zitadel.yaml';
+  const CLUSTER_LOGIN = 'infra/cluster/platform/zitadel-login.yaml';
 
   /** Every tag a manifest pins for one image, in file order. */
   const tagsFor = (file: string, image: string): string[] => {
@@ -1390,6 +1400,10 @@ describe('The Zitadel core and its hosted login are one tag', () => {
 
   const coreTags = () => tagsFor(CORE, 'ghcr\\.io/zitadel/zitadel');
   const loginTags = () => tagsFor(LOGIN, 'ghcr\\.io/zitadel/zitadel-login');
+  const clusterTags = () => [
+    ...tagsFor(CLUSTER_CORE, 'ghcr\\.io/zitadel/zitadel'),
+    ...tagsFor(CLUSTER_LOGIN, 'ghcr\\.io/zitadel/zitadel-login'),
+  ];
 
   it('finds the images it is meant to check', () => {
     // One apiece. The core manifest also runs `busybox` init containers, which
@@ -1408,6 +1422,14 @@ describe('The Zitadel core and its hosted login are one tag', () => {
         `${CORE} and ${LOGIN} together (login v4.14.0 also reopens ` +
         'zitadel/zitadel#12125).',
     ).toBe(coreTags()[0]);
+  });
+
+  it('runs the same tag in the cluster as in the lab', () => {
+    expect(clusterTags()).toHaveLength(2);
+    expect(
+      clusterTags(),
+      `${CLUSTER_CORE} and ${CLUSTER_LOGIN} must pin the lab's ${coreTags()[0]}`,
+    ).toEqual([coreTags()[0], coreTags()[0]]);
   });
 });
 
@@ -1887,6 +1909,34 @@ describe('The edge owns the origins, and every hop holds a quiet stream', () => 
     expect(
       stale,
       `stale, or edited by hand — run \`pnpm nx run @r10c/edge:generate\`:\n  ${stale.join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  it('keeps the fleet’s rendered workloads equal to their generator, and nothing beside them', async () => {
+    // The same inputs `tools/generate-cluster.mjs` composes.
+    const files = await renderCluster(
+      REPO_ROOT,
+      {
+        services: FLEET,
+        apps: ORIGINS.map(origin => ({
+          project: origin.app,
+          port: upstreamOf(origin),
+        })),
+      },
+      { toYaml, toYamlStream },
+    );
+    const stale = Object.entries(files)
+      .filter(
+        ([path, text]) =>
+          !existsSync(join(REPO_ROOT, path)) || read(path) !== text,
+      )
+      .map(([path]) => path);
+    const orphaned = readdirSync(join(REPO_ROOT, FLEET_DIR))
+      .map(file => `${FLEET_DIR}/${file}`)
+      .filter(path => !(path in files));
+    expect(
+      [...stale, ...orphaned],
+      `stale, orphaned or edited by hand — run \`pnpm nx run @r10c/cluster:generate\`:\n  ${[...stale, ...orphaned].join('\n  ')}`,
     ).toEqual([]);
   });
 
