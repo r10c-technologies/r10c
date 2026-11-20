@@ -268,6 +268,34 @@ jobs:
             -schema-location "https://raw.githubusercontent.com/datreeio/CRDs-catalog/$CRDS_CATALOG_REF/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json" \
             infra/cluster
 
+      # The cloud half of ADR 0083, which nothing applies before MVP-7 (#702):
+      # formatted, valid against its providers with the backend disabled, and
+      # linted. No step holds a GCP or Atlas credential, so none can apply. Both
+      # binaries are checked against their releases' own SHA-256.
+      - name: Validate cloud infrastructure
+        if: ${{ !cancelled() }}
+        env:
+          TOFU_VERSION: 1.13.9
+          TOFU_SHA256: b34b327cc1ef07178207b6f2cd1f5276537d3e5b7be316500f6dac50d4c0a857
+          TFLINT_VERSION: v0.60.0
+          TFLINT_SHA256: 3476ceedcf0c4f9f2bed35e92988e1411bec2caa543c9387bffaa720df9efaf7
+          # tflint fetches its google ruleset from GitHub's API.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/tofu.tar.gz" \
+            "https://github.com/opentofu/opentofu/releases/download/v$TOFU_VERSION/tofu_${TOFU_VERSION}_linux_amd64.tar.gz"
+          echo "$TOFU_SHA256  $RUNNER_TEMP/tofu.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/tofu.tar.gz" -C "$RUNNER_TEMP" tofu
+          curl -fsSL -o "$RUNNER_TEMP/tflint.zip" \
+            "https://github.com/terraform-linters/tflint/releases/download/$TFLINT_VERSION/tflint_linux_amd64.zip"
+          echo "$TFLINT_SHA256  $RUNNER_TEMP/tflint.zip" | sha256sum -c -
+          unzip -q -o "$RUNNER_TEMP/tflint.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/tofu" -chdir=infra/gcp fmt -check -recursive -diff
+          "$RUNNER_TEMP/tofu" -chdir=infra/gcp init -backend=false -input=false -lockfile=readonly
+          "$RUNNER_TEMP/tofu" -chdir=infra/gcp validate
+          "$RUNNER_TEMP/tflint" --chdir=infra/gcp --init
+          "$RUNNER_TEMP/tflint" --chdir=infra/gcp --format compact
+
       # The repository's own working conventions. Attribution is the first one,
       # and it is here because prose could not hold it: it was written in three
       # places and skipped anyway, in five pull requests and six commits.

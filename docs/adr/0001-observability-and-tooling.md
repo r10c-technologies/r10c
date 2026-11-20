@@ -32,6 +32,7 @@
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): the logger bridge is `Logger.layer`, annotations are read from the fiber, and `runMain` no longer swaps loggers; the `disablePrettyLogger` note is now history.
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — the log policy — the level per category and tag, the sink, the fields a record carries — is the slice shell's; business and implementation packages never log, and a mechanism's outcome is logged at the fork site that started it
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) and [ADR 0067](0067-a-breaker-and-bulkhead-per-participant.md) — breaker state, transitions and rejections per participant are metrics with a Grafana panel
+- Revised: 2026-11-20 by [ADR 0083](0083-the-fleet-runs-on-gcp-on-demand.md) — the region is `us-central1`, and Atlas reaches the cluster over an IP access list until its tier is dedicated
 
 ## Context
 
@@ -50,9 +51,16 @@ provider was left open during design and then settled.
 ### Cloud & storage (locked)
 
 - **Google Cloud / GKE**, with the cluster co-located in the same region as
-  **MongoDB Atlas** (VPC peering / Private Endpoint, no NAT egress). Managed
-  Cloud SQL Postgres backs Zitadel + config-service. Redis/RabbitMQ/Zitadel run
+  **MongoDB Atlas**. Managed Cloud SQL Postgres backs Zitadel + config-service. Redis/RabbitMQ/Zitadel run
   in-cluster.
+
+  > Corrected 2026-11-20 by [ADR 0083](0083-the-fleet-runs-on-gcp-on-demand.md):
+  > this bullet named VPC peering or a Private Endpoint and "no NAT egress".
+  > Both exist only on dedicated Atlas tiers. On the free or Flex tier a demo
+  > uses, the cluster leaves through Cloud NAT with one reserved address, which
+  > is Atlas's whole IP access list. The region is `us-central1`, and Cloud SQL
+  > also holds the `workflow` journal.
+
 - The cloud choice does **not** drive observability: we instrument once against
   **OTLP** (vendor-neutral) so the backend is swappable.
 

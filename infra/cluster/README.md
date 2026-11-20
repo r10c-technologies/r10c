@@ -1,6 +1,6 @@
 # infra/cluster
 
-Manifests for a cluster that does not exist yet. **Nothing here is applied** —
+Manifests for a cluster that does not exist yet; the cloud resources around it are [`infra/gcp/`](../gcp/README.md). **Nothing here is applied** —
 every environment is the local lab in [`infra/local/`](../local/README.md) — and
 CI validates every file against its schema (`kubeconform -strict`) so the shape
 is right on the day it first is.
