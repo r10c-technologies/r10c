@@ -2,6 +2,10 @@
 
 import type { EntityCrudListView } from '@entifix/next-shell';
 import { Money, useLocale, useTranslateKey } from '@entifix/react-controls';
+import {
+  departamentoOf,
+  municipioOf,
+} from '@r10c/business-ts-order-contracts';
 import type { ShippingOrder } from '@r10c/business-ts-shipping-order-management';
 
 /**
@@ -31,8 +35,10 @@ export function ShipmentContentsCell({
 }
 
 /**
- * Where the parcel goes: municipality and department (#557). The street stays
- * on the record. Empty once the retention sweep removed the destination
+ * Where the parcel goes: municipality and department (#557), by name — the
+ * destination stores their INE codes, and "0108, 01" is not a place anyone
+ * packs for. Read as the storefront's receipt reads them. The street stays on
+ * the record. Empty once the retention sweep removed the destination
  * (ADR 0076 §4) — the parcel's journey is over by then.
  */
 export function ShipmentDestinationCell({
@@ -44,8 +50,11 @@ export function ShipmentDestinationCell({
   if (destination === undefined) return null;
   return (
     <>
-      {[destination.municipio, destination.departamento]
-        .filter(part => part !== '')
+      {[
+        municipioOf(destination.municipio)?.name,
+        departamentoOf(destination.departamento)?.name,
+      ]
+        .filter(Boolean)
         .join(', ')}
     </>
   );

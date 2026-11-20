@@ -396,8 +396,9 @@ const shipment = (
     {
       name: 'Ana López',
       phone: '+50255550123',
-      departamento: 'Guatemala',
-      municipio: 'Mixco',
+      // INE codes, as the checkout stores them: Mixco, Guatemala.
+      departamento: '01',
+      municipio: '0108',
       addressLine: '4a calle 5-10',
     },
   ],

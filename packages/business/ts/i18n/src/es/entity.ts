@@ -473,6 +473,11 @@ export const entity = {
         amount: 'Importe',
         currency: 'Moneda',
         reservationId: 'ID de reserva',
+        kind: 'Tipo',
+        taxTreatment: 'Tratamiento fiscal',
+        taxRate: 'Tasa de IVA',
+        taxableBase: 'Base imponible',
+        taxAmount: 'IVA',
       },
       channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
@@ -492,8 +497,29 @@ export const entity = {
       dispatchedAt: 'Despachado el',
       fulfilledAt: 'Entregado el',
       cancelCause: 'Motivo de cancelación',
+      // Los hechos fiscales que el pedido fija al cobrarse (#659–#661).
+      sellerTaxId: 'NIT del vendedor',
+      sellerLegalName: 'Razón social del vendedor',
+      sellerTaxRegime: 'Régimen del vendedor',
+      sellerEstablishmentCode: 'Establecimiento',
+      buyerTaxIdType: 'Identificación del comprador',
+      buyerTaxId: 'NIT o CUI del comprador',
+      buyerTaxName: 'Nombre para la factura',
+      netAmount: 'Subtotal sin IVA',
+      taxAmount: 'IVA',
+      totalAmount: 'Total',
+      currency: 'Moneda',
     },
     values: {
+      buyerTaxIdType: {
+        nit: 'NIT',
+        cui: 'CUI (DPI)',
+        cf: 'Consumidor final (CF)',
+      },
+      item: {
+        kind: { good: 'Bien', service: 'Servicio' },
+        taxTreatment: { taxed: 'Gravado', exempt: 'Exento' },
+      },
       status: {
         pending: 'Pendiente',
         'awaiting-payment': 'Esperando pago',
@@ -563,6 +589,9 @@ export const entity = {
       refunded: 'Reembolsado',
       currency: 'Moneda',
       paymentMethod: 'Método de pago',
+      taxableBase: 'Base imponible',
+      taxAmount: 'IVA',
+      taxRegime: 'Régimen del vendedor',
     },
   },
   refund: {
@@ -577,6 +606,8 @@ export const entity = {
       status: 'Estado',
       providerReference: 'Referencia del proveedor',
       decidedAt: 'Fecha de resolución',
+      taxableBase: 'Base imponible',
+      taxAmount: 'IVA',
     },
     values: {
       status: {

@@ -34,14 +34,14 @@ describe('ShipmentContentsCell', () => {
 });
 
 describe('ShipmentDestinationCell', () => {
-  it('names the municipality and the department', () => {
+  it('names the municipality and the department from their codes', () => {
     render(
       <ShipmentDestinationCell
         shipment={shipmentWith({
           destination: [
             Object.assign(new ShipmentDestination(), {
-              municipio: 'Mixco',
-              departamento: 'Guatemala',
+              municipio: '0108',
+              departamento: '01',
             }),
           ],
         })}
@@ -51,14 +51,14 @@ describe('ShipmentDestinationCell', () => {
     expect(screen.getByText('Mixco, Guatemala')).toBeInTheDocument();
   });
 
-  it('leaves out a part that is empty', () => {
+  it('leaves out a code it does not know', () => {
     render(
       <ShipmentDestinationCell
         shipment={shipmentWith({
           destination: [
             Object.assign(new ShipmentDestination(), {
-              municipio: '',
-              departamento: 'Petén',
+              municipio: '9999',
+              departamento: '17',
             }),
           ],
         })}
