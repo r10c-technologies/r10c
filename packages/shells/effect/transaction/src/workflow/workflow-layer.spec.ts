@@ -110,7 +110,14 @@ describe('the workflow outbox', () => {
     );
 
     expect(typeof outbox.enqueue).toBe('function');
-    expect(fake.executions[0]?.sql).toContain('CREATE TABLE IF NOT EXISTS');
+    // entifix 0.23.4 serialises the creation behind an advisory lock (#733),
+    // so a second runner booting at once waits rather than racing the CREATE.
+    const statements = fake.executions.map(execution => execution.sql);
+    expect(statements.slice(0, 2)).toEqual([
+      'BEGIN',
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+    ]);
+    expect(statements[2]).toContain('CREATE TABLE IF NOT EXISTS');
   });
 });
 
