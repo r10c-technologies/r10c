@@ -36,9 +36,8 @@ export interface FulfilmentSurface<TEntity extends Entity = Entity> {
   /** Shell-namespaced nav copy. `app:` keys are lint-restricted to `apps/`. */
   readonly navLabelKey: string;
   /**
-   * What the palette matches a term against. A shipment is not named by it —
-   * the order id it carries is not what a person calls it — so a result names
-   * itself, noun and short id, until ADR 0076's order number names both (#552).
+   * What the palette matches a term against: the order's number, which is
+   * what a person reads out and what names the shipment (ADR 0076 §5, #557).
    */
   readonly searchProperty: string;
   readonly sublabelProperty?: string;
@@ -81,7 +80,7 @@ export const SHIPPING_ORDER_SURFACE = fulfilmentSurface(ShippingOrder, {
   basePath: '/fulfilment/shipping-order',
   icon: '⊡',
   navLabelKey: 'r10c:fulfilment.nav.shipments',
-  searchProperty: 'orderId',
+  searchProperty: 'orderNumber',
   sublabelProperty: 'status',
 });
 

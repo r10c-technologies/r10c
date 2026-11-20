@@ -494,6 +494,10 @@ export const r10c: EsR10c = {
       latest: 'Latest orders',
       none: 'No orders yet.',
     },
+    list: {
+      itemsMore_one: '{{name}} and 1 more',
+      itemsMore_other: '{{name}} and {{count}} more',
+    },
     // A payment-link order's region (ADR 0081): the seller sets the link the
     // buyer pays by, and confirms the payment with its authorization number.
     payment: {
@@ -516,6 +520,9 @@ export const r10c: EsR10c = {
     },
     home: {
       awaitingDispatch: 'Shipments to dispatch',
+    },
+    list: {
+      line: '{{quantity}} × {{name}}',
     },
     whatsapp: {
       heading: 'Buyer',

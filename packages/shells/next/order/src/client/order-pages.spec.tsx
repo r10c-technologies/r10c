@@ -39,6 +39,7 @@ vi.mock('next/navigation', () => ({
 const makeOrder = () => {
   const order = new ProductOrder('party-user-2');
   order.id = 'product-order-1';
+  order.number = '7KQ4-M2XD';
   order.status = 'pending';
   order.vendorId = 'demo-organization';
   order.groupId = 'group-1';
@@ -93,8 +94,18 @@ describe('the listing page', () => {
     renderPage(<ProductOrderListClientPage />);
 
     await waitFor(() =>
-      expect(screen.getAllByText('party-user-2').length).toBeGreaterThan(0),
+      expect(screen.getAllByText('7KQ4-M2XD').length).toBeGreaterThan(0),
     );
+  });
+
+  it('reads a row by its number and what was bought, not by its ids (#556)', async () => {
+    renderPage(<ProductOrderListClientPage />);
+
+    await waitFor(() =>
+      expect(screen.getAllByText('Lámpara Aurora').length).toBeGreaterThan(0),
+    );
+    expect(screen.queryByText('party-user-2')).not.toBeInTheDocument();
+    expect(screen.queryByText('group-1')).not.toBeInTheDocument();
   });
 
   it('renders the status column from the entity’s own metadata', async () => {

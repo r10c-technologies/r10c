@@ -100,6 +100,8 @@ export class ShippingOrder implements Entity {
   @accessor({
     type: 'string',
     labelKey: 'entity:shipping-order.fields.orderNumber',
+    // What a row is read as, and the column held in view (#557).
+    card: 'title',
     filterable: true,
     sortable: true,
   })
@@ -279,6 +281,8 @@ export class ShippingOrder implements Entity {
     enumValues: ShippingStatuses,
     enumTones: ShippingStatusTones,
     enumLabelKey: 'entity:shipping-order.values.status',
+    // Declared, or `paymentMethod` — the first enum — takes the badge.
+    card: 'badge',
     required: true,
     filterable: true,
   })

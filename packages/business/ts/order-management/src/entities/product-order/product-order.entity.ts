@@ -126,6 +126,8 @@ export class ProductOrder implements Entity {
   @accessor({
     type: 'string',
     labelKey: 'entity:product-order.fields.number',
+    // What a row is read as, and the column held in view (#556).
+    card: 'title',
     filterable: true,
     // Sortable so a search result group has an order to list it in.
     sortable: true,
@@ -268,6 +270,8 @@ export class ProductOrder implements Entity {
     enumValues: OrderStatuses,
     enumTones: OrderStatusTones,
     enumLabelKey: 'entity:product-order.values.status',
+    // Declared, or `paymentMethod` — the first enum — takes the badge.
+    card: 'badge',
     required: true,
     filterable: true,
   })

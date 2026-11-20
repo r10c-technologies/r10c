@@ -2,10 +2,15 @@
 
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud } from '@entifix/next-shell';
+import { EntityColumn } from '@entifix/react-controls';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 
 import { PRODUCT_ORDER_SURFACE } from '../order-surfaces';
 import { useOrderAdapters } from './order-context';
+import {
+  OrderItemsCell,
+  PRODUCT_ORDER_LIST_VIEW,
+} from './order-list-cells';
 import { OrderPaymentRegion } from './order-payment-region';
 
 export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
@@ -37,6 +42,15 @@ export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
     // carries the same note over the same pair.
     metadata: 'metadata',
     useCases: 'productOrderUseCases',
+    // A row a vendor scans (#556): what was bought in one line, and only the
+    // members a row is read by.
+    columns: (
+      <EntityColumn<ProductOrder>
+        field="items"
+        render={order => <OrderItemsCell order={order} />}
+      />
+    ),
+    useListView: () => PRODUCT_ORDER_LIST_VIEW,
     // A payment-link order's link and confirmation: two verbs with a body,
     // which the header's buttons cannot send (ADR 0081).
     regions: order => [<OrderPaymentRegion key="payment" order={order} />],

@@ -15,6 +15,10 @@ for (const { path, row } of [
   { path: '/es/catalog/product-offering', row: 'Taza de cerámica' },
   { path: '/es/settlement/commission-entry', row: 'order-1' },
   { path: '/es/system/configuration', row: 'stock-service-domain' },
+  // Read by number, status, what was bought and the total (#556).
+  { path: '/es/order/product-order', row: '7KQ4-M2XD' },
+  // Read by number, contents, destination and what is collected (#557).
+  { path: '/es/fulfilment/shipping-order', row: 'A1A1-0001' },
 ]) {
   test(`${path} is a table at 1280px`, async ({ page }) => {
     await page.goto(path);

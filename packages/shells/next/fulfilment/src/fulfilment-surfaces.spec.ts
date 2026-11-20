@@ -30,10 +30,9 @@ describe('the fulfilment surfaces', () => {
     expect(SHIPPING_ORDER_SURFACE.basePath).toBe('/fulfilment/shipping-order');
   });
 
-  // Matched against the order it carries; named as itself, noun and short id,
-  // until ADR 0076's order number names it (#552).
-  it('searches a shipment by the order it carries', () => {
-    expect(SHIPPING_ORDER_SURFACE.searchProperty).toBe('orderId');
+  // Matched against the number a person reads out (ADR 0076 §5, #557).
+  it('searches a shipment by its order’s number', () => {
+    expect(SHIPPING_ORDER_SURFACE.searchProperty).toBe('orderNumber');
   });
 
   it('carries shell-namespaced nav copy', () => {

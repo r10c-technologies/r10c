@@ -39,6 +39,7 @@ const aShipment = (id: string, status: ShippingStatus) =>
   Object.assign(new ShippingOrder(), {
     id,
     orderId: `order-${id}`,
+    orderNumber: `N-${id}`,
     groupId: 'group-1',
     flowId: 'flow-1',
     paymentMethod: 'cod',
@@ -94,9 +95,22 @@ describe('the worklist', () => {
     renderPage(<ShippingOrderListClientPage />);
 
     await waitFor(() =>
-      expect(screen.getAllByText('order-so-1').length).toBeGreaterThan(0),
+      expect(screen.getAllByText('N-so-1').length).toBeGreaterThan(0),
     );
-    expect(screen.queryByText('order-so-2')).not.toBeInTheDocument();
+    expect(screen.queryByText('N-so-2')).not.toBeInTheDocument();
+  });
+
+  it('says what goes in each parcel and what the courier collects (#557)', async () => {
+    renderPage(<ShippingOrderListClientPage />);
+
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('2 × Lámpara Aurora').length,
+      ).toBeGreaterThan(0),
+    );
+    expect(screen.getAllByText(/25,00\sGTQ/).length).toBeGreaterThan(0);
+    // The number names the order; its id is the record's business.
+    expect(screen.queryByText('order-so-1')).not.toBeInTheDocument();
   });
 });
 
