@@ -46,6 +46,15 @@ export interface TransitionOfferingInput {
    * one are the same value, and so a test can pin it.
    */
   readonly at: Date;
+  /**
+   * Restating a publication that already happened — the rebuild walk
+   * (ADR 0050) — rather than deciding a new one. The active-pin rule is a
+   * rule about **going on sale**, so it does not run: an offering published
+   * on version 1 stays on sale on version 1 after version 2 is released, and a
+   * rebuild that refused to restate it would empty the storefront of exactly
+   * the offerings ADR 0079 §2 says nothing moves.
+   */
+  readonly restating?: boolean;
 }
 
 export class TransitionOfferingInputTag extends Context.Service<
@@ -161,6 +170,31 @@ export class OfferingHasNoSpecification extends Failure.conflict<OfferingHasNoSp
   },
 ) {}
 
+/** The code a route renders when the pinned version is not the one on sale. */
+export const SPECIFICATION_NOT_ACTIVE = 'specificationNotActive';
+
+/**
+ * An offering asked to reach the storefront while pinning a version that is
+ * not `active` — still in design, or retired (ADR 0079 §2). A pin is the id of
+ * one version record, and only a released, current one may go on sale; a
+ * draft would sell content its author has not frozen. Publication only, like
+ * the missing specification: a takedown is never refused for what it pins.
+ */
+export class SpecificationNotActive extends Failure.conflict<SpecificationNotActive>()(
+  'SpecificationNotActive',
+  SPECIFICATION_NOT_ACTIVE,
+  {
+    id: Schema.String,
+    specificationId: Schema.String,
+    standing: Schema.String,
+  },
+  {
+    message: ({ standing }) =>
+      `this offering pins a specification version that is '${standing}'; ` +
+      'only an active version may be published',
+  },
+) {}
+
 /** The members the snapshot copies off the pinned specification. */
 const MERCHANDISING = ['code', 'description', 'brandId', 'categoryId'] as const;
 
@@ -199,6 +233,20 @@ const merchandisingOf = (
     ...(fitsDeviceModelIds === undefined ? {} : { fitsDeviceModelIds }),
   };
 };
+
+/**
+ * The version the snapshot was taken from (ADR 0079 §2). A publication always
+ * has one — publishing requires an `active` pin — but a takedown of an
+ * offering whose specification is gone announces the id it names and version
+ * `0`, so the payload keeps one shape by event name.
+ */
+const pinOf = (
+  offering: ProductOffering,
+  specification: ProductSpecification | undefined,
+): Pick<CatalogPublication, 'specificationId' | 'specificationVersion'> => ({
+  specificationId: String(specification?.id ?? offering.specificationId),
+  specificationVersion: specification?.version ?? 0,
+});
 
 /** What one transition decided: the moved record, and what to announce. */
 export interface OfferingTransitionDecision {
@@ -242,7 +290,7 @@ export interface OfferingTransitionDecision {
  * arrive as tags and the caller has already been authorized by the route.
  */
 export const transitionOffering = Effect.gen(function* () {
-  const { id, transition, vendorId, source, at } =
+  const { id, transition, vendorId, source, at, restating } =
     yield* TransitionOfferingInputTag;
   const repository = yield* EntityRepositoryTag;
 
@@ -277,6 +325,22 @@ export const transitionOffering = Effect.gen(function* () {
     return yield* new OfferingHasNoSpecification({
       id: String(id),
       specificationId: offering.specificationId,
+    });
+  }
+
+  // The pin must name the series' current, frozen version. After the
+  // existence check: an offering naming nothing needs a specification, not a
+  // release.
+  if (
+    specification !== undefined &&
+    next === 'published' &&
+    restating !== true &&
+    specification.lifecycleStatus !== 'active'
+  ) {
+    return yield* new SpecificationNotActive({
+      id: String(id),
+      specificationId: offering.specificationId,
+      standing: String(specification.lifecycleStatus),
     });
   }
 
@@ -315,6 +379,7 @@ export const transitionOffering = Effect.gen(function* () {
     // nothing while looking like it says something.
     availableHint: true,
     publishedAt: at.toISOString(),
+    ...pinOf(offering, specification),
     ...merchandisingOf(specification),
   };
 

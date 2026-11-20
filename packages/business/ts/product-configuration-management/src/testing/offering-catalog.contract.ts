@@ -26,6 +26,8 @@ const announcement = (publishedAt: string) =>
       currency: 'GTQ',
       availableHint: true,
       publishedAt,
+      specificationId: 'spec-1',
+      specificationVersion: 1,
     },
     'contract',
   );

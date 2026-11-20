@@ -47,8 +47,14 @@ export const validateSalesChannel = (
 /** One priced counter line, as a checkout's start input carries it. */
 interface PricedLine {
   readonly offeringId: string;
-  /** What it is sold as, from the same projection as its price (#582). */
+  /**
+   * What it is sold as, from the same projection as its price: the name, the
+   * description and the specification version (#582, ADR 0079 §3).
+   */
   readonly name: string;
+  readonly description?: string;
+  readonly specificationId: string;
+  readonly specificationVersion: number;
   readonly quantity: number;
   readonly amount: number;
   readonly currency: string;
@@ -147,6 +153,11 @@ export const sellAtCounter = (input: {
       priced.push({
         offeringId: line.offeringId,
         name: price.name,
+        ...(price.description === undefined
+          ? {}
+          : { description: price.description }),
+        specificationId: price.specificationId,
+        specificationVersion: price.specificationVersion,
         quantity: line.quantity,
         amount: price.amount,
         currency: price.currency,

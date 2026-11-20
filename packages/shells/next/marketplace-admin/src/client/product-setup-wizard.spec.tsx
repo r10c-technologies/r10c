@@ -27,6 +27,7 @@ import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/ma
 import {
   PRODUCT_SETUP_WIZARD,
   ProductSetupWizard,
+  releaseFirstVersion,
   validatorFor,
 } from './product-setup-wizard.js';
 
@@ -146,7 +147,18 @@ const adapters = (): MarketplaceAdminAdapters => ({
   deviceModelUseCases: real.deviceModelUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
+  productUseCases: {
+    run: (useCase, id) =>
+      Effect.sync(() => {
+        released.push({ key: useCase.key, id: String(id) });
+        return settled(undefined) as never;
+      }),
+    bulk: () => Effect.succeed([]),
+  },
 });
+
+/** The verbs the wizard ran on the records it created. */
+let released: { key: string; id: string }[] = [];
 
 const renderWizard = (props: { step?: string; onFinished?: () => void } = {}) =>
   render(
@@ -166,6 +178,7 @@ const type = async (label: string | RegExp, value: string) => {
 };
 
 beforeEach(() => {
+  released = [];
   push.mockClear();
   search = new URLSearchParams();
   useDraftsState.setState({ drafts: {} });
@@ -266,11 +279,32 @@ describe('the blank path', () => {
     await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
     // Handed the new specification, so a host can open it (#564).
     expect(onFinished).toHaveBeenCalledWith({ id: expect.any(String) });
+    // Released, so an offering can be published on it at once (ADR 0079 §1).
+    expect(released).toEqual([
+      { key: 'release', id: onFinished.mock.calls[0]?.[0].id },
+    ]);
     expect(
       repositories.product.items.map(
         item => (item as ProductSpecification).name,
       ),
     ).toContain('Café');
+  });
+});
+
+describe('releasing the first version', () => {
+  it('answers whether the release settled, and never throws on a refusal', async () => {
+    const runner = (outcome: 'settled' | 'refused') => ({
+      productUseCases: {
+        run: () =>
+          outcome === 'settled'
+            ? Effect.succeed(settled(undefined) as never)
+            : Effect.fail(new Unavailable({}) as never),
+        bulk: () => Effect.succeed([]),
+      },
+    });
+
+    expect(await releaseFirstVersion(runner('settled'), 'p-1')).toBe(true);
+    expect(await releaseFirstVersion(runner('refused'), 'p-1')).toBe(false);
   });
 });
 

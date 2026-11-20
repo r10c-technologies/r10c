@@ -47,7 +47,12 @@ const priceFor = (offeringId: string) =>
   });
 
 const specification = () =>
-  Object.assign(new ProductSpecification(), { id: 'spec-1', name: 'A widget' });
+  Object.assign(new ProductSpecification(), {
+    id: 'spec-1',
+    name: 'A widget',
+    version: 1,
+    lifecycleStatus: 'active',
+  });
 
 interface Stores {
   readonly offerings?: ProductOffering[];

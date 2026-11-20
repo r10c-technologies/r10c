@@ -2173,9 +2173,9 @@
       "fingerprint": "177153e1e826d6"
     },
     {
-      "ref": "order.write@6",
+      "ref": "order.write@7",
       "id": "order.write",
-      "version": 6,
+      "version": 7,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "perVendor",
@@ -2248,6 +2248,28 @@
                       "type": "string",
                       "minLength": 1
                     },
+                    "description": {
+                      "type": "string"
+                    },
+                    "specificationId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "specificationVersion": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    },
                     "kind": {
                       "type": "string",
                       "minLength": 1
@@ -2305,6 +2327,8 @@
                   "required": [
                     "offeringId",
                     "name",
+                    "specificationId",
+                    "specificationVersion",
                     "kind",
                     "taxTreatment",
                     "taxRate",
@@ -2485,7 +2509,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "17f94e1c55a5d2"
+      "fingerprint": "11ba2f9910c3c7"
     },
     {
       "ref": "payment.capture@4",

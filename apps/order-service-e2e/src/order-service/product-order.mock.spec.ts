@@ -56,6 +56,8 @@ const crossing = (extra: Record<string, string> = {}) => ({
 const line = (offeringId: string, quantity = 1) => ({
   offeringId,
   name: `Sold as ${offeringId}`,
+  specificationId: 'spec-1',
+  specificationVersion: 1,
   vendorId: E2E_ORGANIZATION_ID,
   quantity,
   amount: 1999,

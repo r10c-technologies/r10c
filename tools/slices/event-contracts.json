@@ -4,7 +4,7 @@
       "name": "catalog.published",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "6c8208c7f0de6519",
+      "fingerprint": "65a1153c6c077f27",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -35,6 +35,13 @@
             "publishedAt": {
               "type": "string",
               "minLength": 1
+            },
+            "specificationId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "specificationVersion": {
+              "type": "number"
             }
           },
           "required": [
@@ -44,7 +51,9 @@
             "amount",
             "currency",
             "availableHint",
-            "publishedAt"
+            "publishedAt",
+            "specificationId",
+            "specificationVersion"
           ],
           "allOf": [
             {
@@ -60,7 +69,7 @@
       "name": "catalog.unpublished",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "8a301f9ff7a3f97a",
+      "fingerprint": "36f3a6ce9542933b",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -91,6 +100,13 @@
             "publishedAt": {
               "type": "string",
               "minLength": 1
+            },
+            "specificationId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "specificationVersion": {
+              "type": "number"
             }
           },
           "required": [
@@ -100,7 +116,9 @@
             "amount",
             "currency",
             "availableHint",
-            "publishedAt"
+            "publishedAt",
+            "specificationId",
+            "specificationVersion"
           ],
           "allOf": [
             {
@@ -581,7 +599,7 @@
       "name": "order.cancelled",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "83c3c18bfa587177",
+      "fingerprint": "d0ba79d7fc49de34",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -619,6 +637,13 @@
                   "name": {
                     "type": "string"
                   },
+                  "specificationId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "specificationVersion": {
+                    "type": "number"
+                  },
                   "amount": {
                     "type": "number"
                   },
@@ -650,6 +675,8 @@
                 "required": [
                   "offeringId",
                   "name",
+                  "specificationId",
+                  "specificationVersion",
                   "amount",
                   "quantity",
                   "currency",
@@ -766,7 +793,7 @@
       "name": "order.dispatched",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "5d793d23d0280778",
+      "fingerprint": "ffc04af406510bb9",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -804,6 +831,13 @@
                   "name": {
                     "type": "string"
                   },
+                  "specificationId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "specificationVersion": {
+                    "type": "number"
+                  },
                   "amount": {
                     "type": "number"
                   },
@@ -835,6 +869,8 @@
                 "required": [
                   "offeringId",
                   "name",
+                  "specificationId",
+                  "specificationVersion",
                   "amount",
                   "quantity",
                   "currency",
@@ -951,7 +987,7 @@
       "name": "order.fulfilled",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "16fbec095cbd08bc",
+      "fingerprint": "c099ffbbe9cd3f9e",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -989,6 +1025,13 @@
                   "name": {
                     "type": "string"
                   },
+                  "specificationId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "specificationVersion": {
+                    "type": "number"
+                  },
                   "amount": {
                     "type": "number"
                   },
@@ -1020,6 +1063,8 @@
                 "required": [
                   "offeringId",
                   "name",
+                  "specificationId",
+                  "specificationVersion",
                   "amount",
                   "quantity",
                   "currency",
@@ -1136,7 +1181,7 @@
       "name": "order.payment-confirmed",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "10a019f145966607",
+      "fingerprint": "39be71c3c09daf66",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -1174,6 +1219,13 @@
                   "name": {
                     "type": "string"
                   },
+                  "specificationId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "specificationVersion": {
+                    "type": "number"
+                  },
                   "amount": {
                     "type": "number"
                   },
@@ -1205,6 +1257,8 @@
                 "required": [
                   "offeringId",
                   "name",
+                  "specificationId",
+                  "specificationVersion",
                   "amount",
                   "quantity",
                   "currency",
@@ -1321,7 +1375,7 @@
       "name": "order.placed",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "8f2bc8d62f36ea66",
+      "fingerprint": "4dd879dbecfe08b0",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -1359,6 +1413,13 @@
                   "name": {
                     "type": "string"
                   },
+                  "specificationId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "specificationVersion": {
+                    "type": "number"
+                  },
                   "amount": {
                     "type": "number"
                   },
@@ -1390,6 +1451,8 @@
                 "required": [
                   "offeringId",
                   "name",
+                  "specificationId",
+                  "specificationVersion",
                   "amount",
                   "quantity",
                   "currency",

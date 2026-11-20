@@ -39,5 +39,9 @@ export const publishedOfferingSeed = [
     amount: 6499,
     currency: 'GTQ',
     availableHint: true,
+    // The version it was published on, which a counter sale copies onto its
+    // line (ADR 0079 §3).
+    specificationId: 'product-1',
+    specificationVersion: 1,
   },
 ];

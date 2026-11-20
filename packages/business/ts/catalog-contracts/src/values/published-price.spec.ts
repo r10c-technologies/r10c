@@ -3,21 +3,61 @@ import { describe, expect, it } from 'vitest';
 import { publishedPriceOf } from './published-price.js';
 
 describe('publishedPriceOf', () => {
-  it('reads the vendor, the name and the unit price off a published record', () => {
+  const PIN = { specificationId: 's-1', specificationVersion: 2 };
+
+  it('reads the vendor, the name, the unit price and the version off a published record', () => {
     expect(
       publishedPriceOf('o-1', {
         vendorId: 'v-1',
         amount: 12,
         currency: 'GTQ',
         name: 'Lámpara Aurora',
+        description: 'De bronce.',
+        ...PIN,
       }),
     ).toEqual({
       offeringId: 'o-1',
       name: 'Lámpara Aurora',
+      description: 'De bronce.',
       vendorId: 'v-1',
       amount: 12,
       currency: 'GTQ',
+      ...PIN,
     });
+  });
+
+  it('omits a blank or absent description rather than copying it', () => {
+    const record = {
+      vendorId: 'v-1',
+      amount: 12,
+      currency: 'GTQ',
+      name: 'Lámpara Aurora',
+      ...PIN,
+    };
+
+    expect(publishedPriceOf('o-1', record)).not.toHaveProperty('description');
+    expect(
+      publishedPriceOf('o-1', { ...record, description: '' }),
+    ).not.toHaveProperty('description');
+  });
+
+  it('answers nothing for a record that names no specification version', () => {
+    const record = {
+      vendorId: 'v-1',
+      amount: 12,
+      currency: 'GTQ',
+      name: 'Lámpara Aurora',
+    };
+
+    expect(
+      publishedPriceOf('o-1', { ...record, specificationVersion: 1 }),
+    ).toBeUndefined();
+    expect(
+      publishedPriceOf('o-1', { ...record, ...PIN, specificationId: '' }),
+    ).toBeUndefined();
+    expect(
+      publishedPriceOf('o-1', { ...record, ...PIN, specificationVersion: '1' }),
+    ).toBeUndefined();
   });
 
   it('answers nothing for a missing record, one without a price, or one without a name', () => {

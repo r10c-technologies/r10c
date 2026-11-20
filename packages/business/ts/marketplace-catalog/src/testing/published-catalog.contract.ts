@@ -28,6 +28,8 @@ const publication = (
   currency: 'GTQ',
   availableHint: true,
   publishedAt,
+  specificationId: 'spec-1',
+  specificationVersion: 1,
 });
 
 /**

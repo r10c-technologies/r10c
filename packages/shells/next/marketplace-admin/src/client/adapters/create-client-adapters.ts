@@ -160,6 +160,11 @@ const productOfferingUseCases = makeEntityRestUseCaseRunner(
   ProductOffering,
   CATALOG_SERVICE,
 );
+/** A product version's four lifecycle verbs (ADR 0079 §1). */
+const productUseCases = makeEntityRestUseCaseRunner(
+  ProductSpecification,
+  CATALOG_SERVICE,
+);
 
 /**
  * The writers the generated forms save and delete through. Each answers both
@@ -213,5 +218,6 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productBrandUseCases,
     productCategoryUseCases,
     productOfferingUseCases,
+    productUseCases,
   };
 }

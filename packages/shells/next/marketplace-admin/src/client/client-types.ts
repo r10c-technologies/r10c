@@ -30,4 +30,6 @@ export interface MarketplaceAdminAdapters {
   productBrandUseCases: EntityUseCaseRunner;
   productCategoryUseCases: EntityUseCaseRunner;
   productOfferingUseCases: EntityUseCaseRunner;
+  /** A product version's lifecycle verbs: release, revise, retire, obsolete. */
+  productUseCases: EntityUseCaseRunner;
 }

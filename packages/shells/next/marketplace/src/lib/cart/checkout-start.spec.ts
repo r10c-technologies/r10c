@@ -15,6 +15,8 @@ import {
 const line = (offeringId: string, vendorId: string, amount = 100) => ({
   offeringId,
   name: `Name of ${offeringId}`,
+  specificationId: 'spec-1',
+  specificationVersion: 1,
   vendorId,
   quantity: 2,
   amount,

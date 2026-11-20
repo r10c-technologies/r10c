@@ -46,6 +46,8 @@ const OPTIONS = { flowId: 'f', composedAt: '2026-10-28T00:00:00.000Z' };
 const line = (offeringId: string) => ({
   offeringId,
   name: `Name of ${offeringId}`,
+  specificationId: `spec-${offeringId}`,
+  specificationVersion: 2,
   quantity: 2,
   amount: 500,
   currency: 'GTQ',
@@ -382,7 +384,7 @@ describe('the checkout recipe', () => {
     expect(JSON.stringify(open?.parameters)).not.toContain(CONTACT.email);
   });
 
-  it('writes each line under the name it was sold as, into the order and the shipment (#582)', () => {
+  it('writes each line under the name and version it was sold as, into the order and the shipment (#582)', () => {
     const start = CHECKOUTS[0]!.value;
     const slip = composed(start);
     const step = (ref: string) =>
@@ -390,7 +392,15 @@ describe('the checkout recipe', () => {
         ?.parameters as { items?: unknown[]; lines?: unknown[] } | undefined;
 
     const sold = { offeringId: 'v-1-o-1', name: 'Name of v-1-o-1' };
-    expect(step('order.write')?.items).toEqual([expect.objectContaining(sold)]);
+    expect(step('order.write')?.items).toEqual([
+      expect.objectContaining({
+        ...sold,
+        // The version it was sold under, so nothing on the line is resolved
+        // by reference after placement (ADR 0079 §3).
+        specificationId: 'spec-v-1-o-1',
+        specificationVersion: 2,
+      }),
+    ]);
     expect(step('fulfilment.open')?.lines).toEqual([{ ...sold, quantity: 2 }]);
     // The slip is composed from the start alone: nothing reads the projection
     // again, so a rename after the checkout reaches neither write.

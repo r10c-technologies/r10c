@@ -92,6 +92,8 @@ describe('the two projections', () => {
       currency: 'GTQ',
       availableHint: true,
       publishedAt: '2026-09-07T10:00:00.000Z',
+      specificationId: 'spec-1',
+      specificationVersion: 1,
     };
     const announcement = {
       organizationId: 'org-1',

@@ -131,6 +131,7 @@ const adapters = (): MarketplaceAdminAdapters => ({
   deviceModelUseCases: real.deviceModelUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
+  productUseCases: real.productUseCases,
 });
 
 /**

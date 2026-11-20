@@ -63,6 +63,8 @@ describe('PublishedOffering', () => {
         currency: 'USD',
         availableHint: false,
         publishedAt: new Date('2026-09-07T10:00:00.000Z'),
+        specificationId: 'spec-2',
+        specificationVersion: 3,
         code: 'product-014',
         description: 'One widget.',
         brandId: 'product-brand-4',
@@ -75,6 +77,8 @@ describe('PublishedOffering', () => {
     expect(published?.name).toBe('Red widget');
     expect(published?.availableHint).toBe(false);
     expect(published?.code).toBe('product-014');
+    expect(published?.specificationId).toBe('spec-2');
+    expect(published?.specificationVersion).toBe(3);
     expect(published?.description).toBe('One widget.');
     expect(published?.brandId).toBe('product-brand-4');
     expect(published?.categoryId).toBe('product-category-8');

@@ -5,6 +5,12 @@ import {
   type MediaReferenceValue,
 } from '@r10c/business-ts-catalog-contracts';
 
+import {
+  type SpecificationLifecycleStatus,
+  SpecificationLifecycleStatuses,
+  SpecificationLifecycleTones,
+} from '../../values/specification-lifecycle';
+
 /**
  * What a thing **is** — the facts common to every instance of it. Definitional,
  * not commercial.
@@ -21,6 +27,12 @@ import {
  * The commercial half is deliberately elsewhere: `ProductOffering` is what is
  * orderable and priced, so one specification can be sold several ways without
  * being redefined.
+ *
+ * ⚠️ **One record is one version** (ADR 0079 §1). The series shares a
+ * `specKey`; each version carries its own `version` and `lifecycleStatus`, and
+ * only `in-design` has an edit path — `release` freezes it, `revise` opens the
+ * next version beside it. An offering pins **this record's id**, so a pin
+ * names one frozen version, never "whatever the specification says today".
  *
  * Tenant plane, `catalog` store.
  */
@@ -41,6 +53,12 @@ export class ProductSpecification implements Entity {
   #categoryId?: string;
   #media?: readonly MediaReferenceValue[];
   #fitsDeviceModelIds?: readonly string[];
+  #specKey?: string;
+  #version?: number;
+  #lifecycleStatus?: SpecificationLifecycleStatus;
+  #validFrom?: Date;
+  #validTo?: Date;
+  #contentHash?: string;
   #revision?: number;
   // #endregion
 
@@ -74,10 +92,10 @@ export class ProductSpecification implements Entity {
    * The catalogue number, and it is **the service's to assign, not the
    * client's**.
    *
-   * `makeCatalogTransactionHandler` draws it from a Redis sequence under
-   * `lock:code:product` and writes `entity.code` unconditionally, so whatever a
-   * form sends is overwritten — measured: a create carrying `W-LIVE-1` stored
-   * `product-013`. It is therefore **not `required`**, because requiring it
+   * The create command draws it from the organization's `counters` document in
+   * the same unit of work as the record and writes `entity.code`
+   * unconditionally, so whatever a form sends is overwritten. Every version of
+   * one series shares it: `revise` copies it with `specKey`. It is therefore **not `required`**, because requiring it
    * demands of the operator something they do not own; the service's own
    * `validate` asks for `name` and never for this.
    *
@@ -228,6 +246,104 @@ export class ProductSpecification implements Entity {
   }
   set fitsDeviceModelIds(value: readonly string[] | undefined) {
     this.#fitsDeviceModelIds = value;
+  }
+
+  /**
+   * The series this version belongs to — stable across every version, the key
+   * `version` is monotonic under (ADR 0079 §1). Assigned at create from the
+   * same counter draw as `code`, and copied by `revise`.
+   *
+   * ⚠️ Every lifecycle member below is **server-owned and client-visible**, so
+   * none is `readonly` (that drops it from serialization both ways) and none is
+   * `required` (a hidden required member still validates).
+   * `preserveSpecificationLifecycle` restores them on every save, and the form
+   * hides them as inputs.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-specification.fields.specKey',
+    filterable: true,
+  })
+  get specKey(): string | undefined {
+    return this.#specKey;
+  }
+  set specKey(value: string | undefined) {
+    this.#specKey = value;
+  }
+
+  /** Monotonic per `specKey`, `1` for the first. An order line copies it. */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-specification.fields.version',
+    sortable: true,
+    filterable: true,
+  })
+  get version(): number | undefined {
+    return this.#version;
+  }
+  set version(value: number | undefined) {
+    this.#version = value;
+  }
+
+  /**
+   * Where this version stands. Moved only by the four verbs, each a write
+   * conditional on the state it leaves — hiding a verb is presentation, the
+   * conditional write is the rule (ADR 0079 §1).
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-specification.fields.lifecycleStatus',
+    enumValues: SpecificationLifecycleStatuses,
+    enumTones: SpecificationLifecycleTones,
+    enumLabelKey: 'entity:product-specification.values.lifecycleStatus',
+    filterable: true,
+  })
+  get lifecycleStatus(): SpecificationLifecycleStatus | undefined {
+    return this.#lifecycleStatus;
+  }
+  set lifecycleStatus(value: SpecificationLifecycleStatus | undefined) {
+    this.#lifecycleStatus = value;
+  }
+
+  /** When this version was released: the start of SID's `validFor`. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-specification.fields.validFrom',
+    sortable: true,
+  })
+  get validFrom(): Date | undefined {
+    return this.#validFrom;
+  }
+  set validFrom(value: Date | undefined) {
+    this.#validFrom = value;
+  }
+
+  /** When it stopped being the active version: the end of `validFor`. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-specification.fields.validTo',
+  })
+  get validTo(): Date | undefined {
+    return this.#validTo;
+  }
+  set validTo(value: Date | undefined) {
+    this.#validTo = value;
+  }
+
+  /**
+   * The SHA-256 of what this version says, stamped at release
+   * (`contentHashOf`). A frozen version whose content no longer hashes to it
+   * was changed by a path that is not supposed to exist.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-specification.fields.contentHash',
+  })
+  get contentHash(): string | undefined {
+    return this.#contentHash;
+  }
+  set contentHash(value: string | undefined) {
+    this.#contentHash = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

@@ -53,6 +53,10 @@ export interface PricedLine {
   readonly offeringId: string;
   /** What it is sold as: the order and the shipment keep it (#582). */
   readonly name: string;
+  /** The description and specification version it was published on (ADR 0079 §3). */
+  readonly description?: string;
+  readonly specificationId: string;
+  readonly specificationVersion: number;
   readonly vendorId: string;
   readonly quantity: number;
   readonly amount: number;

@@ -27,6 +27,7 @@ const url = (variable: string, port: number) =>
   );
 
 export const FLEET = {
+  marketplaceAdmin: url('MARKETPLACE_ADMIN_SERVICE_URL', 3101),
   transaction: url('TRANSACTION_SERVICE_URL', 3103),
   order: url('ORDER_SERVICE_URL', 3105),
   payment: url('PAYMENT_SERVICE_URL', 3106),
@@ -293,11 +294,37 @@ export interface Started {
   readonly problem?: unknown;
 }
 
+/**
+ * The specification version an offering is on sale under, read off the
+ * projection as the storefront prices a line (ADR 0079 §3).
+ */
+const pinOf = async (offeringId: string) => {
+  const published = await (
+    await mongo('marketplace')
+  )
+    .collection('published-offering')
+    .findOne({ offeringId });
+  return {
+    specificationId: String(published?.['specificationId'] ?? ''),
+    specificationVersion: Number(published?.['specificationVersion'] ?? 0),
+  };
+};
+
 /** `POST /api/flow/checkout`, as the storefront starts one. */
 export const startCheckout = async (
   segments: readonly Segment[],
 ): Promise<Started> => {
   const cap = capability();
+  const pins = new Map(
+    await Promise.all(
+      segments
+        .flatMap(segment => segment.lines)
+        .map(
+          async line =>
+            [line.offeringId, await pinOf(line.offeringId)] as const,
+        ),
+    ),
+  );
   const total = segments
     .flatMap(segment => segment.lines)
     .reduce((sum, line) => sum + line.amount * line.quantity, 0);
@@ -311,8 +338,10 @@ export const startCheckout = async (
         ...segment,
         lines: segment.lines.map(line => ({
           ...line,
-          // A line names what was sold (#582).
+          // A line names what was sold, and the version it was sold under
+          // (#582, ADR 0079 §3).
           name: line.name ?? line.offeringId,
+          ...pins.get(line.offeringId),
           currency: 'GTQ',
         })),
       })),

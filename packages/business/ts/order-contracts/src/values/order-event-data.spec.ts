@@ -29,6 +29,9 @@ const STORED = {
     {
       offeringId: 'o-1',
       name: 'Lámpara',
+      description: 'De bronce.',
+      specificationId: 'spec-1',
+      specificationVersion: 2,
       quantity: 1,
       amount: 1120,
       currency: 'GTQ',
@@ -71,6 +74,9 @@ describe('orderEventDataOf', () => {
         {
           offeringId: 'o-1',
           name: 'Lámpara',
+          description: 'De bronce.',
+          specificationId: 'spec-1',
+          specificationVersion: 2,
           quantity: 1,
           amount: 1120,
           currency: 'GTQ',

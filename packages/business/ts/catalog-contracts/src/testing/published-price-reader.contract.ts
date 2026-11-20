@@ -47,7 +47,14 @@ export const describePublishedPriceReaderContract = (
     it('reads a listed offering as its price', async () => {
       const { result, asked } = await read({
         status: 200,
-        record: { vendorId: 'v-1', amount: 7, currency: 'GTQ', name: 'Mug' },
+        record: {
+          vendorId: 'v-1',
+          amount: 7,
+          currency: 'GTQ',
+          name: 'Mug',
+          specificationId: 's-1',
+          specificationVersion: 1,
+        },
       });
 
       expect(asked).toEqual(['o-1']);

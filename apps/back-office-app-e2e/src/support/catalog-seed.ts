@@ -78,6 +78,10 @@ export const productSeed = [
   {
     id: 'product-1',
     code: 'P-1',
+    // The first released version of its own series (ADR 0079 §1).
+    specKey: 'P-1',
+    version: 1,
+    lifecycleStatus: 'active',
     name: 'Widget',
     description: 'A widget',
     // Plain ids into `catalog-reference`, another slice's store. They were an
@@ -98,6 +102,9 @@ export const productSeed = [
   {
     id: 'product-2',
     code: 'P-2',
+    specKey: 'P-2',
+    version: 1,
+    lifecycleStatus: 'active',
     name: 'Gadget',
     description: 'A gadget',
     brandId: 'product-brand-2',
@@ -106,6 +113,9 @@ export const productSeed = [
   {
     id: 'product-3',
     code: 'P-3',
+    specKey: 'P-3',
+    version: 1,
+    lifecycleStatus: 'active',
     name: 'Doohickey',
     description: 'A doohickey',
     brandId: 'product-brand-3',

@@ -55,6 +55,8 @@ const order = {
     {
       offeringId: 'off-1',
       name: 'Cog',
+      specificationId: 'spec-1',
+      specificationVersion: 1,
       amount: 10,
       quantity: 2,
       currency: 'GTQ',

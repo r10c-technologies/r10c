@@ -47,6 +47,13 @@ const OrderLineSchema = openStruct({
   offeringId: Schema.NonEmptyString,
   /** The description as sold, copied onto the line at placement. */
   name: Schema.String,
+  /**
+   * The specification version the line sold, by record id and number
+   * (ADR 0079 §3). `description` rides beside them when the specification had
+   * one, and is left to the open struct.
+   */
+  specificationId: Schema.NonEmptyString,
+  specificationVersion: Schema.Finite,
   /** Minor units, **per unit**. */
   amount: Schema.Finite,
   quantity: Schema.Finite,

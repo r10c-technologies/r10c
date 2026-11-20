@@ -103,6 +103,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // and the `@useCase()` declarations from drifting apart.
     `${CATALOG_DOMAIN}:product-offering:publish`,
     `${CATALOG_DOMAIN}:product-offering:unpublish`,
+    // A specification's lifecycle (ADR 0079 §1): the vendor's own versions,
+    // moved by the same person who authors them. `revise` creates the next
+    // version and `obsolete` is refused while anything published pins it.
+    `${CATALOG_DOMAIN}:product-specification:release`,
+    `${CATALOG_DOMAIN}:product-specification:revise`,
+    `${CATALOG_DOMAIN}:product-specification:retire`,
+    `${CATALOG_DOMAIN}:product-specification:obsolete`,
     // The platform vocabulary an offering is classified in: **read only**.
     // marketplace-service serves these reads to anonymous storefront traffic,
     // so granting them here is not a privilege — it only lets the nav name the

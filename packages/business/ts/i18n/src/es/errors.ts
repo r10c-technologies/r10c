@@ -76,6 +76,19 @@ export const errors = {
   // como datos que el vendedor tiene que arreglar. La baja sí se permite.
   offeringHasNoSpecification:
     'Esta oferta apunta a una especificación que ya no existe.',
+  // ADR 0079 §1–§2: una versión de producto se congela al lanzarla.
+  specificationNotActive:
+    'Esta oferta usa una versión del producto que no está activa. Lanza el producto o apunta la oferta a su versión activa.',
+  specificationNotTransitionable:
+    'Esta versión del producto no admite ese cambio en su estado actual.',
+  specificationReleased:
+    'Esta versión del producto ya está lanzada y congelada. Crea una nueva versión para cambiarla.',
+  specificationBeingRevised:
+    'Este producto ya tiene una versión en diseño. Termínala o elimínala primero.',
+  specificationStillPinned:
+    'Una oferta publicada todavía vende esta versión del producto. Muévela o retírala primero.',
+  specificationChanged:
+    'Alguien más cambió este producto primero. Recárgalo e inténtalo de nuevo.',
   // Dos cambios compitieron por una oferta y el otro llegó primero; el vendedor
   // recarga y actúa sobre lo que hay ahora (#371).
   offeringChanged:

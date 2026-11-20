@@ -64,6 +64,19 @@ export const errors: EsErrors = {
   offeringHasNoPrice: 'Add a price before publishing this offering.',
   offeringHasNoSpecification:
     'This offering points at a specification that no longer exists.',
+  // ADR 0079 §1–§2: a product version is frozen once released.
+  specificationNotActive:
+    'This offering uses a product version that is not active. Release the product, or point the offering at its active version.',
+  specificationNotTransitionable:
+    'This product version cannot make that change from where it stands.',
+  specificationReleased:
+    'This product version is released and frozen. Create a new version to change it.',
+  specificationBeingRevised:
+    'This product already has a version in design. Finish or delete it first.',
+  specificationStillPinned:
+    'A published offering still sells this product version. Move or unpublish it first.',
+  specificationChanged:
+    'Someone else changed this product first. Reload it and try again.',
   // Two changes raced on one offering and the other landed first; the vendor
   // reloads and acts on what is there now (#371).
   offeringChanged:

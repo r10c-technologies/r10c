@@ -42,6 +42,35 @@ describe('pricedCartOf', () => {
     expect(cart.unavailable).toBe(0);
   });
 
+  it('copies the description and the version each line is sold under', () => {
+    const pinned = Object.assign(offering('o-1', 'v-1', 500), {
+      description: 'Esmaltada a mano.',
+      specificationId: 'spec-1',
+      specificationVersion: 3,
+    });
+    const blank = Object.assign(offering('o-2', 'v-1', 500), {
+      description: '',
+    });
+
+    const [first, second] = pricedCartOf([
+      { line: { offeringId: 'o-1', quantity: 1 }, offering: pinned },
+      { line: { offeringId: 'o-2', quantity: 1 }, offering: blank },
+    ]).priced;
+
+    // ADR 0079 §3: after placement nothing on a line is resolved by reference.
+    expect(first).toMatchObject({
+      description: 'Esmaltada a mano.',
+      specificationId: 'spec-1',
+      specificationVersion: 3,
+    });
+    // A row with no pin predates the widening; the checkout's schema refuses it.
+    expect(second).not.toHaveProperty('description');
+    expect(second).toMatchObject({
+      specificationId: '',
+      specificationVersion: 0,
+    });
+  });
+
   it('drops and counts a line whose offering is no longer published', () => {
     const cart = pricedCartOf([
       {

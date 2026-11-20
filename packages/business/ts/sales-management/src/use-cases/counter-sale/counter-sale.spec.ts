@@ -27,9 +27,21 @@ const prices: Record<string, PublishedPrice> = {
   mine: {
     offeringId: 'mine',
     name: 'Taza de cerámica',
+    description: 'Esmaltada a mano.',
     vendorId: 'org-1',
     amount: 500,
     currency: 'GTQ',
+    specificationId: 'spec-mine',
+    specificationVersion: 3,
+  },
+  plain: {
+    offeringId: 'plain',
+    name: 'Clavo',
+    vendorId: 'org-1',
+    amount: 5,
+    currency: 'GTQ',
+    specificationId: 'spec-plain',
+    specificationVersion: 1,
   },
   theirs: {
     offeringId: 'theirs',
@@ -37,6 +49,8 @@ const prices: Record<string, PublishedPrice> = {
     vendorId: 'org-2',
     amount: 9,
     currency: 'GTQ',
+    specificationId: 'spec-theirs',
+    specificationVersion: 1,
   },
 };
 
@@ -77,7 +91,8 @@ const world = (
   /** The failure a sale ends in. */
   const sell = (channelId: string, offeringId = 'mine') =>
     Effect.runPromise(Effect.flip(sale(channelId, offeringId)));
-  const sold = (channelId: string) => Effect.runPromise(sale(channelId));
+  const sold = (channelId: string, offeringId = 'mine') =>
+    Effect.runPromise(sale(channelId, offeringId));
   return { sell, sold, started };
 };
 
@@ -151,8 +166,12 @@ describe('sellAtCounter', () => {
               lines: [
                 {
                   offeringId: 'mine',
-                  // Sold under the projection's name, like its price (#582).
+                  // Sold under the projection's name, description and
+                  // version, like its price (#582, ADR 0079 §3).
                   name: 'Taza de cerámica',
+                  description: 'Esmaltada a mano.',
+                  specificationId: 'spec-mine',
+                  specificationVersion: 3,
                   quantity: 2,
                   amount: 500,
                   currency: 'GTQ',
@@ -164,6 +183,23 @@ describe('sellAtCounter', () => {
         },
       },
     ]);
+  });
+
+  it('copies no description onto a line whose specification had none', async () => {
+    const { sold, started } = world();
+
+    await sold('c-open', 'plain');
+
+    const input = started[0]?.input as {
+      readonly vendors: readonly {
+        readonly lines: readonly Record<string, unknown>[];
+      }[];
+    };
+    expect(input.vendors[0]?.lines[0]).not.toHaveProperty('description');
+    expect(input.vendors[0]?.lines[0]).toMatchObject({
+      specificationId: 'spec-plain',
+      specificationVersion: 1,
+    });
   });
 
   it('refuses an unknown channel, a retired one, an unpublished offering and somebody else’s', async () => {

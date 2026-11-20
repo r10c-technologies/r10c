@@ -44,6 +44,8 @@ const recordOf = (publication: CatalogPublication, at: Date) => {
   projected.currency = publication.currency;
   projected.availableHint = publication.availableHint;
   projected.publishedAt = at;
+  projected.specificationId = publication.specificationId;
+  projected.specificationVersion = publication.specificationVersion;
   projected.code = publication.code;
   projected.description = publication.description;
   projected.brandId = publication.brandId;
