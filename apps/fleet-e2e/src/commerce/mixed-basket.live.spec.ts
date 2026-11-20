@@ -5,12 +5,12 @@ import {
   FLEET,
   mongo,
   ordersOf,
+  recordGuide,
   SECOND,
   sellable,
   settled,
   startCheckout,
   vendorBearer,
-  recordGuide,
 } from '../support/lab';
 
 /**

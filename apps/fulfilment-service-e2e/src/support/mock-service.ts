@@ -43,11 +43,11 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
-import { CouriersTag } from '@r10c/business-ts-shipping-order-management';
 import {
   acceptedAnswer,
   makeScriptedFlowStarter,
 } from '@r10c/business-ts-flow-contracts/testing';
+import { CouriersTag } from '@r10c/business-ts-shipping-order-management';
 import {
   endpoints,
   FULFILMENT_SLICE,
