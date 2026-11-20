@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ORDER_FRAGMENTS,
   orderClaimCancel,
+  orderMarkDispatched,
+  orderMarkShipped,
   orderOpenGroup,
   orderPaymentDecision,
   orderWrite,
@@ -19,6 +21,7 @@ describe('order fragments', () => {
       'order.await-payment@1',
       'order.payment-decision@2',
       'order.mark-dispatched@2',
+      'order.mark-shipped@1',
       'order.close@2',
       'order.notify-buyer@1',
     ]);
@@ -44,6 +47,16 @@ describe('order fragments', () => {
     ]);
   });
 
+  it('tell a shipped order the guide its dispatch answered', () => {
+    expect(Object.keys(orderMarkShipped.consumes ?? {})).toEqual([
+      'orderId',
+      'courierName',
+      'trackingNumber',
+      'trackingUrl',
+    ]);
+    expect(orderMarkShipped.call).toEqual(orderMarkDispatched.call);
+  });
+
   it('wait for the seller’s decision on a payment link, answered either way', () => {
     expect(orderPaymentDecision.kind).toBe('wait');
     expect(orderPaymentDecision.outcomes).toEqual(['confirmed', 'cancelled']);
@@ -56,6 +69,7 @@ describe('order fragments', () => {
       'order.confirm',
       'order.await-payment',
       'order.mark-dispatched',
+      'order.mark-shipped',
       'order.close',
       'order.notify-buyer',
     ]);

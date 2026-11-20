@@ -409,6 +409,41 @@ export const describeProductOrderStoreContract = (
       ).toBeUndefined();
     });
 
+    it('keeps the guide a shipped order left with, and stamps its dispatch and its delivery', async () => {
+      const { orders } = await placed();
+      await run(orders.move('ord-1', 'confirm', undefined));
+
+      const shipped = await run(
+        orders.move('ord-1', 'mark-dispatched', undefined, {
+          courierName: 'Mensajería',
+          trackingNumber: 'G-1',
+          trackingUrl: 'https://track.example/G-1',
+        }),
+      );
+      const fulfilled = await run(
+        orders.move('ord-1', 'close-fulfilled', undefined, {
+          courierName: 'Ignored',
+          trackingNumber: 'X',
+          trackingUrl: '',
+        }),
+      );
+
+      expect(shipped).toMatchObject({
+        status: 'dispatched',
+        courierName: 'Mensajería',
+        trackingNumber: 'G-1',
+        trackingUrl: 'https://track.example/G-1',
+      });
+      expect(shipped?.dispatchedAt).toBeInstanceOf(Date);
+      // Only the dispatch writes a guide.
+      expect(fulfilled).toMatchObject({
+        status: 'fulfilled',
+        courierName: 'Mensajería',
+        trackingNumber: 'G-1',
+      });
+      expect(fulfilled?.fulfilledAt).toBeInstanceOf(Date);
+    });
+
     it('claims a paid or confirmed order once, replays the claiming command, and refuses another', async () => {
       const { orders } = await placed();
       const unpaid = await run(orders.claimCancellation('ord-1', 'k-0'));

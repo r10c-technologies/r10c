@@ -255,9 +255,9 @@
       "fingerprint": "068c887d082cd4"
     },
     {
-      "ref": "fulfilment.dispatch@2",
+      "ref": "fulfilment.dispatch@3",
       "id": "fulfilment.dispatch",
-      "version": 2,
+      "version": 3,
       "module": "shipping-order-management",
       "kind": "pivot",
       "cardinality": "one",
@@ -284,7 +284,29 @@
           "definitions": {}
         }
       },
-      "provides": {},
+      "provides": {
+        "courierName": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "trackingNumber": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "trackingUrl": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
       "contract": {
         "input": {
           "dialect": "draft-2020-12",
@@ -317,11 +339,23 @@
               },
               "status": {
                 "type": "string"
+              },
+              "courierName": {
+                "type": "string"
+              },
+              "trackingNumber": {
+                "type": "string"
+              },
+              "trackingUrl": {
+                "type": "string"
               }
             },
             "required": [
               "id",
-              "status"
+              "status",
+              "courierName",
+              "trackingNumber",
+              "trackingUrl"
             ],
             "allOf": [
               {
@@ -362,7 +396,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "053fa05152ea93"
+      "fingerprint": "11b8ba4206ab36"
     },
     {
       "ref": "fulfilment.hold@2",
@@ -1564,6 +1598,145 @@
         }
       },
       "fingerprint": "0a8ea1f52627fb"
+    },
+    {
+      "ref": "order.mark-shipped@1",
+      "id": "order.mark-shipped",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:orderId/dispatched"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {
+        "courierName": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "trackingNumber": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        },
+        "trackingUrl": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              },
+              "courierName": {
+                "type": "string"
+              },
+              "trackingNumber": {
+                "type": "string"
+              },
+              "trackingUrl": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orderId",
+              "courierName",
+              "trackingNumber",
+              "trackingUrl"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "09125a3a1fbee6"
     },
     {
       "ref": "order.notify-buyer@1",

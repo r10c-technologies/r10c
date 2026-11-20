@@ -36,6 +36,7 @@ export class PublishedVendor implements Entity {
   #acceptsCod = false;
   #holdsStock = false;
   #acceptsLink = false;
+  #whatsappNumber = '';
   #taxId = '';
   #legalName = '';
   #taxRegime = '';
@@ -171,6 +172,22 @@ export class PublishedVendor implements Entity {
   }
   set acceptsLink(value: boolean) {
     this.#acceptsLink = value;
+  }
+
+  /**
+   * The WhatsApp number a buyer may write to the seller at, as E.164, or `''`
+   * for none (#671). Announced by the seller's organization.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-vendor.fields.whatsappNumber',
+    filterable: false,
+  })
+  get whatsappNumber(): string {
+    return this.#whatsappNumber;
+  }
+  set whatsappNumber(value: string) {
+    this.#whatsappNumber = value;
   }
   /**
    * The seller's NIT, as announced — what the checkout copies onto every order

@@ -289,6 +289,37 @@ describe('the crossing moves', () => {
     expect(done.data.status).toBe('fulfilled');
   });
 
+  it('keep the guide a dispatch step carries, and none from a body without a number', async () => {
+    const w = world();
+    const shipped = await seeded(w);
+    const handed = await seeded(w);
+    for (const id of [shipped, handed]) {
+      await w.run(at(confirm, { params: { id } }));
+    }
+
+    const withGuide = (await w.run(
+      at(dispatch, {
+        params: { id: shipped },
+        payload: { trackingNumber: 'G-1' },
+      }),
+    )) as unknown as { data: Record<string, unknown> };
+    const counter = (await w.run(
+      at(dispatch, {
+        params: { id: handed },
+        payload: { trackingNumber: '', courierName: 'X' },
+      }),
+    )) as unknown as { data: Record<string, unknown> };
+
+    expect(withGuide.data).toMatchObject({
+      status: 'dispatched',
+      courierName: '',
+      trackingNumber: 'G-1',
+      trackingUrl: '',
+    });
+    expect(counter.data['status']).toBe('dispatched');
+    expect(counter.data['trackingNumber']).toBeUndefined();
+  });
+
   it('close a dispatched parcel cancelled, and refuse a move from the wrong place', async () => {
     const w = world();
     const orderId = await seeded(w);

@@ -16,6 +16,7 @@ import {
   makeEntityEnvelope,
   makeEnvelope,
   NotFound,
+  openStruct,
   StaleRevision,
   Unavailable,
 } from '@entifix/core';
@@ -39,6 +40,7 @@ import {
   ConfirmPaymentUC,
   moveOrder,
   openGroup,
+  type OrderGuide,
   orderNarrowing,
   OrderNotCancellable,
   OrderNotTransitionable,
@@ -498,12 +500,23 @@ const awaitingPayment = defineEndpoint({
   idempotent: 'unit',
 });
 
-/** `POST /:id/dispatched` — the shipment left with a courier. */
+/**
+ * `POST /:id/dispatched` — the shipment left with a courier, with the guide it
+ * left with; a counter sale hands the goods over and names none
+ * (ADR 0081 §11).
+ */
 const dispatched = defineEndpoint({
   name: 'dispatched',
   method: 'POST',
   path: `${BASE}/:id/dispatched`,
   params,
+  payload: Schema.optional(
+    openStruct({
+      courierName: Schema.optional(Schema.String),
+      trackingNumber: Schema.optional(Schema.String),
+      trackingUrl: Schema.optional(Schema.String),
+    }),
+  ),
   success: JsonBody,
   errors: MOVE_ERRORS,
   guard: crossing,
@@ -530,6 +543,27 @@ const closed = defineEndpoint({
   idempotent: 'unit',
 });
 
+/**
+ * The guide a dispatch step carried, or none: a counter sale's hand-over, or
+ * a body that names no tracking number.
+ */
+const guideOf = (
+  payload:
+    | {
+        readonly courierName?: string | undefined;
+        readonly trackingNumber?: string | undefined;
+        readonly trackingUrl?: string | undefined;
+      }
+    | undefined,
+): OrderGuide | undefined =>
+  payload?.trackingNumber === undefined || payload.trackingNumber === ''
+    ? undefined
+    : {
+        courierName: payload.courierName ?? '',
+        trackingNumber: payload.trackingNumber,
+        trackingUrl: payload.trackingUrl ?? '',
+      };
+
 /** Read an order back for a transition that did not move it. */
 const answerWithOrder = (orderId: string) =>
   Effect.gen(function* () {
@@ -544,12 +578,14 @@ const answerMove = (
   orderId: string,
   transition:
     'confirm' | 'mark-dispatched' | 'close-fulfilled' | 'close-cancelled',
+  guide?: OrderGuide,
 ) =>
   Effect.gen(function* () {
     const order = yield* moveOrder({
       orderId,
       transition,
       commandId: yield* commandId,
+      ...(guide === undefined ? {} : { guide }),
     });
     return envelopeOf(order, recordLinks(orderId));
   });
@@ -633,8 +669,8 @@ export const productOrderEndpoints = [
       return envelopeOf(order, recordLinks(id));
     }),
   ),
-  implement(dispatched, ({ params: { id } }) =>
-    answerMove(id, 'mark-dispatched'),
+  implement(dispatched, ({ params: { id }, payload }) =>
+    answerMove(id, 'mark-dispatched', guideOf(payload)),
   ),
   implement(closed, ({ params: { id }, payload }) =>
     Effect.gen(function* () {

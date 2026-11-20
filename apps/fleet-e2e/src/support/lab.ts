@@ -399,3 +399,31 @@ export const ordersOf = async (groupId: string) =>
     .collection('product-order')
     .find({ groupId })
     .toArray();
+
+/**
+ * A vendor records the guide a parcel leaves with (ADR 0081 §11), under the
+ * lab's `other` courier — a dispatch is refused `guideMissing` until one is
+ * recorded.
+ */
+export const recordGuide = (
+  shippingOrderId: string,
+  bearer: string,
+  trackingNumber = `G-${shippingOrderId.slice(0, 8)}`,
+) =>
+  fetch(
+    `${FLEET.fulfilment}/api/shipping-order/${shippingOrderId}/record-guide`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: bearer,
+        'content-type': 'application/json',
+        // An RFC 9651 String: the verb is idempotent at the edge.
+        'idempotency-key': `"${randomBytes(16).toString('hex')}"`,
+      },
+      body: JSON.stringify({
+        courierKey: 'other',
+        courierName: 'Mensajería del barrio',
+        trackingNumber,
+      }),
+    },
+  );

@@ -29,6 +29,7 @@ describe('Organization', () => {
       taxRegime: 'general',
       establishmentCode: '',
       acceptsPaymentLink: false,
+      whatsappNumber: '',
     });
   });
 
@@ -39,10 +40,12 @@ describe('Organization', () => {
         name: 'Globex',
         slug: 'globex',
         status: 'suspended',
+        whatsappNumber: '+50255551234',
       }),
     );
 
     expect(organization?.name).toBe('Globex');
+    expect(organization?.whatsappNumber).toBe('+50255551234');
     expect(organization?.status).toBe(OrganizationStatus.Suspended);
   });
 
@@ -66,6 +69,7 @@ describe('Organization', () => {
       ['taxRegime', 'enum'],
       ['establishmentCode', 'string'],
       ['acceptsPaymentLink', 'boolean'],
+      ['whatsappNumber', 'string'],
       ['updatedAt', 'date'],
     ]);
   });

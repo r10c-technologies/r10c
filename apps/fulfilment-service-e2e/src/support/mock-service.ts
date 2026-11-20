@@ -43,6 +43,7 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import { CouriersTag } from '@r10c/business-ts-shipping-order-management';
 import {
   acceptedAnswer,
   makeScriptedFlowStarter,
@@ -112,6 +113,10 @@ const MockAppLayer = (() => {
     Layer.succeed(EventBusTag, bus),
     Layer.succeed(OutboxMaxAttempts, 5),
     Layer.succeed(EventSourceTag, FULFILMENT_SLICE),
+    // The dictionary as the lab seeds it: `other` alone (ADR 0081 §10).
+    Layer.succeed(CouriersTag, [
+      { key: 'other', name: 'Other', trackingUrlTemplate: '' },
+    ]),
     Layer.succeed(
       FlowStarterTag,
       makeScriptedFlowStarter((recipe, input, key) => {

@@ -65,6 +65,11 @@ export interface OrganizationAnnouncement {
    */
   readonly acceptsLink: boolean;
   /**
+   * The WhatsApp number buyers may write to, as E.164, or `''` for none
+   * (#671). Public by its nature: the seller states it for buyers to use.
+   */
+  readonly whatsappNumber: string;
+  /**
    * The seller's fiscal identity, which the checkout copies onto every order
    * it writes for this seller (ADR 0078 §6). **Required**: an order placed
    * without it is a fact that cannot be recovered later, so an announcement
@@ -152,6 +157,7 @@ export const OrganizationAnnouncementSchema = openStruct({
   acceptsCod: Schema.optional(Schema.Boolean),
   holdsStock: Schema.optional(Schema.Boolean),
   acceptsLink: Schema.optional(Schema.Boolean),
+  whatsappNumber: Schema.optional(Schema.String),
   fiscal: SellerFiscalIdentitySchema,
 });
 
@@ -184,6 +190,7 @@ export const readOrganizationAnnouncement = (
       acceptsCod,
       holdsStock,
       acceptsLink,
+      whatsappNumber,
       fiscal,
     }) => ({
       organizationId,
@@ -192,6 +199,7 @@ export const readOrganizationAnnouncement = (
       acceptsCod: acceptsCod === true,
       holdsStock: holdsStock === true,
       acceptsLink: acceptsLink === true,
+      whatsappNumber: whatsappNumber ?? '',
       fiscal: {
         taxId: fiscal.taxId,
         legalName: fiscal.legalName,

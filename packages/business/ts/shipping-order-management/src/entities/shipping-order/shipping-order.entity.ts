@@ -60,6 +60,11 @@ export class ShippingOrder implements Entity {
   #refusedAt?: Date;
   #returnedAt?: Date;
   #withdrawnAt?: Date;
+  #courierKey?: string;
+  #courierName?: string;
+  #trackingNumber?: string;
+  #trackingUrl?: string;
+  #guideRecordedAt?: Date;
   // #endregion
 
   // #region accessors
@@ -356,6 +361,67 @@ export class ShippingOrder implements Entity {
   }
   set withdrawnAt(value: Date | undefined) {
     this.#withdrawnAt = value;
+  }
+  /** The courier's dictionary key, copied at the guide (ADR 0081 §10). */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:shipping-order.fields.courierKey',
+  })
+  get courierKey(): string | undefined {
+    return this.#courierKey;
+  }
+  set courierKey(value: string | undefined) {
+    this.#courierKey = value;
+  }
+
+  /** The courier's name as it was at the guide: a dictionary edit changes no parcel on its way. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:shipping-order.fields.courierName',
+  })
+  get courierName(): string | undefined {
+    return this.#courierName;
+  }
+  set courierName(value: string | undefined) {
+    this.#courierName = value;
+  }
+
+  /** The guide's number, what the buyer quotes to the courier (ADR 0081 §11). Server-owned, written by `record-guide`. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:shipping-order.fields.trackingNumber',
+  })
+  get trackingNumber(): string | undefined {
+    return this.#trackingNumber;
+  }
+  set trackingNumber(value: string | undefined) {
+    this.#trackingNumber = value;
+  }
+
+  /** Where the buyer follows the parcel, rendered from the courier's template at the guide; absent when the courier has no tracking page. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:shipping-order.fields.trackingUrl',
+  })
+  get trackingUrl(): string | undefined {
+    return this.#trackingUrl;
+  }
+  set trackingUrl(value: string | undefined) {
+    this.#trackingUrl = value;
+  }
+
+  /** When the guide was last recorded. Server-owned and writable anyway, as the other stamps are. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:shipping-order.fields.guideRecordedAt',
+    sortable: true,
+    filterable: true,
+  })
+  get guideRecordedAt(): Date | undefined {
+    return this.#guideRecordedAt;
+  }
+  set guideRecordedAt(value: Date | undefined) {
+    this.#guideRecordedAt = value;
   }
   // #endregion
 }

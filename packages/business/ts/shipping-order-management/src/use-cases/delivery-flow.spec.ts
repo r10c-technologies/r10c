@@ -38,6 +38,11 @@ const aShipment = () =>
     taxRegime: 'general',
     currency: 'GTQ',
     lines: [new ShippingLine('o-1', 'Lámpara Aurora', 2)],
+    // Labelled: a dispatch is refused until the guide is recorded.
+    courierKey: 'other',
+    courierName: 'Mensajería',
+    trackingNumber: 'G-1',
+    trackingUrl: '',
   });
 
 type R = ShippingOrderStoreTag | FlowStarterTag;
@@ -66,6 +71,30 @@ const world = async () => {
 const dispatch = { organizationId: ORG, shippingOrderId: 'ord-1' };
 
 describe('dispatchShipment', () => {
+  it('refuses a parcel with no guide recorded, and starts nothing', async () => {
+    const { store, refusal, started } = await world();
+    await Effect.runPromise(
+      store.open(
+        ORG,
+        Object.assign(aShipment(), {
+          id: 'ord-2',
+          orderId: 'ord-2',
+          trackingNumber: undefined,
+        }),
+        undefined,
+      ),
+    );
+
+    expect(
+      (
+        await refusal(
+          dispatchShipment({ organizationId: ORG, shippingOrderId: 'ord-2' }),
+        )
+      ).code,
+    ).toBe('guideMissing');
+    expect(started).toEqual([]);
+  });
+
   it('starts the delivery flow from the stored shipment, and answers the flow', async () => {
     const { run, started } = await world();
 

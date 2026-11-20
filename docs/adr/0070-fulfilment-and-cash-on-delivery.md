@@ -10,6 +10,7 @@
 - Area: business
 - Read when: an order ships, is delivered, refused or returned, a buyer pays the courier, or the till sells — fulfilment is its own slice, every slip has one commit point, and the counter and the storefront are one composed checkout
 - Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — a shipment line keeps the name it was sold under, so a packing list reads as what was sold; `fulfilment.open@4` requires it (#582)
+- Revised: 2026-11-20 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — the courier is a dictionary and a recorded guide, `dispatch` is refused `guideMissing` without one, and a simulated courier feed answers the delivery wait in the lab (#669)
 
 ## Context
 
@@ -104,7 +105,8 @@ consuming `shipping-order.*`, and every crossing is named one by one.
 | COD limit per vendor order | GTQ 1,500                       |
 | delivery window            | 14 days                         |
 | return window              | 30 days                         |
-| courier                    | manual (v1)                     |
+| courier                    | dictionary + guide (ADR 0081)   |
+| simulated courier feed     | 120 s in the lab, 0 elsewhere   |
 | who holds COD cash         | the vendor                      |
 | payment method             | chosen by the buyer, per seller |
 | COD cancellable            | until dispatch                  |

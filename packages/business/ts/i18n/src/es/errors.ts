@@ -173,6 +173,10 @@ export const errors = {
     'Este pedido ya no espera su pago: se confirmó, venció o el comprador lo retiró. Si el comprador pagó un pedido vencido, devuélvele el dinero por tu proveedor de pagos: r10c nunca lo tuvo.',
   invalidPaymentDetails:
     'Revisa los datos del pago: un link es una dirección https del proveedor que elegiste, y el número de autorización no puede ir vacío.',
+  guideMissing:
+    'Registra la guía del envío antes de despacharlo: el comprador lo sigue por ella.',
+  invalidGuide:
+    'Revisa la guía: el número de guía no puede ir vacío ni pasar de 64 caracteres, elige una paquetería de la lista y, si pegas un enlace de rastreo, que sea una dirección https.',
   contactNameRequired: 'Escribe tu nombre.',
   phoneNotGuatemalan:
     'Escribe un teléfono de Guatemala de ocho dígitos, por ejemplo 5555-1234.',

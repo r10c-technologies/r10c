@@ -100,6 +100,8 @@ export const orderSlice: SliceDeclaration = {
   publishedEvents: [
     'order.placed',
     'order.payment-confirmed',
+    'order.dispatched',
+    'order.fulfilled',
     'order.cancelled',
   ],
   subscriptions: [

@@ -85,3 +85,16 @@ export async function savePaymentLinkAcceptance(
     accepts: formData.get('accepts') === 'on',
   });
 }
+
+/**
+ * Save the WhatsApp number the organization's buyers may write to
+ * (`set-whatsapp-number`, #671). An empty field withdraws it.
+ */
+export async function saveWhatsappNumber(
+  _previous: OrganizationFormState,
+  formData: FormData,
+): Promise<OrganizationFormState> {
+  return postVerb('set-whatsapp-number', {
+    number: String(formData.get('number') ?? ''),
+  });
+}

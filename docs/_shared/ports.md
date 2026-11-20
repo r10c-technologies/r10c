@@ -516,6 +516,15 @@ past dispatch announces `shipping-order.*` from the organization's own outbox,
 drained at commit and walked by the tenant relay; the realtime slice pushes it to
 the vendor, and the delivery flow waits on it.
 
+⚠️ **A parcel leaves with a guide.** `record-guide` stores the courier, picked
+from the `fulfilment-service / courier / <key>` dictionary served at `GET
+/api/courier`, and the tracking number; `dispatch` is refused `guideMissing`
+until there is one, and the dispatch step answers it so the delivery flow
+copies it onto the order the buyer reads. In the lab a simulated courier feed
+reports a dispatched parcel delivered after
+`fulfilment.courierSimulatorDelaySeconds`; `0` runs none
+([ADR 0081](../adr/0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) §11–§12).
+
 ⚠️ **A vendor's `dispatch` starts the delivery flow and moves nothing itself.**
 It answers `202` with the flow to follow; the flow's pivot is `dispatch-step`,
 so a shipment a cancellation holds is refused there and exactly one of the two

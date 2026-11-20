@@ -29,6 +29,7 @@ import {
   type DestinationRedaction,
   EVENT_OF,
   type OpenOutcome,
+  type ParcelInTransit,
   ShippingOrder,
   shippingOrderEvent,
   ShippingOrderNotTransitionable,
@@ -277,6 +278,72 @@ export const MongoShippingOrderStoreLayer = Layer.effect(
             standing: current.status,
             transition,
           });
+        }),
+
+      // ADR 0081 §11. Conditional on the status the guide is legal in, so a
+      // dispatch or a hold that landed first leaves nothing to match. Not a
+      // move, so it claims no command and announces nothing: the guide
+      // reaches the buyer with the dispatch that carries it.
+      recordGuide: (organizationId, id, guide, at) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          const recorded = yield* Effect.tryPromise({
+            try: () =>
+              db
+                .collection(SHIPPING_ORDER_COLLECTION)
+                .findOneAndUpdate(
+                  { id, status: 'awaiting-dispatch' },
+                  { $set: { ...guide, guideRecordedAt: at } },
+                  { returnDocument: 'after', ...WITHOUT_ID },
+                ),
+            catch: storeUnavailable,
+          });
+          return recorded === null ? undefined : yield* revive(recorded);
+        }),
+
+      // What the courier feed is asked about: every organization's dispatched
+      // parcels, oldest first, until `limit`.
+      inTransit: limit =>
+        Effect.gen(function* () {
+          const parcels: ParcelInTransit[] = [];
+          for (const {
+            organizationId,
+            handle: db,
+          } of yield* directory.list()) {
+            const room = limit - parcels.length;
+            if (room <= 0) break;
+            const rows = yield* Effect.tryPromise({
+              try: () =>
+                db
+                  .collection(SHIPPING_ORDER_COLLECTION)
+                  .find(
+                    { status: 'dispatched' },
+                    {
+                      projection: {
+                        _id: 0,
+                        id: 1,
+                        courierKey: 1,
+                        trackingNumber: 1,
+                        dispatchedAt: 1,
+                      },
+                    },
+                  )
+                  .sort({ dispatchedAt: 1 })
+                  .limit(room)
+                  .toArray(),
+              catch: storeUnavailable,
+            });
+            for (const row of rows) {
+              parcels.push({
+                organizationId,
+                shippingOrderId: String(row['id']),
+                courierKey: String(row['courierKey'] ?? ''),
+                trackingNumber: String(row['trackingNumber'] ?? ''),
+                dispatchedAt: new Date(row['dispatchedAt'] as Date),
+              });
+            }
+          }
+          return parcels;
         }),
 
       // ADR 0076 §4. A `Date` bound, never its ISO string: the stamps are

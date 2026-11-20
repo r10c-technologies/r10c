@@ -54,6 +54,7 @@ const adapters = (): FulfilmentAdapters => ({
   shippingOrderRest: Context.make(EntityRepositoryTag, repository),
   metadata: real.metadata,
   shippingOrderUseCases: real.shippingOrderUseCases,
+  guide: real.guide,
 });
 
 const renderPage = (page: ReactElement) =>

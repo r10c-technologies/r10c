@@ -199,8 +199,12 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // (ADR 0081 §1) — a promise only the seller keeps, so its own `admin`
     // makes it, for its active organization alone. A literal, as above.
     'party-management:organization:set-payment-link-acceptance',
+    // The WhatsApp number its buyers may write to (#671): public, and the
+    // organization's own to state. A literal, as above.
+    'party-management:organization:set-whatsapp-number',
     // A vendor's shipments: reading them, handing a parcel to a courier, and
-    // recording what the courier reported. Four verbs rather than a `write`,
+    // recording what the courier reported — and, before the dispatch, the guide
+    // the parcel leaves with (ADR 0081 §11). Verbs rather than a `write`,
     // because each is a different act with a different consequence — a
     // dispatch is the delivery flow's pivot, a delivery may record cash taken,
     // a refusal and a return put stock back
@@ -208,6 +212,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // Opening, holding and withdrawing a shipment are a flow's, behind a
     // crossing token, and granted to no role.
     `${SHIPPING_ORDER_DOMAIN}:shipping-order:read`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-guide`,
     `${SHIPPING_ORDER_DOMAIN}:shipping-order:dispatch`,
     `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-delivery`,
     `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-refusal`,

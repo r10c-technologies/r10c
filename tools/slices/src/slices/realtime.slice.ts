@@ -45,6 +45,8 @@ export const realtimeSlice: SliceDeclaration = {
   subscriptions: [
     ...[
       'order.placed',
+      'order.dispatched',
+      'order.fulfilled',
       'order.cancelled',
       'catalog.published',
       'catalog.unpublished',

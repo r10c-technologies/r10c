@@ -36,6 +36,13 @@ const addressed = (id: string) =>
   Object.assign(aShipment(id), { destination: [DESTINATION] });
 
 const LATER = new Date('2026-11-10T10:00:00.000Z');
+
+const GUIDE = {
+  courierKey: 'other',
+  courierName: 'Mensajería del barrio',
+  trackingNumber: 'G-1',
+  trackingUrl: '',
+};
 const BEFORE = new Date('2026-11-05T00:00:00.000Z');
 const SWEPT_AT = new Date('2026-11-06T00:00:00.000Z');
 
@@ -244,6 +251,74 @@ export const describeShippingOrderStoreContract = (
 
       expect(first.status).toBe('withdrawn');
       expect(again.status).toBe('withdrawn');
+    });
+
+    it('records a guide while awaiting dispatch, the last one winning, and refuses it after', async () => {
+      const store = await make();
+      await run(store.open(ORG, aShipment('s-g'), undefined));
+
+      expect(
+        await run(store.recordGuide(ORG, 'nope', GUIDE, AT)),
+      ).toBeUndefined();
+      await run(store.recordGuide(ORG, 's-g', GUIDE, AT));
+      const relabelled = await run(
+        store.recordGuide(
+          ORG,
+          's-g',
+          { ...GUIDE, trackingNumber: 'G-2' },
+          LATER,
+        ),
+      );
+      expect(relabelled).toMatchObject({
+        courierKey: 'other',
+        courierName: 'Mensajería del barrio',
+        trackingNumber: 'G-2',
+        trackingUrl: '',
+        guideRecordedAt: LATER,
+      });
+
+      await run(store.transition(ORG, 's-g', 'dispatch', AT, undefined));
+      expect(
+        await run(store.recordGuide(ORG, 's-g', GUIDE, LATER)),
+      ).toBeUndefined();
+      expect(await run(store.get(ORG, 's-g'))).toMatchObject({
+        trackingNumber: 'G-2',
+      });
+    });
+
+    it('lists the parcels in transit, and only those, up to the limit', async () => {
+      const store = await make();
+      await run(store.open(ORG, aShipment('s-t1'), undefined));
+      await run(store.open(ORG, aShipment('s-t2'), undefined));
+      await run(store.open('org-2', aShipment('s-t3'), undefined));
+      await run(store.recordGuide(ORG, 's-t1', GUIDE, AT));
+      await run(store.transition(ORG, 's-t1', 'dispatch', AT, undefined));
+      await run(store.transition('org-2', 's-t3', 'dispatch', AT, undefined));
+      await run(
+        store.transition('org-2', 's-t3', 'record-delivery', AT, undefined),
+      );
+      await run(store.open(ORG, aShipment('s-t4'), undefined));
+      await run(store.transition(ORG, 's-t4', 'dispatch', LATER, undefined));
+
+      expect(await run(store.inTransit(10))).toEqual([
+        {
+          organizationId: ORG,
+          shippingOrderId: 's-t1',
+          courierKey: 'other',
+          trackingNumber: 'G-1',
+          dispatchedAt: AT,
+        },
+        // A parcel the store moved with no guide still reads as one.
+        {
+          organizationId: ORG,
+          shippingOrderId: 's-t4',
+          courierKey: '',
+          trackingNumber: '',
+          dispatchedAt: LATER,
+        },
+      ]);
+      expect(await run(store.inTransit(1))).toHaveLength(1);
+      expect(await run(store.inTransit(0))).toEqual([]);
     });
   });
 };

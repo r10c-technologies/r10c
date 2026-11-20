@@ -2741,6 +2741,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.23.3(effect@4.0.7)
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../order-contracts
       '@r10c/business-ts-tax-policy':
         specifier: workspace:*
         version: link:../tax-policy
@@ -4506,6 +4509,9 @@ importers:
       '@entifix/rest':
         specifier: 'catalog:'
         version: 0.23.3(effect@4.0.7)
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/order-contracts
       '@r10c/business-ts-shipping-order-management':
         specifier: workspace:*
         version: link:../../../business/ts/shipping-order-management

@@ -5,7 +5,12 @@ import { FlowNotStarted } from '@r10c/business-ts-flow-contracts';
 import { Effect } from 'effect';
 
 import { ShippingOrder } from '../../entities/shipping-order';
-import { ShippingOrderNotTransitionable } from '../../failures/shipping-failures';
+import {
+  GuideMissing,
+  InvalidGuide,
+  ShippingOrderNotTransitionable,
+} from '../../failures/shipping-failures';
+import { GuidePayload } from '../../values/courier';
 import type { ShippingStatus } from '../../values/shipping-status';
 import {
   shippingStatusAfter,
@@ -47,6 +52,17 @@ export const decideShippingMove = (
 };
 
 /**
+ * A dispatch is refused until the parcel's guide is recorded: the buyer
+ * follows a parcel by its guide (ADR 0081 §11).
+ */
+export const requireGuide = (
+  order: Pick<ShippingOrder, 'id' | 'trackingNumber'>,
+): Effect.Effect<void, GuideMissing> =>
+  order.trackingNumber === undefined || order.trackingNumber === ''
+    ? Effect.fail(new GuideMissing({ shippingOrderId: String(order.id) }))
+    : Effect.void;
+
+/**
  * Hand the parcel to a courier — the vendor's act, and the delivery flow's
  * pivot: after it the goods are gone and only a return brings them back.
  */
@@ -76,13 +92,49 @@ export const decideShippingMove = (
   errors: [
     NotFound,
     ShippingOrderNotTransitionable,
+    GuideMissing,
     FlowNotStarted,
     SelectionTooLarge,
   ],
 })
 export class DispatchShippingOrderUC {
-  static run(order: Pick<ShippingOrder, 'id' | 'status'>) {
-    return decideShippingMove(order, 'dispatch');
+  static run(order: Pick<ShippingOrder, 'id' | 'status' | 'trackingNumber'>) {
+    return Effect.flatMap(decideShippingMove(order, 'dispatch'), decision =>
+      Effect.as(requireGuide(order), decision),
+    );
+  }
+}
+
+/**
+ * Record the guide the parcel leaves with: its courier, from the dictionary,
+ * and the tracking number (ADR 0081 §10–§11). Legal while the shipment awaits
+ * dispatch, and repeatable — a mislabelled parcel is relabelled, and the last
+ * guide recorded is the one that leaves. Its own verb rather than a field on
+ * `dispatch`, so a bulk dispatch over a morning's labelled parcels stands.
+ */
+@useCase({
+  entity: ShippingOrder,
+  key: 'record-guide',
+  binding: 'entity',
+  placement: 'context-independent',
+  labelKey: 'entity:shipping-order.useCases.record-guide',
+  availableWhen: offeredFrom('dispatch'),
+  payload: GuidePayload,
+  errors: [NotFound, ShippingOrderNotTransitionable, InvalidGuide],
+})
+export class RecordGuideUC {
+  static run(
+    order: Pick<ShippingOrder, 'id' | 'status'>,
+  ): Effect.Effect<void, ShippingOrderNotTransitionable> {
+    return order.status === 'awaiting-dispatch'
+      ? Effect.void
+      : Effect.fail(
+          new ShippingOrderNotTransitionable({
+            shippingOrderId: String(order.id),
+            standing: order.status,
+            transition: 'record-guide',
+          }),
+        );
   }
 }
 
@@ -153,5 +205,6 @@ export const DISPATCH_SHIPPING_ORDER = permissionForUseCase(
   DispatchShippingOrderUC,
 );
 export const RECORD_DELIVERY = permissionForUseCase(RecordDeliveryUC);
+export const RECORD_GUIDE = permissionForUseCase(RecordGuideUC);
 export const RECORD_REFUSAL = permissionForUseCase(RecordRefusalUC);
 export const RECORD_RETURN = permissionForUseCase(RecordReturnUC);

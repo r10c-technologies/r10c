@@ -14,7 +14,7 @@ import type {
   ProductOrderStore,
 } from '../ports/product-order-store';
 import { type OrderStatus } from '../values/order-status';
-import { orderStatusAfter } from '../values/order-transition';
+import { MOVE_STAMP_OF, orderStatusAfter } from '../values/order-transition';
 
 /** The statuses a group's contact waits for every order to reach. */
 const CLOSED: readonly OrderStatus[] = ['fulfilled', 'cancelled'];
@@ -116,7 +116,7 @@ export const makeInMemoryOrderStores = (): {
         return Effect.succeed({ _tag: 'placed' as const, order });
       }),
     remove: orderId => Effect.sync(() => orders.delete(orderId)),
-    move: (orderId, transition, commandId) =>
+    move: (orderId, transition, commandId, guide) =>
       Effect.sync(() => {
         const order = orders.get(orderId);
         if (order === undefined) return undefined;
@@ -127,6 +127,11 @@ export const makeInMemoryOrderStores = (): {
         const to = orderStatusAfter(order.status, transition);
         if (to === undefined) return undefined;
         order.status = to;
+        const stamp = MOVE_STAMP_OF[transition];
+        if (stamp !== undefined) order[stamp] = new Date();
+        if (transition === 'mark-dispatched' && guide !== undefined) {
+          Object.assign(order, guide);
+        }
         if (commandId !== undefined) commands.set(commandId, true);
         return copyOrder(order);
       }),

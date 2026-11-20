@@ -7,15 +7,19 @@ import {
   DISPATCH_SHIPPING_ORDER,
   DispatchShippingOrderUC,
   RECORD_DELIVERY,
+  RECORD_GUIDE,
   RECORD_REFUSAL,
   RECORD_RETURN,
   RecordDeliveryUC,
+  RecordGuideUC,
   RecordRefusalUC,
   RecordReturnUC,
 } from './shipping-order-verbs.uc.js';
 
 const order = (status: string) =>
-  ({ id: 's-1', status }) as Parameters<typeof DispatchShippingOrderUC.run>[0];
+  ({ id: 's-1', status, trackingNumber: 'G-1' }) as Parameters<
+    typeof DispatchShippingOrderUC.run
+  >[0];
 
 describe('the vendor verbs', () => {
   it.each([
@@ -46,14 +50,50 @@ describe('the vendor verbs', () => {
     );
   });
 
+  it('refuses a dispatch with no guide, naming the shipment', async () => {
+    for (const trackingNumber of [undefined, '']) {
+      const refused = await Effect.runPromise(
+        Effect.flip(
+          DispatchShippingOrderUC.run({
+            id: 's-1',
+            status: 'awaiting-dispatch',
+            trackingNumber,
+          }),
+        ),
+      );
+      expect(refused).toMatchObject({
+        code: 'guideMissing',
+        shippingOrderId: 's-1',
+      });
+      expect((refused as Error).message).toBe(
+        'shipping order s-1 has no guide recorded',
+      );
+    }
+  });
+
+  it('records a guide while awaiting dispatch, and refuses it anywhere else', async () => {
+    await Effect.runPromise(RecordGuideUC.run(order('awaiting-dispatch')));
+    expect(
+      await Effect.runPromise(
+        Effect.flip(RecordGuideUC.run(order('dispatched'))),
+      ),
+    ).toMatchObject({
+      code: 'shippingOrderNotTransitionable',
+      standing: 'dispatched',
+      transition: 'record-guide',
+    });
+  });
+
   it('derives one permission per verb in the shipping-order namespace', () => {
     expect([
       DISPATCH_SHIPPING_ORDER,
+      RECORD_GUIDE,
       RECORD_DELIVERY,
       RECORD_REFUSAL,
       RECORD_RETURN,
     ]).toEqual([
       'shipping-order-management:shipping-order:dispatch',
+      'shipping-order-management:shipping-order:record-guide',
       'shipping-order-management:shipping-order:record-delivery',
       'shipping-order-management:shipping-order:record-refusal',
       'shipping-order-management:shipping-order:record-return',
@@ -73,6 +113,7 @@ describe('where each verb is offered', () => {
   // moves the store would accept from where it stands.
   it.each([
     ['dispatch', ['awaiting-dispatch']],
+    ['record-guide', ['awaiting-dispatch']],
     ['record-delivery', ['dispatched']],
     ['record-refusal', ['dispatched']],
     ['record-return', ['refused']],

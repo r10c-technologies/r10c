@@ -42,14 +42,14 @@ export const shippingOrderManagementCapabilities: readonly Capability[] = [
     status: 'implemented',
     verticals: 'all',
   },
-  // Planned (ADR 0081): the vendor records the courier's guide before dispatch.
+  // ADR 0081 §11: the vendor records the courier's guide before dispatch.
   {
     id: `${SHIPPING_ORDER}:record-guide`,
     oda: 'TMF700',
     entities: [SHIPPING_ORDER],
     permissions: [`${SHIPPING_ORDER}:record-guide`],
     screens: ['operation:shipping-order'],
-    status: 'planned',
+    status: 'implemented',
     verticals: 'all',
   },
 ];

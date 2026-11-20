@@ -15,7 +15,7 @@ import { Effect, Option } from 'effect';
 
 import { ShippingOrder } from '../entities/shipping-order';
 import { ShippingOrderStoreTag } from '../ports/shipping-order-store';
-import { decideShippingMove } from './shipping-order-verbs';
+import { DispatchShippingOrderUC } from './shipping-order-verbs';
 
 /** The recipe a dispatch starts, by its name in the coordinator's catalog. */
 export const DELIVERY_RECIPE = 'delivery';
@@ -69,7 +69,7 @@ export const dispatchShipment = (input: {
     const order = yield* store.get(input.organizationId, input.shippingOrderId);
     if (order === undefined)
       return yield* new NotFound({ entity: 'shipping-order' });
-    yield* decideShippingMove(order, 'dispatch');
+    yield* DispatchShippingOrderUC.run(order);
     const requestKey = Option.getOrUndefined(
       yield* Effect.serviceOption(IdempotencyKeyTag),
     );

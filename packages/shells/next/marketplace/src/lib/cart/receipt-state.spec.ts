@@ -9,6 +9,7 @@ import {
   receiptDetailsOf,
   receiptFromReadBack,
   serializeReceipt,
+  trackerSteps,
   withCancelled,
 } from './receipt-state.js';
 
@@ -319,7 +320,9 @@ describe('receiptDetailsOf, for a payment-link order', () => {
 
   it('reads a waiting order whose seller set no link yet', () => {
     const details = read([
-      { data: { id: 'o-1', paymentMethod: 'link', status: 'awaiting-payment' } },
+      {
+        data: { id: 'o-1', paymentMethod: 'link', status: 'awaiting-payment' },
+      },
     ]);
 
     expect(details?.payments.get('o-1')).toEqual({
@@ -486,5 +489,83 @@ describe('receiptDetailsOf', () => {
       receiptDetailsOf({ group: { data: {} }, orders: [{ data: { id: 'o' } }] })
         ?.lineNames.size,
     ).toBe(0);
+  });
+});
+
+describe('where an order stands', () => {
+  const details = (data: Record<string, unknown>) =>
+    receiptDetailsOf({
+      group: { data: { id: 'g-1' } },
+      orders: [{ data: { id: 'o-1', ...data } }],
+    })?.tracking.get('o-1');
+
+  it('reads the status, the tender and the guide a dispatched parcel left with', () => {
+    expect(
+      details({
+        status: 'dispatched',
+        paymentMethod: 'cod',
+        courierName: 'Mensajería',
+        trackingNumber: 'G-1',
+        trackingUrl: 'https://track.example/G-1',
+      }),
+    ).toEqual({
+      status: 'dispatched',
+      method: 'cod',
+      courierName: 'Mensajería',
+      trackingNumber: 'G-1',
+      trackingUrl: 'https://track.example/G-1',
+    });
+  });
+
+  it('keeps no tracking link that is not https, and reads card without a tender', () => {
+    expect(
+      details({ status: 'paid', trackingUrl: 'http://track.example/G-1' }),
+    ).toEqual({ status: 'paid', method: 'card' });
+  });
+
+  it('reads nothing for an order with no status', () => {
+    expect(details({})).toBeUndefined();
+  });
+});
+
+describe('trackerSteps', () => {
+  const states = (status: string, method = 'card') =>
+    trackerSteps(status, method).map(step => `${step.key}:${step.state}`);
+
+  it('keeps a card payment under way while pending, never done', () => {
+    expect(states('pending')).toEqual([
+      'placed:done',
+      'payment:current',
+      'dispatched:todo',
+      'delivered:todo',
+    ]);
+  });
+
+  it('marks the parcel on its way once dispatched, and every step done once delivered', () => {
+    expect(states('dispatched', 'link')).toEqual([
+      'placed:done',
+      'payment:done',
+      'dispatched:done',
+      'delivered:current',
+    ]);
+    expect(states('fulfilled')).toEqual([
+      'placed:done',
+      'payment:done',
+      'dispatched:done',
+      'delivered:done',
+    ]);
+  });
+
+  it('draws no payment step for cash on delivery', () => {
+    expect(states('confirmed', 'cod')).toEqual([
+      'placed:done',
+      'dispatched:current',
+      'delivered:todo',
+    ]);
+  });
+
+  it('draws nothing for an order that left the way to the door', () => {
+    expect(trackerSteps('cancelled', 'card')).toEqual([]);
+    expect(trackerSteps('cancelling', 'card')).toEqual([]);
   });
 });

@@ -765,8 +765,8 @@ export const deliveryRecipe: Recipe<DeliveryStart> = {
       name: 'dispatch',
       perSegment: true,
       steps: [
-        { ref: 'fulfilment.dispatch@2', parameters: theShipment },
-        { ref: 'order.mark-dispatched@2', parameters: theShipment },
+        { ref: 'fulfilment.dispatch@3', parameters: theShipment },
+        { ref: 'order.mark-shipped@1', parameters: theShipment },
       ],
     },
     {

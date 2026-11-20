@@ -584,7 +584,7 @@ describe('the delivery recipe', () => {
       slipSteps(slip).map(step => [step.step, step.guard?.outcomes]),
     ).toEqual([
       ['v-1/cod:fulfilment.dispatch', undefined],
-      ['v-1/cod:order.mark-dispatched', undefined],
+      ['v-1/cod:order.mark-shipped', undefined],
       ['v-1/cod:fulfilment.await-delivery', undefined],
       ['v-1/cod:payment.record-collection', ['delivered']],
       ['v-1/cod:order.close-fulfilled', ['delivered']],

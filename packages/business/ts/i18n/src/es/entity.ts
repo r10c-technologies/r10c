@@ -231,6 +231,7 @@ export const entity = {
     useCases: {
       setFiscalIdentity: 'Guardar datos fiscales',
       setPaymentLinkAcceptance: 'Guardar enlaces de pago',
+      setWhatsappNumber: 'Guardar WhatsApp',
     },
     fields: {
       id: 'ID',
@@ -242,6 +243,7 @@ export const entity = {
       taxRegime: 'Régimen tributario',
       establishmentCode: 'Código de establecimiento',
       acceptsPaymentLink: 'Acepta enlaces de pago',
+      whatsappNumber: 'WhatsApp',
       updatedAt: 'Última actualización',
     },
     values: {
@@ -334,6 +336,7 @@ export const entity = {
       acceptsCod: 'Acepta pago contra entrega',
       holdsStock: 'Maneja inventario',
       acceptsLink: 'Acepta links de pago',
+      whatsappNumber: 'WhatsApp',
       taxId: 'NIT',
       legalName: 'Razón social',
       taxRegime: 'Régimen tributario',
@@ -452,6 +455,11 @@ export const entity = {
       paymentLinkProviderName: 'Proveedor del link',
       paymentLinkSetBy: 'Link puesto por',
       paymentLinkSetAt: 'Link puesto el',
+      courierName: 'Paquetería',
+      trackingNumber: 'Guía',
+      trackingUrl: 'Rastreo',
+      dispatchedAt: 'Despachado el',
+      fulfilledAt: 'Entregado el',
       cancelCause: 'Motivo de cancelación',
     },
     values: {
@@ -867,6 +875,11 @@ export const entity = {
       refusedAt: 'Rechazado el',
       returnedAt: 'Devuelto el',
       withdrawnAt: 'Retirado el',
+      courierKey: 'Clave de la paquetería',
+      courierName: 'Paquetería',
+      trackingNumber: 'Guía',
+      trackingUrl: 'Rastreo',
+      guideRecordedAt: 'Guía registrada el',
     },
     values: {
       status: {
@@ -893,6 +906,7 @@ export const entity = {
       recordRefusalConfirm:
         'El comprador rechazó el paquete, así que el pedido se cierra sin venta. No se puede deshacer; registre la devolución cuando el paquete esté con usted.',
       'record-return': 'Registrar devolución',
+      'record-guide': 'Registrar guía',
       recordReturnConfirm:
         'La mercadería devuelta vuelve a su inventario y a la venta. No se puede deshacer.',
     },

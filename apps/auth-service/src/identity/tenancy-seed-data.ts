@@ -26,7 +26,12 @@ import type { SeededVendor } from '@r10c/utils-ts-fleet';
 export const organizationSeedData = (
   vendor: Pick<
     SeededVendor,
-    'organizationId' | 'name' | 'slug' | 'fiscal' | 'acceptsPaymentLink'
+    | 'organizationId'
+    | 'name'
+    | 'slug'
+    | 'fiscal'
+    | 'acceptsPaymentLink'
+    | 'whatsappNumber'
   >,
 ): ReadonlyArray<OrganizationSeed> => [
   {
@@ -40,6 +45,7 @@ export const organizationSeedData = (
     initial: {
       ...vendor.fiscal,
       acceptsPaymentLink: vendor.acceptsPaymentLink,
+      whatsappNumber: vendor.whatsappNumber,
     },
   },
 ];

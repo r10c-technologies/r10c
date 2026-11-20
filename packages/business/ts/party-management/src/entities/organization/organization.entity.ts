@@ -47,6 +47,7 @@ export class Organization implements Entity {
   #taxRegime: TaxRegime = 'general';
   #establishmentCode = '';
   #acceptsPaymentLink = false;
+  #whatsappNumber = '';
   #updatedAt?: Date;
   // #endregion
 
@@ -186,6 +187,24 @@ export class Organization implements Entity {
   }
   set acceptsPaymentLink(value: boolean) {
     this.#acceptsPaymentLink = value;
+  }
+
+  /**
+   * The WhatsApp number buyers may write to, as E.164 (`+50255551234`), or
+   * `''` for none (#671). Authored by the organization's own `admin` through
+   * `set-whatsapp-number`, and announced to the published vendor: a receipt
+   * links to it.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:organization.fields.whatsappNumber',
+    filterable: false,
+  })
+  get whatsappNumber(): string {
+    return this.#whatsappNumber;
+  }
+  set whatsappNumber(value: string) {
+    this.#whatsappNumber = value;
   }
 
   /**

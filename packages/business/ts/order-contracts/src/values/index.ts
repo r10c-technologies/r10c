@@ -4,3 +4,4 @@ export * from './guatemala-geography';
 export * from './order-event';
 export * from './order-event-data';
 export * from './order-number';
+export * from './whatsapp-chat';

@@ -63,6 +63,12 @@ export const r10c = {
         failed: 'No se pudo leer si aceptas enlaces de pago.',
         saved: 'Guardado. Las compras nuevas lo siguen desde ahora.',
       },
+      whatsapp: {
+        title: 'WhatsApp',
+        hint: 'El número de WhatsApp al que tus compradores pueden escribirte. Cada recibo con tus pedidos ofrece un chat contigo. Déjalo vacío para no ofrecerlo.',
+        failed: 'No se pudo leer tu número de WhatsApp.',
+        saved: 'Guardado. Los recibos ofrecen el chat desde ahora.',
+      },
     },
     account: {
       overline: 'Cuenta',
@@ -401,6 +407,36 @@ export const r10c = {
       cancelConfirm: 'Cancelar pedido y reembolsar',
       cancelKeep: 'Conservar el pedido',
       cancelledTag: 'Cancelado',
+      // Por dónde va cada pedido hasta la puerta (ADR 0081 §11). Un pago en
+      // curso nunca dice que el dinero se cobró.
+      whatsapp: {
+        label: 'Escribir al vendedor por WhatsApp',
+        text: {
+          placed: 'Hola, te escribo por mi pedido {{number}}.',
+          awaitingPayment:
+            'Hola, te escribo por el pago de mi pedido {{number}}.',
+          dispatched: 'Hola, te escribo por el envío de mi pedido {{number}}.',
+          delivered: 'Hola, recibí mi pedido {{number}} y te escribo por él.',
+        },
+      },
+      tracker: {
+        heading: 'Seguimiento',
+        placed: 'Pedido recibido',
+        payment: {
+          card: 'Pago con tarjeta',
+          link: 'Pago por link',
+        },
+        dispatched: 'Despachado',
+        delivered: 'Entregado',
+        state: {
+          done: 'completado',
+          current: 'en curso',
+          todo: 'pendiente',
+        },
+        codNote: 'Pagas al recibirlo.',
+        guide: '{{courier}}, guía {{number}}',
+        follow: 'Rastrear el envío',
+      },
       // Un pedido con link de pago (ADR 0081): espera a que el vendedor
       // confirme el pago, y el comprador paga por el link que el vendedor pone.
       payment: {
@@ -516,6 +552,29 @@ export const r10c = {
     },
     home: {
       awaitingDispatch: 'Envíos por despachar',
+    },
+    whatsapp: {
+      heading: 'Comprador',
+      label: 'Escribir al comprador por WhatsApp',
+      text: {
+        preparing:
+          'Hola, te escribo por tu pedido {{number}}: lo estamos preparando.',
+        dispatched:
+          'Hola, tu pedido {{number}} va en camino. Tu guía es {{tracking}}.',
+        delivered: 'Hola, ¿recibiste bien tu pedido {{number}}?',
+      },
+    },
+    guide: {
+      heading: 'Guía del envío',
+      missing:
+        'Este envío todavía no tiene guía. Regístrela antes de despacharlo: el comprador sigue el paquete por ella.',
+      recorded: '{{courier}}, guía {{number}}',
+      follow: 'Rastrear el envío',
+      courier: 'Paquetería',
+      courierName: 'Nombre de la paquetería',
+      trackingUrl: 'Enlace de rastreo (opcional)',
+      number: 'Número de guía',
+      record: 'Registrar guía',
     },
   },
   settlement: {

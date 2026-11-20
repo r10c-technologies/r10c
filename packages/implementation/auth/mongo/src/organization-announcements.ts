@@ -22,6 +22,7 @@ import {
   type FiscalIdentity,
   OrganizationFiscalIdentityTag,
   OrganizationPaymentLinkAcceptanceTag,
+  OrganizationWhatsappNumberTag,
 } from '@r10c/business-ts-party-management';
 import { isTaxRegime } from '@r10c/business-ts-tax-policy';
 import { Effect, Layer } from 'effect';
@@ -85,6 +86,8 @@ export const announcementOf = (
     holdsStock: commerce.holdsStock,
     // Authored on the organization itself, not provisioned (ADR 0081 §1).
     acceptsLink: row['acceptsPaymentLink'] === true,
+    whatsappNumber:
+      typeof row['whatsappNumber'] === 'string' ? row['whatsappNumber'] : '',
     fiscal,
   };
 };
@@ -181,10 +184,19 @@ export const writeOrganization = (
                   .findOne({ organizationId: row['id'] }, { session }),
               catch: mongoUnitFault,
             });
+            // Strictly after the last stamp: the stamp is the announcement's
+            // id and version, so two writes in one millisecond would share
+            // them, and the second would be taken for a redelivery of the
+            // first and dropped.
+            const previous = stored?.['updatedAt'];
+            const stamp =
+              previous instanceof Date && previous.getTime() >= now.getTime()
+                ? new Date(previous.getTime() + 1)
+                : now;
             const written =
               stored === null
-                ? { ...initial, ...row, updatedAt: now }
-                : { ...row, updatedAt: now };
+                ? { ...initial, ...row, updatedAt: stamp }
+                : { ...row, updatedAt: stamp };
             yield* Effect.tryPromise({
               try: () =>
                 organizations.updateOne(
@@ -453,6 +465,51 @@ export const makeMongoOrganizationPaymentLinkAcceptance = (
       acceptsPaymentLink: accepts,
     }),
 });
+
+/**
+ * The organization's own WhatsApp number (`set-whatsapp-number`, #671),
+ * written through {@link writeOrganization} so the published vendor follows in
+ * the same unit.
+ */
+export const makeMongoOrganizationWhatsappNumber = (
+  client: MongoClient,
+  db: Db,
+  source: string,
+  bus: EventBus,
+  maxAttempts: number,
+) => ({
+  get: (
+    organizationId: string,
+  ): Effect.Effect<string, NotFound | Unavailable> =>
+    readOrganization(db, organizationId).pipe(
+      Effect.map(stored =>
+        typeof stored['whatsappNumber'] === 'string'
+          ? stored['whatsappNumber']
+          : '',
+      ),
+    ),
+  set: (
+    organizationId: string,
+    number: string,
+  ): Effect.Effect<void, NotFound | EntifixFailure> =>
+    writeOwnMembers(client, db, source, bus, maxAttempts, organizationId, {
+      whatsappNumber: number,
+    }),
+});
+
+/** The WhatsApp number port over the `auth` store (#671). */
+export const MongoOrganizationWhatsappNumberLayer = Layer.effect(
+  OrganizationWhatsappNumberTag,
+  Effect.gen(function* () {
+    return makeMongoOrganizationWhatsappNumber(
+      yield* MongoClientTag,
+      yield* MongoDatabaseTag,
+      yield* EventSourceTag,
+      yield* EventBusTag,
+      yield* OutboxMaxAttempts,
+    );
+  }),
+);
 
 /** The payment-link acceptance port over the `auth` store (ADR 0081 §1). */
 export const MongoOrganizationPaymentLinkAcceptanceLayer = Layer.effect(

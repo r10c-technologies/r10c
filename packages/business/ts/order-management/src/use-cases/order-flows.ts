@@ -26,6 +26,7 @@ import { BuyerNotifierTag } from '../ports/buyer-notifier';
 import { PaymentLinkProvidersTag } from '../ports/payment-link-providers';
 import {
   CheckoutGroupStoreTag,
+  type OrderGuide,
   ProductOrderStoreTag,
 } from '../ports/product-order-store';
 import {
@@ -234,6 +235,7 @@ export const moveOrder = (input: {
     | 'end-awaiting-payment'
   >;
   readonly commandId: string | undefined;
+  readonly guide?: OrderGuide;
 }) =>
   Effect.gen(function* () {
     const store = yield* ProductOrderStoreTag;
@@ -241,6 +243,7 @@ export const moveOrder = (input: {
       input.orderId,
       input.transition,
       input.commandId,
+      input.guide,
     );
     if (moved !== undefined) return moved;
     const order = yield* store.get(input.orderId);
@@ -587,7 +590,11 @@ export const awaitPayment = (input: {
 }) =>
   Effect.gen(function* () {
     const window = input.paymentWindowMs;
-    if (typeof window !== 'number' || !Number.isInteger(window) || window <= 0) {
+    if (
+      typeof window !== 'number' ||
+      !Number.isInteger(window) ||
+      window <= 0
+    ) {
       return yield* new InvalidBody({
         reason: 'a payment window is a positive number of milliseconds',
       });

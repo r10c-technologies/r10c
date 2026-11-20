@@ -1,5 +1,13 @@
 import { startTenantOutboxRelay } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
+import {
+  type Courier,
+  courierOf,
+  CouriersTag,
+  type CourierTracking,
+  CourierTrackingTag,
+  simulatedCourierTracking,
+} from '@r10c/business-ts-shipping-order-management';
 import { MongoShippingOrderStoreLayer } from '@r10c/implementation-fulfilment-mongo';
 import {
   crossingTokenLayer,
@@ -14,6 +22,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { startCourierFeed } from './courier-feed-sweep.js';
 import {
   DestinationRetentionDays,
   startDestinationRedactionSweep,
@@ -23,6 +32,9 @@ const SERVICE_NAME = 'fulfilment-service';
 
 /** The **slice** this service publishes as — never the deployment (ADR 0029). */
 export const FULFILMENT_SLICE = 'fulfilment';
+
+/** The configuration group the courier dictionary is read from (ADR 0081 §10). */
+export const COURIER_GROUP = 'courier';
 
 /** The database the crossing routes' idempotency records live in. */
 export const FULFILMENT_IDEMPOTENCY_DB = 'fulfilment-idempotency';
@@ -61,6 +73,25 @@ export const fulfilmentComposition = (configuration: FleetConfiguration) =>
     const retentionDays = yield* configuration.store
       .in('fulfilment')
       .getNumber('destinationRetentionDays');
+    // The couriers a vendor may name: an open dictionary, one row per courier,
+    // public facts only (ADR 0081 §10). A row that does not read as a courier
+    // drops out rather than rendering a broken tracking link.
+    const couriers = (configuration.plain[COURIER_GROUP] ?? []).flatMap(
+      (row): Courier[] => {
+        const courier = courierOf(row.key, row.value);
+        return courier === undefined ? [] : [courier];
+      },
+    );
+    // The lab's courier answers a dispatched parcel delivered after this many
+    // seconds; `0` is no simulator, and an environment with a real courier
+    // feed sets it so (ADR 0081 §11).
+    const simulatorDelaySeconds = yield* configuration.store
+      .in('fulfilment')
+      .getNumber('courierSimulatorDelaySeconds');
+    const tracking: CourierTracking | undefined =
+      simulatorDelaySeconds > 0
+        ? simulatedCourierTracking(simulatorDelaySeconds * 1000)
+        : undefined;
     const connections = Layer.mergeAll(
       httpFlowStarterLayer({
         url: yield* coordinator.getString('url'),
@@ -72,6 +103,7 @@ export const fulfilmentComposition = (configuration: FleetConfiguration) =>
       yield* fleetBusLayer(configuration),
       yield* fleetOutboxLayer(configuration, FULFILMENT_SLICE),
       Layer.succeed(DestinationRetentionDays, retentionDays),
+      Layer.succeed(CouriersTag, couriers),
     );
 
     // The crossing routes' `Idempotency-Key` records, in a database of their
@@ -88,6 +120,14 @@ export const fulfilmentComposition = (configuration: FleetConfiguration) =>
         ),
         // A shipment's address leaves once its journey ends (ADR 0076 §4).
         Layer.effectDiscard(startDestinationRedactionSweep),
+        // The courier's reports, when this environment has a feed to ask.
+        tracking === undefined
+          ? Layer.empty
+          : Layer.effectDiscard(
+              startCourierFeed.pipe(
+                Effect.provideService(CourierTrackingTag, tracking),
+              ),
+            ),
       ),
       Layer.provideMerge(
         Layer.mergeAll(MongoShippingOrderStoreLayer, idempotency),

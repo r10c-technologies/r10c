@@ -21,6 +21,7 @@ const adapters: FulfilmentAdapters = {
   ),
   metadata: real.metadata,
   shippingOrderUseCases: real.shippingOrderUseCases,
+  guide: real.guide,
 };
 
 const wrapperWith = (supplied?: FulfilmentAdapters) =>

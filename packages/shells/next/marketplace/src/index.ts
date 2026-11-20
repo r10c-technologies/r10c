@@ -12,4 +12,5 @@
 
 export * from './lib/cart/cart-badge';
 export * from './lib/cart/flow-capabilities';
+export * from './lib/cart/push-channel-context';
 export { storePaths } from './lib/routing/paths';

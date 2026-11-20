@@ -226,7 +226,7 @@ describe('POST /api/flow/delivery', () => {
     expect(res.status).toBe(202);
     expect(stepsOf('ord-wait')).toEqual([
       'fulfilment.dispatch',
-      'order.mark-dispatched',
+      'order.mark-shipped',
     ]);
   });
 
@@ -238,7 +238,7 @@ describe('POST /api/flow/delivery', () => {
     });
     expect(stepsOf('ord-cod-delivered')).toEqual([
       'fulfilment.dispatch',
-      'order.mark-dispatched',
+      'order.mark-shipped',
       'payment.record-collection',
       'order.close-fulfilled',
     ]);
@@ -256,7 +256,7 @@ describe('POST /api/flow/delivery', () => {
 
     expect(stepsOf('ord-cod-refused')).toEqual([
       'fulfilment.dispatch',
-      'order.mark-dispatched',
+      'order.mark-shipped',
       'o-1:stock.restore',
       'order.close-cancelled',
     ]);
@@ -289,7 +289,7 @@ describe('POST /api/flow/delivery', () => {
     expect(status).toMatchObject({ state: 'stranded' });
     expect(stepsOf('ord-lost')).toEqual([
       'fulfilment.dispatch',
-      'order.mark-dispatched',
+      'order.mark-shipped',
     ]);
   });
 

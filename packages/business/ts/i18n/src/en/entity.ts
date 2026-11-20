@@ -197,6 +197,7 @@ export const entity: EsEntity = {
     useCases: {
       setFiscalIdentity: 'Save fiscal details',
       setPaymentLinkAcceptance: 'Save payment links',
+      setWhatsappNumber: 'Save WhatsApp',
     },
     fields: {
       id: 'ID',
@@ -208,6 +209,7 @@ export const entity: EsEntity = {
       taxRegime: 'Tax regime',
       establishmentCode: 'Establishment code',
       acceptsPaymentLink: 'Takes payment links',
+      whatsappNumber: 'WhatsApp',
       updatedAt: 'Last updated',
     },
     values: {
@@ -300,6 +302,7 @@ export const entity: EsEntity = {
       acceptsCod: 'Accepts cash on delivery',
       holdsStock: 'Holds stock',
       acceptsLink: 'Takes payment links',
+      whatsappNumber: 'WhatsApp',
       taxId: 'Tax ID (NIT)',
       legalName: 'Legal name',
       taxRegime: 'Tax regime',
@@ -417,6 +420,11 @@ export const entity: EsEntity = {
       paymentLinkProviderName: 'Link provider',
       paymentLinkSetBy: 'Link set by',
       paymentLinkSetAt: 'Link set at',
+      courierName: 'Courier',
+      trackingNumber: 'Tracking number',
+      trackingUrl: 'Tracking',
+      dispatchedAt: 'Dispatched at',
+      fulfilledAt: 'Delivered at',
       cancelCause: 'Cancelled because',
     },
     values: {
@@ -822,6 +830,11 @@ export const entity: EsEntity = {
       refusedAt: 'Refused at',
       returnedAt: 'Returned at',
       withdrawnAt: 'Withdrawn at',
+      courierKey: 'Courier key',
+      courierName: 'Courier',
+      trackingNumber: 'Tracking number',
+      trackingUrl: 'Tracking',
+      guideRecordedAt: 'Tracking recorded at',
     },
     values: {
       status: {
@@ -848,6 +861,7 @@ export const entity: EsEntity = {
       recordRefusalConfirm:
         'The buyer refused the parcel, so the order closes without a sale. This cannot be taken back; record the return once the parcel is with you.',
       'record-return': 'Record return',
+      'record-guide': 'Record tracking number',
       recordReturnConfirm:
         'The returned goods go back into your stock and on sale again. This cannot be taken back.',
     },

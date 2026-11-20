@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../tax-policy/tsconfig.lib.json"
+    },
+    {
+      "path": "../order-contracts/tsconfig.lib.json"
     }
   ],
   "exclude": [
