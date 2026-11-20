@@ -118,7 +118,14 @@ describe('httpPublishedPriceReaderLayer', () => {
     respond(200, {
       data: {
         items: [
-          { vendorId: 'v-1', name: 'Lámpara', amount: 7, currency: 'GTQ' },
+          {
+            vendorId: 'v-1',
+            name: 'Lámpara',
+            amount: 7,
+            currency: 'GTQ',
+            specificationId: 's-1',
+            specificationVersion: 1,
+          },
         ],
       },
     });
@@ -129,6 +136,8 @@ describe('httpPublishedPriceReaderLayer', () => {
       vendorId: 'v-1',
       amount: 7,
       currency: 'GTQ',
+      specificationId: 's-1',
+      specificationVersion: 1,
     });
   });
 
@@ -162,6 +171,8 @@ describe('httpPublishedPriceReaderLayer', () => {
                     name: 'Lámpara',
                     amount: 7,
                     currency: 'GTQ',
+                    specificationId: 's-1',
+                    specificationVersion: 1,
                   },
                 ],
               },

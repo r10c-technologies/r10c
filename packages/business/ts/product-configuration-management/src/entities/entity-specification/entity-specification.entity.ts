@@ -1,6 +1,12 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 
+import {
+  type SpecificationLifecycleStatus,
+  SpecificationLifecycleStatuses,
+  SpecificationLifecycleTones,
+} from '../../values/specification-lifecycle';
+
 /**
  * A **vendor-authored, versioned** product model: the list of characteristics a
  * kind of product carries.
@@ -14,8 +20,8 @@ import { accessor, entity } from '@entifix/core';
  * three things at once: February's records stay readable after March's
  * redefinition, a compiled-spec cache never has to be invalidated, and
  * publication can dedupe a spec by content hash instead of copying it per
- * offering. `released` is therefore a one-way door — an edit after release is a
- * new version, never a mutation.
+ * offering. Its `lifecycleStatus` is ADR 0079's four states — an edit after
+ * release is a new version, never a mutation.
  *
  * This does **not** replace entifix metadata. A specification is itself an
  * ordinary decorated entity, so the designer UI is `EntityTable` + `EntityForm`
@@ -35,7 +41,7 @@ export class EntitySpecification implements Entity {
   #id?: EntityId;
   #name: string;
   #version: number;
-  #released = false;
+  #lifecycleStatus: SpecificationLifecycleStatus = 'in-design';
   #revision?: number;
   // #endregion
 
@@ -85,21 +91,24 @@ export class EntitySpecification implements Entity {
   }
 
   /**
-   * Once true, the version is frozen. Filterable because "which versions may an
-   * offering pin?" is the authoring UI's own query, and an unreleased draft must
-   * not be pinnable.
+   * Where this version stands (ADR 0079 §1), in place of the `released`
+   * boolean it replaced. Filterable because "which versions may an offering
+   * pin?" is the authoring UI's own query, and only an `active` one may.
    */
   @accessor({
-    type: 'boolean',
-    labelKey: 'entity:entity-specification.fields.released',
+    type: 'enum',
+    labelKey: 'entity:entity-specification.fields.lifecycleStatus',
+    enumValues: SpecificationLifecycleStatuses,
+    enumTones: SpecificationLifecycleTones,
+    enumLabelKey: 'entity:product-specification.values.lifecycleStatus',
     required: true,
     filterable: true,
   })
-  get released(): boolean {
-    return this.#released;
+  get lifecycleStatus(): SpecificationLifecycleStatus {
+    return this.#lifecycleStatus;
   }
-  set released(value: boolean) {
-    this.#released = value;
+  set lifecycleStatus(value: SpecificationLifecycleStatus) {
+    this.#lifecycleStatus = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

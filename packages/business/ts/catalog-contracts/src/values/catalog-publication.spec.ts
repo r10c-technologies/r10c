@@ -21,6 +21,8 @@ const PUBLICATION: CatalogPublication = {
   currency: 'GTQ',
   availableHint: true,
   publishedAt: '2026-09-07T10:00:00.000Z',
+  specificationId: 'spec-1',
+  specificationVersion: 2,
   code: 'product-013',
   description: 'Stoneware, glazed by hand.',
   brandId: 'product-brand-3',
@@ -28,7 +30,7 @@ const PUBLICATION: CatalogPublication = {
   media: [{ url: 'https://cdn.example/mug.jpg', alt: 'The mug, glazed blue' }],
 };
 
-/** The seven members every publication must carry to be readable at all. */
+/** The nine members every publication must carry to be readable at all. */
 const REQUIRED = {
   offeringId: PUBLICATION.offeringId,
   vendorId: PUBLICATION.vendorId,
@@ -37,6 +39,8 @@ const REQUIRED = {
   currency: PUBLICATION.currency,
   availableHint: PUBLICATION.availableHint,
   publishedAt: PUBLICATION.publishedAt,
+  specificationId: PUBLICATION.specificationId,
+  specificationVersion: PUBLICATION.specificationVersion,
 };
 
 const read = (data: unknown) =>
@@ -162,6 +166,8 @@ describe('readCatalogPublication', () => {
     'publishedAt',
     'amount',
     'availableHint',
+    'specificationId',
+    'specificationVersion',
   ])('names %s when it is absent', member => {
     const withoutMember = Object.fromEntries(
       Object.entries(PUBLICATION).filter(([key]) => key !== member),
@@ -170,14 +176,16 @@ describe('readCatalogPublication', () => {
     expect(failureMessage(withoutMember)).toContain(member);
   });
 
-  it.each(['offeringId', 'vendorId', 'name', 'currency', 'publishedAt'])(
-    'rejects an empty %s, which is absent wearing the right type',
-    member => {
-      expect(failureMessage({ ...PUBLICATION, [member]: '' })).toContain(
-        member,
-      );
-    },
-  );
+  it.each([
+    'offeringId',
+    'vendorId',
+    'name',
+    'currency',
+    'publishedAt',
+    'specificationId',
+  ])('rejects an empty %s, which is absent wearing the right type', member => {
+    expect(failureMessage({ ...PUBLICATION, [member]: '' })).toContain(member);
+  });
 
   it('rejects a NaN amount, which is a number and still not a price', () => {
     // `typeof NaN === 'number'`, so a type check alone lets it through — into
@@ -234,6 +242,8 @@ describe('readCatalogPublication', () => {
       'publishedAt',
       'amount',
       'availableHint',
+      'specificationId',
+      'specificationVersion',
     ]) {
       expect(message).toContain(member);
     }

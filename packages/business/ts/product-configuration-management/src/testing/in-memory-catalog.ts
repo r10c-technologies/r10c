@@ -49,14 +49,52 @@ export const makeInMemoryOfferingCatalog = (
   };
 };
 
+/** What the in-memory commands remember of one version. */
+interface StoredVersion {
+  readonly specKey: string | undefined;
+  readonly version: number | undefined;
+  lifecycleStatus: ProductSpecification['lifecycleStatus'];
+  validTo?: Date;
+  revision: number;
+}
+
+/** An organization's specification versions, as each one stands. */
+export type SpecificationSeed = Readonly<
+  Record<
+    string,
+    ReadonlyArray<
+      Pick<
+        ProductSpecification,
+        'id' | 'specKey' | 'version' | 'lifecycleStatus'
+      >
+    >
+  >
+>;
+
 /**
  * A {@link SpecificationCommands} held in memory, for the specs of whatever
- * consumes the port: a counter per organization and the records its keys
- * wrote. It runs `describeSpecificationCommandsContract`.
+ * consumes the port: a counter per organization, the records its keys wrote,
+ * and where each version stands. It runs
+ * `describeSpecificationCommandsContract`.
  */
-export const makeInMemorySpecificationCommands = (): SpecificationCommands => {
+export const makeInMemorySpecificationCommands = (
+  seed: SpecificationSeed = {},
+): SpecificationCommands => {
   const counters = new Map<string, number>();
   const byKey = new Map<string, ProductSpecification>();
+  const versions = new Map<string, StoredVersion>();
+  const at = (organizationId: string, id: unknown) =>
+    `${organizationId}/${String(id)}`;
+  for (const [organizationId, seeded] of Object.entries(seed)) {
+    for (const { id, specKey, version, lifecycleStatus } of seeded) {
+      versions.set(at(organizationId, id), {
+        specKey,
+        version,
+        lifecycleStatus,
+        revision: 1,
+      });
+    }
+  }
   return {
     create: (organizationId, specification, idempotencyKey) =>
       Effect.sync(() => {
@@ -70,8 +108,68 @@ export const makeInMemorySpecificationCommands = (): SpecificationCommands => {
         counters.set(organizationId, next);
         specification.id = globalThis.crypto.randomUUID();
         specification.code = `product-${String(next).padStart(3, '0')}`;
+        specification.specKey = specification.code;
+        specification.revision = 1;
+        versions.set(at(organizationId, specification.id), {
+          specKey: specification.specKey,
+          version: specification.version,
+          lifecycleStatus: specification.lifecycleStatus,
+          revision: 1,
+        });
         if (scoped !== undefined) byKey.set(scoped, specification);
         return specification;
+      }),
+    move: (organizationId, specification, from) =>
+      Effect.sync(() => {
+        const stored = versions.get(at(organizationId, specification.id));
+        if (stored?.lifecycleStatus !== from) return 'changed';
+        if (specification.lifecycleStatus === 'active') {
+          for (const [key, other] of versions) {
+            if (
+              key.startsWith(`${organizationId}/`) &&
+              other !== stored &&
+              other.specKey === stored.specKey &&
+              other.lifecycleStatus === 'active'
+            ) {
+              other.lifecycleStatus = 'retired';
+              other.validTo = specification.validFrom;
+              other.revision += 1;
+            }
+          }
+        }
+        stored.lifecycleStatus = specification.lifecycleStatus;
+        stored.revision += 1;
+        specification.revision = stored.revision;
+        return 'committed';
+      }),
+    revise: (organizationId, next) =>
+      Effect.sync(() => {
+        for (const [key, other] of versions) {
+          if (
+            key.startsWith(`${organizationId}/`) &&
+            other.specKey === next.specKey &&
+            other.version === next.version
+          ) {
+            return 'changed';
+          }
+        }
+        next.revision = 1;
+        versions.set(at(organizationId, next.id), {
+          specKey: next.specKey,
+          version: next.version,
+          lifecycleStatus: next.lifecycleStatus,
+          revision: 1,
+        });
+        return 'committed';
+      }),
+    remove: (organizationId, id) =>
+      Effect.sync(() => {
+        const key = at(organizationId, id);
+        const stored = versions.get(key);
+        if (stored === undefined) return 'absent';
+        if (stored.lifecycleStatus !== 'in-design') return 'changed';
+        versions.delete(key);
+        return 'removed';
       }),
   };
 };

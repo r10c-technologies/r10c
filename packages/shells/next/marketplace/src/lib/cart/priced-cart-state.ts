@@ -44,6 +44,13 @@ export function pricedCartOf(
   const priced: PricedLine[] = present.map(({ line, offering }) => ({
     offeringId: line.offeringId,
     name: offering.name,
+    ...(offering.description === undefined || offering.description === ''
+      ? {}
+      : { description: offering.description }),
+    // Every publication carries its pin (ADR 0079 §2); a row without one
+    // predates the widening and is refused by the checkout's own schema.
+    specificationId: offering.specificationId ?? '',
+    specificationVersion: offering.specificationVersion ?? 0,
     vendorId: offering.vendorId,
     quantity: line.quantity,
     amount: offering.amount,

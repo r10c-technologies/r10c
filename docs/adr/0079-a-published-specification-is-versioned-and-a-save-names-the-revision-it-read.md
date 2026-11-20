@@ -5,6 +5,7 @@
 - Area: business
 - Read when: editing a specification something points at, two people saving one record, or a tenant needing its own field or step — a released version is never edited, an order line is a copy, and a stale `revision` answers `409`
 - Revised: 2026-11-17 — a missing `revision` answers `400 invalid`, not `invalidBody`, and a status move increments `revision`, as entifix's revision check decides ([entifix ADR 0032](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0032-a-save-names-the-revision-it-read.md))
+- Revised: 2026-11-19 — open questions 3 and 6 answered by the build of §1–§3 (#664): `obsolete` is a person's verb refused while a published offering pins the version, and `specKey` is a member of its own set from the create's `code`; a rebuild restates a publication whatever its pin now stands at
 
 ## Context
 
@@ -105,7 +106,10 @@ A pin is **the id of the version record** — one id, immutable once released, s
 
 ⚠️ **Releasing a version moves nothing.** Offerings on version 1 stay on
 version 1 when version 2 is released. Moving one is a verb on the offering, by a
-person, and never a side effect.
+person, and never a side effect. The active-pin rule is a rule about **going on
+sale**: a republication is refused on a retired pin, but the rebuild walk
+([ADR 0050](0050-rebuilding-the-published-catalog-from-tenant-storage.md))
+restates a publication that already happened whatever its pin stands at now.
 
 ### 3. An order line is a copy of what was sold
 
@@ -281,12 +285,21 @@ this record supersedes nothing.
 1. **Moving an offering to a newer version**: the verb's name, whether a
    published offering may take it, and what a breaking version does to values.
 2. **Characteristic values on the order line**, as sold.
-3. **`obsolete`**: a person's verb, or automatic when the last pin is gone.
+3. ~~**`obsolete`**: a person's verb, or automatic when the last pin is gone.~~
+   _Answered 2026-11-19:_ a person's verb, `retired → obsolete`, refused
+   `specificationStillPinned` while any **published** offering pins the
+   version. Publishing needs an `active` pin, so a retired version gains no
+   new published offering while the check reads.
 4. **Who may write a tenant setting**, and whether it is read per request or
    announced like an entitlement.
 5. **A stale `revision` inside a flow**: fail the flow with `staleRevision`
    through flow-status (assumed here), or compensate.
-6. **`specKey`**: the sequence-assigned `code`, or a key of its own.
+6. ~~**`specKey`**: the sequence-assigned `code`, or a key of its own.~~
+   _Answered 2026-11-19:_ a member of its own, set at create to the `code`
+   the same counter draw produced and copied by `revise` with the code.
+   `code` stays the display member the storefront and the snapshot already
+   carry; `(specKey, version)` is unique in the store, which is what refuses
+   two revises racing to the same number.
 
 ## Trigger
 

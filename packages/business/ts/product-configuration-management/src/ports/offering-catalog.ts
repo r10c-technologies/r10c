@@ -4,6 +4,7 @@ import { Context, type Effect } from 'effect';
 
 import type { ProductOffering } from '../entities/product-offering';
 import type { ProductSpecification } from '../entities/product-specification';
+import type { SpecificationLifecycleStatus } from '../values/specification-lifecycle';
 
 /**
  * The `catalog` store's writes that are not a plain save: an offering's
@@ -43,11 +44,17 @@ export class OfferingCatalogTag extends Context.Service<
 >()('OfferingCatalogTag') {}
 
 /**
- * A specification's create is not a plain save: its `code` is the next of a
- * per-organization counter, drawn in the same unit of work that writes the
- * record, so two creates never share a code and a failed write spends none.
- * It answers the record as stored. A repeated `Idempotency-Key` answers the
- * record the first create wrote instead of drawing another code.
+ * A specification's writes that are not a plain save.
+ *
+ * Its create draws `code` (and `specKey`) from a per-organization counter in
+ * the same unit of work that writes the record, so two creates never share a
+ * code and a failed write spends none. It answers the record as stored. A
+ * repeated `Idempotency-Key` answers the record the first create wrote instead
+ * of drawing another code.
+ *
+ * Its lifecycle moves, its next version and its delete are each one
+ * conditional write (ADR 0079 §1): the decision is the domain's, the store
+ * only refuses to write over a state that moved.
  */
 export interface SpecificationCommands {
   readonly create: (
@@ -55,6 +62,39 @@ export interface SpecificationCommands {
     specification: ProductSpecification,
     idempotencyKey: string | undefined,
   ) => Effect.Effect<ProductSpecification, StoreFailure | Invalid>;
+  /**
+   * Write a version moved along its lifecycle, **only while it still stands
+   * in `from`** — the compare-and-set every status move in this repository
+   * is — and move its `revision` in the same write, so a form opened before
+   * the move cannot save over it (ADR 0079 §4). A release (`active`) also
+   * retires, in the same unit, whichever other version of the same `specKey`
+   * was active, closing its `validTo` at this one's `validFrom`: one active
+   * version per key. `changed` means another move landed first and nothing
+   * was written.
+   */
+  readonly move: (
+    organizationId: string,
+    specification: ProductSpecification,
+    from: SpecificationLifecycleStatus,
+  ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
+  /**
+   * Insert the next version of a series, at revision `1`. `changed` means a
+   * version with that `specKey` and `version` already exists — another revise
+   * got there first — and nothing was written.
+   */
+  readonly revise: (
+    organizationId: string,
+    next: ProductSpecification,
+  ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
+  /**
+   * Delete a version **only while it is `in-design`**: a released version is
+   * kept forever, because orders name it. `changed` means it exists and is no
+   * longer in design; `absent` that there is nothing by that id.
+   */
+  readonly remove: (
+    organizationId: string,
+    id: string,
+  ) => Effect.Effect<'removed' | 'changed' | 'absent', StoreFailure | Invalid>;
 }
 
 export class SpecificationCommandsTag extends Context.Service<

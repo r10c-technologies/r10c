@@ -85,6 +85,8 @@ const order = (overrides: Partial<DomainEvent> = {}): DomainEvent => ({
         currency: 'GTQ',
         offeringId: 'off-1',
         name: 'Cog',
+        specificationId: 'spec-1',
+        specificationVersion: 1,
         kind: 'good',
         taxTreatment: 'taxed',
         taxRate: 1200,

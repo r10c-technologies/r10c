@@ -23,6 +23,8 @@ import {
   OfferingPriceRepositoryTag,
   OfferingSpecificationRepositoryTag,
   type OfferingTransitionDecision,
+  SPECIFICATION_NOT_ACTIVE,
+  SpecificationNotActive,
   transitionOffering,
   TransitionOfferingInputTag,
 } from './transition-offering.js';
@@ -58,6 +60,8 @@ const specification = (
     categoryId: string | undefined;
     media: ProductSpecification['media'];
     fitsDeviceModelIds: ProductSpecification['fitsDeviceModelIds'];
+    lifecycleStatus: ProductSpecification['lifecycleStatus'];
+    version: number;
   }> = {},
 ) => {
   const one = new ProductSpecification(
@@ -72,6 +76,9 @@ const specification = (
     'categoryId' in overrides ? overrides.categoryId : 'product-category-7';
   one.media = overrides.media;
   one.fitsDeviceModelIds = overrides.fitsDeviceModelIds;
+  // A pin may be published only while it is the series' active version.
+  one.lifecycleStatus = overrides.lifecycleStatus ?? 'active';
+  one.version = overrides.version ?? 1;
   return one;
 };
 
@@ -144,6 +151,7 @@ const run = (
   specifications: ProductSpecification[] = [
     specification(`spec-${String(id)}`),
   ],
+  restating?: boolean,
 ) => {
   const { repository, saved } = repositoryOf(...rows);
   const { repository: priceRepository, queries } = pricesOf(...prices);
@@ -158,6 +166,7 @@ const run = (
         vendorId: VENDOR,
         source: SOURCE,
         at: AT,
+        restating,
       }),
       // The repository's signature threads a configuration requirement this
       // path never uses; the cast keeps the double honest about the members
@@ -178,7 +187,8 @@ const run = (
       OfferingTransitionDecision,
       | IllegalOfferingTransition
       | OfferingHasNoPrice
-      | OfferingHasNoSpecification,
+      | OfferingHasNoSpecification
+      | SpecificationNotActive,
       never
     >,
   );
@@ -340,6 +350,8 @@ describe('what a transition announces', () => {
       currency: 'GTQ',
       availableHint: true,
       publishedAt: AT.toISOString(),
+      specificationId: 'spec-1',
+      specificationVersion: 1,
       code: 'product-013',
       description: 'Glazed by hand.',
       brandId: 'product-brand-3',
@@ -502,6 +514,87 @@ describe('the specification the snapshot copies from', () => {
 
     expect(event.name).toBe(CATALOG_UNPUBLISHED);
     expect(event.data.offeringId).toBe('1');
+  });
+
+  it('refuses a publication pinned to a version still in design', () => {
+    // ADR 0079 §2: a draft would sell content its author has not frozen.
+    const failure = failureOf(
+      run(
+        [offering('1', 'draft')],
+        '1',
+        'publish',
+        [price('1')],
+        [specification('spec-1', { lifecycleStatus: 'in-design' })],
+      ).exit,
+    ) as SpecificationNotActive;
+
+    expect(failure).toBeInstanceOf(SpecificationNotActive);
+    expect(failure.code).toBe(SPECIFICATION_NOT_ACTIVE);
+    expect(failure.standing).toBe('in-design');
+    expect(failure.specificationId).toBe('spec-1');
+  });
+
+  it('refuses a republication pinned to a retired version', () => {
+    // Moving an offering onto the new version is the vendor's act; until
+    // then a republication would put a withdrawn version back on sale.
+    const failure = failureOf(
+      run(
+        [offering('1', 'published')],
+        '1',
+        'publish',
+        [price('1')],
+        [specification('spec-1', { lifecycleStatus: 'retired' })],
+      ).exit,
+    );
+
+    expect(failure).toBeInstanceOf(SpecificationNotActive);
+  });
+
+  it('restates a publication whose pin was retired since', () => {
+    // The rebuild walk restates what already went on sale: an offering on
+    // version 1 stays on sale after version 2 is released (ADR 0079 §2).
+    const event = publicationOf(
+      run(
+        [offering('1', 'published')],
+        '1',
+        'publish',
+        [price('1')],
+        [
+          specification('spec-1', {
+            lifecycleStatus: 'retired',
+            version: 3,
+          }),
+        ],
+        true,
+      ).exit,
+    );
+
+    expect(event.data.specificationVersion).toBe(3);
+  });
+
+  it('takes an offering down whatever its pin stands at', () => {
+    const event = publicationOf(
+      run(
+        [offering('1', 'published')],
+        '1',
+        'unpublish',
+        [price('1')],
+        [specification('spec-1', { lifecycleStatus: 'in-design' })],
+      ).exit,
+    );
+
+    expect(event.name).toBe(CATALOG_UNPUBLISHED);
+  });
+
+  it('announces the pin a takedown names when its specification is gone', () => {
+    // One payload shape by event name: the id the offering names, version 0.
+    const event = publicationOf(
+      run([offering('1', 'published')], '1', 'unpublish', [price('1')], [])
+        .exit,
+    );
+
+    expect(event.data.specificationId).toBe('spec-1');
+    expect(event.data.specificationVersion).toBe(0);
   });
 
   it('is read before the price, so the first refusal is the deeper one', () => {

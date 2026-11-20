@@ -14,6 +14,8 @@ const fullLine = {
   ...line,
   offeringId: 'off-1',
   name: 'Cog',
+  specificationId: 'spec-1',
+  specificationVersion: 2,
   kind: 'good',
   taxTreatment: 'taxed',
   taxRate: 0.12,

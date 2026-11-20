@@ -62,12 +62,16 @@ const SHIPPING = 'shipping-order-management';
 
 /**
  * One priced line: the offering, what it is sold as, how many, and its unit
- * price. The name and the price are both copied from the projection the caller
- * priced from, so the order and the shipment keep what was sold (#582).
+ * price. The name, the description, the price and the specification version
+ * are all copied from the projection the caller priced from, so the order and
+ * the shipment keep what was sold (#582, ADR 0079 §3).
  */
 const Line = openStruct({
   offeringId: Schema.NonEmptyString,
   name: Schema.NonEmptyString,
+  description: Schema.optionalKey(Schema.String),
+  specificationId: Schema.NonEmptyString,
+  specificationVersion: Schema.Number,
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
   amount: Schema.Number,
   currency: Schema.NonEmptyString,
@@ -354,7 +358,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           },
         },
         {
-          ref: 'order.write@6',
+          ref: 'order.write@7',
           parameters: (_context, start, segment) => {
             const part = partOf(start.vendors, segment);
             return {

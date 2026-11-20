@@ -101,6 +101,15 @@ export interface CatalogPublication {
    */
   readonly publishedAt: string;
   /**
+   * The id of the specification **version** this snapshot was taken from, and
+   * that version's number (ADR 0079 §2). Required, unlike the merchandising
+   * below: publishing requires an `active` pin, so no publication lacks
+   * either, and an order line copies both as a record of what was sold — not
+   * something a screen may show less of. Widened by a reset.
+   */
+  readonly specificationId: string;
+  readonly specificationVersion: number;
+  /**
    * The pinned specification's catalogue number — **a reference, not the
    * address**.
    *
@@ -224,6 +233,8 @@ export const CatalogPublicationSchema = openStruct({
   currency: Schema.NonEmptyString,
   availableHint: Schema.Boolean,
   publishedAt: Schema.NonEmptyString,
+  specificationId: Schema.NonEmptyString,
+  specificationVersion: Schema.Finite,
 });
 
 for (const name of CATALOG_EVENTS)
@@ -261,6 +272,8 @@ export const readCatalogPublication = (
       currency: raw.currency,
       availableHint: raw.availableHint,
       publishedAt: raw.publishedAt,
+      specificationId: raw.specificationId,
+      specificationVersion: raw.specificationVersion,
       code: optionalString(raw['code']),
       description: optionalString(raw['description']),
       brandId: optionalString(raw['brandId']),

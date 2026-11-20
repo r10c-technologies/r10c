@@ -62,6 +62,8 @@ export class PublishedOffering implements Entity {
   // `code` is blanked by a `PUT` that omits it. They are deliberately not
   // constructor parameters — the projector assigns through setters, and a
   // seven-argument constructor would destroy the readable trio below.
+  #specificationId?: string;
+  #specificationVersion?: number;
   #code?: string;
   #description?: string;
   #brandId?: string;
@@ -203,6 +205,38 @@ export class PublishedOffering implements Entity {
   }
   set publishedAt(value: Date) {
     this.#publishedAt = value;
+  }
+
+  /**
+   * The specification version the offering was published on, and its number
+   * (ADR 0079 §2): what a sale copies onto its line, so the order names the
+   * frozen version it sold rather than whatever the vendor says today.
+   * Neither is queryable — nothing lists by version.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.specificationId',
+    sortable: false,
+    filterable: false,
+  })
+  get specificationId(): string | undefined {
+    return this.#specificationId;
+  }
+  set specificationId(value: string | undefined) {
+    this.#specificationId = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:published-offering.fields.specificationVersion',
+    sortable: false,
+    filterable: false,
+  })
+  get specificationVersion(): number | undefined {
+    return this.#specificationVersion;
+  }
+  set specificationVersion(value: number | undefined) {
+    this.#specificationVersion = value;
   }
 
   /**

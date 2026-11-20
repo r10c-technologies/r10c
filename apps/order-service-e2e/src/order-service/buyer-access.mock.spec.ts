@@ -83,6 +83,8 @@ const checkout = async (nonce: string, contact: unknown = CONTACT) => {
         {
           offeringId: 'o-1',
           name: 'Lámpara Aurora',
+          specificationId: 'spec-1',
+          specificationVersion: 1,
           quantity: 1,
           amount: 4500,
           currency: 'GTQ',

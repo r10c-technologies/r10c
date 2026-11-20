@@ -10,12 +10,14 @@ import {
   assertWizardDefinition,
   cloneEntityDraft,
   describeEntityColumns,
+  describeEntityUseCases,
   type EntityDraft,
   type EntityFieldDescriptor,
   readStepChoice,
   readStepDraft,
   readStepIds,
   reconstructEntity,
+  type UseCaseDescriptor,
   type WizardDefinition,
 } from '@entifix/core';
 import type { CrudContext, EntityCrudLinkSource } from '@entifix/next-shell';
@@ -51,6 +53,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import { Effect } from 'effect';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -257,6 +260,30 @@ export interface ProductSetupWizardProps {
 }
 
 /**
+ * The `release` verb, as `$metadata` describes it to the runner. The entity
+ * declares it (ADR 0079 §1); the wizard's finishing spec is what fails if it
+ * ever stops.
+ */
+const RELEASE = describeEntityUseCases(ProductSpecification).find(
+  useCase => useCase.key === 'release',
+) as UseCaseDescriptor;
+
+/**
+ * Release the version the wizard just created. Settled or refused, the
+ * product exists; only its state differs, and its page shows which.
+ */
+export const releaseFirstVersion = (
+  adapters: Pick<MarketplaceAdminAdapters, 'productUseCases'>,
+  id: string,
+): Promise<boolean> =>
+  Effect.runPromise(
+    adapters.productUseCases.run(RELEASE, id).pipe(
+      Effect.as(true),
+      Effect.catch(() => Effect.succeed(false)),
+    ),
+  );
+
+/**
  * The wizard, wired to the catalog's adapters.
  *
  * Dual-host like every generated page: as a route it returns to the product
@@ -353,9 +380,15 @@ export function ProductSetupWizard({
     // and the draft is spent.
     draft.clear();
 
+    // The guided alta ends with the product on sale-ready footing: its first
+    // version released (ADR 0079 §1), so an offering can be published on it
+    // right away. A refused release leaves it in design, which its own page
+    // states and offers the verb for — so the wizard still lands there.
+    const id = saved.id === undefined ? undefined : String(saved.id);
+    if (id !== undefined) await releaseFirstVersion(adapters, id);
+
     // The wizard makes a specification, not an offering, so it lands on the
     // specification: offering it is the next step, one region down.
-    const id = saved.id === undefined ? undefined : String(saved.id);
     if (onFinished !== undefined && id !== undefined) {
       onFinished({ id });
       return;

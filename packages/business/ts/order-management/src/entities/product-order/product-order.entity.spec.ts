@@ -15,6 +15,8 @@ const PAID = new Date('2026-08-12T09:05:00.000Z');
 const lineData = (amount: number) => ({
   offeringId: 'off-1',
   name: 'Lámpara Aurora',
+  specificationId: '',
+  specificationVersion: 0,
   quantity: 1,
   amount,
   currency: 'EUR',
@@ -87,6 +89,19 @@ describe('ProductOrder', () => {
     });
     expect(order.channel).toEqual({ id: 'ch-1', type: 'counter' });
     expect(order.paidAt).toEqual(PAID);
+  });
+
+  it('keeps on each line the description and the version it was sold as', () => {
+    const line = new OrderItem('off-1', 'Lámpara Aurora', 1, 1000, 'EUR');
+    line.description = 'De bronce.';
+    line.specificationId = 'spec-1';
+    line.specificationVersion = 2;
+
+    expect(line).toMatchObject({
+      description: 'De bronce.',
+      specificationId: 'spec-1',
+      specificationVersion: 2,
+    });
   });
 
   it('opens pending, paid by card, owing nobody, with no buyer for a counter sale', () => {

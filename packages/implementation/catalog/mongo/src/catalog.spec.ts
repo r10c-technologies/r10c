@@ -130,6 +130,8 @@ const publicationEvent = (at = '2026-10-25T10:00:00.000Z') =>
       currency: 'GTQ',
       availableHint: true,
       publishedAt: at,
+      specificationId: 'spec-1',
+      specificationVersion: 1,
     },
     'marketplace-admin',
   );
@@ -317,5 +319,95 @@ describe('creating a specification', () => {
 
     expect(failure).toMatchObject({ _tag: 'Unavailable' });
     expect(w.fake.read(SPECIFICATION_COLLECTION)).toEqual([]);
+  });
+});
+
+describe('a specification version', () => {
+  const stored = (lifecycleStatus: string, overrides = {}) => ({
+    id: 's-1',
+    code: 'product-001',
+    specKey: 'product-001',
+    version: 1,
+    name: 'A widget',
+    lifecycleStatus,
+    revision: 3,
+    ...overrides,
+  });
+
+  it('retires the active version a release replaces, moving both revisions', async () => {
+    const w = world({
+      [SPECIFICATION_COLLECTION]: [
+        stored('active'),
+        stored('in-design', { id: 's-2', version: 2, revision: 1 }),
+      ],
+    });
+    const at = new Date('2026-11-19T10:00:00.000Z');
+    const release = Object.assign(new ProductSpecification('product-001'), {
+      ...stored('active', { id: 's-2', version: 2 }),
+      validFrom: at,
+    });
+
+    const outcome = await w.run(
+      Effect.flatMap(SpecificationCommandsTag, commands =>
+        commands.move('acme', release, 'in-design'),
+      ),
+    );
+
+    expect(outcome).toBe('committed');
+    expect(release.revision).toBe(2);
+    expect(w.fake.read(SPECIFICATION_COLLECTION)).toEqual([
+      expect.objectContaining({
+        id: 's-1',
+        lifecycleStatus: 'retired',
+        validTo: at,
+        revision: 4,
+      }),
+      expect.objectContaining({ id: 's-2', lifecycleStatus: 'active' }),
+    ]);
+  });
+
+  it('fails as the store when a next version cannot be written', async () => {
+    const w = world();
+    w.fake.failOn('insertOne', new Error('connection reset'));
+
+    const failure = await w.run(
+      Effect.flip(
+        Effect.flatMap(SpecificationCommandsTag, commands =>
+          commands.revise(
+            'acme',
+            Object.assign(new ProductSpecification('product-001'), {
+              id: 's-2',
+              specKey: 'product-001',
+              version: 2,
+              lifecycleStatus: 'in-design',
+            }),
+          ),
+        ),
+      ),
+    );
+
+    expect(failure).toMatchObject({ _tag: 'Unavailable' });
+  });
+
+  it('writes the first revision on create, so its first edit can name it', async () => {
+    const w = world();
+
+    const created = await w.run(
+      Effect.flatMap(SpecificationCommandsTag, commands =>
+        commands.create(
+          'acme',
+          Object.assign(new ProductSpecification(), { name: 'A widget' }),
+          undefined,
+        ),
+      ),
+    );
+
+    expect(w.fake.read(SPECIFICATION_COLLECTION)).toEqual([
+      expect.objectContaining({
+        id: created.id,
+        specKey: 'product-001',
+        revision: 1,
+      }),
+    ]);
   });
 });

@@ -4,6 +4,9 @@ type OrderRecord = Readonly<Record<string, unknown>>;
 const LINE_MEMBERS = [
   'offeringId',
   'name',
+  'description',
+  'specificationId',
+  'specificationVersion',
   'quantity',
   'amount',
   'currency',

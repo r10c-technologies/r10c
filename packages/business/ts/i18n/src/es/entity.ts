@@ -48,6 +48,32 @@ export const entity = {
       category: 'Categoría',
       media: 'Imágenes',
       fitsDeviceModelIds: 'Teléfonos compatibles',
+      specKey: 'Serie',
+      version: 'Versión',
+      lifecycleStatus: 'Estado',
+      validFrom: 'Lanzada el',
+      validTo: 'Retirada el',
+      contentHash: 'Huella del contenido',
+    },
+    values: {
+      lifecycleStatus: {
+        'in-design': 'En diseño',
+        active: 'Activa',
+        retired: 'Retirada',
+        obsolete: 'Obsoleta',
+      },
+    },
+    useCases: {
+      release: 'Lanzar',
+      releaseConfirm:
+        'Esta versión pasa a ser la que se vende y queda congelada: para cambiarla después crearás una nueva versión. La versión activa anterior se retira.',
+      revise: 'Nueva versión',
+      retire: 'Retirar',
+      retireConfirm:
+        'Ninguna oferta nueva podrá usar esta versión. Las ofertas que ya la usan siguen vendiéndose.',
+      obsolete: 'Marcar obsoleta',
+      obsoleteConfirm:
+        'Esta versión se conserva para los pedidos que la nombran y ya no puede usarse.',
     },
   },
   'media-reference': {
@@ -355,6 +381,8 @@ export const entity = {
       currency: 'Moneda',
       availableHint: 'Disponibilidad estimada',
       publishedAt: 'Publicada el',
+      specificationId: 'ID de la versión del producto',
+      specificationVersion: 'Versión del producto',
       // La referencia de la especificación fijada, no la dirección: la URL de la
       // tienda se arma con `offeringId`, porque varias ofertas pueden fijar una
       // misma especificación.
@@ -438,6 +466,9 @@ export const entity = {
       item: {
         offeringId: 'ID de oferta',
         name: 'Vendido como',
+        description: 'Descripción vendida',
+        specificationId: 'ID de la versión del producto',
+        specificationVersion: 'Versión del producto',
         quantity: 'Cantidad',
         amount: 'Importe',
         currency: 'Moneda',
@@ -704,7 +735,7 @@ export const entity = {
       id: 'ID',
       name: 'Nombre',
       version: 'Versión',
-      released: 'Publicada',
+      lifecycleStatus: 'Estado',
     },
   },
   'characteristic-specification': {

@@ -9,6 +9,7 @@ import {
   IllegalOfferingTransition,
   OfferingHasNoPrice,
   OfferingHasNoSpecification,
+  SpecificationNotActive,
   transitionOffering,
 } from '../transition-offering';
 
@@ -54,6 +55,7 @@ import {
     IllegalOfferingTransition,
     OfferingHasNoPrice,
     OfferingHasNoSpecification,
+    SpecificationNotActive,
     OfferingChanged,
     InvalidBody,
     SelectionTooLarge,

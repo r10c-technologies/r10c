@@ -192,7 +192,25 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   // no control for a list of ids into another record, and the generic form
   // would offer a text box of raw ids. Hidden keeps it in the draft, so an
   // update carries it back unchanged.
-  hiddenFields: ['id', 'code', 'fitsDeviceModelIds'],
+  // The lifecycle members are the verbs' (ADR 0079 §1): `release`, `revise`,
+  // `retire` and `obsolete` move them and the write path restores them from
+  // what is stored, so an input for any of them would be a lie about who
+  // decides it. They stay legible as list columns and in which verb the form
+  // header offers.
+  hiddenFields: [
+    'id',
+    'code',
+    'fitsDeviceModelIds',
+    'specKey',
+    'version',
+    'lifecycleStatus',
+    'validFrom',
+    'validTo',
+    'contentHash',
+  ],
+  // Without these two the form offers none of a version's four verbs.
+  metadata: 'catalogMetadata',
+  useCases: 'productUseCases',
   /**
    * The way into the guided alta, from the list it starts from.
    *

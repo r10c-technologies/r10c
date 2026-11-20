@@ -54,6 +54,8 @@ describe('the sales-channel declaration', () => {
           Effect.succeed({
             offeringId,
             name: 'Taza de cerámica',
+            specificationId: 'spec-1',
+            specificationVersion: 1,
             vendorId: 'org-1',
             amount: 25,
             currency: 'GTQ',

@@ -37,6 +37,32 @@ export const entity: EsEntity = {
       category: 'Category',
       media: 'Images',
       fitsDeviceModelIds: 'Compatible phones',
+      specKey: 'Series',
+      version: 'Version',
+      lifecycleStatus: 'Status',
+      validFrom: 'Released at',
+      validTo: 'Withdrawn at',
+      contentHash: 'Content hash',
+    },
+    values: {
+      lifecycleStatus: {
+        'in-design': 'In design',
+        active: 'Active',
+        retired: 'Retired',
+        obsolete: 'Obsolete',
+      },
+    },
+    useCases: {
+      release: 'Release',
+      releaseConfirm:
+        'This version becomes the one on sale and is frozen: to change it later you revise it into a new version. The previous active version is retired.',
+      revise: 'New version',
+      retire: 'Retire',
+      retireConfirm:
+        'No new offering can use this version. Offerings already using it keep selling.',
+      obsolete: 'Mark obsolete',
+      obsoleteConfirm:
+        'This version is kept for the orders that name it, and can no longer be used.',
     },
   },
   'media-reference': {
@@ -321,6 +347,8 @@ export const entity: EsEntity = {
       currency: 'Currency',
       availableHint: 'Availability hint',
       publishedAt: 'Published at',
+      specificationId: 'Product version ID',
+      specificationVersion: 'Product version',
       code: 'Reference',
       description: 'Description',
       brandId: 'Brand ID',
@@ -403,6 +431,9 @@ export const entity: EsEntity = {
       item: {
         offeringId: 'Offering ID',
         name: 'Sold as',
+        description: 'Description as sold',
+        specificationId: 'Product version ID',
+        specificationVersion: 'Product version',
         quantity: 'Quantity',
         amount: 'Amount',
         currency: 'Currency',
@@ -659,7 +690,7 @@ export const entity: EsEntity = {
       id: 'ID',
       name: 'Name',
       version: 'Version',
-      released: 'Released',
+      lifecycleStatus: 'Status',
     },
   },
   'characteristic-specification': {

@@ -156,7 +156,7 @@ it('leaves the order with the guide its shipment left with when relabel and disp
   await Promise.all(
     answers
       .flatMap(answer =>
-        'flowId' in answer && answer.flowId !== undefined
+        'flowId' in answer && typeof answer.flowId === 'string'
           ? [answer.flowId]
           : [],
       )

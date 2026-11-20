@@ -54,6 +54,7 @@ const decide = (input: {
   readonly transition: OfferingTransition;
   readonly source: string;
   readonly at: Date;
+  readonly restating?: boolean;
 }) =>
   Effect.gen(function* () {
     const factory = yield* EntityRepositoryFactoryTag;
@@ -77,6 +78,7 @@ const decide = (input: {
         vendorId: input.organizationId,
         source: input.source,
         at: input.at,
+        restating: input.restating,
       }),
     );
   });
@@ -250,6 +252,7 @@ export const rebuildPublications = (input: {
           transition: 'publish',
           source: input.source,
           at,
+          restating: true,
         }).pipe(
           // No `IllegalOfferingTransition`: the walk reads only published
           // offerings, and `published → published` is legal (ADR 0047).

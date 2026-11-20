@@ -2,16 +2,21 @@ import type { Overloaded, UpstreamUnavailable } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
- * What a sale is priced from: the published offering's vendor, name and unit
- * price, as the storefront shows them. The name is copied onto the sale's
- * line, so the order keeps what was sold after a rename (#582).
+ * What a sale is priced from: the published offering's vendor, name, unit
+ * price and the specification version it was published on, as the storefront
+ * shows them. The name, description and version are copied onto the sale's
+ * line, so the order keeps what was sold after a rename or a new version
+ * (#582, ADR 0079 §3).
  */
 export interface PublishedPrice {
   readonly offeringId: string;
   readonly name: string;
+  readonly description?: string;
   readonly vendorId: string;
   readonly amount: number;
   readonly currency: string;
+  readonly specificationId: string;
+  readonly specificationVersion: number;
 }
 
 /**
@@ -45,7 +50,8 @@ export class PublishedPriceReaderTag extends Context.Service<
 
 /**
  * The price a published-offering record carries, or `undefined` when the
- * record is missing or any of the four members a sale needs is not there.
+ * record is missing or any member a sale needs is not there — the version it
+ * was published on among them, since the line must say what was sold.
  */
 export const publishedPriceOf = (
   offeringId: string,
@@ -55,11 +61,28 @@ export const publishedPriceOf = (
   const name = record?.['name'];
   const amount = record?.['amount'];
   const currency = record?.['currency'];
+  const specificationId = record?.['specificationId'];
+  const specificationVersion = record?.['specificationVersion'];
+  const description = record?.['description'];
   return typeof vendorId === 'string' &&
     typeof name === 'string' &&
     name !== '' &&
     typeof amount === 'number' &&
-    typeof currency === 'string'
-    ? { offeringId, name, vendorId, amount, currency }
+    typeof currency === 'string' &&
+    typeof specificationId === 'string' &&
+    specificationId !== '' &&
+    typeof specificationVersion === 'number'
+    ? {
+        offeringId,
+        name,
+        vendorId,
+        amount,
+        currency,
+        specificationId,
+        specificationVersion,
+        ...(typeof description === 'string' && description !== ''
+          ? { description }
+          : {}),
+      }
     : undefined;
 };

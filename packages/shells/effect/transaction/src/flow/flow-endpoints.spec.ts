@@ -101,6 +101,8 @@ const basket = {
         {
           offeringId: 'o-1',
           name: 'Lámpara',
+          specificationId: 'spec-1',
+          specificationVersion: 1,
           quantity: 1,
           amount: 500,
           currency: 'GTQ',

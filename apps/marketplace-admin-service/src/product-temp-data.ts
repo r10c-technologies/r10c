@@ -22,6 +22,17 @@ import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
 export interface ProductSpecificationRecord {
   id: string;
   code: string;
+  /**
+   * Every seeded product is the **first, released version** of its own series
+   * (ADR 0079 §1): the key is its code, and it is `active` so the seeded
+   * offerings that pin it are publishable — publishing refuses any other pin.
+   * Released by the seed rather than by the verb, so it carries no content
+   * hash; a version released through `release` always does.
+   */
+  specKey: string;
+  version: number;
+  lifecycleStatus: 'active';
+  validFrom: Date;
   name: string;
   description: string;
   brandId: string;
@@ -29,6 +40,9 @@ export interface ProductSpecificationRecord {
   /** Absent on odd-numbered specifications — see {@link mediaOf}. */
   media?: { url: string; alt: string }[];
 }
+
+/** When the seed released every product: one fixed moment, so a reset repeats it. */
+const SEEDED_RELEASE = new Date('2026-01-01T00:00:00.000Z');
 
 /** Mirrors the pools marketplace-service seeds; see the note above. */
 const BRAND_COUNT = 20;
@@ -93,9 +107,14 @@ export const productTempDataFor = (
     const categoryNumber = (index % CATEGORY_COUNT) + 1;
     const family = FAMILIES[index % FAMILIES.length];
     const withinFamily = Math.floor(index / FAMILIES.length) + 1;
+    const code = `P-${String(number).padStart(4, '0')}`;
     return {
       id: `${vendor.idPrefix}product-${number}`,
-      code: `P-${String(number).padStart(4, '0')}`,
+      code,
+      specKey: code,
+      version: 1,
+      lifecycleStatus: 'active',
+      validFrom: SEEDED_RELEASE,
       name: `${family} ${withinFamily}`,
       description: `${family} #${withinFamily}`,
       brandId: `product-brand-${brandNumber}`,

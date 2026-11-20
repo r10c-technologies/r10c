@@ -45,6 +45,12 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     'GET|POST /api/product-specification',
     'GET|PUT|DELETE /api/product-specification/:id',
     'GET /api/product-specification/$metadata',
+    // A specification version's four lifecycle verbs (ADR 0079 §1), each its
+    // own permission segment: a `PUT` reaches only a version in design.
+    'POST /api/product-specification/:id/release',
+    'POST /api/product-specification/:id/revise',
+    'POST /api/product-specification/:id/retire',
+    'POST /api/product-specification/:id/obsolete',
     'GET|POST /api/product-offering',
     'GET|PUT|DELETE /api/product-offering/:id',
     'GET /api/product-offering/$metadata',

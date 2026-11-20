@@ -159,19 +159,29 @@ describe('media on a product specification', () => {
     media,
   });
 
-  // An update names the revision it read, and every write names its key. The
-  // seeded record sits at revision 1 and the one save that succeeds below moves
-  // it, so each call reads the record it is about to replace.
+  // An update names the revision it read, and every write names its key. A
+  // seeded product is released and frozen (ADR 0079 §1), so the PUTs below
+  // edit a version still in design — created once, and read again before
+  // each save because the one save that succeeds moves its revision.
+  let draftId: string | undefined;
+  const draft = async () => {
+    if (draftId === undefined) {
+      const created = await post([]);
+      draftId = String(created.data.data.id);
+    }
+    return draftId;
+  };
   const put = async (media: unknown) => {
+    const id = await draft();
     const current = await service.client.get(
-      '/api/product-specification/product-2',
+      `/api/product-specification/${id}`,
     );
     return service.client.put(
-      '/api/product-specification/product-2',
+      `/api/product-specification/${id}`,
       {
         meta: { type: 'entity', entity: 'product-specification' },
         data: {
-          id: 'product-2',
+          id,
           revision: current.data.data.revision,
           ...specification(media),
         },
@@ -231,8 +241,75 @@ describe('media on a product specification', () => {
     expect(saved.status).toBe(200);
 
     const read = await service.client.get(
-      '/api/product-specification/product-2',
+      `/api/product-specification/${await draft()}`,
     );
     expect(read.data.data.media).toEqual(media);
+  });
+});
+
+/**
+ * A released version is never edited (ADR 0079 §1): only its four verbs move
+ * it, each a conditional write on the state it leaves.
+ */
+describe('a product specification version', () => {
+  const key = () => ({
+    headers: { 'idempotency-key': `"${crypto.randomUUID()}"` },
+  });
+  const verb = (id: string, name: string) =>
+    service.client.post(`/api/product-specification/${id}/${name}`, {}, key());
+
+  it('refuses a PUT on a released version', async () => {
+    const current = await service.client.get(
+      '/api/product-specification/product-3',
+    );
+    expect(current.data.data.lifecycleStatus).toBe('active');
+
+    const res = await service.client.put(
+      '/api/product-specification/product-3',
+      {
+        meta: { type: 'entity', entity: 'product-specification' },
+        data: {
+          id: 'product-3',
+          revision: current.data.data.revision,
+          name: 'Renamed after release',
+        },
+      },
+      key(),
+    );
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('specificationReleased');
+  });
+
+  it('opens the next version, releases it, and retires the one it replaces', async () => {
+    const next = await verb('product-4', 'revise');
+    expect(next.status).toBe(200);
+    expect(next.data.data).toMatchObject({
+      version: 2,
+      lifecycleStatus: 'in-design',
+    });
+    const id = String(next.data.data.id);
+
+    // A second draft of the same series is refused while this one is open.
+    const again = await verb('product-4', 'revise');
+    expect(again.status).toBe(409);
+    expect(again.data.code).toBe('specificationBeingRevised');
+
+    const released = await verb(id, 'release');
+    expect(released.status).toBe(200);
+    expect(released.data.data.lifecycleStatus).toBe('active');
+    expect(released.data.data.contentHash).toMatch(/^[0-9a-f]{64}$/);
+
+    const previous = await service.client.get(
+      '/api/product-specification/product-4',
+    );
+    expect(previous.data.data.lifecycleStatus).toBe('retired');
+
+    // A released version is kept: orders name it.
+    const removed = await service.client.delete(
+      '/api/product-specification/product-4',
+    );
+    expect(removed.status).toBe(409);
+    expect(removed.data.code).toBe('specificationReleased');
   });
 });

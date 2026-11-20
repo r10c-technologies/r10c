@@ -10,6 +10,7 @@ import {
   entityKey,
   Invalid,
   makeEntityEnvelope,
+  NotFound,
   readEntityEnvelope,
   readWireSelection,
   StaleRevision,
@@ -22,15 +23,26 @@ import {
 } from '@r10c/business-ts-catalog-contracts';
 import { InvalidBody } from '@r10c/business-ts-common';
 import {
+  moveSpecificationFor,
+  ObsoleteProductSpecificationUC,
   type OfferingTransition,
   preserveOfferingLifecycle,
+  preserveSpecificationLifecycle,
   ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
   PublishProductOfferingUC,
   refuseSpecificationFits,
   refuseSpecificationMedia,
+  ReleaseProductSpecificationUC,
+  removeSpecificationFor,
+  RetireProductSpecificationUC,
+  ReviseProductSpecificationUC,
+  reviseSpecificationFor,
   SpecificationCommandsTag,
+  type SpecificationMove,
+  SpecificationReleased,
+  startSpecificationSeries,
   transitionOfferingFor,
   transitionOfferingSelection,
   UnpublishProductOfferingUC,
@@ -41,12 +53,62 @@ import { Effect, Option } from 'effect';
 const organizationOf = (context: EntityApiContext) =>
   context.organizationId as string;
 
+/** One version moved along its lifecycle, answered with the record. */
+const moveOne =
+  (move: Exclude<SpecificationMove, 'revise'>) =>
+  (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const specification = yield* moveSpecificationFor({
+        organizationId: organizationOf(context),
+        id: request.params?.id as string,
+        move,
+      });
+      return makeEntityEnvelope(
+        ProductSpecification,
+        specification,
+        context.links.record(specification.id),
+      );
+    });
+
+const release = verbEndpoint(ReleaseProductSpecificationUC, {
+  handler: moveOne('release'),
+});
+
+const retire = verbEndpoint(RetireProductSpecificationUC, {
+  handler: moveOne('retire'),
+});
+
+const obsolete = verbEndpoint(ObsoleteProductSpecificationUC, {
+  handler: moveOne('obsolete'),
+});
+
+/** The next version, in design — answered as the **new** record. */
+const revise = verbEndpoint(ReviseProductSpecificationUC, {
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const next = yield* reviseSpecificationFor({
+        organizationId: organizationOf(context),
+        id: request.params?.id as string,
+      });
+      return makeEntityEnvelope(
+        ProductSpecification,
+        next,
+        context.links.record(next.id),
+      );
+    }),
+});
+
 /**
  * A vendor's specifications. A create's `code` is the next of the
  * organization's counter, drawn in the same unit of work as the record and
  * claimed on its `Idempotency-Key`, so a retried create answers the record it
  * wrote rather than drawing another code. The media rule runs before anything
  * is written, on create and on update.
+ *
+ * ⚠️ **A version is edited and deleted only in design** (ADR 0079 §1): the
+ * update's `prepare` refuses a released one and carries the lifecycle across
+ * from what is stored, and the delete is one conditional write. Only the four
+ * verbs move `lifecycleStatus`.
  */
 export const productSpecificationApi = defineEntityApi(
   ProductSpecification,
@@ -54,16 +116,29 @@ export const productSpecificationApi = defineEntityApi(
   {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },
-    // The update's half of the media rule; the create runs it itself.
-    prepare: specification =>
+    // The update's half of the media rule and the lifecycle; the create runs
+    // them itself.
+    prepare: (specification, context) =>
       Effect.as(
         Effect.andThen(
-          refuseSpecificationMedia(specification),
-          refuseSpecificationFits(specification),
+          Effect.andThen(
+            refuseSpecificationMedia(specification),
+            refuseSpecificationFits(specification),
+          ),
+          preserveSpecificationLifecycle(
+            specification,
+            organizationOf(context),
+          ),
         ),
         specification,
       ),
-    errors: [MediaNotHttps, MediaAltMissing, DeviceModelUniversalNotAlone],
+    errors: [
+      MediaNotHttps,
+      MediaAltMissing,
+      DeviceModelUniversalNotAlone,
+      SpecificationReleased,
+    ],
+    useCases: [release, revise, retire, obsolete],
     override: {
       create: {
         idempotent: 'unit',
@@ -86,7 +161,7 @@ export const productSpecificationApi = defineEntityApi(
             const commands = yield* SpecificationCommandsTag;
             const created = yield* commands.create(
               organizationOf(context),
-              specification,
+              startSpecificationSeries(specification),
               Option.getOrUndefined(
                 yield* Effect.serviceOption(IdempotencyKeyTag),
               ),
@@ -96,6 +171,25 @@ export const productSpecificationApi = defineEntityApi(
               created,
               context.links.record(created.id),
             );
+          }),
+      },
+      // A conditional delete: a repeat answers `404`, never a second effect.
+      delete: {
+        errors: [NotFound, SpecificationReleased],
+        handler: (request: EntityApiRequest, context: EntityApiContext) =>
+          Effect.gen(function* () {
+            const id = yield* removeSpecificationFor({
+              organizationId: organizationOf(context),
+              id: request.params?.id as string,
+            });
+            return {
+              meta: {
+                type: 'entity',
+                entity: 'product-specification',
+                links: context.links.collection(),
+              },
+              data: { id },
+            };
           }),
       },
     },
