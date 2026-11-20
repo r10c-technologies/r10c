@@ -38,8 +38,10 @@ Each doc, and when you need it:
 Short on purpose: each rule contradicts a reasonable default and lives in no
 single deep doc. Its reasoning is in the decision index below.
 
-- **Nothing runs in production.** Every environment is a local dev fleet,
-  recreated on demand (`pnpm run <app>:dev:reset`). So **do not design for
+- **Nothing runs in production.** Every environment is a lab recreated on
+  demand: the local dev fleet (`pnpm run <app>:dev:reset`), and the GCP demo
+  environment, which is reseeded the same way and holds no real tenant's data
+  ([ADR 0083](docs/adr/0083-the-fleet-runs-on-gcp-on-demand.md) §6). So **do not design for
   backward compatibility** — no dual-read windows, legacy fallbacks, migration
   shims or compatibility flags — unless the user explicitly asks for a staged
   swap. Change the seed, change the shape, and reset. A "just in case"
@@ -223,6 +225,7 @@ headers and run `node tools/sync-docs.mjs`.
 - [0071](docs/adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) **Http cells hold descriptors, and the slice shell builds the API** — read when adding a route, a verb or a guard, or an `http` cell reaches for `effect/http` — a cell declares, the slice shell serves, and `exposedAPIs` is checked.
 - [0074](docs/adr/0074-change-validation-and-the-cache-it-may-trust.md) **Change Validation, and what may trust the cache it carries** — read when a CI job is slow because it rebuilds what another job built, adding a job or a check to `change_validation.yml`, a check passed without running, the Actions cache is near its 10 GB, or about to restore `.nx/cache` between runners — a restored `.nx/cache` is ignored by Nx 24, and a repository-wide check must never read from the cache.
 - [0080](docs/adr/0080-a-capability-register-holds-one-thin-entry-per-use-case.md) _(Proposed)_ **A capability register holds one thin entry per use case** — read when adding a use case or publishing to the docs site — the id is a permission shape, and `implemented` must resolve to code.
+- [0083](docs/adr/0083-the-fleet-runs-on-gcp-on-demand.md) _(Proposed)_ **The fleet runs on GCP on demand, and the demo environment is still a lab** — read when declaring a cloud resource, choosing what runs managed and what runs in the cluster, writing the up or down command, or wondering whether "nothing runs in production" still holds once a cluster exists — one region, one zonal cluster scaled to zero, and the demo environment is reset like the lab.
 
 **Superseded**, for their reasoning only: [0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md), [0043](docs/adr/0043-the-optimistic-mutation-contract.md), [0052](docs/adr/0052-the-checkout-saga.md), [0055](docs/adr/0055-a-coordinator-resumes-from-its-own-record.md).
 
