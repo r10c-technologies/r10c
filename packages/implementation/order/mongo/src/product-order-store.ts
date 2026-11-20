@@ -32,6 +32,7 @@ import {
   type CancellationClaim,
   CheckoutGroup,
   CheckoutGroupStoreTag,
+  FISCAL_DUE_STATUSES,
   type GroupOpening,
   MOVE_STAMP_OF,
   type OrderPlacement,
@@ -160,6 +161,12 @@ export const ensureProductOrderIndexes = (db: Db) =>
       await orders.createIndex(
         { number: 1 },
         { name: NUMBER_INDEX, unique: true },
+      );
+      // What the fiscal sweep walks: orders by status, those not yet
+      // certified (or not yet voided) first (ADR 0078 §6, #668).
+      await orders.createIndex(
+        { status: 1, fiscalAuthorization: 1, fiscalAttemptAt: 1 },
+        { name: 'status_1_fiscalAuthorization_1_fiscalAttemptAt_1' },
       );
       const groups = db.collection(GROUP_COLLECTION);
       await groups.createIndex(
@@ -674,6 +681,105 @@ export const MongoProductOrderStoreLayer = Layer.effect(
             ),
           catch: storeUnavailable,
         }).pipe(Effect.flatMap(reviveOrNone)),
+
+      fiscalDue: retryBefore => {
+        const free = {
+          $or: [
+            { fiscalAttemptAt: { $exists: false } },
+            { fiscalAttemptAt: { $lt: retryBefore } },
+          ],
+        };
+        const ids = (filter: Record<string, unknown>) =>
+          Effect.tryPromise({
+            try: () =>
+              orders
+                .find(
+                  { $and: [filter, free] },
+                  { projection: { _id: 0, id: 1 } },
+                )
+                .limit(BATCH)
+                .toArray(),
+            catch: storeUnavailable,
+          }).pipe(Effect.map(rows => rows.map(row => String(row['id']))));
+        return Effect.all({
+          certify: ids({
+            status: { $in: [...FISCAL_DUE_STATUSES] },
+            fiscalAuthorization: { $exists: false },
+          }),
+          void: ids({
+            status: 'cancelled',
+            fiscalAuthorization: { $exists: true },
+            fiscalVoidedAt: { $exists: false },
+          }),
+        });
+      },
+
+      claimFiscalAttempt: (orderId, now, retryBefore) =>
+        Effect.tryPromise({
+          try: () =>
+            orders.findOneAndUpdate(
+              {
+                id: orderId,
+                $or: [
+                  { fiscalAttemptAt: { $exists: false } },
+                  { fiscalAttemptAt: { $lt: retryBefore } },
+                ],
+              },
+              { $set: { fiscalAttemptAt: now } },
+              { returnDocument: 'after', ...WITHOUT_ID },
+            ),
+          catch: storeUnavailable,
+        }).pipe(Effect.flatMap(reviveOrNone)),
+
+      recordFiscalDocument: (orderId, document) =>
+        Effect.tryPromise({
+          try: () =>
+            orders.updateOne(
+              { id: orderId, fiscalAuthorization: { $exists: false } },
+              {
+                $set: {
+                  fiscalDocumentType: document.type,
+                  fiscalAuthorization: document.authorization,
+                  fiscalSeries: document.series,
+                  fiscalNumber: document.number,
+                  fiscalCertifiedAt: document.certifiedAt,
+                },
+                $unset: { fiscalAttemptAt: '', fiscalFailure: '' },
+              },
+            ),
+          catch: storeUnavailable,
+        }).pipe(Effect.map(result => result.modifiedCount === 1)),
+
+      recordFiscalVoid: (orderId, annulment) =>
+        Effect.tryPromise({
+          try: () =>
+            orders.updateOne(
+              {
+                id: orderId,
+                status: 'cancelled',
+                fiscalAuthorization: { $exists: true },
+                fiscalVoidedAt: { $exists: false },
+              },
+              {
+                $set: {
+                  fiscalVoidAuthorization: annulment.authorization,
+                  fiscalVoidedAt: annulment.voidedAt,
+                },
+                $unset: { fiscalAttemptAt: '', fiscalFailure: '' },
+              },
+            ),
+          catch: storeUnavailable,
+        }).pipe(Effect.map(result => result.modifiedCount === 1)),
+
+      recordFiscalFailure: (orderId, reason) =>
+        Effect.tryPromise({
+          try: () =>
+            orders.updateOne(
+              { id: orderId },
+              { $set: { fiscalFailure: reason } },
+            ),
+          catch: storeUnavailable,
+        }).pipe(Effect.map(result => result.matchedCount === 1)),
 
       markPaid: (claim, orderId, paidAt) =>
         Effect.map(

@@ -10,7 +10,7 @@ import { expect, scriptStream, test } from './support/stream-fixture';
 
 /**
  * The accessibility gate on every storefront screen (ADR 0075), in both
- * palettes: the home, a category, a search, a product, the cart, a receipt and
+ * palettes: the home, a category, a search, a seller's page, a product, the cart, a receipt and
  * the not-found page. One test per palette walks them in a buyer's order — the
  * cart is filled from the product page and the receipt is the checkout's own
  * outcome — so the 3.2.6 assertion can compare every screen.
@@ -46,6 +46,12 @@ for (const palette of PALETTES) {
       await page.goto('/es/search?q=a');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await gate('search');
+    });
+
+    await test.step('seller', async () => {
+      await page.goto('/es/s/demo-organization');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await gate('seller');
     });
 
     await test.step('product', async () => {

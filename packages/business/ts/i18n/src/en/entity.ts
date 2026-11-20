@@ -473,8 +473,22 @@ export const entity: EsEntity = {
       taxAmount: 'VAT',
       totalAmount: 'Total',
       currency: 'Currency',
+      // The FEL document that certifies the sale, and its annulment (#668).
+      fiscalDocumentType: 'Document type',
+      fiscalAuthorization: 'FEL authorization',
+      fiscalSeries: 'Series',
+      fiscalNumber: 'Document number',
+      fiscalCertifiedAt: 'Certified at',
+      fiscalVoidAuthorization: 'Void authorization',
+      fiscalVoidedAt: 'Voided at',
+      fiscalAttemptAt: 'Last certification attempt',
+      fiscalFailure: 'Last refusal reason',
     },
     values: {
+      fiscalDocumentType: {
+        FACT: 'Invoice (FACT)',
+        FPEQ: 'Small-taxpayer invoice (FPEQ)',
+      },
       buyerTaxIdType: {
         nit: 'NIT',
         cui: 'CUI (DPI)',

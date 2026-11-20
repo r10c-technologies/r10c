@@ -169,6 +169,15 @@ export const r10c = {
       newest: 'Lo más nuevo',
       featured: 'Destacados',
     },
+    seller: {
+      overline: 'Tienda',
+      empty: 'Este vendedor todavía no tiene productos publicados.',
+      share: 'Compartir por WhatsApp',
+      shareText: 'Mira la tienda de {{seller}}: {{url}}',
+      chat: 'Escribir al vendedor',
+      chatText: 'Hola {{seller}}, vi tu tienda y tengo una consulta.',
+      description: 'Compra los productos de {{seller}}.',
+    },
     category: {
       overline: 'Categoría',
       empty: 'No hay productos en esta categoría todavía.',
@@ -367,6 +376,13 @@ export const r10c = {
     },
     order: {
       ivaIncluded: 'IVA incluido:',
+      fiscal: {
+        pending: 'Factura electrónica en certificación.',
+        certified:
+          'Factura electrónica {{type}} serie {{series}} número {{number}}. Autorización {{authorization}}.',
+        voided:
+          'Factura electrónica {{type}} serie {{series}} número {{number}}, anulada. Autorización {{authorization}}.',
+      },
       billedTo: 'Facturado a: {{name}} · {{idType}} {{taxId}}',
       billedToCf: 'Facturado a: Consumidor final',
       statusHeading: 'Estamos registrando tu pedido',

@@ -1,5 +1,6 @@
 export * from './cancel-capability';
 export * from './checkout-contact';
+export * from './fiscal-document';
 export * from './group-total';
 export * from './order-item';
 export * from './order-scope';

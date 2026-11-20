@@ -5,9 +5,11 @@ import { requireLocale } from '../../../locale-param';
 
 /**
  * Where "find my order" answers — the same page whatever matched, so it says
- * nothing about which orders or emails exist (ADR 0076 §6). Static, like the
- * form, so it reads with scripting off.
+ * nothing about which orders or emails exist (ADR 0076 §6). It blocks like
+ * the form (#730), so it reads whole with scripting off.
  */
+export const instant = false;
+
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };

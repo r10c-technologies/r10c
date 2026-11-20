@@ -30,9 +30,14 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { startFiscalCertificationSweep } from './fiscal-certification-sweep.js';
 import { startPaymentExpirySweep } from './payment-expiry-sweep.js';
 import { startPaymentStatusProjection } from './payment-status.js';
 import { startReceiptRedactionSweep } from './receipt-redaction-sweep.js';
+import {
+  readCertifierOutcome,
+  SimulatedFiscalCertifierLayer,
+} from './simulated-fiscal-certifier.js';
 
 const SERVICE_NAME = 'order-service';
 
@@ -107,6 +112,16 @@ export const orderComposition = (configuration: FleetConfiguration) =>
     const paymentExpirySweepMs = yield* store
       .in('order')
       .getNumber('paymentExpirySweepMs');
+    // The fiscal sweep's dials (ADR 0078 §6, #668): how often paid orders are
+    // certified and cancelled ones voided, how long a refused or unanswered
+    // attempt waits before the next, and how the simulated certifier answers.
+    const fiscalSweepMs = yield* store.in('order').getNumber('fiscalSweepMs');
+    const fiscalRetryBackoffMs = yield* store
+      .in('order')
+      .getNumber('fiscalRetryBackoffMs');
+    const certifierOutcome = readCertifierOutcome(
+      yield* store.in('fiscal').getString('simulatorOutcome'),
+    );
     // The payment-link providers a seller may name: an open dictionary, one
     // row per provider, public facts only (ADR 0081 §10). A row that does not
     // read as a provider drops out rather than admitting any host.
@@ -161,6 +176,8 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       Layer.succeed(StorefrontUrl, storefrontUrl.replace(/\/+$/, '')),
       Layer.succeed(PaymentLinkProvidersTag, providers),
       smtpBuyerNotifierLayer(smtpOptions),
+      // The FEL certifier, simulated until one is contracted (Q12).
+      SimulatedFiscalCertifierLayer(certifierOutcome),
       httpFlowStarterLayer({
         url: coordinatorUrl,
         crossingToken: coordinatorToken,
@@ -198,6 +215,10 @@ export const orderComposition = (configuration: FleetConfiguration) =>
         Layer.effectDiscard(startReceiptRedactionSweep),
         // A payment-link order its buyer never paid lets go at its window.
         Layer.effectDiscard(startPaymentExpirySweep(paymentExpirySweepMs)),
+        // A paid order's document is certified, a cancelled one's voided.
+        Layer.effectDiscard(
+          startFiscalCertificationSweep(fiscalSweepMs, fiscalRetryBackoffMs),
+        ),
       ),
       stored,
     );

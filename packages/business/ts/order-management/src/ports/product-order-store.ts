@@ -3,6 +3,7 @@ import { Context, type Effect } from 'effect';
 
 import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
+import type { FiscalDocument, FiscalVoid } from '../values/fiscal-document';
 import type { OrderTransition } from '../values/order-transition';
 import type { PaymentLink } from '../values/payment-link';
 
@@ -26,6 +27,16 @@ export interface OrderGuide {
 }
 
 export type AwaitingPaymentEnd = 'payment-expired' | 'buyer';
+
+/**
+ * The orders a fiscal pass has work on (ADR 0078 §6): paid for and not yet
+ * certified, and cancelled with a document not yet voided — each only once its
+ * last attempt is older than the retry backoff.
+ */
+export interface FiscalDue {
+  readonly certify: readonly string[];
+  readonly void: readonly string[];
+}
 
 /** How placing an order went: a new order, or the one a repeated command placed. */
 export type OrderPlacement =
@@ -142,6 +153,42 @@ export interface ProductOrderStore {
     orderId: string,
     link: PaymentLink & { readonly setBy: string; readonly setAt: Date },
   ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
+  /** The orders a fiscal pass has work on, at most one batch of each. */
+  readonly fiscalDue: (
+    retryBefore: Date,
+  ) => Effect.Effect<FiscalDue, StoreFault>;
+  /**
+   * Take an order for one fiscal attempt: stamp `fiscalAttemptAt` with `now`,
+   * conditional on the last attempt being absent or before `retryBefore`. The
+   * order as it now stands, or `undefined` when another pass holds it — so of
+   * two replicas exactly one asks the certifier.
+   */
+  readonly claimFiscalAttempt: (
+    orderId: string,
+    now: Date,
+    retryBefore: Date,
+  ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
+  /**
+   * Record the certified document, only on an order that holds none; clears
+   * the attempt and any failure. `false` when it already held one.
+   */
+  readonly recordFiscalDocument: (
+    orderId: string,
+    document: FiscalDocument,
+  ) => Effect.Effect<boolean, StoreFault>;
+  /**
+   * Record the annulment, only on a cancelled order holding a document not yet
+   * voided; clears the attempt and any failure. `false` otherwise.
+   */
+  readonly recordFiscalVoid: (
+    orderId: string,
+    annulment: FiscalVoid,
+  ) => Effect.Effect<boolean, StoreFault>;
+  /** Record why an attempt failed. It never moves the order. */
+  readonly recordFiscalFailure: (
+    orderId: string,
+    reason: string,
+  ) => Effect.Effect<boolean, StoreFault>;
   /** Fold one order's share of a capture: `pending → paid`, once per claim. */
   readonly markPaid: (
     claim: { readonly consumer: string; readonly eventId: string },

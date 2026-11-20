@@ -12,8 +12,9 @@ import { cacheLife } from 'next/cache';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { runRead } from '../catalog/catalog-reads';
 import { readProduct } from '../catalog/product-read';
+import { findSeller } from '../catalog/seller-read';
 import { storePaths } from '../routing/paths';
-import { pageMetadata } from './page-metadata';
+import { pageMetadata, storefrontOrigin } from './page-metadata';
 
 /**
  * Each storefront route's `generateMetadata`, as the shell states it: the
@@ -85,4 +86,39 @@ export async function productMetadata(
     title: product?.offering.name,
     description: product?.offering.description,
   });
+}
+
+/**
+ * A seller's page (#675), with the Open Graph title and description a chat
+ * app draws its preview from: the link is made to be pasted into WhatsApp,
+ * and a bare URL there previews as nothing.
+ */
+export async function sellerMetadata(
+  locale: Locale,
+  vendorId: string,
+): Promise<Metadata> {
+  'use cache';
+  cacheLife(CATALOG_CACHE);
+  const seller = await findSeller(vendorId);
+  if (seller === undefined)
+    return pageMetadata({ locale, path: storePaths.seller(vendorId) });
+  const t = getServerTFor(locale, 'r10c');
+  const title = seller.name;
+  const description = t('storefront.seller.description', {
+    seller: seller.name,
+  });
+  return {
+    ...pageMetadata({
+      locale,
+      path: storePaths.seller(vendorId),
+      title,
+      description,
+    }),
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      url: `${storefrontOrigin()}/${locale}${storePaths.seller(vendorId)}`,
+    },
+  };
 }

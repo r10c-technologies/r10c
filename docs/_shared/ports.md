@@ -389,6 +389,15 @@ redelivery, or the data would leave the record and stay in the store. A group
 redacted this way no longer answers "find my order", by design: its receipt
 window is over.
 
+⚠️ **A paid order gets its FEL document here, and a cancelled one loses it**
+([ADR 0078](../adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) §6, #668).
+A sweep every `order.fiscalSweepMs` certifies each order paid for and not yet
+certified through the `FiscalCertifier` port — simulated in the lab, its answer
+set by the `fiscal.simulatorOutcome` row — and annuls the document of each
+order cancelled after it. A refusal is recorded on the order and retried after
+`order.fiscalRetryBackoffMs`; it never moves the order, so the payment stands.
+Nothing is published.
+
 The cart is **not** here. It is a cookie, so the storefront's first response is
 correct without a round trip, and the fleet keeps zero anonymous write surfaces.
 

@@ -21,7 +21,6 @@ import {
   type OfferingQuery,
 } from '@r10c/implementation-marketplace-catalog-next';
 import { cacheLife } from 'next/cache';
-import { Suspense } from 'react';
 
 import { AddedNotice } from '../cart/added-notice';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
@@ -30,7 +29,6 @@ import { CatalogUnavailable } from '../catalog/catalog-unavailable';
 import {
   loadCardNames,
   OfferingGrid,
-  OfferingGridSkeleton,
 } from '../catalog/offering-grid';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
@@ -183,34 +181,22 @@ export function HomePage({
         <section aria-label={t('storefront.home.newest')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.newest')}</HeadingTwo>
-            <Suspense
-              fallback={
-                <OfferingGridSkeleton layout="strip" count={STRIP_SIZE} />
-              }
-            >
-              <OfferingStrip
-                locale={locale}
-                idScope="newest"
-                query={{ sort: 'publishedAt', direction: 'desc' }}
-              />
-            </Suspense>
+            <OfferingStrip
+              locale={locale}
+              idScope="newest"
+              query={{ sort: 'publishedAt', direction: 'desc' }}
+            />
           </Stack>
         </section>
 
         <section aria-label={t('storefront.home.featured')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.featured')}</HeadingTwo>
-            <Suspense
-              fallback={
-                <OfferingGridSkeleton layout="strip" count={STRIP_SIZE} />
-              }
-            >
-              <OfferingStrip
-                locale={locale}
-                idScope="featured"
-                query={{ sort: 'name', availableOnly: true }}
-              />
-            </Suspense>
+            <OfferingStrip
+              locale={locale}
+              idScope="featured"
+              query={{ sort: 'name', availableOnly: true }}
+            />
           </Stack>
         </section>
 
@@ -220,9 +206,7 @@ export function HomePage({
         <section aria-label={t('storefront.home.categories')}>
           <Stack gap="s">
             <HeadingTwo>{t('storefront.home.categories')}</HeadingTwo>
-            <Suspense fallback={null}>
-              <CategoryTiles locale={locale} />
-            </Suspense>
+            <CategoryTiles locale={locale} />
           </Stack>
         </section>
       </Stack>

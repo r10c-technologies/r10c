@@ -1007,6 +1007,32 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'paymentExpirySweepMs',
     value: '60000',
   },
+  // The fiscal sweep (ADR 0078 §6, #668): how often order-service certifies the
+  // FEL document of every paid order and voids the document of every order
+  // cancelled after it, and how long a refused or unanswered attempt waits
+  // before the next. Five seconds, so a receipt shows its document while the
+  // buyer still has it open.
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'fiscalSweepMs',
+    value: '5000',
+  },
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'fiscalRetryBackoffMs',
+    value: '60000',
+  },
+  // How the simulated FEL certifier answers: `certify`, `reject` or
+  // `unavailable`, so a live pass can drive the failure path (Q12 — simulated
+  // until a certifier is contracted).
+  {
+    service: 'order-service',
+    group_name: 'fiscal',
+    key: 'simulatorOutcome',
+    value: 'certify',
+  },
   // The payment-link providers a seller may name — an open dictionary of public
   // facts, one row per provider: a display name and the hosts its links are
   // served from (ADR 0081 §10). ⚠️ **No real provider is seeded.** Which ones

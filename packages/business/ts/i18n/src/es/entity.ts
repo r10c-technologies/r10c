@@ -509,8 +509,22 @@ export const entity = {
       taxAmount: 'IVA',
       totalAmount: 'Total',
       currency: 'Moneda',
+      // El documento FEL que certifica la venta y su anulación (#668).
+      fiscalDocumentType: 'Tipo de documento',
+      fiscalAuthorization: 'Autorización FEL',
+      fiscalSeries: 'Serie',
+      fiscalNumber: 'Número de documento',
+      fiscalCertifiedAt: 'Certificado el',
+      fiscalVoidAuthorization: 'Autorización de anulación',
+      fiscalVoidedAt: 'Anulado el',
+      fiscalAttemptAt: 'Último intento de certificación',
+      fiscalFailure: 'Motivo del último rechazo',
     },
     values: {
+      fiscalDocumentType: {
+        FACT: 'Factura (FACT)',
+        FPEQ: 'Factura pequeño contribuyente (FPEQ)',
+      },
       buyerTaxIdType: {
         nit: 'NIT',
         cui: 'CUI (DPI)',

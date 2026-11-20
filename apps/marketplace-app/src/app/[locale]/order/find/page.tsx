@@ -6,9 +6,13 @@ import { requireLocale } from '../../locale-param';
 /**
  * "Find my order": a number and an email, and a fresh access link mailed to
  * the address on file if they match (ADR 0076 §6). Reads nothing from the
- * request, so the whole page is prerendered and the form works with
- * scripting off; the answer is its own static page, `./sent`.
+ * request; the answer is its own page, `./sent`. It blocks rather than
+ * streams (#730): the header's category links are a catalog read, and a
+ * streamed hole would leave them hidden with scripting off, where the form
+ * must work.
  */
+export const instant = false;
+
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };

@@ -25,7 +25,6 @@ import { loadCategoryTrail } from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
 import { MAX_QUANTITY } from '../cart/cart-state';
@@ -36,11 +35,11 @@ import { DeliveryFacts } from '../catalog/delivery-facts';
 import {
   loadCardNames,
   OfferingGrid,
-  OfferingGridSkeleton,
 } from '../catalog/offering-grid';
 import { readProduct } from '../catalog/product-read';
 import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
+import { StoreLink } from '../routing/store-link';
 import { storefrontOrigin } from '../seo/page-metadata';
 import { jsonLdScript, productJsonLd } from '../seo/product-json-ld';
 import { StoreShell } from './store-shell';
@@ -208,7 +207,14 @@ async function ProductContent({
                   organization id is not. */}
               {sellerName ? (
                 <Text muted data-testid="seller">
-                  {t('storefront.product.soldBy', { seller: sellerName })}
+                  {/* The seller's own page, the one they share (#675). */}
+                  <StoreLink
+                    locale={locale}
+                    href={storePaths.seller(offering.vendorId)}
+                    className="underline"
+                  >
+                    {t('storefront.product.soldBy', { seller: sellerName })}
+                  </StoreLink>
                 </Text>
               ) : null}
             </Stack>
@@ -383,17 +389,11 @@ async function ProductContent({
           )}
         </div>
 
-        <Suspense
-          fallback={
-            <OfferingGridSkeleton layout="strip" count={RELATED_SIZE} />
-          }
-        >
-          <RelatedOfferings
-            locale={locale}
-            categoryId={category ? String(category.id) : undefined}
-            excludeOfferingId={offering.offeringId}
-          />
-        </Suspense>
+        <RelatedOfferings
+          locale={locale}
+          categoryId={category ? String(category.id) : undefined}
+          excludeOfferingId={offering.offeringId}
+        />
       </Stack>
     </StoreShell>
   );

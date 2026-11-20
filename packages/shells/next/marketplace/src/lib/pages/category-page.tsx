@@ -24,13 +24,11 @@ import {
 import { CategoryNav } from '@r10c/utils-react-ui';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 
 import { AddedNotice } from '../cart/added-notice';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { runRead } from '../catalog/catalog-reads';
-import { OfferingGridSkeleton } from '../catalog/offering-grid';
 import { OfferingListing } from '../catalog/offering-listing';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
@@ -167,17 +165,13 @@ export async function CategoryPage({
       <Stack gap="m">
         <CategoryHeading locale={locale} category={category} />
 
-        <Suspense
-          fallback={<OfferingGridSkeleton layout="listing" count={6} />}
-        >
-          <OfferingListing
-            locale={locale}
-            path={storePaths.category(code)}
-            state={state}
-            categoryId={category.id}
-            emptyLabel={t('storefront.category.empty')}
-          />
-        </Suspense>
+        <OfferingListing
+          locale={locale}
+          path={storePaths.category(code)}
+          state={state}
+          categoryId={category.id}
+          emptyLabel={t('storefront.category.empty')}
+        />
       </Stack>
     </StoreShell>
   );
