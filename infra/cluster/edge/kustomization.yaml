@@ -6,4 +6,5 @@ kind: Kustomization
 resources:
   - gateway.yaml
   - httproutes.yaml
+  - tls.yaml
   - traffic-policies.yaml

@@ -52,3 +52,8 @@ variable "atlas_org_id" {
   description = "The Atlas organization the project is created in."
   type        = string
 }
+
+variable "domain" {
+  description = "The public domain: the storefront, the back office and the identity provider are served at shop., office. and id. under it (tools/edge)."
+  type        = string
+}

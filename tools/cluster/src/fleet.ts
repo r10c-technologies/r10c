@@ -47,6 +47,25 @@ export const FLEET_NAMESPACE = 'r10c';
 export const FLEET_ENV = 'fleet-env';
 export const FLEET_TOKEN = 'fleet-token';
 
+/**
+ * What the up command writes beside the manifests (`tools/infra`): the public
+ * origins and the database address only the cloud knows, and the cluster
+ * seed's inputs. Names here and there are one list.
+ */
+export const CLOUD_ENDPOINTS = 'cloud-endpoints';
+export const CONFIG_SEED = 'config-seed';
+export const STOREFRONT_TOKENS = 'storefront-tokens';
+
+const fromEndpoints = (name: string, key: string): Yaml => ({
+  name,
+  valueFrom: { configMapKeyRef: { name: CLOUD_ENDPOINTS, key } },
+});
+
+const fromSecret = (name: string, secret: string, key: string): Yaml => ({
+  name,
+  valueFrom: { secretKeyRef: { name: secret, key } },
+});
+
 /** config-service's own address, under the name `utils-ts-fleet` reads. */
 const CONFIG_SERVICE = 'config-service';
 
@@ -79,6 +98,8 @@ interface Workload {
   readonly limits: { readonly cpu: string; readonly memory: string };
   readonly env: readonly Yaml[];
   readonly extraPorts: readonly Yaml[];
+  /** Secrets mounted as files: `[volume name, Secret, mount path]`. */
+  readonly secretMounts: readonly (readonly [string, string, string])[];
   readonly command?: readonly string[];
   /** A process with no HTTP is probed on the socket it does open. */
   readonly probe: 'http' | { readonly tcp: string };
@@ -119,6 +140,7 @@ const service = (project: string, port: number): Workload => {
     ...SERVICE_RESOURCES,
     env: [],
     extraPorts: [],
+    secretMounts: [],
     probe: 'http',
     service: true,
   };
@@ -140,14 +162,14 @@ const service = (project: string, port: number): Workload => {
       // other service asks it for theirs.
       return {
         ...base,
+        // It seeds the cluster's rows rather than the lab's, from inputs the
+        // up command mounts (#683, apps/config-service/src/cluster-seed.ts).
         env: [
-          {
-            name: 'CONFIG_PG_URL',
-            valueFrom: {
-              secretKeyRef: { name: 'config-service-database', key: 'url' },
-            },
-          },
+          fromSecret('CONFIG_PG_URL', 'config-service-database', 'url'),
+          { name: 'CONFIG_SEED_PROFILE', value: 'cluster' },
+          { name: 'CONFIG_SEED_FILE', value: '/seed/seed.json' },
         ],
+        secretMounts: [['seed', CONFIG_SEED, '/seed']],
       };
     }
     case 'transaction-service': {
@@ -186,9 +208,39 @@ const transactionRunner = (port: number): Workload => ({
     POD_IP,
   ],
   extraPorts: [],
+  secretMounts: [],
   probe: { tcp: 'runner' },
   service: false,
 });
+
+/**
+ * Product analytics (#684): the PostHog project an app's `/api/analytics`
+ * hands the browser, empty where an environment has none.
+ */
+const POSTHOG_ENV: readonly Yaml[] = [
+  fromSecret('POSTHOG_KEY', 'posthog', 'POSTHOG_KEY'),
+  fromSecret('POSTHOG_HOST', 'posthog', 'POSTHOG_HOST'),
+];
+
+/**
+ * What a Next app reads from its environment rather than from config-service:
+ * the storefront's two crossing tokens (it holds no session to check, ADR 0056)
+ * and its canonical origin, and the back office's default redirect after
+ * sign-in. Each defaults to the lab's value when unset, so only the cluster
+ * names them.
+ */
+const APP_ENV: Readonly<Record<string, readonly Yaml[]>> = {
+  'marketplace-app': [
+    ...POSTHOG_ENV,
+    fromSecret('COORDINATOR_CROSSING_TOKEN', STOREFRONT_TOKENS, 'coordinator'),
+    fromSecret('ORDER_LOOKUP_TOKEN', STOREFRONT_TOKENS, 'lookup'),
+    fromEndpoints('STOREFRONT_URL', 'STOREFRONT_ORIGIN'),
+  ],
+  'back-office-app': [
+    ...POSTHOG_ENV,
+    fromEndpoints('AUTH_DEFAULT_REDIRECT', 'BACK_OFFICE_ORIGIN'),
+  ],
+};
 
 const app = (project: string, port: number): Workload => ({
   name: project,
@@ -198,8 +250,9 @@ const app = (project: string, port: number): Workload => ({
   preStop: 5,
   grace: 30,
   ...APP_RESOURCES,
-  env: [],
+  env: APP_ENV[project] ?? [],
   extraPorts: [],
+  secretMounts: [],
   probe: 'http',
   service: true,
 });
@@ -288,6 +341,13 @@ const deployment = (workload: Workload): Yaml => ({
               ...workload.env,
             ],
             envFrom: [{ configMapRef: { name: FLEET_ENV } }],
+            ...(workload.secretMounts.length > 0 && {
+              volumeMounts: workload.secretMounts.map(([name, , path]) => ({
+                name,
+                mountPath: path,
+                readOnly: true,
+              })),
+            }),
             ...(workload.preStop > 0 && {
               lifecycle: { preStop: { sleep: { seconds: workload.preStop } } },
             }),
@@ -302,6 +362,12 @@ const deployment = (workload: Workload): Yaml => ({
             },
           },
         ],
+        ...(workload.secretMounts.length > 0 && {
+          volumes: workload.secretMounts.map(([name, secretName]) => ({
+            name,
+            secret: { secretName },
+          })),
+        }),
       },
     },
   },

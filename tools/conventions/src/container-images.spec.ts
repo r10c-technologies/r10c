@@ -12,7 +12,9 @@
  * The scan pins how many projects it expects, the house rule `docs.spec.ts`
  * states, so a walk that quietly stops finding them fails rather than passes.
  */
-import { readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,7 +54,7 @@ describe('every deployable process builds an image', () => {
     ]);
     expect(targets['container']?.dependsOn).toEqual(['prune']);
     expect(targets['container']?.options?.command).toBe(
-      `docker build -f tools/docker/service.Dockerfile -t r10c/${service}:local apps/${service}/dist`,
+      `node tools/docker/check-installs.cjs apps/${service}/dist && docker build -f tools/docker/service.Dockerfile -t r10c/${service}:local apps/${service}/dist`,
     );
   });
 
@@ -70,5 +72,31 @@ describe('every deployable process builds an image', () => {
     expect(config).toMatch(
       /outputFileTracingRoot:\s*join\(__dirname, '\.\.\/\.\.'\)/,
     );
+  });
+});
+
+const { missingInstalls } = createRequire(import.meta.url)(
+  join(REPO_ROOT, 'tools/docker/check-installs.cjs'),
+) as { missingInstalls: (dist: string) => string[] };
+
+describe('an image installs what its bundle requires', () => {
+  const plant = (dependencies: Record<string, string>) => {
+    const dist = mkdtempSync(join(tmpdir(), 'check-installs-'));
+    writeFileSync(join(dist, 'package.json'), JSON.stringify({ dependencies }));
+    writeFileSync(
+      join(dist, 'main.js'),
+      'require("mongodb"); require("effect/http"); require("node:fs"); require("path"); require("./chunk.js");',
+    );
+    return dist;
+  };
+
+  it('names a package the bundle requires and the manifest omits', () => {
+    expect(missingInstalls(plant({ effect: '4.0.7' }))).toEqual(['mongodb']);
+  });
+
+  it('passes a manifest that installs every external', () => {
+    expect(
+      missingInstalls(plant({ effect: '4.0.7', mongodb: '7.9.0' })),
+    ).toEqual([]);
   });
 });

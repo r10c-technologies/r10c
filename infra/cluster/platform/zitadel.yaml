@@ -11,9 +11,12 @@
 #   ENCRYPTED_ONLY` in infra/gcp/sql.tf), so both users connect `require`.
 # - The public domain is the same ConfigMap's, served over HTTPS on 443 with
 #   TLS ended at the edge, so the container itself serves plain HTTP.
-# - No outgoing-HTTP denylist override: the lab removes `192.168.0.0/16` only
-#   because its auth-service runs on the host. Here every callback is a
-#   cluster or public address, and Zitadel's own default list stands.
+# - The outgoing-HTTP denylist allows one range the default denies: the
+#   cluster's Service range, `10.30.0.0/20` (infra/gcp/network.tf). Zitadel
+#   calls auth-service back for a back-channel logout and a user-lifecycle
+#   event at its Service address, which the default's `10.0.0.0/8` refuses to
+#   register at all. Everything else stays denied, the pod and node ranges
+#   included (`zitadel-config` below; `tools/infra` checks the list).
 # - The PATs land on a small `retained` volume rather than an `emptyDir`, so a
 #   pod restarted after first init still holds them; the `pat-reader` sidecar
 #   stays, because the image is distroless and the seed step reads the token
@@ -59,6 +62,8 @@ spec:
           # empty database and only serves on one that already has it.
           args:
             - start-from-init
+            - --config
+            - /config/zitadel.yaml
             - --masterkeyFromEnv
             - --tlsMode
             - external
@@ -68,6 +73,9 @@ spec:
           volumeMounts:
             - name: machinekey
               mountPath: /machinekey
+            - name: config
+              mountPath: /config
+              readOnly: true
           # ZITADEL_MASTERKEY, both database passwords and the first-instance
           # admin password; their values are #683's.
           envFrom:
@@ -176,6 +184,46 @@ spec:
         - name: machinekey
           persistentVolumeClaim:
             claimName: zitadel-machinekey
+        - name: config
+          configMap:
+            name: zitadel-config
+---
+# Zitadel's own config file, for the one setting env cannot carry reliably
+# (viper's indexed lists): the upstream default denylist with `10.0.0.0/8`
+# split around the Service range, so auth-service's callbacks register and
+# nothing else private does. The lab's equivalent is
+# infra/local/zitadel/config.yaml, which allows the host instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zitadel-config
+data:
+  zitadel.yaml: |
+    HTTPClient:
+      DenyList:
+        - localhost
+        - '0.0.0.0/8'
+        - '10.0.0.0/12'
+        - '10.16.0.0/13'
+        - '10.24.0.0/14'
+        - '10.28.0.0/15'
+        - '10.30.16.0/20'
+        - '10.30.32.0/19'
+        - '10.30.64.0/18'
+        - '10.30.128.0/17'
+        - '10.31.0.0/16'
+        - '10.32.0.0/11'
+        - '10.64.0.0/10'
+        - '10.128.0.0/9'
+        - '100.64.0.0/10'
+        - '127.0.0.0/8'
+        - '169.254.0.0/16'
+        - '172.16.0.0/12'
+        - '198.18.0.0/15'
+        - '::/128'
+        - '::1/128'
+        - 'fc00::/7'
+        - 'fe80::/10'
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

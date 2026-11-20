@@ -1,0 +1,25 @@
+# cert-manager's own release manifest, unmodified — the issuer behind the
+# edge's one certificate (tools/edge, `tls.yaml`):
+# https://github.com/cert-manager/cert-manager/releases/download/v1.21.3/cert-manager.yaml
+# Upgrading is replacing the file with a newer release's, so the diff is the
+# upgrade (ADR 0083 §7). It installs into its own `cert-manager` namespace.
+#
+# Envoy Gateway ends TLS itself and does no ACME, so a certificate needs an
+# issuer in the cluster; Let's Encrypt over HTTP-01 through the edge's plain
+# listener is the one that costs nothing.
+#
+# The one change is a patch, not an edit: the HTTP-01 solver attaches to a
+# Gateway, which the controller does only with the Gateway API enabled.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cert-manager.yaml
+patches:
+  - target:
+      kind: Deployment
+      name: cert-manager
+      namespace: cert-manager
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --enable-gateway-api

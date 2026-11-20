@@ -136,7 +136,7 @@
           "prune"
         ],
         "options": {
-          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/fulfilment-service:local apps/fulfilment-service/dist"
+          "command": "node tools/docker/check-installs.cjs apps/fulfilment-service/dist && docker build -f tools/docker/service.Dockerfile -t r10c/fulfilment-service:local apps/fulfilment-service/dist"
         }
       }
     }

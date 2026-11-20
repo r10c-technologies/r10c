@@ -9,6 +9,7 @@ kind: Kustomization
 resources:
   - vendor/envoy-gateway
   - vendor/rabbitmq-cluster-operator
+  - vendor/cert-manager
   - platform
   - fleet
   - edge

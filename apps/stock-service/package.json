@@ -136,7 +136,7 @@
           "prune"
         ],
         "options": {
-          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/stock-service:local apps/stock-service/dist"
+          "command": "node tools/docker/check-installs.cjs apps/stock-service/dist && docker build -f tools/docker/service.Dockerfile -t r10c/stock-service:local apps/stock-service/dist"
         }
       }
     }

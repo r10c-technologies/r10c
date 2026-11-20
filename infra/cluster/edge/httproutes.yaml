@@ -9,7 +9,7 @@ metadata:
 spec:
   parentRefs:
     - name: r10c-edge
-      sectionName: origin-3000
+      sectionName: https-shop
   rules:
     - matches:
         - path:
@@ -43,7 +43,7 @@ metadata:
 spec:
   parentRefs:
     - name: r10c-edge
-      sectionName: origin-3001
+      sectionName: https-office
   rules:
     - matches:
         - path:
@@ -68,3 +68,44 @@ spec:
       backendRefs:
         - name: back-office-app
           port: 3201
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zitadel
+  namespace: r10c
+spec:
+  parentRefs:
+    - name: r10c-edge
+      sectionName: https-id
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ui/v2/login
+      backendRefs:
+        - name: zitadel-login
+          port: 3000
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: zitadel
+          port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: https-redirect
+  namespace: r10c
+spec:
+  parentRefs:
+    - name: r10c-edge
+      sectionName: http
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

@@ -1,4 +1,6 @@
 export {
+  CLOUD_ENDPOINTS,
+  CONFIG_SEED,
   FLEET_ENV,
   FLEET_TOKEN,
   fleetEnv,
@@ -8,6 +10,7 @@ export {
   IMAGE_TAG,
   imageOf,
   serviceUrlVariable,
+  STOREFRONT_TOKENS,
   workloads,
   type Yaml,
 } from './fleet.js';

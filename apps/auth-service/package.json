@@ -121,7 +121,7 @@
           "prune"
         ],
         "options": {
-          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/auth-service:local apps/auth-service/dist"
+          "command": "node tools/docker/check-installs.cjs apps/auth-service/dist && docker build -f tools/docker/service.Dockerfile -t r10c/auth-service:local apps/auth-service/dist"
         }
       }
     }

@@ -8,9 +8,12 @@
  * applied.
  */
 import {
+  ADDRESS_PLACEHOLDER,
+  IDENTITY,
   IDLE_TIMEOUT_S,
   type Origin,
   ORIGINS,
+  publicHost,
   REALTIME,
   upstreamOf,
 } from './routes.js';
@@ -26,8 +29,15 @@ export const FLEET_NAMESPACE = 'r10c';
 const GATEWAY_API = 'gateway.networking.k8s.io/v1';
 const ENVOY_GATEWAY = 'gateway.envoyproxy.io/v1alpha1';
 const seconds = (value: number): string => `${String(value)}s`;
-const listenerName = (origin: Origin): string =>
-  `origin-${String(origin.origin)}`;
+const CERT_MANAGER = 'cert-manager.io/v1';
+
+/** The one certificate every public hostname is served under, and its issuer. */
+export const EDGE_TLS = 'edge-tls';
+export const ISSUER = 'letsencrypt';
+
+/** The plain-HTTP listener: a redirect to HTTPS, and the ACME challenge. */
+const HTTP_LISTENER = 'http';
+const listenerName = (host: string): string => `https-${host}`;
 
 const gatewayClass: Yaml = {
   apiVersion: GATEWAY_API,
@@ -42,12 +52,32 @@ const gateway: Yaml = {
   metadata: { name: GATEWAY, namespace: FLEET_NAMESPACE },
   spec: {
     gatewayClassName: GATEWAY,
-    listeners: ORIGINS.map(origin => ({
-      name: listenerName(origin),
-      protocol: 'HTTP',
-      port: origin.origin,
-      allowedRoutes: { namespaces: { from: 'Same' } },
-    })),
+    // The reserved address the domain's records point at, so a down and an
+    // up never move the edge to a new one (ADR 0083 §5).
+    addresses: [{ type: 'IPAddress', value: ADDRESS_PLACEHOLDER }],
+    // One HTTPS listener per public hostname, each ending TLS with the same
+    // certificate, and one plain listener for the redirect and the ACME
+    // HTTP-01 challenge. The lab keeps its `300N` origins on the local Envoy
+    // (envoy.ts); a cluster is reached by name on 443.
+    listeners: [
+      {
+        name: HTTP_LISTENER,
+        protocol: 'HTTP',
+        port: 80,
+        allowedRoutes: { namespaces: { from: 'Same' } },
+      },
+      ...[...ORIGINS.map(origin => origin.host), IDENTITY.host].map(host => ({
+        name: listenerName(host),
+        protocol: 'HTTPS',
+        port: 443,
+        hostname: publicHost(host),
+        tls: {
+          mode: 'Terminate',
+          certificateRefs: [{ kind: 'Secret', name: EDGE_TLS }],
+        },
+        allowedRoutes: { namespaces: { from: 'Same' } },
+      })),
+    ],
   },
 };
 
@@ -62,7 +92,7 @@ const httpRoute = (origin: Origin): Yaml => ({
   kind: 'HTTPRoute',
   metadata: { name: origin.app, namespace: FLEET_NAMESPACE },
   spec: {
-    parentRefs: [{ name: GATEWAY, sectionName: listenerName(origin) }],
+    parentRefs: [{ name: GATEWAY, sectionName: listenerName(origin.host) }],
     rules: [
       {
         matches: [{ path: { type: 'Exact', value: REALTIME.stream } }],
@@ -80,6 +110,99 @@ const httpRoute = (origin: Origin): Yaml => ({
     ],
   },
 });
+
+/**
+ * The identity provider's hostname (ADR 0018): the hosted login is a second
+ * container under its own prefix, and Zitadel answers everything else —
+ * the OIDC endpoints, the console, the APIs auth-service calls by its public
+ * issuer.
+ */
+const identityRoute: Yaml = {
+  apiVersion: GATEWAY_API,
+  kind: 'HTTPRoute',
+  metadata: { name: IDENTITY.app, namespace: FLEET_NAMESPACE },
+  spec: {
+    parentRefs: [{ name: GATEWAY, sectionName: listenerName(IDENTITY.host) }],
+    rules: [
+      {
+        matches: [
+          { path: { type: 'PathPrefix', value: IDENTITY.login.prefix } },
+        ],
+        backendRefs: backend(IDENTITY.login.app, IDENTITY.login.port),
+      },
+      {
+        matches: [{ path: { type: 'PathPrefix', value: '/' } }],
+        backendRefs: backend(IDENTITY.app, IDENTITY.port),
+      },
+    ],
+  },
+};
+
+/** Plain HTTP answers nothing but a redirect; ACME's own route is more specific. */
+const httpsRedirect: Yaml = {
+  apiVersion: GATEWAY_API,
+  kind: 'HTTPRoute',
+  metadata: { name: 'https-redirect', namespace: FLEET_NAMESPACE },
+  spec: {
+    parentRefs: [{ name: GATEWAY, sectionName: HTTP_LISTENER }],
+    rules: [
+      {
+        filters: [
+          {
+            type: 'RequestRedirect',
+            requestRedirect: { scheme: 'https', statusCode: 301 },
+          },
+        ],
+      },
+    ],
+  },
+};
+
+/**
+ * The certificate, from Let's Encrypt over HTTP-01 through the plain listener
+ * (cert-manager, vendored). The lab rehearsal swaps the issuer for a
+ * self-signed one (`tools/infra`), since nothing on the internet can reach it.
+ */
+const issuer: Yaml = {
+  apiVersion: CERT_MANAGER,
+  kind: 'ClusterIssuer',
+  metadata: { name: ISSUER },
+  spec: {
+    acme: {
+      server: 'https://acme-v02.api.letsencrypt.org/directory',
+      privateKeySecretRef: { name: `${ISSUER}-account` },
+      solvers: [
+        {
+          http01: {
+            gatewayHTTPRoute: {
+              parentRefs: [
+                {
+                  name: GATEWAY,
+                  namespace: FLEET_NAMESPACE,
+                  kind: 'Gateway',
+                  sectionName: HTTP_LISTENER,
+                },
+              ],
+            },
+          },
+        },
+      ],
+    },
+  },
+};
+
+const certificate: Yaml = {
+  apiVersion: CERT_MANAGER,
+  kind: 'Certificate',
+  metadata: { name: EDGE_TLS, namespace: FLEET_NAMESPACE },
+  spec: {
+    secretName: EDGE_TLS,
+    dnsNames: [...ORIGINS.map(origin => origin.host), IDENTITY.host].map(
+      publicHost,
+    ),
+    issuerRef: { kind: 'ClusterIssuer', name: ISSUER },
+  },
+};
 
 /**
  * HTTP/2 between the browser and the cluster edge, negotiated over ALPN once a
@@ -132,6 +255,7 @@ export const gatewayManifests = (): Readonly<
   Record<string, readonly Yaml[]>
 > => ({
   'gateway.yaml': [gatewayClass, gateway],
-  'httproutes.yaml': ORIGINS.map(httpRoute),
+  'httproutes.yaml': [...ORIGINS.map(httpRoute), identityRoute, httpsRedirect],
+  'tls.yaml': [issuer, certificate],
   'traffic-policies.yaml': [clientTrafficPolicy, backendTrafficPolicy],
 });

@@ -36,6 +36,21 @@ spec:
                 secretKeyRef:
                   name: fleet-token
                   key: token
+            - name: POSTHOG_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: posthog
+                  key: POSTHOG_KEY
+            - name: POSTHOG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: posthog
+                  key: POSTHOG_HOST
+            - name: AUTH_DEFAULT_REDIRECT
+              valueFrom:
+                configMapKeyRef:
+                  name: cloud-endpoints
+                  key: BACK_OFFICE_ORIGIN
           envFrom:
             - configMapRef:
                 name: fleet-env

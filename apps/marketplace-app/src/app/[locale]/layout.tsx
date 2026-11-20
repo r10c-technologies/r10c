@@ -11,6 +11,7 @@ import { storefrontOrigin } from '@r10c/shells-next-marketplace/server';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { Analytics } from '../analytics';
 import { fontVariables } from '../fonts';
 import { Providers } from '../providers';
 
@@ -100,6 +101,7 @@ export default async function RootLayout({
           prop — so everything below it still renders on the server.
         */}
         <Providers locale={locale}>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );

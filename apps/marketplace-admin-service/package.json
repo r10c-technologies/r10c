@@ -136,7 +136,7 @@
           "prune"
         ],
         "options": {
-          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/marketplace-admin-service:local apps/marketplace-admin-service/dist"
+          "command": "node tools/docker/check-installs.cjs apps/marketplace-admin-service/dist && docker build -f tools/docker/service.Dockerfile -t r10c/marketplace-admin-service:local apps/marketplace-admin-service/dist"
         }
       }
     }

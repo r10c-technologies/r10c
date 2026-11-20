@@ -127,7 +127,10 @@ resource "google_container_node_pool" "fleet" {
     }
   }
 
+  # The down command turns autoscaling off before it resizes to zero, or a
+  # pending system pod would bring a node straight back; the up command turns
+  # it on again. Both are theirs, like the size.
   lifecycle {
-    ignore_changes = [initial_node_count, node_count]
+    ignore_changes = [initial_node_count, node_count, autoscaling]
   }
 }

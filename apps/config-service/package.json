@@ -125,7 +125,7 @@
           "prune"
         ],
         "options": {
-          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/config-service:local apps/config-service/dist"
+          "command": "node tools/docker/check-installs.cjs apps/config-service/dist && docker build -f tools/docker/service.Dockerfile -t r10c/config-service:local apps/config-service/dist"
         }
       }
     }

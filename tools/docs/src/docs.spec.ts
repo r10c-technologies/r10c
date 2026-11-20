@@ -20,6 +20,7 @@ import {
   gatewayManifests,
   HEARTBEAT_S,
   ORIGINS,
+  publicHost,
   REALTIME,
   renderEdge,
   toYaml,
@@ -1796,19 +1797,40 @@ const gatewayProblems = (input: {
   const documents = Object.values(input.manifests).flat().map(asTree);
   const kind = (name: string) => documents.filter(doc => doc['kind'] === name);
 
+  // A cluster is reached by name on 443 (ADR 0083): every origin is an HTTPS
+  // listener for its own hostname, and plain HTTP is a port-80 listener only.
   const listeners = kind('Gateway').flatMap(gateway =>
     asList(asTree(gateway['spec'])['listeners']).map(asTree),
   );
-  for (const listener of listeners)
-    if (!/^300\d$/.test(String(listener['port'])))
+  for (const listener of listeners) {
+    const port = String(listener['port']);
+    const ok =
+      (listener['protocol'] === 'HTTPS' &&
+        port === '443' &&
+        typeof listener['hostname'] === 'string') ||
+      (listener['protocol'] === 'HTTP' && port === '80');
+    if (!ok)
       problems.push(
-        `gateway listener ${String(listener['port'])}: not a 300N origin`,
+        `gateway listener ${String(listener['name'])}: not HTTPS on 443 for a hostname, nor HTTP on 80`,
+      );
+  }
+  for (const origin of ORIGINS)
+    if (
+      !listeners.some(
+        listener => listener['hostname'] === publicHost(origin.host),
+      )
+    )
+      problems.push(
+        `origin ${origin.app}: no HTTPS listener for ${publicHost(origin.host)}`,
       );
 
-  const routes = kind('HTTPRoute');
-  if (routes.length !== listeners.length)
+  const origins = new Set(ORIGINS.map(origin => origin.app));
+  const routes = kind('HTTPRoute').filter(route =>
+    origins.has(String(asTree(route['metadata'])['name'])),
+  );
+  if (routes.length !== ORIGINS.length)
     problems.push(
-      `${String(listeners.length)} listeners but ${String(routes.length)} HTTPRoutes`,
+      `${String(ORIGINS.length)} origins but ${String(routes.length)} origin HTTPRoutes`,
     );
 
   for (const route of routes) {
@@ -1862,7 +1884,11 @@ describe('The edge owns the origins, and every hop holds a quiet stream', () => 
     const statics = asTree(asTree(config)['static_resources']);
     expect(asList(statics['listeners'])).toHaveLength(2);
     expect(asList(statics['clusters'])).toHaveLength(3);
-    expect(Object.values(manifests).flat()).toHaveLength(6);
+    // GatewayClass, Gateway, one route per origin plus identity and the
+    // redirect, the issuer and its certificate, and the two traffic policies.
+    expect(Object.values(manifests).flat()).toHaveLength(
+      2 + ORIGINS.length + 2 + 2 + 2,
+    );
   });
 
   it('mirrors the push heartbeat the installed release sends', () => {

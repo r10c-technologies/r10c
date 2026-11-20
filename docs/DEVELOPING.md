@@ -393,6 +393,134 @@ at every pod boot, so a UI edit is neither the way to change it nor something
 that survives; `pnpm nx test @r10c/docs-check` fails when its PromQL and the
 metric declarations disagree in either direction.
 
+## The cloud environment
+
+The fleet's cloud home is GCP, brought up for a demo and taken down after
+([ADR 0083](adr/0083-the-fleet-runs-on-gcp-on-demand.md)). It is still a lab:
+seed and demo data only, reset the way the local one is. Three directories
+hold it, and one command each brings it up and takes it down:
+
+| What                                                                       | Where                                          | Applied by                                                |
+| -------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| The cloud: network, cluster, Cloud SQL, Atlas, registry, secret containers | [`infra/gcp/`](../infra/gcp/README.md)         | `tofu apply`, by a person, once and on every change to it |
+| What runs in the cluster                                                   | [`infra/cluster/`](../infra/cluster/README.md) | the up command                                            |
+| The up and down commands                                                   | `tools/infra` (`tools/infra.mjs`)              | `pnpm run infra:up` / `infra:down`                        |
+
+**Nothing has been applied yet.** The first apply is MVP-7 (#702); until then
+every command below is exercised with `--dry-run`, or against minikube with
+`--target lab`.
+
+### Bootstrap, once
+
+1. **A project with billing**, and a bucket for OpenTofu's state in it:
+   `gcloud projects create <project>`, link billing, then
+   `gcloud storage buckets create gs://<project>-tofu --location=us-central1`.
+2. **An Atlas organization and an API key** for it, exported as
+   `MONGODB_ATLAS_PUBLIC_KEY` and `MONGODB_ATLAS_PRIVATE_KEY`, plus
+   `atlas auth login` for the up command's database users.
+3. **The cloud**: `tofu -chdir=infra/gcp init -backend-config=bucket=<project>-tofu`,
+   then `tofu -chdir=infra/gcp apply` with `project_id`, `atlas_org_id` and
+   `domain` set (a `terraform.tfvars` there is gitignored). Add your address
+   to `control_plane_authorized_cidrs`, or kubectl cannot reach the cluster.
+4. **DNS**: `A` records for `shop.`, `office.` and `id.` under the domain,
+   each pointing at `tofu output edge_address`. Let's Encrypt validates over
+   them, so the first up's certificate waits on them.
+5. **The three secrets a person supplies**, each a JSON object added with
+   `gcloud secrets versions add r10c-<name> --data-file=-`:
+   - `grafana-cloud` — `{"endpoint", "instanceId", "token"}` from the stack's
+     OTLP page;
+   - `smtp` — `{"host", "port", "user", "password", "from", "tls"}`, the mail
+     provider (#692; GCP blocks port 25, so 587);
+   - `posthog` — `{"key", "host"}`, or `{}` to leave analytics off.
+
+   Every other secret is minted by the first up and never rotated by it.
+
+### Up, smoke test, down
+
+```sh
+pnpm run infra:up -- --target gcp --dry-run   # every step, printed, none run
+pnpm run infra:up -- --target gcp --nodes 2   # ~20 min the first time
+pnpm run infra:down -- --target gcp           # a few minutes
+```
+
+Up starts Cloud SQL and the node pool, mints missing secrets, sets the
+database users, builds every image for `linux/amd64` and pushes it tagged with
+the commit (`-dirty` when the tree is), then applies the cluster in stages —
+CRDs, operators, the platform, the identity provider and its seed, the fleet,
+the edge — waiting on each one's readiness. It ends with the **smoke test**,
+through the edge only: the storefront's `/es` answers `200`, the back office `200` or a
+redirect to sign in, Zitadel's discovery document and the hosted login `200`,
+the realtime stream `401` without a session or capability (so the route reaches
+realtime-service rather than Next), and plain HTTP `301`. Up is idempotent: it
+is also how a half-finished up resumes and how a new commit is rolled out.
+
+Down deletes the Gateway — its load balancer is what bills while idle, and the
+address stays reserved — turns the pool's autoscaling off, resizes it to zero
+and stops Cloud SQL. Every disk, database, secret and image stays.
+
+### Rolling back, resetting, rotating
+
+- **Roll back**: check out the commit you want and run up. The registry keeps
+  the two most recent images of each process.
+- **Reset** (ADR 0083 §6): the demo is reset like the lab, deliberately and by
+  hand, never by down: drop the Atlas databases and the `configuration`,
+  `workflow` and `zitadel` databases, delete the `r10c` namespace and the
+  `retained` volumes it leaves, then up. config-service seeds `ON CONFLICT DO
+NOTHING`, so a changed seed reaches the cloud only this way.
+- **Rotate a secret**: add a version in Secret Manager and run up. A value
+  config-service already seeded (a crossing token, the signing key) changes
+  only with a reset, for the reason above.
+
+### What it costs
+
+Read on 2026-11-20. **Live** figures were read on the vendor's pricing page
+that day; **list** figures are GCP list prices the pages would not render for,
+recalled rather than read. #705 measures the real off-state bill and replaces
+both.
+
+| Component                                      | While up                             | While down                             | Source          |
+| ---------------------------------------------- | ------------------------------------ | -------------------------------------- | --------------- |
+| 2 × `e2-standard-4` nodes                      | ≈ $0.27 / h                          | —                                      | list            |
+| Cloud SQL `db-g1-small`, 10 GB SSD             | ≈ $0.035 / h + disk                  | disk ≈ $1.70 / month, backups ≈ $0.50  | list            |
+| Edge load balancer (forwarding rule)           | ≈ $0.025 / h                         | — (deleted)                            | list            |
+| Edge address, reserved                         | in use                               | ≈ $7.30 / month unused                 | list            |
+| Cloud NAT and its address                      | $0.0014 / VM / h + $0.005 / h        | ≈ $3.65–7.30 / month                   | live (NAT page) |
+| Disks: RabbitMQ 2 GB, Redis 1 GB, Zitadel 1 GB | —                                    | ≈ $0.40 / month                        | list            |
+| Artifact Registry, 2 versions × 14 images      | —                                    | ≈ $0.35 / month past the free 0.5 GB   | list            |
+| Secret Manager, ~45 versions                   | —                                    | ≈ $2.30 / month past 6 free            | list            |
+| GKE control plane                              | covered by the $74.40 monthly credit | covered                                | list            |
+| Atlas Flex                                     | $0.011 / h, $8–30 / month            | $8 / month floor (Flex does not pause) | live            |
+| Grafana Cloud, PostHog                         | free tiers                           | free tiers                             | live            |
+
+So about **$0.35 an hour while up** and **about $25–30 a month while down**,
+most of it the reserved addresses and Atlas's floor.
+
+The free tiers the telemetry is sized to: Grafana Cloud allows 10k active
+metric series, 50 GB of logs and 50 GB of traces a month with 14 days'
+retention, and 3 active users; PostHog 1M analytics events and 5,000
+recordings a month. The OTel gateway drops every probe's span and keeps 25 %
+of traces, services log at `info` and export metrics once a minute, and the
+storefront and back office send page views only, with no autocapture and no
+recording ([`infra/cluster/README.md`](../infra/cluster/README.md) has the
+series arithmetic).
+
+### The rehearsal on minikube
+
+```sh
+pnpm run dev-ports:free                 # the host fleet and the cluster rehearsal share one node
+pnpm run infra:up -- --target lab
+pnpm run infra:down -- --target lab
+```
+
+The same sequence on the lab's minikube, in its own `r10c` namespace: the lab's
+Postgres, Mongo and Mailpit stand in for Cloud SQL, Atlas and the mail provider
+(under their own database names and users), images are built into minikube's
+Docker, the certificate is self-signed, and telemetry goes to the lab's own
+Grafana. It writes into the lab's Mongo, so follow it with
+`pnpm run back-office:dev:reset`. Its secrets are in `infra/.overlay/lab/`,
+gitignored. Not rehearsed, because the lab has neither: Cloud SQL's TLS and
+Atlas's SRV connection.
+
 ## Adding a project
 
 Prefer the Nx generators, then mirror the workspace conventions (`@r10c/source`

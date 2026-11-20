@@ -19,6 +19,7 @@ import { cookies } from 'next/headers';
 import { isNavItemVisible } from '../lib/nav';
 import { navPrincipal } from '../lib/nav-principal';
 import { workspaceScope } from '../lib/workspace-scope';
+import { Analytics } from './analytics';
 import { fontVariables } from './fonts';
 import { Providers } from './providers';
 import {
@@ -105,6 +106,7 @@ export default async function RootLayout({
         >
           {children}
         </Providers>
+        <Analytics />
       </body>
     </html>
   );

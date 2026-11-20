@@ -7,8 +7,9 @@
 #   billed as part of a node rather than per pod (ADR 0083 §2). The row's
 #   cloud value, `http://otel-agent:4318`, is #683's seed.
 # - The gateway is the one process that holds the Grafana Cloud credential and
-#   the one place sampling and limits are set (#684). It reads the endpoint
-#   and the basic-auth pair from the `grafana-cloud` Secret.
+#   the one place sampling and limits are set (#684, below). It reads the
+#   endpoint and the basic-auth pair from the `grafana-cloud` Secret, which
+#   the up command writes from Secret Manager (`tools/infra`).
 # - Both answer `health_check` on 13133, which is what their probes ask: the
 #   OTLP ports accept a connection before the pipelines are running.
 apiVersion: v1
@@ -140,6 +141,16 @@ kind: ConfigMap
 metadata:
   name: otel-gateway
 data:
+  # Sized to Grafana Cloud's free tier (#684), as read on 2026-11-20 at
+  # grafana.com/pricing: 10k active metric series, 50 GB of logs and 50 GB of
+  # traces a month, 14 days' retention. The arithmetic is in
+  # infra/cluster/README.md; what is set here:
+  # - every probe's span is dropped before it is counted — a kubelet asking
+  #   `/api/health/*` every 5 s on 16 pods is most of an idle fleet's traces;
+  # - traces are kept at 25 %, decided per trace id so a kept trace is whole
+  #   across services;
+  # - logs leave at `info` already (the cluster seed's `logging.level`), and
+  #   metrics once a minute (`otel.metricIntervalMs`).
   config.yaml: |
     extensions:
       health_check:
@@ -158,6 +169,20 @@ data:
         check_interval: 1s
         limit_percentage: 80
         spike_limit_percentage: 25
+      filter/probes:
+        error_mode: ignore
+        traces:
+          span:
+            - 'IsMatch(attributes["url.path"], "^/api/health/")'
+            - 'IsMatch(attributes["http.route"], "^/api/health/")'
+            - 'IsMatch(name, "/api/health/")'
+      probabilistic_sampler/traces:
+        sampling_percentage: 25
+      resource/environment:
+        attributes:
+          - key: deployment.environment
+            value: cluster
+            action: upsert
       batch: {}
     exporters:
       otlphttp/grafana:
@@ -169,15 +194,22 @@ data:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, batch]
+          processors:
+            [
+              memory_limiter,
+              filter/probes,
+              probabilistic_sampler/traces,
+              resource/environment,
+              batch,
+            ]
           exporters: [otlphttp/grafana]
         metrics:
           receivers: [otlp]
-          processors: [memory_limiter, batch]
+          processors: [memory_limiter, resource/environment, batch]
           exporters: [otlphttp/grafana]
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, batch]
+          processors: [memory_limiter, resource/environment, batch]
           exporters: [otlphttp/grafana]
 ---
 apiVersion: apps/v1
@@ -211,7 +243,8 @@ spec:
             - name: health
               containerPort: 13133
           # GRAFANA_CLOUD_OTLP_ENDPOINT, GRAFANA_CLOUD_INSTANCE_ID and
-          # GRAFANA_CLOUD_TOKEN; their values are #684's.
+          # GRAFANA_CLOUD_TOKEN, from the `grafana-cloud` secret in Secret
+          # Manager (docs/DEVELOPING.md → "The cloud environment").
           envFrom:
             - secretRef:
                 name: grafana-cloud

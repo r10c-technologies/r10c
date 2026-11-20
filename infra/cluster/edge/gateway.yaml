@@ -15,16 +15,49 @@ metadata:
   namespace: r10c
 spec:
   gatewayClassName: r10c-edge
+  addresses:
+    - type: IPAddress
+      value: '192.0.2.1'
   listeners:
-    - name: origin-3000
+    - name: http
       protocol: HTTP
-      port: 3000
+      port: 80
       allowedRoutes:
         namespaces:
           from: Same
-    - name: origin-3001
-      protocol: HTTP
-      port: 3001
+    - name: https-shop
+      protocol: HTTPS
+      port: 443
+      hostname: shop.r10c.invalid
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: edge-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https-office
+      protocol: HTTPS
+      port: 443
+      hostname: office.r10c.invalid
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: edge-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https-id
+      protocol: HTTPS
+      port: 443
+      hostname: id.r10c.invalid
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: edge-tls
       allowedRoutes:
         namespaces:
           from: Same
