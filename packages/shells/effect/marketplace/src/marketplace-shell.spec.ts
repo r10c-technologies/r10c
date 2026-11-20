@@ -100,6 +100,7 @@ describe('the two projections', () => {
       acceptsCod: false,
       holdsStock: true,
       acceptsLink: false,
+      whatsappNumber: '',
       fiscal: {
         taxId: '10000003',
         legalName: 'Demo Vendor, S.A.',

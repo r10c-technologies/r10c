@@ -4,6 +4,7 @@ import {
   FLEET,
   mongo,
   ordersOf,
+  recordGuide,
   sellable,
   settled,
   startCheckout,
@@ -49,6 +50,9 @@ it(`lets exactly one of cancel and dispatch win, ${String(ORDERS)} orders over`,
     });
     expect(done.state).toBe('completed');
     const [order] = await ordersOf(checkout.flowId);
+    // Labelled before the race: a dispatch without a guide is refused before
+    // any flow starts, and would race nothing (ADR 0081 §11).
+    expect((await recordGuide(String(order?.['id']), bearer)).status).toBe(200);
     placed.push(String(order?.['id']));
   }
 

@@ -62,3 +62,27 @@ test('switches payment links on, and opens on it next time', async ({
     }),
   ).toBeChecked();
 });
+
+/**
+ * The WhatsApp number buyers may write to (#671) is the organization's own to
+ * state, and the form opens on it next visit, as stored.
+ */
+test('saves the WhatsApp number, and opens on it next time', async ({
+  page,
+}) => {
+  await page.goto('/es/account/organization');
+
+  const number = page.getByRole('textbox', { name: 'WhatsApp' });
+  await expect(number).toHaveValue('');
+
+  await number.fill('5555-1234');
+  await page.getByRole('button', { name: 'Guardar WhatsApp' }).click();
+  await expect(
+    page.getByText('Guardado. Los recibos ofrecen el chat desde ahora.'),
+  ).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'WhatsApp' })).toHaveValue(
+    '+50255551234',
+  );
+});

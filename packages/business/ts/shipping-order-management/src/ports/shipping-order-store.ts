@@ -3,7 +3,9 @@ import { Context, type Effect } from 'effect';
 
 import type { ShippingOrder } from '../entities/shipping-order';
 import type { ShippingOrderNotTransitionable } from '../failures/shipping-failures';
+import type { Guide } from '../values/courier';
 import type { ShippingTransition } from '../values/shipping-transition';
+import type { ParcelInTransit } from './courier-tracking';
 
 /** How opening went: a new shipment, or the one a repeated command opened. */
 export type OpenOutcome =
@@ -61,6 +63,25 @@ export interface ShippingOrderStore {
     ShippingOrder,
     NotFound | ShippingOrderNotTransitionable | ShippingStoreFailure
   >;
+  /**
+   * Record the parcel's guide, conditional on the shipment still awaiting
+   * dispatch; the last one recorded wins (ADR 0081 §11). `undefined` when the
+   * shipment is not there or has moved on.
+   */
+  readonly recordGuide: (
+    organizationId: string,
+    shippingOrderId: string,
+    guide: Guide,
+    at: Date,
+  ) => Effect.Effect<ShippingOrder | undefined, ShippingStoreFailure>;
+  /**
+   * Every parcel dispatched and not yet reported on, across every
+   * organization's store, at most `limit` of them: what a courier's tracking
+   * feed is asked about.
+   */
+  readonly inTransit: (
+    limit: number,
+  ) => Effect.Effect<readonly ParcelInTransit[], StoreFailure>;
   /**
    * The retention sweep's write, across every organization's store: remove
    * the `destination` of each shipment delivered, returned or withdrawn before

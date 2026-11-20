@@ -1321,6 +1321,24 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'destinationRetentionDays',
     value: '30',
   },
+  // The lab's simulated courier: a dispatched parcel is reported delivered
+  // this many seconds later through the same move a vendor makes. `0` turns it
+  // off, which is what an environment with a real courier feed sets
+  // (ADR 0081 §11).
+  {
+    service: 'fulfilment-service',
+    group_name: 'fulfilment',
+    key: 'courierSimulatorDelaySeconds',
+    value: '120',
+  },
+  // The courier dictionary (ADR 0081 §10): `other` alone. Real couriers are
+  // this environment's own rows, never the repository's (ADR 0025).
+  {
+    service: 'fulfilment-service',
+    group_name: 'courier',
+    key: 'other',
+    value: '{"name":"Other","trackingUrlTemplate":""}',
+  },
   {
     service: 'fulfilment-service',
     group_name: 'jwt',

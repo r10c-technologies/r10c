@@ -10,7 +10,7 @@ vi.mock('./principal', () => ({
 }));
 vi.mock('./session', () => ({ AUTH_SERVICE_URL: 'http://auth' }));
 
-const { saveFiscalIdentity, savePaymentLinkAcceptance } =
+const { saveFiscalIdentity, savePaymentLinkAcceptance, saveWhatsappNumber } =
   await import('./organization-actions');
 const { OrganizationPage } = await import('./organization-page');
 
@@ -120,11 +120,32 @@ describe('savePaymentLinkAcceptance', () => {
   });
 });
 
+describe('saveWhatsappNumber', () => {
+  const idle = { status: 'idle' } as const;
+
+  it('posts the typed number, and nothing typed as none', async () => {
+    stubFetch(() => answer(200, {}));
+    const typed = new FormData();
+    typed.set('number', '5555-1234');
+    expect(await saveWhatsappNumber(idle, typed)).toEqual({ status: 'saved' });
+    expect(await saveWhatsappNumber(idle, new FormData())).toEqual({
+      status: 'saved',
+    });
+    expect(calls[0]?.url).toBe(
+      'http://auth/api/organization/org-1/set-whatsapp-number',
+    );
+    expect(calls.map(call => JSON.parse(String(call.init?.body)))).toEqual([
+      { number: '5555-1234' },
+      { number: '' },
+    ]);
+  });
+});
+
 describe('OrganizationPage', () => {
   const propsOf = async () =>
     (
       (await OrganizationPage()) as {
-        props: { fiscal: unknown; paymentLink: unknown };
+        props: { fiscal: unknown; paymentLink: unknown; whatsapp: unknown };
       }
     ).props;
   const fiscalOf = async () => (await propsOf()).fiscal;
@@ -138,6 +159,17 @@ describe('OrganizationPage', () => {
     expect((await propsOf()).paymentLink).toBeUndefined();
     principal.current = null;
     expect((await propsOf()).paymentLink).toBeUndefined();
+  });
+
+  it('reads the organization’s WhatsApp number, failing as undefined', async () => {
+    stubFetch(() => answer(200, { id: 'org-1', number: '+50255551234' }));
+    expect((await propsOf()).whatsapp).toBe('+50255551234');
+    stubFetch(() => answer(200, { id: 'org-1' }));
+    expect((await propsOf()).whatsapp).toBe('');
+    stubFetch(() => answer(403, {}));
+    expect((await propsOf()).whatsapp).toBeUndefined();
+    stubFetch(() => Promise.reject(new Error('down')));
+    expect((await propsOf()).whatsapp).toBeUndefined();
   });
 
   it('starts the form from the stored identity, or empty when there is none', async () => {

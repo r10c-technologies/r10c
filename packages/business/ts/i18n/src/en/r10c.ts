@@ -56,6 +56,12 @@ export const r10c: EsR10c = {
         failed: 'Whether you take payment links could not be read.',
         saved: 'Saved. New checkouts follow it from now on.',
       },
+      whatsapp: {
+        title: 'WhatsApp',
+        hint: 'The WhatsApp number your buyers may write to. Every receipt with your orders on it offers a chat with you. Leave it empty to offer none.',
+        failed: 'Your WhatsApp number could not be read.',
+        saved: 'Saved. Receipts offer the chat from now on.',
+      },
     },
     account: {
       overline: 'Account',
@@ -390,6 +396,36 @@ export const r10c: EsR10c = {
       cancelConfirm: 'Cancel order and refund',
       cancelKeep: 'Keep the order',
       cancelledTag: 'Cancelled',
+      whatsapp: {
+        label: 'Message the seller on WhatsApp',
+        text: {
+          placed: 'Hi, I am writing about my order {{number}}.',
+          awaitingPayment:
+            'Hi, I am writing about paying for my order {{number}}.',
+          dispatched:
+            'Hi, I am writing about the shipment of my order {{number}}.',
+          delivered:
+            'Hi, I received my order {{number}} and I am writing about it.',
+        },
+      },
+      tracker: {
+        heading: 'Tracking',
+        placed: 'Order received',
+        payment: {
+          card: 'Card payment',
+          link: 'Payment by link',
+        },
+        dispatched: 'Dispatched',
+        delivered: 'Delivered',
+        state: {
+          done: 'done',
+          current: 'in progress',
+          todo: 'pending',
+        },
+        codNote: 'You pay when it arrives.',
+        guide: '{{courier}}, tracking number {{number}}',
+        follow: 'Track the parcel',
+      },
       cancelledAll: 'Every order in this purchase was cancelled.',
       cancelWindow: 'You can cancel this order until {{time}}.',
       cancelledHeading: 'Order cancelled',
@@ -480,6 +516,28 @@ export const r10c: EsR10c = {
     },
     home: {
       awaitingDispatch: 'Shipments to dispatch',
+    },
+    whatsapp: {
+      heading: 'Buyer',
+      label: 'Message the buyer on WhatsApp',
+      text: {
+        preparing: 'Hi, about your order {{number}}: we are preparing it.',
+        dispatched:
+          'Hi, your order {{number}} is on its way. Your tracking number is {{tracking}}.',
+        delivered: 'Hi, did your order {{number}} arrive well?',
+      },
+    },
+    guide: {
+      heading: 'Tracking',
+      missing:
+        'This shipment has no tracking number yet. Record it before dispatching: the buyer follows the parcel by it.',
+      recorded: '{{courier}}, tracking number {{number}}',
+      follow: 'Track the parcel',
+      courier: 'Courier',
+      courierName: 'Courier name',
+      trackingUrl: 'Tracking link (optional)',
+      number: 'Tracking number',
+      record: 'Record tracking number',
     },
   },
   settlement: {

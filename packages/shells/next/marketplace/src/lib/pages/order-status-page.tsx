@@ -15,8 +15,14 @@ import {
   Text,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { departamentoOf, municipioOf } from '@r10c/business-ts-order-contracts';
+import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
+import {
+  departamentoOf,
+  municipioOf,
+  whatsappChatUrl,
+} from '@r10c/business-ts-order-contracts';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
+import { getVendor } from '@r10c/implementation-marketplace-vendor-next';
 
 import { cancelOrder } from '../cart/cancel-action';
 import type { CancelOutcome } from '../cart/cancel-outcome';
@@ -37,10 +43,12 @@ import {
   type ReceiptOrder,
   type ReceiptPayment,
 } from '../cart/receipt-state';
+import { ReceiptWatch } from '../cart/receipt-watch';
 import { refreshCheckout, settleCheckout } from '../cart/settle-action';
 import { settleCancellation } from '../cart/settle-cancel-action';
 import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
+import { OrderTracker } from './order-tracker';
 import { StoreShell } from './store-shell';
 
 /**
@@ -294,6 +302,15 @@ async function ReceiptView({
         </Card>
       )}
 
+      {/* A dispatch or a delivery re-renders this page by push; without
+          script, a reload shows the same (ADR 0081 §11). */}
+      {receipt.cancelNonce === undefined ||
+      answer?.kind !== 'read' ? undefined : (
+        <ReceiptWatch
+          capability={receipt.cancelNonce}
+          orderIds={receipt.orders.map(order => order.orderId)}
+        />
+      )}
       {receipt.orders.map(order => (
         <VendorOrderCard
           key={order.orderId}
@@ -347,6 +364,23 @@ async function ReceiptView({
   );
 }
 
+/**
+ * Which prefilled message a chat with the seller opens on: where the order
+ * stands, so the seller reads the question in context (#671).
+ */
+const chatStepOf = (status: string | undefined) => {
+  switch (status) {
+    case 'awaiting-payment':
+      return 'awaitingPayment';
+    case 'dispatched':
+      return 'dispatched';
+    case 'fulfilled':
+      return 'delivered';
+    default:
+      return 'placed';
+  }
+};
+
 /** One vendor's order on the receipt, with its own cancel. */
 async function VendorOrderCard({
   locale,
@@ -380,6 +414,20 @@ async function VendorOrderCard({
 
   const iva = details?.ivaIncluded.get(order.orderId);
   const payment = details?.payments.get(order.orderId);
+  const tracking = details?.tracking.get(order.orderId);
+  // A chat with the seller, prefilled with the order and where it stands
+  // (#671): the number is the seller's own, read from its published record.
+  const vendor = await runRead(
+    PublishedVendor,
+    getVendor(order.vendorId),
+    undefined,
+  );
+  const chat = whatsappChatUrl(
+    vendor?.whatsappNumber,
+    t(`storefront.order.whatsapp.text.${chatStepOf(tracking?.status)}`, {
+      number: order.number ?? order.orderId,
+    }),
+  );
 
   return (
     <Card>
@@ -409,6 +457,20 @@ async function VendorOrderCard({
             </StatusTag>
           </span>
         ) : undefined}
+        {tracking === undefined || order.cancelled === true ? undefined : (
+          <OrderTracker locale={locale} tracking={tracking} />
+        )}
+        {chat === undefined ? undefined : (
+          <a
+            href={chat}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="touch-target underline"
+            data-testid="vendor-order-whatsapp"
+          >
+            {t('storefront.order.whatsapp.label')}
+          </a>
+        )}
         {order.lines === undefined ? (
           <Text muted data-testid="order-summary-only">
             {t('storefront.order.tooManyLines', { count: order.lineCount })}
@@ -564,7 +626,9 @@ function LinkPayment({
         </StatusTag>
       </span>
       {until === undefined ? undefined : (
-        <Text muted>{t('storefront.order.payment.until', { time: until })}</Text>
+        <Text muted>
+          {t('storefront.order.payment.until', { time: until })}
+        </Text>
       )}
       {payment.link === undefined ? (
         <Text muted data-testid="vendor-order-no-link">

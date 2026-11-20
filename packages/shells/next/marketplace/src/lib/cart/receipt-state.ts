@@ -303,8 +303,81 @@ export interface ReceiptPayment {
   };
 }
 
+/**
+ * Where one vendor order stands on its way to the buyer, read back on every
+ * render (ADR 0081 §11): its status, how it is paid, and — once the parcel
+ * left — the courier and the tracking number it left with. A tracking link
+ * that is not `https` is not kept: the service refuses one.
+ */
+export interface ReceiptTracking {
+  readonly status: string;
+  readonly method: string;
+  readonly courierName?: string;
+  readonly trackingNumber?: string;
+  readonly trackingUrl?: string;
+}
+
+/** One step on the way to the door, as the buyer's tracker draws it. */
+export type TrackerStepKey = 'placed' | 'payment' | 'dispatched' | 'delivered';
+
+export interface TrackerStep {
+  readonly key: TrackerStepKey;
+  readonly state: 'done' | 'current' | 'todo';
+}
+
+/**
+ * How far along each status is: the steps before it are done, its own is the
+ * current one. `pending` is still being paid for by card, so payment is the
+ * current step and never a done one — a pending result never says the money
+ * was taken (ADR 0073).
+ */
+const REACHED: Readonly<Record<string, number>> = {
+  pending: 1,
+  'awaiting-payment': 1,
+  paid: 2,
+  confirmed: 2,
+  dispatched: 3,
+  fulfilled: 4,
+};
+
+const STEPS: readonly TrackerStepKey[] = [
+  'placed',
+  'payment',
+  'dispatched',
+  'delivered',
+];
+
+/**
+ * The steps of an order's way to the door, or none for one that left that
+ * way — cancelled, being cancelled, or a status this storefront does not know.
+ *
+ * ⚠️ **Cash on delivery has no payment step.** Its money changes hands at the
+ * door, so a done payment step would say the buyer paid before they did; the
+ * page says instead that they pay when it arrives.
+ */
+export const trackerSteps = (
+  status: string,
+  method: string,
+): readonly TrackerStep[] => {
+  const reached = REACHED[status];
+  if (reached === undefined) return [];
+  return STEPS.flatMap((key, index): TrackerStep[] =>
+    key === 'payment' && method === 'cod'
+      ? []
+      : [
+          {
+            key,
+            state:
+              index < reached ? 'done' : index === reached ? 'current' : 'todo',
+          },
+        ],
+  );
+};
+
 export interface ReceiptDetails {
   readonly delivery?: ReceiptDelivery;
+  /** Where each order stands, keyed by order id. */
+  readonly tracking: ReadonlyMap<string, ReceiptTracking>;
   /** Each payment-link order's state, keyed by order id. */
   readonly payments: ReadonlyMap<string, ReceiptPayment>;
   /** The name each line was sold under, keyed `<orderId>/<offeringId>`. */
@@ -370,6 +443,24 @@ const paymentOf = (
   };
 };
 
+/** An order's tracking as its buyer reads it, or `undefined` without a status. */
+const trackingOf = (
+  data: Record<string, unknown>,
+): ReceiptTracking | undefined => {
+  const { status, paymentMethod, courierName, trackingNumber, trackingUrl } =
+    data;
+  if (!filled(status)) return undefined;
+  return {
+    status,
+    method: filled(paymentMethod) ? paymentMethod : 'card',
+    ...(filled(courierName) ? { courierName } : {}),
+    ...(filled(trackingNumber) ? { trackingNumber } : {}),
+    ...(filled(trackingUrl) && httpsHost(trackingUrl) !== undefined
+      ? { trackingUrl }
+      : {}),
+  };
+};
+
 /** The key {@link ReceiptDetails.lineNames} holds a line's name under. */
 export const lineNameKey = (orderId: string, offeringId: string) =>
   `${orderId}/${offeringId}`;
@@ -417,6 +508,7 @@ export const receiptDetailsOf = (
   const lineNames = new Map<string, string>();
   const ivaIncluded = new Map<string, number>();
   const payments = new Map<string, ReceiptPayment>();
+  const tracking = new Map<string, ReceiptTracking>();
   let billedTo: ReceiptBilledTo | undefined;
   for (const envelope of orders) {
     const data = isRecord(envelope) ? envelope['data'] : undefined;
@@ -424,6 +516,8 @@ export const receiptDetailsOf = (
     billedTo ??= billedToOf(data);
     const payment = paymentOf(data);
     if (payment !== undefined) payments.set(data['id'], payment);
+    const where = trackingOf(data);
+    if (where !== undefined) tracking.set(data['id'], where);
     if (
       typeof data['taxAmount'] === 'number' &&
       data['sellerTaxRegime'] !== 'small-taxpayer'
@@ -450,6 +544,7 @@ export const receiptDetailsOf = (
     lineNames,
     ivaIncluded,
     payments,
+    tracking,
     ...(billedTo === undefined ? {} : { billedTo }),
   };
 };

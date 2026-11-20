@@ -12,7 +12,12 @@ import {
 import { ShippingOrder } from '@r10c/business-ts-shipping-order-management';
 import { Context } from 'effect';
 
-import type { FulfilmentAdapters } from '../client-types';
+import type {
+  CourierOption,
+  FulfilmentAdapters,
+  GuideOutcome,
+  ShippingGuidePort,
+} from '../client-types';
 
 /**
  * fulfilment-service, reached through the host's same-origin `/api/fulfilment`
@@ -64,6 +69,49 @@ const shippingOrderUseCases = makeEntityRestUseCaseRunner(
   FULFILMENT_SERVICE,
 );
 
+/** A refused write's `errors` code, read off its problem body. */
+const outcomeOf = async (response: Response): Promise<GuideOutcome> => {
+  if (response.ok) return { ok: true };
+  const body = (await response.json().catch(() => undefined)) as
+    { code?: unknown } | undefined;
+  return {
+    ok: false,
+    code: typeof body?.code === 'string' ? body.code : 'unexpected',
+  };
+};
+
+/**
+ * The guide verb and the courier dictionary, through the same proxy. A
+ * dictionary that cannot be read is an empty one: the form then offers no
+ * courier, rather than one it made up.
+ */
+const guide: ShippingGuidePort = {
+  couriers: () =>
+    fetch('/api/fulfilment/courier')
+      .then(async response =>
+        response.ok
+          ? ((await response.json()) as { items?: CourierOption[] })
+          : {},
+      )
+      .then(body => body.items ?? [])
+      .catch(() => []),
+  record: (shippingOrderId, body) =>
+    fetch(
+      `/api/fulfilment/shipping-order/${encodeURIComponent(shippingOrderId)}/record-guide`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          // An RFC 9651 String, fresh per submit: relabelling is a new decision.
+          'idempotency-key': `"${globalThis.crypto.randomUUID()}"`,
+        },
+        body: JSON.stringify(body),
+      },
+    )
+      .then(outcomeOf)
+      .catch((): GuideOutcome => ({ ok: false, code: 'unexpected' })),
+};
+
 export function createClientAdapters(): FulfilmentAdapters {
-  return { shippingOrderRest, metadata, shippingOrderUseCases };
+  return { shippingOrderRest, metadata, shippingOrderUseCases, guide };
 }

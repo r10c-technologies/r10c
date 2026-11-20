@@ -45,6 +45,7 @@ export {
   makeMongoUserDeviceRepository,
   MongoOrganizationFiscalIdentityLayer,
   MongoOrganizationPaymentLinkAcceptanceLayer,
+  MongoOrganizationWhatsappNumberLayer,
   OUTBOX_COLLECTION,
 } from '@r10c/implementation-auth-mongo';
 export {

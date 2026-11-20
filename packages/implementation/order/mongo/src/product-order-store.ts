@@ -21,6 +21,8 @@ import {
 import {
   drawOrderNumber,
   ORDER_CANCELLED,
+  ORDER_DISPATCHED,
+  ORDER_FULFILLED,
   ORDER_PAYMENT_CONFIRMED,
   ORDER_PLACED,
   orderAudience,
@@ -31,6 +33,7 @@ import {
   CheckoutGroup,
   CheckoutGroupStoreTag,
   type GroupOpening,
+  MOVE_STAMP_OF,
   type OrderPlacement,
   type OrderStatus,
   orderStatusAfter,
@@ -220,19 +223,27 @@ export const MongoProductOrderStoreLayer = Layer.effect(
     // confirmed when a seller confirms one, then possibly cancelled — so each
     // event is a fixed version of its order, and a cancellation outranks a
     // confirmation whether or not one came first.
+    // A parcel leaves, then arrives or comes back refused, so dispatch ranks
+    // above a confirmation and a cancellation above both. Delivered and
+    // cancelled never follow each other.
     type OrderEventName =
       | typeof ORDER_PLACED
       | typeof ORDER_PAYMENT_CONFIRMED
+      | typeof ORDER_DISPATCHED
+      | typeof ORDER_FULFILLED
       | typeof ORDER_CANCELLED;
     const VERSION: Record<OrderEventName, number> = {
       [ORDER_PLACED]: 1,
       [ORDER_PAYMENT_CONFIRMED]: 2,
-      [ORDER_CANCELLED]: 3,
+      [ORDER_DISPATCHED]: 3,
+      [ORDER_FULFILLED]: 4,
+      [ORDER_CANCELLED]: 5,
     };
     const event = (
       name: OrderEventName,
       id: string,
       data: SerializedOrder,
+      receiptDigest?: string,
     ): OutboxEvent => ({
       name,
       id: `${id}:${name.split('.')[1] as string}`,
@@ -241,7 +252,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
       correlationId: id,
       aggregate: { type: 'product-order', id },
       version: VERSION[name],
-      audience: orderAudience(data),
+      audience: orderAudience(data, receiptDigest),
       // Built member by member, never the stored document: the buyer's fiscal
       // identity is on the record and must reach no subscriber (ADR 0078 §2).
       data: orderEventDataOf(data),
@@ -388,8 +399,9 @@ export const MongoProductOrderStoreLayer = Layer.effect(
           catch: storeUnavailable,
         }).pipe(Effect.map(result => result.deletedCount > 0)),
 
-      move: (orderId, transition, commandId) =>
+      move: (orderId, transition, commandId, guide) =>
         Effect.gen(function* () {
+          const stamp = MOVE_STAMP_OF[transition];
           const outcome = yield* units.run(
             unit =>
               Effect.gen(function* () {
@@ -401,10 +413,45 @@ export const MongoProductOrderStoreLayer = Layer.effect(
                   const to = orderStatusAfter(from, transition) as string;
                   const moved = yield* shift(session, handle, orderId, [from], {
                     status: to,
+                    ...(stamp === undefined ? {} : { [stamp]: new Date() }),
+                    ...(transition === 'mark-dispatched' && guide !== undefined
+                      ? guide
+                      : {}),
                   });
                   if (moved === null) continue;
                   if (to === 'cancelled') {
                     unit.emit(event(ORDER_CANCELLED, orderId, moved));
+                  }
+                  const announces =
+                    to === 'dispatched'
+                      ? ORDER_DISPATCHED
+                      : to === 'fulfilled'
+                        ? ORDER_FULFILLED
+                        : undefined;
+                  if (announces !== undefined) {
+                    // Addressed to the buyer's open receipt too, by the digest
+                    // its group holds now: an access link re-keys it, and the
+                    // receipt that redeemed it is the one listening.
+                    const group = yield* Effect.tryPromise({
+                      try: () =>
+                        handle.collection(GROUP_COLLECTION).findOne(
+                          { id: moved['groupId'] },
+                          {
+                            projection: { _id: 0, cancelDigest: 1 },
+                            session,
+                          },
+                        ),
+                      catch: mongoUnitFault,
+                    });
+                    const digest = group?.['cancelDigest'];
+                    unit.emit(
+                      event(
+                        announces,
+                        orderId,
+                        moved,
+                        typeof digest === 'string' ? digest : undefined,
+                      ),
+                    );
                   }
                   return moved;
                 }
@@ -562,21 +609,25 @@ export const MongoProductOrderStoreLayer = Layer.effect(
               Effect.flatMap(
                 Effect.tryPromise({
                   try: () =>
-                    unit.handle.db.collection(ORDER_COLLECTION).findOneAndUpdate(
-                      {
-                        id: orderId,
-                        status: { $in: [...statusesBefore('end-awaiting-payment')] },
-                        ...(cause === 'payment-expired'
-                          ? { paymentDueAt: { $lt: now } }
-                          : {}),
-                      },
-                      { $set: { status: 'cancelled', cancelCause: cause } },
-                      {
-                        returnDocument: 'after',
-                        ...WITHOUT_ID,
-                        session: unit.handle.session,
-                      },
-                    ),
+                    unit.handle.db
+                      .collection(ORDER_COLLECTION)
+                      .findOneAndUpdate(
+                        {
+                          id: orderId,
+                          status: {
+                            $in: [...statusesBefore('end-awaiting-payment')],
+                          },
+                          ...(cause === 'payment-expired'
+                            ? { paymentDueAt: { $lt: now } }
+                            : {}),
+                        },
+                        { $set: { status: 'cancelled', cancelCause: cause } },
+                        {
+                          returnDocument: 'after',
+                          ...WITHOUT_ID,
+                          session: unit.handle.session,
+                        },
+                      ),
                   catch: mongoUnitFault,
                 }),
                 moved => {

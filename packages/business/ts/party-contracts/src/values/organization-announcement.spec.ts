@@ -17,6 +17,7 @@ const ANNOUNCEMENT: OrganizationAnnouncement = {
   acceptsCod: true,
   holdsStock: true,
   acceptsLink: true,
+  whatsappNumber: '+50255551234',
   fiscal: {
     taxId: '12345679',
     legalName: 'Demo Vendor, S.A.',
@@ -86,6 +87,13 @@ describe('readOrganizationAnnouncement', () => {
         readOrganizationAnnouncement({ ...ANNOUNCEMENT, slug: 'demo-vendor' }),
       ),
     ).toEqual(ANNOUNCEMENT);
+  });
+
+  it('reads an announcement with no WhatsApp number as one without', async () => {
+    const { whatsappNumber: _none, ...withoutNumber } = ANNOUNCEMENT;
+    expect(
+      await Effect.runPromise(readOrganizationAnnouncement(withoutNumber)),
+    ).toEqual({ ...ANNOUNCEMENT, whatsappNumber: '' });
   });
 
   it.each([null, 'text', 7])('rejects %s, which is not an object', value => {

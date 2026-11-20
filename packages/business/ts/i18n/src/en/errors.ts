@@ -143,6 +143,10 @@ export const errors: EsErrors = {
     'This order is no longer waiting for its payment: it was confirmed, it expired or the buyer withdrew it. If the buyer paid an expired order, give the money back through your payment provider — r10c never held it.',
   invalidPaymentDetails:
     'Check the payment details: a link is an https address from the provider you chose, and an authorization number is not empty.',
+  guideMissing:
+    "Record the parcel's tracking number before dispatching it: the buyer follows the parcel by it.",
+  invalidGuide:
+    'Check the tracking details: the tracking number cannot be empty or longer than 64 characters, pick a courier from the list and, if you paste a tracking link, make it an https address.',
   contactNameRequired: 'Enter your name.',
   phoneNotGuatemalan:
     'Enter a Guatemalan phone number of eight digits, for example 5555-1234.',

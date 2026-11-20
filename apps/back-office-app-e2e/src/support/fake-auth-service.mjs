@@ -68,6 +68,7 @@ const fiscalIdentities = new Map([
 
 /** Each organization's payment-link acceptance, as the last save left it. */
 const paymentLinkAcceptance = new Map([['e2e-organization', false]]);
+const whatsappNumbers = new Map([['e2e-organization', '']]);
 
 const json = (response, status, body) =>
   response
@@ -85,7 +86,7 @@ const readBody = request =>
   });
 
 const FISCAL_PATH =
-  /^\/api\/organization\/([^/]+)\/(fiscal-identity|set-fiscal-identity|payment-link-acceptance|set-payment-link-acceptance)$/;
+  /^\/api\/organization\/([^/]+)\/(fiscal-identity|set-fiscal-identity|payment-link-acceptance|set-payment-link-acceptance|whatsapp-number|set-whatsapp-number)$/;
 
 const server = createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://localhost');
@@ -143,6 +144,25 @@ const server = createServer((request, response) => {
       json(response, 200, {
         id: organizationId,
         accepts: paymentLinkAcceptance.get(organizationId) === true,
+      });
+      return;
+    }
+    if (request.method === 'GET' && route === 'whatsapp-number') {
+      json(response, 200, {
+        id: organizationId,
+        number: whatsappNumbers.get(organizationId) ?? '',
+      });
+      return;
+    }
+    if (request.method === 'POST' && route === 'set-whatsapp-number') {
+      void readBody(request).then(body => {
+        // As auth-service stores it: E.164, from eight Guatemalan digits.
+        const digits = String(body.number ?? '')
+          .replace(/\D/g, '')
+          .slice(-8);
+        const number = digits.length === 8 ? `+502${digits}` : '';
+        whatsappNumbers.set(organizationId, number);
+        json(response, 200, { data: { number } });
       });
       return;
     }

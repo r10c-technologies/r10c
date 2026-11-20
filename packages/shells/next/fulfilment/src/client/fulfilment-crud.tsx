@@ -8,7 +8,9 @@ import {
   SHIPPING_ORDER_SURFACE,
   SHIPPING_ORDER_WORKLIST,
 } from '../fulfilment-surfaces';
+import { BuyerChatRegion } from './buyer-chat-region';
 import { useFulfilmentAdapters } from './fulfilment-context';
+import { ShippingGuideRegion } from './shipping-guide-region';
 
 export const shippingOrderCrud: EntityCrud<ShippingOrder> = makeEntityCrud(
   ShippingOrder,
@@ -28,6 +30,13 @@ export const shippingOrderCrud: EntityCrud<ShippingOrder> = makeEntityCrud(
     // nothing to draw.
     metadata: 'metadata',
     useCases: 'shippingOrderUseCases',
+    // The guide a parcel leaves with: a verb with a body, which the header's
+    // buttons cannot send (ADR 0081 §11).
+    regions: shipment => [
+      <ShippingGuideRegion key="guide" shipment={shipment} />,
+      // A chat with the buyer, prefilled with where the parcel stands (#671).
+      <BuyerChatRegion key="chat" shipment={shipment} />,
+    ],
   },
 );
 

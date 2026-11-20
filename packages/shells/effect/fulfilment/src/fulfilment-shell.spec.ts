@@ -27,7 +27,15 @@ const CONFIGURATION = fleetConfigurationOf({
     uri: 'mongodb://127.0.0.1:1/?directConnection=true',
   }),
   tenant: configurationRows({ dbPrefix: 'fulfilment_' }),
-  fulfilment: configurationRows({ destinationRetentionDays: 30 }),
+  fulfilment: configurationRows({
+    destinationRetentionDays: 30,
+    courierSimulatorDelaySeconds: 120,
+  }),
+  // One courier that reads, one that does not and drops out.
+  courier: configurationRows({
+    other: '{"name":"Other","trackingUrlTemplate":""}',
+    broken: '{',
+  }),
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
@@ -45,6 +53,23 @@ describe('the fulfilment shell', () => {
     expect(Layer.isLayer(layer)).toBe(true);
   });
 
+  it('composes with no courier feed when the simulator is off, and no couriers', async () => {
+    const { courier: _none, ...rest } = CONFIGURATION.plain;
+    const layer = await Effect.runPromise(
+      fulfilmentComposition(
+        fleetConfigurationOf({
+          ...rest,
+          fulfilment: configurationRows({
+            destinationRetentionDays: 30,
+            courierSimulatorDelaySeconds: 0,
+          }),
+        }),
+      ),
+    );
+
+    expect(Layer.isLayer(layer)).toBe(true);
+  });
+
   it('refuses a configuration with no tenant prefix, at boot', async () => {
     const exit = await Effect.runPromiseExit(
       fulfilmentComposition(
@@ -57,7 +82,7 @@ describe('the fulfilment shell', () => {
 
   it('offers the booted composition, its endpoints and its policy', () => {
     expect(Layer.isLayer(makeAppLayer())).toBe(true);
-    expect(endpoints).toHaveLength(3);
+    expect(endpoints).toHaveLength(4);
     expect(policy).toBeDefined();
     expect(FULFILMENT_SLICE).toBe('fulfilment');
   });

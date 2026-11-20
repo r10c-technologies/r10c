@@ -5,15 +5,17 @@ import {
   InvalidFiscalIdentity,
   OrganizationFiscalIdentityTag,
   OrganizationPaymentLinkAcceptanceTag,
+  OrganizationWhatsappNumberTag,
 } from '@r10c/business-ts-party-management';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { organizationApi, organizationEndpoints } from './organization-api.js';
 
-const [setFiscalIdentity, setPaymentLinkAcceptance] =
+const [setFiscalIdentity, setPaymentLinkAcceptance, setWhatsappNumber] =
   organizationApi.options.useCases;
-const [readFiscalIdentity, readPaymentLinkAcceptance] = organizationEndpoints;
+const [readFiscalIdentity, readPaymentLinkAcceptance, readWhatsappNumber] =
+  organizationEndpoints;
 
 const FISCAL: FiscalIdentity = {
   taxId: '10000003',
@@ -165,6 +167,69 @@ describe('GET payment-link-acceptance', () => {
   it('answers the caller its own organization’s choice', async () => {
     expect(await read('org-1', 'org-1')).toEqual(
       Exit.succeed({ id: 'org-1', accepts: false }),
+    );
+  });
+
+  it('answers NotFound for any organization but the active one', async () => {
+    expect(await read('org-1', 'org-2')).toEqual(
+      Exit.fail(new NotFound({ entity: 'organization' })),
+    );
+  });
+});
+
+const numberStore = () => {
+  const rows = new Map<string, string>([['org-1', '+50255550000']]);
+  return {
+    rows,
+    port: {
+      get: (id: string) => Effect.succeed(rows.get(id) ?? ''),
+      set: (id: string, number: string) =>
+        Effect.sync(() => {
+          rows.set(id, number);
+        }),
+    },
+  };
+};
+
+describe('set-whatsapp-number', () => {
+  it('writes the active organization its own number, and refuses another', async () => {
+    const { rows, port } = numberStore();
+    const run = (id: string, active: string) =>
+      Effect.runPromiseExit(
+        setWhatsappNumber
+          .handler(
+            { params: { id }, payload: { number: '5555-1234' } },
+            context(active),
+          )
+          .pipe(Effect.provideService(OrganizationWhatsappNumberTag, port)),
+      );
+    expect(await run('org-1', 'org-1')).toEqual(
+      Exit.succeed({ number: '+50255551234' }),
+    );
+    expect(rows.get('org-1')).toBe('+50255551234');
+    expect(await run('org-2', 'org-1')).toEqual(
+      Exit.fail(new NotFound({ entity: 'organization' })),
+    );
+  });
+});
+
+describe('GET whatsapp-number', () => {
+  const read = (id: string, organizationId: string) =>
+    Effect.runPromiseExit(
+      readWhatsappNumber.handler({ params: { id } } as never).pipe(
+        Effect.provideService(
+          OrganizationWhatsappNumberTag,
+          numberStore().port,
+        ),
+        Effect.provideService(RequestPrincipalTag, {
+          organizationId,
+        } as never),
+      ) as Effect.Effect<unknown, unknown>,
+    );
+
+  it('answers the caller its own organization’s number', async () => {
+    expect(await read('org-1', 'org-1')).toEqual(
+      Exit.succeed({ id: 'org-1', number: '+50255550000' }),
     );
   });
 

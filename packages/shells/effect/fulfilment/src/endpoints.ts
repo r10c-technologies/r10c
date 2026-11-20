@@ -1,5 +1,6 @@
 import { endpointGroup, entityApi } from '@entifix/service-shell';
 import {
+  courierEndpoints,
   shippingOrderApi,
   shippingOrderEndpoints,
 } from '@r10c/implementation-shipping-order-management-http';
@@ -26,6 +27,7 @@ export const endpoints = [
     compositions: { recipes: FLOW_RECIPES, catalog: flowCatalog },
   }),
   endpointGroup('fulfilment-crossings', ...shippingOrderEndpoints),
+  endpointGroup('fulfilment-couriers', ...courierEndpoints),
 ] as const;
 
 /** How this slice's endpoints answer and log a failure (ADR 0064). */

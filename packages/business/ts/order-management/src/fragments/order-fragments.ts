@@ -244,6 +244,41 @@ export const orderMarkDispatched = defineFragment({
 });
 
 /**
+ * The parcel left with a courier, and the order is told its guide: the
+ * delivery flow's step after its dispatch pivot. The same move as
+ * {@link orderMarkDispatched}, which a counter sale makes with nothing to
+ * follow; this one consumes what the pivot answered, so the buyer can follow
+ * the parcel from their receipt — they read order-service and never a
+ * vendor's fulfilment store (ADR 0081 §11). After the pivot, so retried.
+ */
+export const orderMarkShipped = defineFragment({
+  id: 'order.mark-shipped',
+  version: 1,
+  module: 'order-management',
+  kind: 'retriable',
+  participant: PARTICIPANT,
+  call: { method: 'POST', path: '/api/product-order/:orderId/dispatched' },
+  cardinality: 'one',
+  isolation: 'reRead',
+  consumes: {
+    orderId: OrderId,
+    courierName: Schema.String,
+    trackingNumber: Schema.String,
+    trackingUrl: Schema.String,
+  },
+  contract: {
+    input: openStruct({
+      orderId: OrderId,
+      courierName: Schema.String,
+      trackingNumber: Schema.String,
+      trackingUrl: Schema.String,
+    }),
+    output: ORDER,
+    failure: MOVE_REFUSAL,
+  },
+});
+
+/**
  * Close a vendor order: `fulfilled` on delivery, `cancelled` for a parcel
  * refused or returned, or a cancellation's claim settled. After the pivot of
  * whichever flow runs it, so retried; it re-reads the order rather than
@@ -304,6 +339,7 @@ export const ORDER_FRAGMENTS = [
   orderAwaitPayment,
   orderPaymentDecision,
   orderMarkDispatched,
+  orderMarkShipped,
   orderClose,
   orderNotifyBuyer,
 ] as const;

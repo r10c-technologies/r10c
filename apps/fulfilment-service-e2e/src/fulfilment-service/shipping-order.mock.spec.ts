@@ -67,6 +67,15 @@ const step = (id: string, path: string, method: 'post' | 'delete' = 'post') =>
         headers: crossing(),
       });
 
+/** The vendor records the parcel's guide, which a dispatch requires. */
+const recordGuide = (id: string, trackingNumber = 'G-1') =>
+  service.client.post(
+    `/api/shipping-order/${id}/record-guide`,
+    { courierKey: 'other', trackingNumber, courierName: 'Mensajería' },
+    // The verb is idempotent at the edge: one decision per key.
+    { headers: { 'idempotency-key': `"${crypto.randomUUID()}"` } },
+  );
+
 describe('the flow’s steps', () => {
   it('opens a shipment awaiting dispatch', async () => {
     const res = await open();
@@ -141,8 +150,47 @@ describe('the vendor', () => {
     expect(res.data.data.paymentMethod).toBe('cod');
   });
 
+  it('refuses to dispatch a parcel with no guide, and records one', async () => {
+    const id = (await open()).data.data.id as string;
+    const before = flowStarts.length;
+
+    const refused = await service.client.post(
+      `/api/shipping-order/${id}/dispatch`,
+      {},
+    );
+    const recorded = await recordGuide(id, 'G-7');
+    const couriers = await service.client.get('/api/courier');
+
+    expect(refused.status).toBe(409);
+    expect(refused.data.code).toBe('guideMissing');
+    expect(flowStarts).toHaveLength(before);
+    expect(recorded.status).toBe(200);
+    expect(recorded.data.data).toMatchObject({
+      courierKey: 'other',
+      courierName: 'Mensajería',
+      trackingNumber: 'G-7',
+    });
+    expect(couriers.data.items).toEqual([
+      { key: 'other', name: 'Other', trackingUrlTemplate: '' },
+    ]);
+  });
+
+  it('answers the guide on the dispatch step, for the order to copy', async () => {
+    const id = (await open()).data.data.id as string;
+    await recordGuide(id);
+
+    const dispatched = await step(id, 'dispatch-step');
+
+    expect(dispatched.data.data).toMatchObject({
+      status: 'dispatched',
+      courierName: 'Mensajería',
+      trackingNumber: 'G-1',
+    });
+  });
+
   it('dispatches by starting the delivery flow, answered 202 with the flow to follow', async () => {
     const id = (await open()).data.data.id as string;
+    await recordGuide(id);
 
     const res = await service.client.post(
       `/api/shipping-order/${id}/dispatch`,

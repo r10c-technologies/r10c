@@ -78,6 +78,27 @@ export const makeInMemoryShippingOrderStore = (): ShippingOrderStore => {
           return Effect.succeed(copy(order));
         },
       ),
+    recordGuide: (organizationId, id, guide, at) =>
+      Effect.sync(() => {
+        const order = orders.get(key(organizationId, id));
+        if (order?.status !== 'awaiting-dispatch') return undefined;
+        Object.assign(order, guide, { guideRecordedAt: at });
+        return copy(order);
+      }),
+    inTransit: limit =>
+      Effect.sync(() =>
+        Array.from(orders.entries())
+          .filter(([, order]) => order.status === 'dispatched')
+          .slice(0, limit)
+          .map(([stored, order]) => ({
+            organizationId: stored.slice(0, stored.indexOf('/')),
+            shippingOrderId: String(order.id),
+            courierKey: order.courierKey ?? '',
+            trackingNumber: order.trackingNumber ?? '',
+            // Every dispatch stamps it.
+            dispatchedAt: order.dispatchedAt as Date,
+          })),
+      ),
     redactClosedBefore: (before, at) =>
       Effect.sync(() => {
         let redacted = 0;

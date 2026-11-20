@@ -21,6 +21,7 @@ const announcement = (
   acceptsCod: false,
   holdsStock: true,
   acceptsLink: false,
+  whatsappNumber: '+50255550000',
   fiscal: {
     taxId: '10000003',
     legalName: 'Demo Vendor, S.A.',

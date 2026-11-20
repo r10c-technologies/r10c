@@ -16,7 +16,10 @@ import {
   useT,
 } from '@entifix/react-controls/primitives';
 import { makeEventSourcePushChannel } from '@entifix/react-integration/event-source';
-import { heldCapabilities } from '@r10c/shells-next-marketplace';
+import {
+  heldCapabilities,
+  StorefrontPushProvider,
+} from '@r10c/shells-next-marketplace';
 import { type PropsWithChildren, useMemo } from 'react';
 
 /**
@@ -73,7 +76,10 @@ export function Providers({
             scope={ANONYMOUS_WORKSPACE_SCOPE}
             channel={pushChannel}
           >
-            {children}
+            {/* The same channel, for a receipt to follow its orders on. */}
+            <StorefrontPushProvider channel={pushChannel}>
+              {children}
+            </StorefrontPushProvider>
           </PendingFlowsProvider>
           <ToastRegion />
         </ToastProvider>

@@ -26,3 +26,31 @@ export class ShippingOrderNotTransitionable extends Failure.conflict<ShippingOrd
       `a shipping order in '${standing}' cannot ${transition}`,
   },
 ) {}
+
+/**
+ * A dispatch asked for before the parcel's guide was recorded. The buyer
+ * follows a parcel by its guide, so one that leaves without it is one nobody
+ * can follow (ADR 0081 §11). A conflict with the shipment as it stands: record
+ * the guide, then dispatch.
+ */
+export class GuideMissing extends Failure.conflict<GuideMissing>()(
+  'GuideMissing',
+  'guideMissing',
+  { shippingOrderId: Schema.String },
+  {
+    message: ({ shippingOrderId }) =>
+      `shipping order ${shippingOrderId} has no guide recorded`,
+  },
+) {}
+
+/**
+ * A guide the shipment cannot carry: no tracking number or one too long, a
+ * courier nobody configured, or a tracking page that is not `https`
+ * (ADR 0081 §10). `field` names which member, for the form to point at.
+ */
+export class InvalidGuide extends Failure.invalid<InvalidGuide>()(
+  'InvalidGuide',
+  'invalidGuide',
+  { field: Schema.String, reason: Schema.String },
+  { message: ({ reason }) => reason },
+) {}

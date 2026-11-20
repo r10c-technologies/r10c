@@ -69,6 +69,8 @@ export const authSlice: SliceDeclaration = {
     // Whether it takes payment links (ADR 0081 §1).
     'GET /api/organization/:id/payment-link-acceptance',
     'POST /api/organization/:id/set-payment-link-acceptance',
+    'GET /api/organization/:id/whatsapp-number',
+    'POST /api/organization/:id/set-whatsapp-number',
   ],
   dependantAPIs: [
     'GET /api/config/:service',

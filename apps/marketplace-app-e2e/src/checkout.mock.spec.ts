@@ -104,6 +104,22 @@ test.describe('a checkout', () => {
       'Facturado a: Consumidor final',
     );
 
+    // #670: where the order stands — paid, on its way next — and never a
+    // payment step that reads as done before it is.
+    await expect(order.getByTestId('tracker-payment')).toHaveAttribute(
+      'data-state',
+      'done',
+    );
+    await expect(order.getByTestId('tracker-dispatched')).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    // #671: a chat with the seller, prefilled with the order.
+    await expect(order.getByTestId('vendor-order-whatsapp')).toHaveAttribute(
+      'href',
+      /^https:\/\/wa\.me\/50255550100\?text=/,
+    );
+
     // #585: a number to quote and the seller's own, where the parcel goes
     // with the phone masked, until when it can be read — and no UUID.
     await expect(order.getByTestId('vendor-order-number')).toHaveText(

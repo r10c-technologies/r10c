@@ -142,6 +142,15 @@ const flowOutcome: PushProjection = event =>
 export const PUSH_PROJECTIONS: Readonly<Record<string, PushProjection>> = {
   'order.placed': recordChange(PRODUCT_ORDER, 'created', { snapshot: true }),
   'order.cancelled': recordChange(PRODUCT_ORDER, 'updated', { snapshot: true }),
+  // A parcel leaving and arriving reach the vendor's order list, and — by the
+  // receipt digest the event carries — the anonymous buyer's open receipt,
+  // which as a non-reader receives the hint and re-reads (ADR 0081 §11).
+  'order.dispatched': recordChange(PRODUCT_ORDER, 'updated', {
+    snapshot: true,
+  }),
+  'order.fulfilled': recordChange(PRODUCT_ORDER, 'updated', {
+    snapshot: true,
+  }),
   'catalog.published': recordChange(PRODUCT_OFFERING, 'updated', {
     snapshot: false,
   }),

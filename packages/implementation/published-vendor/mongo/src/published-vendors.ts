@@ -54,6 +54,7 @@ const applyAnnouncement = (db: Db, announcement: OrganizationAnnouncement) =>
       vendor.acceptsCod = announcement.acceptsCod;
       vendor.holdsStock = announcement.holdsStock;
       vendor.acceptsLink = announcement.acceptsLink;
+      vendor.whatsappNumber = announcement.whatsappNumber;
       vendor.taxId = announcement.fiscal.taxId;
       vendor.legalName = announcement.fiscal.legalName;
       vendor.taxRegime = announcement.fiscal.taxRegime;

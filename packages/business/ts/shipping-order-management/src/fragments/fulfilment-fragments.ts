@@ -18,6 +18,16 @@ const ShippingOrderId = Schema.String;
 
 const SHIPMENT = openStruct({ id: ShippingOrderId, status: Schema.String });
 
+/**
+ * The guide a dispatched parcel carries: its courier as named at the guide,
+ * its number and where it is followed — empty when the courier has no page.
+ */
+export const GUIDE = {
+  courierName: Schema.String,
+  trackingNumber: Schema.String,
+  trackingUrl: Schema.String,
+};
+
 const REQUIRES = { entitlements: ['shipping-order-management'] } as const;
 
 /** The refusal every move on an open shipment can answer. */
@@ -160,7 +170,7 @@ export const fulfilmentWithdraw = defineFragment({
  */
 export const fulfilmentDispatch = defineFragment({
   id: 'fulfilment.dispatch',
-  version: 2,
+  version: 3,
   module: 'shipping-order-management',
   kind: 'pivot',
   participant: PARTICIPANT,
@@ -173,9 +183,17 @@ export const fulfilmentDispatch = defineFragment({
   isolation: 'semanticLock',
   requires: REQUIRES,
   consumes: { shippingOrderId: ShippingOrderId },
+  // The guide the parcel left with, read off the shipment the pivot moved: the
+  // buyer reads order-service and never a vendor's store, so the order is
+  // told (ADR 0081 §11).
+  provides: GUIDE,
   contract: {
     input: openStruct({ shippingOrderId: ShippingOrderId }),
-    output: SHIPMENT,
+    output: openStruct({
+      id: ShippingOrderId,
+      status: Schema.String,
+      ...GUIDE,
+    }),
     failure: MOVE_REFUSAL,
   },
 });

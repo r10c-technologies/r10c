@@ -122,4 +122,25 @@ describe('orderAudience', () => {
     expect(orderAudience({ vendorId: '' })).toEqual([]);
     expect(orderAudience({})).toEqual([]);
   });
+
+  it('addresses the anonymous buyer’s receipt by the digest its group keeps', () => {
+    expect(
+      orderAudience({ vendorId: 'v-1', groupId: 'g-1' }, 'digest-1'),
+    ).toEqual([
+      { kind: 'organization', id: 'v-1' },
+      { kind: 'flow', id: 'g-1', digest: 'digest-1' },
+    ]);
+  });
+
+  it('adds no receipt entry without a digest or a group', () => {
+    expect(orderAudience({ vendorId: 'v-1', groupId: 'g-1' }, '')).toEqual([
+      { kind: 'organization', id: 'v-1' },
+    ]);
+    expect(orderAudience({ vendorId: 'v-1', groupId: '' }, 'd')).toEqual([
+      { kind: 'organization', id: 'v-1' },
+    ]);
+    expect(orderAudience({ vendorId: 'v-1' }, 'd')).toEqual([
+      { kind: 'organization', id: 'v-1' },
+    ]);
+  });
 });

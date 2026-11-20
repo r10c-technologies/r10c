@@ -22,11 +22,15 @@ import {
 import { InvalidBody, readStepRecord } from '@r10c/business-ts-common';
 import type { FlowAccepted } from '@r10c/business-ts-flow-contracts';
 import {
+  CouriersTag,
   decodeShipmentDestination,
   dispatchShipment,
   dispatchShipmentSelection,
   DispatchShippingOrderUC,
+  type GuidePayload,
   RecordDeliveryUC,
+  recordGuide,
+  RecordGuideUC,
   RecordRefusalUC,
   RecordReturnUC,
   ShippingOrder,
@@ -125,6 +129,25 @@ const dispatchVerb = verbEndpoint(DispatchShippingOrderUC, {
     }),
 });
 
+/**
+ * The vendor records the guide a parcel leaves with, checked against the
+ * courier dictionary (ADR 0081 §11). Not a move: the shipment still awaits
+ * dispatch, and the last guide recorded is the one that leaves.
+ */
+const guideVerb = verbEndpoint(RecordGuideUC, {
+  guard: { kind: 'organization' },
+  idempotent: 'edge',
+  handler: (request: EntityApiRequest) =>
+    Effect.gen(function* () {
+      const recorded = yield* recordGuide({
+        organizationId: yield* OrganizationIdTag,
+        shippingOrderId: request.params?.id as string,
+        payload: request.payload as GuidePayload,
+      });
+      return envelopeOf(recorded);
+    }),
+});
+
 const deliveryVerb = vendorVerb(RecordDeliveryUC, 'record-delivery');
 const refusalVerb = vendorVerb(RecordRefusalUC, 'record-refusal');
 const returnVerb = vendorVerb(RecordReturnUC, 'record-return');
@@ -139,8 +162,32 @@ const returnVerb = vendorVerb(RecordReturnUC, 'record-return');
 export const shippingOrderApi = defineEntityApi(ShippingOrder, KEY, {
   verbs: ['list', 'get'],
   guard: { kind: 'organization' },
-  useCases: [dispatchVerb, deliveryVerb, refusalVerb, returnVerb],
+  useCases: [dispatchVerb, guideVerb, deliveryVerb, refusalVerb, returnVerb],
 });
+
+/**
+ * `GET /api/courier` — the courier dictionary a vendor picks from when they
+ * record a guide: public facts only, behind the grant that reads shipments,
+ * because only a vendor packing them records one (ADR 0081 §10).
+ */
+const couriers = defineEndpoint({
+  name: 'couriers',
+  method: 'GET',
+  path: '/api/courier',
+  success: JsonBody,
+  errors: [],
+  guard: {
+    kind: 'permission',
+    permission: 'shipping-order-management:shipping-order:read',
+  },
+});
+
+/** The dictionary read, beside the shipments it labels. */
+export const courierEndpoints = [
+  implement(couriers, () =>
+    Effect.map(CouriersTag, entries => ({ items: entries })),
+  ),
+] as const;
 
 const crossing = (action: 'open' | 'hold' | 'withdraw' | 'dispatch-step') =>
   ({

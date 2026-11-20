@@ -175,7 +175,7 @@ jobs:
         with:
           nx-cache: lint
       - run: pnpm nx run-many -t lint --projects="${{ needs.initialize.outputs.lint-projects }}"
-      - if: always() && env.NX_REMOTE_CACHE_NAME != ''
+      - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
   # The cheap static checks, in one job.
@@ -198,32 +198,32 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      # `always()` on every step below, so one failure does not hide the next —
+      # `!cancelled()` on every step below, so one failure does not hide the next —
       # otherwise a PR carrying several spends a round trip learning about them
       # one at a time. The job still fails if any step does.
       - name: Check es/en catalog parity
-        if: always()
+        if: ${{ !cancelled() }}
         run: node tools/check-i18n.mjs
 
       # The other i18n direction: parity says nothing about a code missing from
       # *both* locales, and the render path casts the typed-key gate away, so an
       # uncataloged code reaches the user as its own identifier.
       - name: Check every emitted error code is cataloged
-        if: always()
+        if: ${{ !cancelled() }}
         run: pnpm nx test @r10c/i18n-check --skip-nx-cache
 
       # The generated documentation blocks: the port table, the store register
       # and the ADR index are written from source, so a hand-edit or a stale
       # block fails here.
       - name: Check generated documentation blocks
-        if: always()
+        if: ${{ !cancelled() }}
         run: node tools/sync-docs.mjs --check
 
       # The assertions over hand-written prose: link and anchor targets, the
       # router tables, entity names, tag dimensions, fleet ports, and that every
       # ADR supersession was recorded on both records.
       - name: Check documentation claims
-        if: always()
+        if: ${{ !cancelled() }}
         run: pnpm nx test @r10c/docs-check --skip-nx-cache
 
       # The store register's invariants: one store per domain, one writing slice
@@ -233,7 +233,7 @@ jobs:
       # checks above — a slice declaration is a claim about the whole fleet, and
       # a PR that breaks it need not have touched `tools/slices` at all.
       - name: Check the slice register
-        if: always()
+        if: ${{ !cancelled() }}
         run: pnpm nx test @r10c/slices --skip-nx-cache
 
       # The capability register (ADR 0080): an `implemented` entry resolves to a
@@ -242,7 +242,7 @@ jobs:
       # navigation and the grant table, so a PR that renames a screen or drops
       # a grant breaks it without touching `tools/capabilities`.
       - name: Check the capability register
-        if: always()
+        if: ${{ !cancelled() }}
         run: pnpm nx test @r10c/capabilities --skip-nx-cache
 
       # The cluster manifests nothing applies yet (infra/cluster/README.md),
@@ -253,7 +253,7 @@ jobs:
       # otherwise pass as silently ignored. The binary is checked against the
       # release's own SHA-256 before it runs.
       - name: Validate cluster manifests
-        if: always()
+        if: ${{ !cancelled() }}
         env:
           KUBECONFORM_VERSION: v0.8.0
           KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
@@ -272,18 +272,18 @@ jobs:
       # and it is here because prose could not hold it: it was written in three
       # places and skipped anyway, in five pull requests and six commits.
       - name: Check repository conventions
-        if: always()
+        if: ${{ !cancelled() }}
         run: pnpm nx test @r10c/conventions --skip-nx-cache
 
       # The CI cache's own server, which every job above and below trusts.
       - name: The CI scripts
-        if: always()
+        if: ${{ !cancelled() }}
         run: node --test 'tools/ci/*.test.mjs'
 
       # An accessibility baseline only shrinks (ADR 0075); `A11Y_BASELINE=update`
       # would otherwise let a pull request accept its own regression.
       - name: No accessibility baseline grew
-        if: always() && github.event_name == 'pull_request'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: node tools/ci/a11y-baseline-growth.mjs ${{ needs.initialize.outputs.base }}
 
       # The half no git hook can see. A commit message is judged by
@@ -292,7 +292,7 @@ jobs:
       # attribution line actually landed every time. A push has no body, so
       # the step is a pull request's only.
       - name: Check the pull request body and its commits
-        if: always() && github.event_name == 'pull_request'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_BASE_SHA: ${{ needs.initialize.outputs.base }}
@@ -304,7 +304,7 @@ jobs:
       # doc was not edited, not that it is wrong, and failing on it would teach
       # everyone to make a trivial edit to whatever file it names.
       - name: Report documentation staleness
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: |
           node tools/docs/staleness.mjs \
@@ -332,7 +332,7 @@ jobs:
         with:
           nx-cache: build-libs
       - run: pnpm nx run-many -t build,typecheck --projects="${{ needs.initialize.outputs.lib-projects }}"
-      - if: always() && env.NX_REMOTE_CACHE_NAME != ''
+      - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
   # The applications, reading the libraries above from the cache: each Next
@@ -343,7 +343,7 @@ jobs:
     name: Build (${{ matrix.chunk }})
     needs: [initialize, build-libs]
     if: >-
-      always() &&
+      !cancelled() &&
       needs.initialize.result == 'success' &&
       needs.initialize.outputs.app-chunks != '[]' &&
       (needs.build-libs.result == 'success' || needs.build-libs.result == 'skipped')
@@ -361,7 +361,7 @@ jobs:
           nx-cache: build-app-${{ strategy.job-index }}
           nx-cache-from: nx-cache-build-libs
       - run: pnpm nx run-many -t build,typecheck --projects="${{ matrix.chunk }}"
-      - if: always() && env.NX_REMOTE_CACHE_NAME != ''
+      - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
   # No `needs: build`: Vitest resolves the `@r10c/source` condition to each
@@ -385,7 +385,7 @@ jobs:
       # Coverage is gated at 100% for `packages/*`; the plain `test` target does
       # not collect it, so CI asks for it explicitly.
       - run: pnpm nx run-many -t test --projects="${{ matrix.chunk }}" --coverage
-      - if: always() && env.NX_REMOTE_CACHE_NAME != ''
+      - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
   # The services' journeys, which need no browser and no build: each suite
@@ -410,7 +410,7 @@ jobs:
         with:
           nx-cache: e2e-services
       - run: pnpm nx run-many -t e2e --projects="${{ needs.initialize.outputs.e2e-service-projects }}"
-      - if: always() && env.NX_REMOTE_CACHE_NAME != ''
+      - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
   # The Playwright journeys, one job per application, each reading its build
@@ -419,7 +419,7 @@ jobs:
     name: E2E browser (${{ matrix.project }})
     needs: [initialize, build-apps]
     if: >-
-      always() &&
+      !cancelled() &&
       needs.initialize.result == 'success' &&
       needs.initialize.outputs.e2e-browser-projects != '[]' &&
       (needs.build-apps.result == 'success' || needs.build-apps.result == 'skipped')
@@ -447,7 +447,7 @@ jobs:
           name: playwright-report-${{ strategy.job-index }}
           path: apps/*-e2e/test-output/playwright
           retention-days: 7
-      - if: always() && env.NX_REMOTE_CACHE_NAME != ''
+      - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
   storybook:
@@ -467,7 +467,7 @@ jobs:
       # story is rendered in Chromium and audited by axe (ADR 0075).
       - uses: ./.github/actions/playwright-browser
       - run: pnpm nx run-many -t test-a11y --projects="${{ needs.initialize.outputs.storybook-projects }}"
-      - if: always() && env.NX_REMOTE_CACHE_NAME != ''
+      - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
   # The run's Nx cache, saved for the next run: what this run restored and
@@ -491,7 +491,7 @@ jobs:
         e2e-browser,
         storybook,
       ]
-    if: always() && needs.initialize.result == 'success'
+    if: ${{ !cancelled() && needs.initialize.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -560,6 +560,10 @@ jobs:
         e2e-browser,
         storybook,
       ]
+    # ⚠️ The one `always()` left, on purpose: a required check that is
+    # skipped counts as passing, so a cancelled run must still answer here,
+    # and answer red. Every other condition is `!cancelled()`, so a superseded
+    # run stops at once instead of holding the PR's concurrency group.
     if: always()
     runs-on: ubuntu-latest
     steps:

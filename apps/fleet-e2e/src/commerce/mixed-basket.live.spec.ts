@@ -5,6 +5,7 @@ import {
   FLEET,
   mongo,
   ordersOf,
+  recordGuide,
   SECOND,
   sellable,
   settled,
@@ -73,6 +74,7 @@ it('settles a basket spanning two vendors, each at its own cut', async () => {
   // The cash order ships and is delivered: the second vendor dispatches, the
   // courier reports, and the delivery flow records the cash collected.
   const bearer = await vendorBearer(SECOND.organizationId);
+  expect((await recordGuide(codOrder, bearer)).status).toBe(200);
   const dispatched = await fetch(
     `${FLEET.fulfilment}/api/shipping-order/${codOrder}/dispatch`,
     {

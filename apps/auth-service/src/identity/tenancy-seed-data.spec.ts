@@ -32,6 +32,7 @@ describe('the seeded tenancy', () => {
         initial: {
           ...vendor.fiscal,
           acceptsPaymentLink: vendor.acceptsPaymentLink,
+          whatsappNumber: vendor.whatsappNumber,
         },
       })),
     );

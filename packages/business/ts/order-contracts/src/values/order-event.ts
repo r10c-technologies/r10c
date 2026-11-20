@@ -20,9 +20,21 @@ export const ORDER_CANCELLED = 'order.cancelled';
  */
 export const ORDER_PAYMENT_CONFIRMED = 'order.payment-confirmed';
 
+/**
+ * The parcel left with a courier, and the order carries its guide. Published
+ * because a subscriber exists: the realtime slice pushes it to the buyer's
+ * open receipt, so it moves to "on its way" without a reload (ADR 0081 §11).
+ */
+export const ORDER_DISPATCHED = 'order.dispatched';
+
+/** The order reached its buyer. Published for the buyer's receipt, as above. */
+export const ORDER_FULFILLED = 'order.fulfilled';
+
 export const ORDER_EVENTS = [
   ORDER_PLACED,
   ORDER_PAYMENT_CONFIRMED,
+  ORDER_DISPATCHED,
+  ORDER_FULFILLED,
   ORDER_CANCELLED,
 ] as const;
 
@@ -96,19 +108,33 @@ for (const name of ORDER_EVENTS)
   registerEvent(name, OrderEventSchema, { versioned: true });
 
 /**
- * Who an order event is for: the buyer's party, when the buyer signed in, and
- * the organization of the one vendor the order belongs to.
+ * Who an order event is for: the buyer's party, when the buyer signed in; the
+ * organization of the one vendor the order belongs to; and, when the order's
+ * checkout group holds a receipt capability, whoever presents it — the
+ * anonymous buyer's open receipt, matched by the digest the group keeps and
+ * never by the nonce (ADR 0081 §11, ADR 0072). A digest names no one, and an
+ * entry without one admits nobody.
  */
-export const orderAudience = (order: {
-  readonly buyerId?: string | undefined;
-  readonly vendorId?: string | undefined;
-}): AudienceEntry[] => [
+export const orderAudience = (
+  order: {
+    readonly buyerId?: string | undefined;
+    readonly vendorId?: string | undefined;
+    readonly groupId?: string | undefined;
+  },
+  receiptDigest?: string,
+): AudienceEntry[] => [
   ...(order.buyerId === undefined
     ? []
     : [{ kind: 'party' as const, id: order.buyerId }]),
   ...(order.vendorId === undefined || order.vendorId === ''
     ? []
     : [{ kind: 'organization' as const, id: order.vendorId }]),
+  ...(receiptDigest === undefined ||
+  receiptDigest === '' ||
+  order.groupId === undefined ||
+  order.groupId === ''
+    ? []
+    : [{ kind: 'flow' as const, id: order.groupId, digest: receiptDigest }]),
 ];
 
 export interface PlacedOrderLine {

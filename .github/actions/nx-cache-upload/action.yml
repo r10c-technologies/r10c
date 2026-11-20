@@ -2,7 +2,7 @@ name: Upload this job's Nx cache
 description: >-
   Hands the Nx cache entries this job wrote, and the journal of every entry it
   used, to later jobs in the run and to the job that saves the run's cache.
-  Run it with `if: always()`: a job that failed still wrote the entries of the
+  Run it on every outcome but cancellation (`!cancelled()` as the step condition): a job that failed still wrote the entries of the
   tasks that passed.
 
 runs:

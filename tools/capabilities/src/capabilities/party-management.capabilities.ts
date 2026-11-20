@@ -26,4 +26,14 @@ export const partyManagementCapabilities: readonly Capability[] = [
     status: 'implemented',
     verticals: 'all',
   },
+  // #671: the number a receipt's WhatsApp link writes to.
+  {
+    id: 'party-management:organization:set-whatsapp-number',
+    oda: 'TMFC028',
+    entities: ['party-management:organization'],
+    permissions: ['party-management:organization:set-whatsapp-number'],
+    screens: [],
+    status: 'implemented',
+    verticals: 'all',
+  },
 ];

@@ -90,3 +90,11 @@ export function statusesBefore(
 ): readonly OrderStatus[] {
   return Object.keys(TRANSITIONS[transition]) as OrderStatus[];
 }
+
+/** The stamp a flow's move writes beside the status, if it writes one. */
+export const MOVE_STAMP_OF: Partial<
+  Record<OrderTransition, 'dispatchedAt' | 'fulfilledAt'>
+> = {
+  'mark-dispatched': 'dispatchedAt',
+  'close-fulfilled': 'fulfilledAt',
+};

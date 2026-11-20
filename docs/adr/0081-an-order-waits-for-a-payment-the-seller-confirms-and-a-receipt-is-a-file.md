@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: 2026-11-16
 - Revised: 2026-11-19 by the payment-confirmation build (#667): the wait is `@2` and provides the authorization number; the confirmation is recorded on the collection route
+- Revised: 2026-11-20 by the delivery-tracking build (#669 #670 #671): the order learns its guide through `order.mark-shipped@1`, the simulator is a feed sweep behind a dial, the buyer's receipt follows its orders by push on the receipt digest, and a seller states a WhatsApp number
 - Area: business
 - Read when: a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date
 
@@ -386,6 +387,37 @@ the rest of the order it is not on the bus.
   delivery flow's wait through the same `record-delivery` move a vendor makes.
   The person's report stays the real path, and the simulator is the fourth
   thing cut if MVP-4 runs late.
+
+### 12. As built (#669, #670, #671)
+
+- **The order learns its guide through a fragment of its own.** A counter
+  sale also marks its order dispatched, through `order.mark-dispatched@2`,
+  and has no guide to consume, so the delivery recipe runs
+  `order.mark-shipped@1` instead: the same `POST …/dispatched`, consuming
+  `{ courierName, trackingNumber, trackingUrl }` from what
+  `fulfilment.dispatch@3` answered. The order keeps the three flat, beside
+  `dispatchedAt` and `fulfilledAt`; the shipment keeps `courierKey`,
+  `courierName`, `trackingNumber`, `trackingUrl` and `guideRecordedAt`.
+- **The courier port is a tracking feed.** `CourierTrackingTag` is asked
+  about the parcels in transit and answers reports in a real integration's
+  shape; each is applied through `record-delivery`. The lab's adapter is a
+  simulator that reports a parcel delivered `fulfilment.courierSimulatorDelaySeconds`
+  after dispatch (120, seeded); `0` runs no feed, which is what an
+  environment with a real courier sets. A parcel a vendor already reported
+  on refuses the move, and the feed lets it go.
+- **The buyer's receipt follows its orders by push.** `order.dispatched` and
+  `order.fulfilled` are published because the realtime slice subscribes to
+  them (ADR 0068). Their audience adds a `flow` entry carrying the checkout
+  group's receipt digest, so the anonymous buyer's open receipt, presenting
+  its nonce as a stream capability, receives the hint and re-reads
+  (ADR 0072). Without script the page is the same, one reload behind. Event
+  versions are linear: placed 1, payment-confirmed 2, dispatched 3,
+  fulfilled 4, cancelled 5.
+- **WhatsApp is click-to-chat, both ways.** An organization states its
+  number through `set-whatsapp-number`, announced to the published vendor; a
+  receipt offers a `wa.me` link to the seller, prefilled with the order and
+  where it stands, and the shipment's record offers one to the buyer from the
+  delivery phone. No API and no account on our side.
 
 ## Consequences
 

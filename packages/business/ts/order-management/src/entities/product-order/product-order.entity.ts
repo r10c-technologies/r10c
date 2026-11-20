@@ -92,6 +92,11 @@ export class ProductOrder implements Entity {
   #paymentLinkSetBy?: string;
   #paymentLinkSetAt?: Date;
   #cancelCause?: string;
+  #courierName?: string;
+  #trackingNumber?: string;
+  #trackingUrl?: string;
+  #dispatchedAt?: Date;
+  #fulfilledAt?: Date;
   // #endregion
 
   // #region constructors
@@ -648,6 +653,68 @@ export class ProductOrder implements Entity {
   }
   set cancelCause(value: string | undefined) {
     this.#cancelCause = value;
+  }
+  /** The courier the parcel left with, copied from the shipment by the delivery flow (ADR 0081 §11): the buyer reads order-service and never a vendor's fulfilment store. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.courierName',
+  })
+  get courierName(): string | undefined {
+    return this.#courierName;
+  }
+  set courierName(value: string | undefined) {
+    this.#courierName = value;
+  }
+
+  /** The parcel's guide number, copied from the shipment at dispatch. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.trackingNumber',
+  })
+  get trackingNumber(): string | undefined {
+    return this.#trackingNumber;
+  }
+  set trackingNumber(value: string | undefined) {
+    this.#trackingNumber = value;
+  }
+
+  /** Where the buyer follows the parcel, copied from the shipment at dispatch. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.trackingUrl',
+  })
+  get trackingUrl(): string | undefined {
+    return this.#trackingUrl;
+  }
+  set trackingUrl(value: string | undefined) {
+    this.#trackingUrl = value;
+  }
+  /** When the parcel left with a courier, or the goods were handed over at a counter. Server-owned and writable anyway: `readonly` would drop it from deserialization too. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.dispatchedAt',
+    sortable: true,
+    filterable: true,
+  })
+  get dispatchedAt(): Date | undefined {
+    return this.#dispatchedAt;
+  }
+  set dispatchedAt(value: Date | undefined) {
+    this.#dispatchedAt = value;
+  }
+
+  /** When the order reached its buyer. Server-owned and writable anyway, as the other stamps are. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.fulfilledAt',
+    sortable: true,
+    filterable: true,
+  })
+  get fulfilledAt(): Date | undefined {
+    return this.#fulfilledAt;
+  }
+  set fulfilledAt(value: Date | undefined) {
+    this.#fulfilledAt = value;
   }
   // #endregion
 }

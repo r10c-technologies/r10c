@@ -24,6 +24,7 @@ import {
   type OrganizationFormState,
   saveFiscalIdentity,
   savePaymentLinkAcceptance,
+  saveWhatsappNumber,
 } from '../server/organization-actions';
 import type { FiscalIdentityValues } from '../server/organization-page';
 
@@ -40,10 +41,13 @@ const TEXT_FIELDS = ['taxId', 'legalName', 'establishmentCode'] as const;
 export function OrganizationView({
   fiscal,
   paymentLink,
+  whatsapp,
 }: {
   readonly fiscal: FiscalIdentityValues | null | undefined;
   /** Whether it takes payment links; `undefined` is a read that failed. */
   readonly paymentLink: boolean | undefined;
+  /** The WhatsApp number, `''` for none; `undefined` is a read that failed. */
+  readonly whatsapp: string | undefined;
 }) {
   const t = useT('r10c');
   const tEntity = useT('entity');
@@ -68,6 +72,7 @@ export function OrganizationView({
           <Text muted>{t('auth.organization.failed')}</Text>
         </Card>
         <PaymentLinkCard accepts={paymentLink} />
+        <WhatsappCard number={whatsapp} />
       </Stack>
     );
   }
@@ -133,6 +138,7 @@ export function OrganizationView({
         </form>
       </Card>
       <PaymentLinkCard accepts={paymentLink} />
+      <WhatsappCard number={whatsapp} />
     </Stack>
   );
 }
@@ -180,6 +186,67 @@ function PaymentLinkCard({
               ) : null}
               <SubmitButton className="touch-target">
                 {tEntity('organization.useCases.setPaymentLinkAcceptance')}
+              </SubmitButton>
+            </Stack>
+          </form>
+        )}
+      </Stack>
+    </Card>
+  );
+}
+
+/**
+ * The WhatsApp number buyers may write to (`set-whatsapp-number`, #671): every
+ * receipt with this seller on it links to a chat with it. Its own form, as the
+ * other statements are; a failed read says so rather than offering an empty
+ * field that would withdraw the number.
+ */
+function WhatsappCard({ number }: { readonly number: string | undefined }) {
+  const t = useT('r10c');
+  const tEntity = useT('entity');
+  const tErrors = useT('errors');
+  const [state, action] = useActionState(saveWhatsappNumber, IDLE);
+
+  return (
+    <Card>
+      <Stack gap="s">
+        <HeadingTwo>{t('auth.organization.whatsapp.title')}</HeadingTwo>
+        {number === undefined ? (
+          <Text muted>{t('auth.organization.whatsapp.failed')}</Text>
+        ) : (
+          <form action={action} data-testid="whatsapp-number-form">
+            <Stack gap="s">
+              <Text muted>{t('auth.organization.whatsapp.hint')}</Text>
+              <div className="flex min-w-0 flex-col gap-3xs">
+                <label
+                  htmlFor="organization-whatsapp"
+                  className="text-step--1 font-semibold"
+                >
+                  {tEntity('organization.fields.whatsappNumber')}
+                </label>
+                <TextInput
+                  id="organization-whatsapp"
+                  name="number"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  className="w-full min-w-0"
+                  defaultValue={number}
+                  aria-invalid={state.status === 'refused' ? true : undefined}
+                />
+              </div>
+              {state.status === 'saved' ? (
+                <Alert tone="success">
+                  {t('auth.organization.whatsapp.saved')}
+                </Alert>
+              ) : null}
+              {state.status === 'refused' ? (
+                <Alert tone="danger">
+                  {tErrors(state.code ?? 'unexpected')}
+                </Alert>
+              ) : null}
+              <SubmitButton className="touch-target">
+                {tEntity('organization.useCases.setWhatsappNumber')}
               </SubmitButton>
             </Stack>
           </form>

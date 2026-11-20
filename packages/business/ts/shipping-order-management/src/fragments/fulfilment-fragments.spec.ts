@@ -15,9 +15,17 @@ describe('FULFILMENT_FRAGMENTS', () => {
       'fulfilment.hold@2',
       'fulfilment.release@2',
       'fulfilment.withdraw@2',
-      'fulfilment.dispatch@2',
+      'fulfilment.dispatch@3',
       'fulfilment.await-delivery@3',
       'fulfilment.await-return@3',
+    ]);
+  });
+
+  it('provides the guide a dispatched parcel left with', () => {
+    expect(Object.keys(fulfilmentDispatch.provides ?? {})).toEqual([
+      'courierName',
+      'trackingNumber',
+      'trackingUrl',
     ]);
   });
 

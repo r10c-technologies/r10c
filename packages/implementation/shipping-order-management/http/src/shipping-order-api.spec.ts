@@ -10,6 +10,7 @@ import {
   makeScriptedFlowStarter,
 } from '@r10c/business-ts-flow-contracts/testing';
 import {
+  CouriersTag,
   ShippingLine,
   ShippingOrder,
   ShippingOrderStoreTag,
@@ -19,6 +20,7 @@ import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
+  courierEndpoints,
   shippingOrderApi,
   shippingOrderEndpoints,
 } from './shipping-order-api.js';
@@ -31,7 +33,10 @@ const context: EntityApiContext = {
   },
 };
 
-type R = ShippingOrderStoreTag | OrganizationIdTag | FlowStarterTag;
+type R =
+  ShippingOrderStoreTag | OrganizationIdTag | FlowStarterTag | CouriersTag;
+
+const COURIERS = [{ key: 'other', name: 'Other', trackingUrlTemplate: '' }];
 
 /** One store per case, every request bound to `acme`, every flow start kept. */
 const world = () => {
@@ -40,6 +45,7 @@ const world = () => {
   const layer = Layer.mergeAll(
     Layer.succeed(ShippingOrderStoreTag, store),
     Layer.succeed(OrganizationIdTag, 'acme'),
+    Layer.succeed(CouriersTag, COURIERS),
     Layer.succeed(
       FlowStarterTag,
       makeScriptedFlowStarter((recipe, input) => {
@@ -64,8 +70,9 @@ const world = () => {
 };
 
 const [open, hold, release, withdrawal, dispatchStep] = shippingOrderEndpoints;
-const [dispatch, delivery, refusal, returned] =
+const [dispatch, guide, delivery, refusal, returned] =
   shippingOrderApi.options.useCases;
+const [couriers] = courierEndpoints;
 
 /** The dispatch verb over a selection, as the shell would call it. */
 const dispatchSelected = (payload: object) =>
@@ -121,9 +128,30 @@ const shipment = (
   destination,
 });
 
-/** A shipment opened awaiting dispatch for one order, its id answered. */
-const opened = async (w: ReturnType<typeof world>, orderId = 'order-1') =>
-  (await w.run(at(open, { payload: shipment({ orderId }) }))).data.id;
+/** The guide verb on one shipment, with what the vendor typed. */
+const guideFor = (id: string, payload: object) =>
+  guide.handler({ params: { id }, payload } as never) as Effect.Effect<
+    unknown,
+    unknown,
+    R
+  >;
+
+/**
+ * A shipment opened awaiting dispatch for one order, labelled with its guide
+ * unless asked not to, its id answered.
+ */
+const opened = async (
+  w: ReturnType<typeof world>,
+  orderId = 'order-1',
+  labelled = true,
+) => {
+  const id = (await w.run(at(open, { payload: shipment({ orderId }) }))).data
+    .id;
+  if (labelled) {
+    await w.run(guideFor(id, { courierKey: 'other', trackingNumber: 'G-1' }));
+  }
+  return id;
+};
 
 describe('the declarations', () => {
   it('read a vendor’s own shipments behind their organization, and move them by crossing', () => {
@@ -282,6 +310,51 @@ describe('the vendor’s verbs', () => {
     const w = world();
 
     expect((await w.refusal(dispatchSelected({}))).code).toBe('invalidBody');
+  });
+
+  it('record a guide, checked against the couriers, and refuse a dispatch without one', async () => {
+    const w = world();
+    const bare = await opened(w, 'order-3', false);
+
+    expect((await w.refusal(verb(dispatch, bare))).code).toBe('guideMissing');
+    expect(
+      (
+        await w.refusal(
+          guideFor(bare, { courierKey: 'x', trackingNumber: 'G' }),
+        )
+      ).code,
+    ).toBe('invalidGuide');
+    const labelled = (await w.run(
+      guideFor(bare, {
+        courierKey: 'other',
+        trackingNumber: 'G-9',
+        courierName: 'Mensajería',
+      }),
+    )) as unknown as { data: Record<string, unknown> };
+    expect(labelled.data).toMatchObject({
+      courierName: 'Mensajería',
+      trackingNumber: 'G-9',
+    });
+    // The pivot answers the guide, which the flow tells the order.
+    const dispatched = (await w.run(
+      at(dispatchStep, { params: { id: bare } }),
+    )) as unknown as { data: Record<string, unknown> };
+    expect(dispatched.data).toMatchObject({
+      status: 'dispatched',
+      courierName: 'Mensajería',
+      trackingNumber: 'G-9',
+      trackingUrl: '',
+    });
+  });
+
+  it('serve the courier dictionary behind the shipment read grant', async () => {
+    const w = world();
+
+    expect(couriers.descriptor.guard).toEqual({
+      kind: 'permission',
+      permission: 'shipping-order-management:shipping-order:read',
+    });
+    expect(await w.run(at(couriers, {}))).toEqual({ items: COURIERS });
   });
 
   it('answers a shipment that is not the caller’s as not found', async () => {

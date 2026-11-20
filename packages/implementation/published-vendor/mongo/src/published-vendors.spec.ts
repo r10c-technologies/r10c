@@ -22,6 +22,7 @@ const NAMED: OrganizationAnnouncement = {
   acceptsCod: true,
   holdsStock: true,
   acceptsLink: false,
+  whatsappNumber: '+50255550100',
   fiscal: {
     taxId: '10000003',
     legalName: 'Demo Vendor, S.A.',
@@ -92,6 +93,7 @@ describe('applying an announcement', () => {
         announcedAt: new Date(NAMED.announcedAt),
         acceptsCod: true,
         acceptsLink: false,
+        whatsappNumber: '+50255550100',
         holdsStock: true,
         taxId: '10000003',
         legalName: 'Demo Vendor, S.A.',

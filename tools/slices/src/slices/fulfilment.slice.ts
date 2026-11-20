@@ -50,6 +50,10 @@ export const fulfilmentSlice: SliceDeclaration = {
     'POST /api/shipping-order/:id/dispatch',
     // The same verb over the worklist's selection (ADR 0035, #534).
     'POST /api/shipping-order/dispatch',
+    // The guide a parcel leaves with, and the courier dictionary it is picked
+    // from (ADR 0081 §10–§11).
+    'POST /api/shipping-order/:id/record-guide',
+    'GET /api/courier',
     'POST /api/shipping-order/:id/record-delivery',
     'POST /api/shipping-order/:id/record-refusal',
     'POST /api/shipping-order/:id/record-return',

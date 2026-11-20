@@ -219,7 +219,60 @@ describe('moving an order', () => {
     expect(closed?.status).toBe('cancelled');
     expect(eventsOf(fake).map(event => event.name)).toEqual([
       'order.placed',
+      'order.dispatched',
       'order.cancelled',
+    ]);
+  });
+
+  it('announces a dispatch and a delivery to the buyer’s open receipt too, by its digest', async () => {
+    const { fake, run } = world();
+    await run(({ groups }) =>
+      groups.open(
+        Object.assign(aGroup(), { cancelDigest: 'digest-1' }),
+        undefined,
+      ),
+    );
+    await run(({ orders }) => orders.place(anOrder('ord-1'), undefined));
+
+    await run(({ orders }) => orders.move('ord-1', 'confirm', undefined));
+    const shipped = await run(({ orders }) =>
+      orders.move('ord-1', 'mark-dispatched', undefined, {
+        courierName: 'Mensajería',
+        trackingNumber: 'G-1',
+        trackingUrl: '',
+      }),
+    );
+    await run(({ orders }) =>
+      orders.move('ord-1', 'close-fulfilled', undefined),
+    );
+
+    expect(shipped).toMatchObject({ trackingNumber: 'G-1' });
+    const announced = eventsOf(fake).slice(1);
+    expect(announced.map(event => event.name)).toEqual([
+      'order.dispatched',
+      'order.fulfilled',
+    ]);
+    for (const event of announced) {
+      expect(event.audience).toEqual([
+        { kind: 'party', id: 'buyer-1' },
+        { kind: 'organization', id: 'v-1' },
+        { kind: 'flow', id: GROUP, digest: 'digest-1' },
+      ]);
+    }
+  });
+
+  it('announces a dispatch to the vendor alone when the group holds no digest', async () => {
+    const { fake, run } = world();
+    await placed(run);
+
+    await run(({ orders }) => orders.move('ord-1', 'confirm', undefined));
+    await run(({ orders }) =>
+      orders.move('ord-1', 'mark-dispatched', undefined),
+    );
+
+    expect(eventsOf(fake).at(-1)?.audience).toEqual([
+      { kind: 'party', id: 'buyer-1' },
+      { kind: 'organization', id: 'v-1' },
     ]);
   });
 

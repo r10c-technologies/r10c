@@ -12,6 +12,7 @@ import { ORGANIZATION_ANNOUNCED } from '@r10c/business-ts-party-contracts';
 import {
   OrganizationFiscalIdentityTag,
   OrganizationPaymentLinkAcceptanceTag,
+  OrganizationWhatsappNumberTag,
 } from '@r10c/business-ts-party-management';
 import { Effect, Exit } from 'effect';
 import { Layer } from 'effect';
@@ -24,8 +25,10 @@ import {
   ENTITLEMENT_COLLECTION,
   makeMongoOrganizationFiscalIdentity,
   makeMongoOrganizationPaymentLinkAcceptance,
+  makeMongoOrganizationWhatsappNumber,
   MongoOrganizationFiscalIdentityLayer,
   MongoOrganizationPaymentLinkAcceptanceLayer,
+  MongoOrganizationWhatsappNumberLayer,
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
   seedOrganizations,
@@ -78,8 +81,19 @@ describe('announcementOf', () => {
       acceptsCod: false,
       holdsStock: false,
       acceptsLink: false,
+      whatsappNumber: '',
       fiscal: FISCAL,
     });
+  });
+
+  it('carries the WhatsApp number its organization stated', () => {
+    expect(
+      announcementOf({
+        ...SEED,
+        whatsappNumber: '+50255551234',
+        updatedAt: FIRST,
+      }),
+    ).toMatchObject({ whatsappNumber: '+50255551234' });
   });
 
   it('says the seller takes payment links when its organization says so', () => {
@@ -540,5 +554,101 @@ describe('MongoOrganizationPaymentLinkAcceptanceLayer', () => {
       ),
     );
     expect(accepts).toBe(true);
+  });
+});
+
+describe('the WhatsApp number', () => {
+  const numbers = (store: Awaited<ReturnType<typeof storeWith>>) =>
+    makeMongoOrganizationWhatsappNumber(
+      store.client,
+      store.db,
+      'auth',
+      store.bus,
+      3,
+    );
+
+  it('reads none until the organization states one, then re-announces it', async () => {
+    const store = await storeWith();
+    await write(store, SEED, FIRST);
+    const port = numbers(store);
+    expect(await Effect.runPromise(port.get('org-1'))).toBe('');
+
+    await Effect.runPromise(port.set('org-1', '+50255551234'));
+    expect(await Effect.runPromise(port.get('org-1'))).toBe('+50255551234');
+    expect(store.fake.read(OUTBOX_COLLECTION).at(-1)?.['event']).toMatchObject({
+      data: { displayName: 'Demo Vendor', whatsappNumber: '+50255551234' },
+    });
+  });
+
+  it('answers NotFound for an organization nobody provisioned', async () => {
+    const store = await storeWith();
+    const notFound = Exit.fail(new NotFound({ entity: 'organization' }));
+    expect(
+      await Effect.runPromiseExit(numbers(store).set('org-9', '+50255551234')),
+    ).toEqual(notFound);
+  });
+
+  it('is served over the store it is given', async () => {
+    const store = await storeWith();
+    await write(store, { ...SEED, whatsappNumber: '+50255550000' }, FIRST);
+    const number = await Effect.runPromise(
+      Effect.flatMap(OrganizationWhatsappNumberTag, port =>
+        port.get('org-1'),
+      ).pipe(
+        Effect.provide(
+          MongoOrganizationWhatsappNumberLayer.pipe(
+            Layer.provide(
+              Layer.mergeAll(
+                Layer.succeed(MongoClientTag, store.client),
+                Layer.succeed(MongoDatabaseTag, store.db),
+                Layer.succeed(EventSourceTag, 'auth'),
+                Layer.succeed(EventBusTag, store.bus),
+                Layer.succeed(OutboxMaxAttempts, 3),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(number).toBe('+50255550000');
+  });
+});
+
+describe('two writes of one organization in one millisecond', () => {
+  it('stamps the second after the first, so neither is taken for the other', async () => {
+    const store = await storeWith();
+    await write(store, SEED, FIRST);
+    const at = new Date(FIRST.getTime() + 1000);
+
+    await Effect.runPromise(
+      writeOrganization(
+        store.client,
+        store.db,
+        { id: 'org-1', acceptsPaymentLink: true },
+        'auth',
+        at,
+      ).pipe(
+        Effect.provideService(EventBusTag, store.bus),
+        Effect.provideService(OutboxMaxAttempts, 3),
+      ),
+    );
+    await Effect.runPromise(
+      writeOrganization(
+        store.client,
+        store.db,
+        { id: 'org-1', acceptsPaymentLink: false },
+        'auth',
+        at,
+      ).pipe(
+        Effect.provideService(EventBusTag, store.bus),
+        Effect.provideService(OutboxMaxAttempts, 3),
+      ),
+    );
+
+    const stored = store.fake
+      .read(ORGANIZATION_COLLECTION)
+      .find(row => row['id'] === 'org-1');
+    expect(stored?.['acceptsPaymentLink']).toBe(false);
+    expect((stored?.['updatedAt'] as Date).getTime()).toBe(at.getTime() + 1);
   });
 });

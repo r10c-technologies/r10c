@@ -14,6 +14,17 @@ export interface PaymentConfirmation {
 }
 
 /** Why an order waiting on its payment stopped waiting without one. */
+/**
+ * The guide a parcel left with, as the delivery flow tells the order: its
+ * courier, its number and where it is followed — empty when the courier has
+ * no page (ADR 0081 §11).
+ */
+export interface OrderGuide {
+  readonly courierName: string;
+  readonly trackingNumber: string;
+  readonly trackingUrl: string;
+}
+
 export type AwaitingPaymentEnd = 'payment-expired' | 'buyer';
 
 /** How placing an order went: a new order, or the one a repeated command placed. */
@@ -71,6 +82,8 @@ export interface ProductOrderStore {
       | 'end-awaiting-payment'
     >,
     commandId: string | undefined,
+    /** Written beside `mark-dispatched` when the parcel left with a courier. */
+    guide?: OrderGuide,
   ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
   /** Claim a `paid` or `confirmed` order for cancellation, remembering which. */
   readonly claimCancellation: (

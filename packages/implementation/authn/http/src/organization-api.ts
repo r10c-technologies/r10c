@@ -11,11 +11,15 @@ import {
   Organization,
   OrganizationFiscalIdentityTag,
   OrganizationPaymentLinkAcceptanceTag,
+  OrganizationWhatsappNumberTag,
   type PaymentLinkAcceptancePayload,
   SET_FISCAL_IDENTITY,
   SET_PAYMENT_LINK_ACCEPTANCE,
+  SET_WHATSAPP_NUMBER,
   SetFiscalIdentityUC,
   SetPaymentLinkAcceptanceUC,
+  SetWhatsappNumberUC,
+  type WhatsappNumberPayload,
 } from '@r10c/business-ts-party-management';
 import { Effect, Schema } from 'effect';
 
@@ -53,6 +57,21 @@ const setPaymentLinkAcceptance = verbEndpoint(SetPaymentLinkAcceptanceUC, {
 });
 
 /**
+ * `POST /api/organization/:id/set-whatsapp-number` — the organization's own
+ * `admin` states the WhatsApp number its buyers may write to (#671). The write
+ * re-announces it, so the published vendor's number follows.
+ */
+const setWhatsappNumber = verbEndpoint(SetWhatsappNumberUC, {
+  guard: { kind: 'permission' },
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    SetWhatsappNumberUC.run({
+      activeOrganizationId: context.principal?.organizationId,
+      organizationId: String(request.params?.id),
+      payload: request.payload as WhatsappNumberPayload,
+    }),
+});
+
+/**
  * An organization's endpoints are its verbs alone: nothing lists or saves an
  * `Organization` through this group — the operator provisions it — and
  * serving the group is what serves the `$metadata` the form reads the verb
@@ -64,7 +83,7 @@ export const organizationApi = defineEntityApi(
   {
     verbs: [],
     guard: { kind: 'permission' },
-    useCases: [setFiscalIdentity, setPaymentLinkAcceptance],
+    useCases: [setFiscalIdentity, setPaymentLinkAcceptance, setWhatsappNumber],
   },
 );
 
@@ -108,6 +127,20 @@ const readPaymentLinkAcceptance = defineEndpoint({
   guard: { kind: 'permission', permission: SET_PAYMENT_LINK_ACCEPTANCE },
 });
 
+/**
+ * `GET /api/organization/:id/whatsapp-number` — what the form shows before the
+ * organization changes it, guarded and scoped as its verb is.
+ */
+const readWhatsappNumber = defineEndpoint({
+  name: 'organization-whatsapp-number',
+  method: 'GET',
+  path: '/api/organization/:id/whatsapp-number',
+  params: { id: Schema.String },
+  success: Schema.Struct({ id: Schema.String, number: Schema.String }),
+  errors: [NotFound],
+  guard: { kind: 'permission', permission: SET_WHATSAPP_NUMBER },
+});
+
 export const organizationEndpoints = [
   implement(readFiscalIdentity, ({ params }) =>
     Effect.gen(function* () {
@@ -128,6 +161,16 @@ export const organizationEndpoints = [
       }
       const acceptance = yield* OrganizationPaymentLinkAcceptanceTag;
       return { id: params.id, accepts: yield* acceptance.get(params.id) };
+    }),
+  ),
+  implement(readWhatsappNumber, ({ params }) =>
+    Effect.gen(function* () {
+      const principal = yield* RequestPrincipalTag;
+      if (principal.organizationId !== params.id) {
+        return yield* Effect.fail(new NotFound({ entity: 'organization' }));
+      }
+      const numbers = yield* OrganizationWhatsappNumberTag;
+      return { id: params.id, number: yield* numbers.get(params.id) };
     }),
   ),
 ] as const;

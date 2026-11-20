@@ -47,6 +47,13 @@ export interface SeededVendor {
    * creation, like the fiscal identity.
    */
   readonly acceptsPaymentLink: boolean;
+  /**
+   * The WhatsApp number buyers may write to (#671), as E.164 — fictional, in
+   * the 5555 range nobody is assigned; `''` for none. The demo vendor states
+   * one, the second does not, so a receipt across both shows the chat for one
+   * seller and not the other. Written only at creation.
+   */
+  readonly whatsappNumber: string;
 }
 
 export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
@@ -63,6 +70,7 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
       establishmentCode: '1',
     },
     acceptsPaymentLink: true,
+    whatsappNumber: '+50255550100',
   },
   {
     organizationId: 'second-organization',
@@ -82,6 +90,7 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
       establishmentCode: '1',
     },
     acceptsPaymentLink: false,
+    whatsappNumber: '',
   },
 ];
 
