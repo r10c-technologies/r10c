@@ -5,6 +5,7 @@
 - Accepted: 2026-11-19, when §2 and §3 were built and the `accounting` slice was declared against them (#662, #663)
 - Revised: 2026-11-18 by the fiscal facts build (#659–#661): §6's open states decided as below
 - Revised: 2026-11-19 by the contracts build (#662, #663): §2 and §3 as built below
+- Revised: 2026-11-20 by the fiscal certifier build (#668): open question 1 decided — order-service issues the DTE, §6 as built below
 - Area: messaging
 - Read when: adding accounting, cost control, services or manufacturing, or widening an event another slice keeps books from — a module consumes complete events from its activation on, starts from a snapshot, and changes no existing slice
 
@@ -91,7 +92,8 @@ copied from elsewhere at write time — that copy is the fact.
   is, a counter for a screen: widening it would put a ledger line in a payload
   pushed to browsers.
 - **A fiscal-document event** — the one message that carries the buyer's fiscal
-  identity. Its name and its publisher follow open question 1.
+  identity. Its publisher is order-service (open question 1, #668); it is
+  registered when a slice subscribes to it.
 
 ⚠️ **Payment does not learn to read orders.** ADR 0057's objection was that
 payment-service does not hold the lines. It still does not: the checkout flow
@@ -215,7 +217,7 @@ and process detail stay in Notion.
 | `ProductOrder`      | `sellerTax { taxId, legalName, taxRegime, establishmentCode }`, copied at placement                     | decided                          |
 | `ProductOrder`      | `buyerTax { idType: 'nit' \| 'cui' \| 'cf', taxId, name }`, `cf` (consumidor final) when none is given  | decided; never on `order.*` (§2) |
 | `ProductOrder`      | `netAmount`, `taxAmount`, `totalAmount`                                                                 | decided; rounding **open** (Q3)  |
-| `ProductOrder`      | `fiscalDocument? { type, authorization, series, number, certifiedAt }` — the FEL document (DTE)         | **open** (Q1): who issues it     |
+| `ProductOrder`      | `fiscalDocument? { type, authorization, series, number, certifiedAt }` — the FEL document (DTE)         | decided (#668): order-service    |
 | `OrderItem`         | `kind: 'good' \| 'service'`, `taxTreatment: 'taxed' \| 'exempt'`, `taxRate`, `taxableBase`, `taxAmount` | treatment values **open** (Q3)   |
 | `PaymentAllocation` | `taxableBase`, `taxAmount`, `taxRegime`; a `Refund` mirrors its share of them                           | decided                          |
 | `StockMovement`     | `occurredAt`, `cause { type, id }`                                                                      | decided                          |
@@ -236,6 +238,22 @@ cash-on-delivery order's tax rides its shipment to the collection, so every
 `payment.captured` allocation carries its tax. A stock movement records when
 it happened and its cause — the movement itself, the hold it converted, or the
 order whose goods went back.
+
+**As built (2026-11-20, #668).** Open question 1 is answered: **order-service
+issues the DTE**, behind a `FiscalCertifier` port with a simulated adapter until
+a certifier is contracted. The document is stored flat on the order —
+`fiscalDocumentType` (`FACT`, or `FPEQ` for a pequeño contribuyente),
+`fiscalAuthorization`, `fiscalSeries`, `fiscalNumber`, `fiscalCertifiedAt` — and
+a sale cancelled after it was certified is annulled through the same port into
+`fiscalVoidAuthorization` and `fiscalVoidedAt`. A sweep certifies every order
+paid for and not yet certified, whichever way it was paid, so one code path
+covers a capture, a cash collection and a confirmed payment link. The order id
+is the certifier's idempotency key, and the sweep claims an order before it
+asks (`fiscalAttemptAt`), so two replicas never issue two documents. A refused
+or unanswered attempt is recorded as `fiscalFailure` and retried after a
+backoff; it never moves the order, so the payment stands. **No fiscal-document
+event is published**: nothing subscribes to one yet (ADR 0068), and the buyer's
+identity stays on the order.
 
 The line's description and unit price are ADR 0079's snapshot; this record adds
 the tax members beside them. IVA is computed by one pure function, as
@@ -258,8 +276,8 @@ recomputed by a consumer.
    ([ADR 0065](0065-use-case-resolution-and-the-routing-slip.md)).
 4. **Contracts** (M) — `order.*` and `payment.*` widened and built explicitly;
    the stock movement event registered and published from the tenant outbox.
-   The fiscal-document event is registered when open question 1 names its
-   publisher.
+   The fiscal-document event is registered when a slice subscribes to it;
+   open question 1 named its publisher, order-service (#668).
 5. **`@r10c/slices`** (S) — the event-schema fingerprint; each module declared as
    a `planned` slice with its subscriptions, which already satisfies the
    publisher check (`tools/slices/src/slices.spec.ts:725-738` reads no status).
@@ -319,8 +337,8 @@ this record supersedes nothing.
 
 ## Open questions
 
-1. **Who issues the DTE** — order-service, a `fiscal` slice or the vendor's own
-   system (`docs/DEVELOPING.md:1136-1142` already reserves the decision).
+1. ~~**Who issues the DTE**~~ — decided (#668): order-service, behind a
+   certifier port; see §6 as built.
 2. **Regime granularity.** One `taxRegime`, or IVA affiliation (general, pequeño
    contribuyente) and ISR regime as two. For someone who files, per ADR 0025.
 3. **Treatment values** beyond `taxed` and `exempt`, whether a consumer price is

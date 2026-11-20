@@ -5,10 +5,8 @@ import {
   parseSearch,
   type SearchParams,
 } from '@r10c/implementation-marketplace-catalog-next';
-import { Suspense } from 'react';
 
 import { AddedNotice } from '../cart/added-notice';
-import { OfferingGridSkeleton } from '../catalog/offering-grid';
 import { OfferingListing } from '../catalog/offering-listing';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
@@ -45,20 +43,16 @@ export function SearchPage({
             : t('storefront.search.heading')}
         </HeadingOne>
 
-        <Suspense
-          fallback={<OfferingGridSkeleton layout="listing" count={6} />}
-        >
-          <OfferingListing
-            locale={locale}
-            path={storePaths.search()}
-            state={state}
-            emptyLabel={
-              term
-                ? t('storefront.search.empty', { term })
-                : t('storefront.listing.empty')
-            }
-          />
-        </Suspense>
+        <OfferingListing
+          locale={locale}
+          path={storePaths.search()}
+          state={state}
+          emptyLabel={
+            term
+              ? t('storefront.search.empty', { term })
+              : t('storefront.listing.empty')
+          }
+        />
       </Stack>
     </StoreShell>
   );

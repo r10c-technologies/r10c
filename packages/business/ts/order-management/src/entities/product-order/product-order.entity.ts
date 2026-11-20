@@ -11,6 +11,10 @@ import {
   TaxRegimes,
 } from '@r10c/business-ts-tax-policy';
 
+import {
+  type FiscalDocumentType,
+  FiscalDocumentTypes,
+} from '../../values/fiscal-document';
 import { OrderItem } from '../../values/order-item';
 import {
   type OrderStatus,
@@ -97,6 +101,15 @@ export class ProductOrder implements Entity {
   #trackingUrl?: string;
   #dispatchedAt?: Date;
   #fulfilledAt?: Date;
+  #fiscalDocumentType?: FiscalDocumentType;
+  #fiscalAuthorization?: string;
+  #fiscalSeries?: string;
+  #fiscalNumber?: string;
+  #fiscalCertifiedAt?: Date;
+  #fiscalVoidAuthorization?: string;
+  #fiscalVoidedAt?: Date;
+  #fiscalAttemptAt?: Date;
+  #fiscalFailure?: string;
   // #endregion
 
   // #region constructors
@@ -719,6 +732,132 @@ export class ProductOrder implements Entity {
   }
   set fulfilledAt(value: Date | undefined) {
     this.#fulfilledAt = value;
+  }
+  /**
+   * The FEL document certified for this sale (ADR 0078 §6): `FACT`, or `FPEQ`
+   * for a pequeño contribuyente. Every fiscal member is server-owned and
+   * writable anyway — `readonly` would drop it from deserialization too —
+   * and is written only by the certification sweep, never by a save.
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.fiscalDocumentType',
+    enumValues: FiscalDocumentTypes,
+    enumLabelKey: 'entity:product-order.values.fiscalDocumentType',
+  })
+  get fiscalDocumentType(): FiscalDocumentType | undefined {
+    return this.#fiscalDocumentType;
+  }
+  set fiscalDocumentType(value: FiscalDocumentType | undefined) {
+    this.#fiscalDocumentType = value;
+  }
+
+  /** The certifier's authorization number: the document's identity. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.fiscalAuthorization',
+    filterable: true,
+  })
+  get fiscalAuthorization(): string | undefined {
+    return this.#fiscalAuthorization;
+  }
+  set fiscalAuthorization(value: string | undefined) {
+    this.#fiscalAuthorization = value;
+  }
+
+  /** The document's series, as the certifier issued it. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.fiscalSeries',
+  })
+  get fiscalSeries(): string | undefined {
+    return this.#fiscalSeries;
+  }
+  set fiscalSeries(value: string | undefined) {
+    this.#fiscalSeries = value;
+  }
+
+  /** The document's number within its series. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.fiscalNumber',
+  })
+  get fiscalNumber(): string | undefined {
+    return this.#fiscalNumber;
+  }
+  set fiscalNumber(value: string | undefined) {
+    this.#fiscalNumber = value;
+  }
+
+  /** When the certifier signed the document. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.fiscalCertifiedAt',
+    sortable: true,
+    filterable: true,
+  })
+  get fiscalCertifiedAt(): Date | undefined {
+    return this.#fiscalCertifiedAt;
+  }
+  set fiscalCertifiedAt(value: Date | undefined) {
+    this.#fiscalCertifiedAt = value;
+  }
+
+  /** The annulment's authorization, once a cancelled sale's document is voided. */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.fiscalVoidAuthorization',
+  })
+  get fiscalVoidAuthorization(): string | undefined {
+    return this.#fiscalVoidAuthorization;
+  }
+  set fiscalVoidAuthorization(value: string | undefined) {
+    this.#fiscalVoidAuthorization = value;
+  }
+
+  /** When the document was voided. */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.fiscalVoidedAt',
+    filterable: true,
+  })
+  get fiscalVoidedAt(): Date | undefined {
+    return this.#fiscalVoidedAt;
+  }
+  set fiscalVoidedAt(value: Date | undefined) {
+    this.#fiscalVoidedAt = value;
+  }
+
+  /**
+   * When the sweep last asked the certifier about this order. Its claim: a
+   * pass takes an order only once this is older than the retry backoff, so
+   * two replicas never ask about one order at once.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.fiscalAttemptAt',
+  })
+  get fiscalAttemptAt(): Date | undefined {
+    return this.#fiscalAttemptAt;
+  }
+  set fiscalAttemptAt(value: Date | undefined) {
+    this.#fiscalAttemptAt = value;
+  }
+
+  /**
+   * Why the last attempt did not certify (or void): the certifier's reason,
+   * or `unavailable`. Cleared when it succeeds. A failure never moves the
+   * order — the payment stands, and the next pass tries again.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.fiscalFailure',
+  })
+  get fiscalFailure(): string | undefined {
+    return this.#fiscalFailure;
+  }
+  set fiscalFailure(value: string | undefined) {
+    this.#fiscalFailure = value;
   }
   // #endregion
 }

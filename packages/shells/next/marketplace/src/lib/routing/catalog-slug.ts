@@ -3,12 +3,14 @@ import { isLocale, type Locale } from '@entifix/core';
 /** A storefront address that names one catalog record. */
 export interface CatalogSlug {
   readonly locale: Locale;
-  readonly kind: 'product' | 'category';
-  /** The offering id or the category code, as the path carries it. */
+  readonly kind: 'product' | 'category' | 'seller';
+  /** The offering id, the category code or the vendor id, as the path carries it. */
   readonly key: string;
 }
 
-const SLUG = /^\/([^/]+)\/(p|c)\/([^/]+)\/?$/;
+const SLUG = /^\/([^/]+)\/(p|c|s)\/([^/]+)\/?$/;
+
+const KINDS = { p: 'product', c: 'category', s: 'seller' } as const;
 
 /**
  * The catalog record a path names, or `undefined` for every other path —
@@ -21,13 +23,13 @@ export const catalogSlug = (pathname: string): CatalogSlug | undefined => {
   const [, locale, kind, key] = match as unknown as [
     string,
     string,
-    'p' | 'c',
+    keyof typeof KINDS,
     string,
   ];
   if (!isLocale(locale)) return undefined;
   return {
     locale,
-    kind: kind === 'p' ? 'product' : 'category',
+    kind: KINDS[kind],
     key: decodeURIComponent(key),
   };
 };

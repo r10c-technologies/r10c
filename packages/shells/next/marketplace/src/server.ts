@@ -20,6 +20,7 @@ export * from './lib/pages/order-find-page';
 export * from './lib/pages/order-status-page';
 export * from './lib/pages/product-page';
 export * from './lib/pages/search-page';
+export * from './lib/pages/seller-page';
 export * from './lib/pages/store-shell';
 export * from './lib/pages/storefront-skeleton';
 

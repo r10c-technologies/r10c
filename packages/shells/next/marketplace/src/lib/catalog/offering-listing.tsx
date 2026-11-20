@@ -69,6 +69,12 @@ export interface OfferingListingProps {
    * category facet, because the path already chose one.
    */
   readonly categoryId?: string;
+  /**
+   * A seller the page itself stands for (#675): only their offerings are
+   * listed, the address does not repeat them, and the panel offers no seller
+   * facet, because the path already chose one.
+   */
+  readonly vendorId?: string;
   /** What to say when nothing matched, already translated. */
   readonly emptyLabel: string;
 }
@@ -92,6 +98,7 @@ export async function OfferingListing({
   path,
   state,
   categoryId,
+  vendorId,
   emptyLabel,
 }: OfferingListingProps) {
   // Keyed by every prop, the parsed search included: one entry per distinct
@@ -120,17 +127,20 @@ export async function OfferingListing({
     ...state,
     sort: [sort],
     category: categoryId === undefined ? state.category : [categoryId],
+    seller: vendorId === undefined ? state.seller : [vendorId],
   };
   // On a failed category read the subtree is the category alone, so the
   // listing degrades to its flat answer rather than to nothing.
   const context = {
     subtreeOf: (id: string) => categorySubtree(categories.items, id),
   };
-  // A category page offers no category facet, so it counts none.
-  const counted: readonly CountedFacet[] =
-    categoryId === undefined
-      ? ['category', 'brand', 'seller']
-      : ['brand', 'seller'];
+  // A category page offers no category facet, and a seller's page no seller
+  // facet, so neither counts one.
+  const counted: readonly CountedFacet[] = [
+    ...(categoryId === undefined ? (['category'] as const) : []),
+    'brand',
+    ...(vendorId === undefined ? (['seller'] as const) : []),
+  ];
 
   // Two reads in parallel: the page, and the counts beside its filters. A
   // failed count renders the panel without numbers, never the page without
@@ -181,10 +191,14 @@ export async function OfferingListing({
       brand: brands.items
         .filter(brand => brand.status === 'active')
         .map(brand => ({ id: String(brand.id), name: brand.name })),
-      seller: vendors.map(vendor => ({
-        id: vendor.vendorId,
-        name: vendor.displayName,
-      })),
+      ...(vendorId === undefined
+        ? {
+            seller: vendors.map(vendor => ({
+              id: vendor.vendorId,
+              name: vendor.displayName,
+            })),
+          }
+        : {}),
     },
     counts: {
       ...counts,
@@ -221,7 +235,7 @@ export async function OfferingListing({
   // whose path chose it.
   const activeFilters =
     state.brand.length +
-    state.seller.length +
+    (vendorId === undefined ? state.seller.length : 0) +
     state.model.length +
     (categoryId === undefined ? state.category.length : 0) +
     (state.min.length + state.max.length > 0 ? 1 : 0) +

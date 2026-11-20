@@ -37,11 +37,11 @@ interface LocaleParams {
  *
  * It used to be removed outright: without Cache Components a layout's
  * `generateStaticParams` made `/search` and `/cart` static candidates, and
- * they answered `500 DYNAMIC_SERVER_USAGE`. Now a browsing route's
- * request-time reads sit inside its own `loading.tsx` boundary and stream into
- * the shell, and a route on the buyer's path to an order blocks instead
- * (`instant = false`, no `loading.tsx`), because streamed content stays hidden
- * without script (#725).
+ * they answered `500 DYNAMIC_SERVER_USAGE`. Now every storefront route
+ * blocks (`instant = false`, no `loading.tsx`) and renders its request-time
+ * reads before the first byte, because streamed content stays hidden without
+ * script: the buyer's path first (#725), then browsing and the header's
+ * category links (#730).
  */
 export function generateStaticParams() {
   return locales().map(locale => ({ locale }));

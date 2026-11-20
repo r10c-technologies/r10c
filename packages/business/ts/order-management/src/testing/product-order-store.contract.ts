@@ -73,6 +73,17 @@ const LINK = {
   setAt: new Date('2026-10-26T12:00:00.000Z'),
 };
 const PAID_AT = '2026-10-26T10:00:00.000Z';
+const TRIED_AT = new Date('2026-10-26T10:01:00.000Z');
+const RETRY_BEFORE = new Date('2026-10-26T10:00:30.000Z');
+const LATER = new Date('2026-10-26T10:05:00.000Z');
+const DOCUMENT = {
+  type: 'FACT',
+  authorization: 'AUTH-1',
+  series: 'SER1',
+  number: '42',
+  certifiedAt: TRIED_AT,
+} as const;
+const ANNULMENT = { authorization: 'VOID-1', voidedAt: LATER };
 
 /** The two stores over one `order` store, as one world. */
 export interface OrderStores {
@@ -380,6 +391,110 @@ export const describeProductOrderStoreContract = (
       const order = await run(orders.get('ord-1'));
       expect(order?.status).toBe('paid');
       expect(new Date(order?.paidAt as Date).toISOString()).toBe(PAID_AT);
+    });
+
+    it('lists a paid order as due, lets one attempt take it per backoff, and records its document once', async () => {
+      const { orders } = await placed();
+      const unpaid = await run(orders.fiscalDue(RETRY_BEFORE));
+      await run(orders.markPaid(paid, 'ord-1', PAID_AT));
+      const due = await run(orders.fiscalDue(RETRY_BEFORE));
+
+      const first = await run(
+        orders.claimFiscalAttempt('ord-1', TRIED_AT, RETRY_BEFORE),
+      );
+      const second = await run(
+        orders.claimFiscalAttempt('ord-1', TRIED_AT, RETRY_BEFORE),
+      );
+      const held = await run(orders.fiscalDue(RETRY_BEFORE));
+      const recorded = await run(
+        orders.recordFiscalDocument('ord-1', DOCUMENT),
+      );
+      const again = await run(
+        orders.recordFiscalDocument('ord-1', { ...DOCUMENT, number: '43' }),
+      );
+
+      expect(unpaid).toEqual({ certify: [], void: [] });
+      expect(due).toEqual({ certify: ['ord-1'], void: [] });
+      expect(first).toMatchObject({ id: 'ord-1', status: 'paid' });
+      expect(second).toBeUndefined();
+      expect(held).toEqual({ certify: [], void: [] });
+      expect([recorded, again]).toEqual([true, false]);
+      const order = await run(orders.get('ord-1'));
+      expect(order).toMatchObject({
+        fiscalDocumentType: 'FACT',
+        fiscalAuthorization: 'AUTH-1',
+        fiscalSeries: 'SER1',
+        fiscalNumber: '42',
+      });
+      expect(order?.fiscalAttemptAt).toBeUndefined();
+      expect(await run(orders.fiscalDue(LATER))).toEqual({
+        certify: [],
+        void: [],
+      });
+      expect(
+        await run(orders.claimFiscalAttempt('nope', TRIED_AT, RETRY_BEFORE)),
+      ).toBeUndefined();
+      expect(await run(orders.recordFiscalDocument('nope', DOCUMENT))).toBe(
+        false,
+      );
+    });
+
+    it('records a failure without moving the order, and lets a later pass retry', async () => {
+      const { orders } = await placed();
+      await run(orders.markPaid(paid, 'ord-1', PAID_AT));
+      await run(orders.claimFiscalAttempt('ord-1', TRIED_AT, RETRY_BEFORE));
+
+      const failed = await run(
+        orders.recordFiscalFailure('ord-1', 'NIT inválido'),
+      );
+      const missing = await run(orders.recordFiscalFailure('nope', 'x'));
+
+      expect([failed, missing]).toEqual([true, false]);
+      expect(await run(orders.get('ord-1'))).toMatchObject({
+        status: 'paid',
+        fiscalFailure: 'NIT inválido',
+      });
+      expect(await run(orders.fiscalDue(RETRY_BEFORE))).toEqual({
+        certify: [],
+        void: [],
+      });
+      expect(await run(orders.fiscalDue(LATER))).toEqual({
+        certify: ['ord-1'],
+        void: [],
+      });
+      await run(orders.recordFiscalDocument('ord-1', DOCUMENT));
+      expect((await run(orders.get('ord-1')))?.fiscalFailure).toBeUndefined();
+    });
+
+    it('voids only a cancelled order holding a document, once', async () => {
+      const { orders } = await placed();
+      await run(orders.markPaid(paid, 'ord-1', PAID_AT));
+      const uncertified = await run(
+        orders.recordFiscalVoid('ord-1', ANNULMENT),
+      );
+      await run(orders.recordFiscalDocument('ord-1', DOCUMENT));
+      const notCancelled = await run(
+        orders.recordFiscalVoid('ord-1', ANNULMENT),
+      );
+      await run(orders.claimCancellation('ord-1', undefined));
+      await run(orders.settleCancellation('ord-1', undefined));
+      const due = await run(orders.fiscalDue(RETRY_BEFORE));
+
+      const voided = await run(orders.recordFiscalVoid('ord-1', ANNULMENT));
+      const again = await run(orders.recordFiscalVoid('ord-1', ANNULMENT));
+
+      expect([uncertified, notCancelled]).toEqual([false, false]);
+      expect(due).toEqual({ certify: [], void: ['ord-1'] });
+      expect([voided, again]).toEqual([true, false]);
+      expect(await run(orders.get('ord-1'))).toMatchObject({
+        status: 'cancelled',
+        fiscalAuthorization: 'AUTH-1',
+        fiscalVoidAuthorization: 'VOID-1',
+      });
+      expect(await run(orders.fiscalDue(LATER))).toEqual({
+        certify: [],
+        void: [],
+      });
     });
 
     it('confirms, dispatches and fulfils an order, each move only from where it is legal', async () => {

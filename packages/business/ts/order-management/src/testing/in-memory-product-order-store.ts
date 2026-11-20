@@ -13,6 +13,7 @@ import type {
   OrderPlacement,
   ProductOrderStore,
 } from '../ports/product-order-store';
+import { FISCAL_DUE_STATUSES } from '../values/fiscal-document';
 import { type OrderStatus } from '../values/order-status';
 import { MOVE_STAMP_OF, orderStatusAfter } from '../values/order-transition';
 
@@ -225,6 +226,80 @@ export const makeInMemoryOrderStores = (): {
         order.paymentLinkSetBy = link.setBy;
         order.paymentLinkSetAt = link.setAt;
         return copyOrder(order);
+      }),
+    fiscalDue: retryBefore =>
+      Effect.sync(() => {
+        const free = (order: ProductOrder) =>
+          order.fiscalAttemptAt === undefined ||
+          order.fiscalAttemptAt.getTime() < retryBefore.getTime();
+        const all = Array.from(orders.values()).filter(free);
+        return {
+          certify: all
+            .filter(
+              order =>
+                (FISCAL_DUE_STATUSES as readonly string[]).includes(
+                  order.status,
+                ) && order.fiscalAuthorization === undefined,
+            )
+            .map(order => String(order.id)),
+          void: all
+            .filter(
+              order =>
+                order.status === 'cancelled' &&
+                order.fiscalAuthorization !== undefined &&
+                order.fiscalVoidedAt === undefined,
+            )
+            .map(order => String(order.id)),
+        };
+      }),
+    claimFiscalAttempt: (orderId, now, retryBefore) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (order === undefined) return undefined;
+        const last = order.fiscalAttemptAt;
+        if (last !== undefined && last.getTime() >= retryBefore.getTime()) {
+          return undefined;
+        }
+        order.fiscalAttemptAt = now;
+        return copyOrder(order);
+      }),
+    recordFiscalDocument: (orderId, document) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (order === undefined || order.fiscalAuthorization !== undefined) {
+          return false;
+        }
+        order.fiscalDocumentType = document.type;
+        order.fiscalAuthorization = document.authorization;
+        order.fiscalSeries = document.series;
+        order.fiscalNumber = document.number;
+        order.fiscalCertifiedAt = document.certifiedAt;
+        order.fiscalAttemptAt = undefined;
+        order.fiscalFailure = undefined;
+        return true;
+      }),
+    recordFiscalVoid: (orderId, annulment) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (
+          order?.status !== 'cancelled' ||
+          order.fiscalAuthorization === undefined ||
+          order.fiscalVoidedAt !== undefined
+        ) {
+          return false;
+        }
+        order.fiscalVoidAuthorization = annulment.authorization;
+        order.fiscalVoidedAt = annulment.voidedAt;
+        order.fiscalAttemptAt = undefined;
+        order.fiscalFailure = undefined;
+        return true;
+      }),
+    recordFiscalFailure: (orderId, reason) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (order === undefined) return false;
+        order.fiscalFailure = reason;
+        return true;
       }),
     markPaid: ({ consumer, eventId }, orderId, paidAt) =>
       Effect.sync(() => {

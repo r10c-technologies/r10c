@@ -20,6 +20,12 @@ export const storePaths = {
   home: () => '/',
   category: (code: string) => `/c/${code}`,
   /**
+   * A seller's own page, addressed by the vendor id the projection is keyed
+   * by (#675): the link a seller shares. A display name is not an address —
+   * it changes, and two sellers may share one.
+   */
+  seller: (vendorId: string) => `/s/${encodeURIComponent(vendorId)}`,
+  /**
    * A published offering, addressed by its **offering id**.
    *
    * Not its `code`: offering and specification are 1:N by construction, so two

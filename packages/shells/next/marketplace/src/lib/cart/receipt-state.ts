@@ -317,6 +317,47 @@ export interface ReceiptTracking {
   readonly trackingUrl?: string;
 }
 
+/**
+ * The FEL document an order was certified with, as its buyer reads it
+ * (#668): `pending` while the certifier has not answered for a paid order,
+ * `certified` with its numbers, `voided` once a cancelled sale's document
+ * was annulled. No entry for an order not yet paid for.
+ */
+export interface ReceiptFiscal {
+  readonly state: 'pending' | 'certified' | 'voided';
+  readonly type?: string;
+  readonly series?: string;
+  readonly number?: string;
+  readonly authorization?: string;
+}
+
+/** The statuses a paid-for order's document is owed from. */
+const FISCAL_OWED = new Set(['paid', 'confirmed', 'dispatched', 'fulfilled']);
+
+/** An order's FEL document as its buyer reads it, or `undefined` when none is owed. */
+const fiscalOf = (data: Record<string, unknown>): ReceiptFiscal | undefined => {
+  const {
+    fiscalDocumentType: type,
+    fiscalSeries: series,
+    fiscalNumber: number,
+    fiscalAuthorization: authorization,
+    fiscalVoidedAt: voidedAt,
+    status,
+  } = data;
+  if (!filled(authorization)) {
+    return filled(status) && FISCAL_OWED.has(status)
+      ? { state: 'pending' }
+      : undefined;
+  }
+  return {
+    state: filled(voidedAt) ? 'voided' : 'certified',
+    authorization,
+    ...(filled(type) ? { type } : {}),
+    ...(filled(series) ? { series } : {}),
+    ...(filled(number) ? { number } : {}),
+  };
+};
+
 /** One step on the way to the door, as the buyer's tracker draws it. */
 export type TrackerStepKey = 'placed' | 'payment' | 'dispatched' | 'delivered';
 
@@ -380,6 +421,8 @@ export interface ReceiptDetails {
   readonly tracking: ReadonlyMap<string, ReceiptTracking>;
   /** Each payment-link order's state, keyed by order id. */
   readonly payments: ReadonlyMap<string, ReceiptPayment>;
+  /** Each paid-for order's FEL document, keyed by order id (#668). */
+  readonly fiscal: ReadonlyMap<string, ReceiptFiscal>;
   /** The name each line was sold under, keyed `<orderId>/<offeringId>`. */
   readonly lineNames: ReadonlyMap<string, string>;
   /**
@@ -509,6 +552,7 @@ export const receiptDetailsOf = (
   const ivaIncluded = new Map<string, number>();
   const payments = new Map<string, ReceiptPayment>();
   const tracking = new Map<string, ReceiptTracking>();
+  const fiscal = new Map<string, ReceiptFiscal>();
   let billedTo: ReceiptBilledTo | undefined;
   for (const envelope of orders) {
     const data = isRecord(envelope) ? envelope['data'] : undefined;
@@ -518,6 +562,8 @@ export const receiptDetailsOf = (
     if (payment !== undefined) payments.set(data['id'], payment);
     const where = trackingOf(data);
     if (where !== undefined) tracking.set(data['id'], where);
+    const document = fiscalOf(data);
+    if (document !== undefined) fiscal.set(data['id'], document);
     if (
       typeof data['taxAmount'] === 'number' &&
       data['sellerTaxRegime'] !== 'small-taxpayer'
@@ -545,6 +591,7 @@ export const receiptDetailsOf = (
     ivaIncluded,
     payments,
     tracking,
+    fiscal,
     ...(billedTo === undefined ? {} : { billedTo }),
   };
 };

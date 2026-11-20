@@ -159,6 +159,15 @@ export const r10c: EsR10c = {
       newest: 'New in',
       featured: 'Featured',
     },
+    seller: {
+      overline: 'Store',
+      empty: 'This seller has no products published yet.',
+      share: 'Share on WhatsApp',
+      shareText: 'Take a look at {{seller}}’s store: {{url}}',
+      chat: 'Message the seller',
+      chatText: 'Hi {{seller}}, I saw your store and have a question.',
+      description: 'Shop the products of {{seller}}.',
+    },
     category: {
       overline: 'Category',
       empty: 'Nothing in this category yet.',
@@ -343,6 +352,13 @@ export const r10c: EsR10c = {
     },
     order: {
       ivaIncluded: 'VAT included:',
+      fiscal: {
+        pending: 'Electronic invoice being certified.',
+        certified:
+          'Electronic invoice {{type}} series {{series}} number {{number}}. Authorization {{authorization}}.',
+        voided:
+          'Electronic invoice {{type}} series {{series}} number {{number}}, voided. Authorization {{authorization}}.',
+      },
       billedTo: 'Billed to: {{name}} · {{idType}} {{taxId}}',
       billedToCf: 'Billed to: Final consumer (CF)',
       statusHeading: 'Placing your order',

@@ -528,6 +528,49 @@ describe('where an order stands', () => {
   });
 });
 
+describe('the FEL document an order was certified with', () => {
+  const fiscal = (data: Record<string, unknown>) =>
+    receiptDetailsOf({
+      group: { data: { id: 'g-1' } },
+      orders: [{ data: { id: 'o-1', ...data } }],
+    })?.fiscal.get('o-1');
+
+  const CERTIFIED = {
+    fiscalDocumentType: 'FACT',
+    fiscalSeries: 'A1B2C3D4',
+    fiscalNumber: '42',
+    fiscalAuthorization: 'A1B2C3D4-0000-0000-0000-000000000000',
+  };
+
+  it('says a paid order is being certified until the certifier answers', () => {
+    expect(fiscal({ status: 'paid' })).toEqual({ state: 'pending' });
+    expect(fiscal({ status: 'fulfilled' })).toEqual({ state: 'pending' });
+  });
+
+  it('owes nothing for an order not yet paid for, or never paid', () => {
+    expect(fiscal({ status: 'awaiting-payment' })).toBeUndefined();
+    expect(fiscal({ status: 'cancelled' })).toBeUndefined();
+    expect(fiscal({})).toBeUndefined();
+  });
+
+  it('reads the document once certified, and says when it was voided', () => {
+    expect(fiscal({ status: 'paid', ...CERTIFIED })).toEqual({
+      state: 'certified',
+      type: 'FACT',
+      series: 'A1B2C3D4',
+      number: '42',
+      authorization: CERTIFIED.fiscalAuthorization,
+    });
+    expect(
+      fiscal({
+        status: 'cancelled',
+        fiscalAuthorization: 'X',
+        fiscalVoidedAt: '2026-11-20T00:00:00.000Z',
+      }),
+    ).toEqual({ state: 'voided', authorization: 'X' });
+  });
+});
+
 describe('trackerSteps', () => {
   const states = (status: string, method = 'card') =>
     trackerSteps(status, method).map(step => `${step.key}:${step.state}`);

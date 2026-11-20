@@ -43,6 +43,7 @@
   "dependencies": {
     "@entifix/amqp": "catalog:",
     "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
     "@entifix/mongo": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@entifix/transactions": "catalog:",
@@ -57,7 +58,6 @@
     "effect": "4.0.7"
   },
   "devDependencies": {
-    "@entifix/core": "catalog:",
     "@entifix/testing-unit": "catalog:"
   }
 }

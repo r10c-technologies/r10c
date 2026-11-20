@@ -415,6 +415,7 @@ async function VendorOrderCard({
   const iva = details?.ivaIncluded.get(order.orderId);
   const payment = details?.payments.get(order.orderId);
   const tracking = details?.tracking.get(order.orderId);
+  const fiscal = details?.fiscal.get(order.orderId);
   // A chat with the seller, prefilled with the order and where it stands
   // (#671): the number is the seller's own, read from its published record.
   const vendor = await runRead(
@@ -516,6 +517,18 @@ async function VendorOrderCard({
                   unit="minor"
                   locale={locale}
                 />
+              </Text>
+            )}
+            {fiscal === undefined ? undefined : (
+              <Text muted data-testid="vendor-order-fiscal">
+                {fiscal.state === 'pending'
+                  ? t('storefront.order.fiscal.pending')
+                  : t(`storefront.order.fiscal.${fiscal.state}`, {
+                      type: fiscal.type ?? '',
+                      series: fiscal.series ?? '',
+                      number: fiscal.number ?? '',
+                      authorization: fiscal.authorization ?? '',
+                    })}
               </Text>
             )}
           </Stack>

@@ -47,7 +47,10 @@ const CONFIGURATION = fleetConfigurationOf({
     accessLinkIntervalSeconds: 300,
     storefrontUrl: 'http://localhost:3000/',
     paymentExpirySweepMs: 60_000,
+    fiscalSweepMs: 5_000,
+    fiscalRetryBackoffMs: 60_000,
   }),
+  fiscal: configurationRows({ simulatorOutcome: 'certify' }),
   paymentLinkProvider: configurationRows({
     other: '{"name":"Other","hosts":[]}',
     // A row that does not read as a provider drops out.

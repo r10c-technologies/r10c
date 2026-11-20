@@ -16,7 +16,12 @@ describe('catalogSlug', () => {
     resetLocales();
   });
 
-  it('reads a product and a category address', () => {
+  it('reads a product, a category and a seller address', () => {
+    expect(catalogSlug('/es/s/vendor-casa-solano')).toEqual({
+      locale: 'es',
+      kind: 'seller',
+      key: 'vendor-casa-solano',
+    });
     expect(catalogSlug('/es/p/offering-1')).toEqual({
       locale: 'es',
       kind: 'product',
@@ -38,6 +43,7 @@ describe('catalogSlug', () => {
     expect(catalogSlug('/es/search')).toBeUndefined();
     expect(catalogSlug('/es/p/offering-1/extra')).toBeUndefined();
     expect(catalogSlug('/de/p/offering-1')).toBeUndefined();
+    expect(catalogSlug('/es/x/offering-1')).toBeUndefined();
   });
 });
 
