@@ -61,7 +61,25 @@ export const runnerPort = (servicePort: number, replica: number) =>
 export interface RunnerReplica {
   readonly servicePort: number;
   readonly replica: number;
+  /**
+   * The address this runner registers for the others to reach it, when the
+   * process knows it better than the `workflow.runnerHost` row. One row serves
+   * every replica, which holds in the lab, where all of them share
+   * `127.0.0.1`, and cannot hold in a cluster, where each runner is a pod with
+   * an address of its own: there the manifest hands it the pod's IP as
+   * `WORKFLOW_RUNNER_HOST` (infra/cluster/fleet/transaction-service.yaml).
+   */
+  readonly host?: string | undefined;
 }
+
+/**
+ * Where a runner listens and registers: its own address when it was handed
+ * one, the row's otherwise, on its derived port.
+ */
+export const runnerAddress = (runner: RunnerReplica, rowHost: string) => ({
+  host: runner.host ?? rowHost,
+  port: runnerPort(runner.servicePort, runner.replica),
+});
 
 /**
  * Each participant's breaker and bulkhead, sized by its own rows (ADR 0067).
@@ -202,10 +220,7 @@ export const workflowComposition = (
           ...interpreterOptions(dials, concurrency),
           ...journalRetention(retentionMs),
         },
-        {
-          host,
-          port: runnerPort(runner.servicePort, runner.replica),
-        },
+        runnerAddress(runner, host),
       ),
       // Every replica relays: the outbox's claim keeps them apart.
       Layer.effectDiscard(

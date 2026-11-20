@@ -97,6 +97,16 @@
         "options": {
           "command": "bash tools/free-ports.sh 3201"
         }
+      },
+      "container": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "docker build -f tools/docker/next.Dockerfile --build-arg APP=back-office-app -t r10c/back-office-app:local apps/back-office-app"
+        }
       }
     }
   }

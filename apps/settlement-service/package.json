@@ -128,6 +128,16 @@
         "options": {
           "command": "bash tools/free-ports.sh 3107 9107"
         }
+      },
+      "container": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "prune"
+        ],
+        "options": {
+          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/settlement-service:local apps/settlement-service/dist"
+        }
       }
     }
   },

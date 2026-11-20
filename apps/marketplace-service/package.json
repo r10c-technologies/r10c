@@ -128,6 +128,16 @@
         "options": {
           "command": "bash tools/free-ports.sh 3100 9100"
         }
+      },
+      "container": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "prune"
+        ],
+        "options": {
+          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/marketplace-service:local apps/marketplace-service/dist"
+        }
       }
     }
   },

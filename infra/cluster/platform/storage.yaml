@@ -1,0 +1,23 @@
+# The fleet's namespace, and the one storage class every stateful workload in
+# it claims (ADR 0083 §5).
+#
+# `Retain` is what lets "down" scale the node pool to zero without losing a
+# record: a deleted claim leaves its disk behind instead of taking the
+# broker's or Redis's data with it. `WaitForFirstConsumer` binds a volume in
+# the zone of the node that first mounts it, which on a zonal cluster is the
+# only zone there is.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: r10c
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: retained
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-balanced
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true

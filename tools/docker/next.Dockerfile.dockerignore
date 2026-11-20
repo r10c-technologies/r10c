@@ -1,0 +1,7 @@
+# BuildKit reads `<Dockerfile>.dockerignore` beside the Dockerfile, so the
+# app's own directory needs no ignore file of its own: send the daemon the
+# three paths the image copies and nothing else (not node_modules, not .env).
+*
+!.next/standalone
+!.next/static
+!public

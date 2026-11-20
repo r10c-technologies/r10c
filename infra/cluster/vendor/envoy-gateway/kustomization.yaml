@@ -1,0 +1,10 @@
+# Envoy Gateway's own release manifest, unmodified — the Gateway API and Envoy
+# Gateway CRDs and the controller that serves ../../edge (ADR 0072):
+# https://github.com/envoyproxy/gateway/releases/download/v1.9.3/install.yaml
+# Upgrading is replacing the file with a newer release's, so the diff is the
+# upgrade (ADR 0083 §7). It installs into its own `envoy-gateway-system`
+# namespace.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - install.yaml

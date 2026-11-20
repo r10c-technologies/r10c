@@ -15,6 +15,7 @@ import {
   journalRetention,
   logJournalPurge,
   participantGuardsLayer,
+  runnerAddress,
   runnerPort,
   SqlOutboxLayer,
 } from './workflow-layer.js';
@@ -29,6 +30,20 @@ const dialsOf = (forcedState: ForcedState): ParticipantDials => ({
 describe('a runner’s port', () => {
   it('is the service port + 31000 + 1000 × the replica', () => {
     expect([runnerPort(3103, 0), runnerPort(3103, 1)]).toEqual([34103, 35103]);
+  });
+});
+
+describe('a runner’s address', () => {
+  it('is the row’s host, unless the process was handed its own', () => {
+    expect(
+      runnerAddress({ servicePort: 3103, replica: 1 }, '127.0.0.1'),
+    ).toEqual({ host: '127.0.0.1', port: 35103 });
+    expect(
+      runnerAddress(
+        { servicePort: 3103, replica: 0, host: '10.4.0.12' },
+        '127.0.0.1',
+      ),
+    ).toEqual({ host: '10.4.0.12', port: 34103 });
   });
 });
 

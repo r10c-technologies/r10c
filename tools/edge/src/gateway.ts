@@ -17,6 +17,12 @@ import {
 import type { Yaml } from './yaml.js';
 
 export const GATEWAY = 'r10c-edge';
+/**
+ * The fleet's namespace (infra/cluster/platform/storage.yaml). A route's
+ * backends are named without one, and `allowedRoutes` admits only routes in
+ * the Gateway's own, so every namespaced edge resource sits in it.
+ */
+export const FLEET_NAMESPACE = 'r10c';
 const GATEWAY_API = 'gateway.networking.k8s.io/v1';
 const ENVOY_GATEWAY = 'gateway.envoyproxy.io/v1alpha1';
 const seconds = (value: number): string => `${String(value)}s`;
@@ -33,7 +39,7 @@ const gatewayClass: Yaml = {
 const gateway: Yaml = {
   apiVersion: GATEWAY_API,
   kind: 'Gateway',
-  metadata: { name: GATEWAY },
+  metadata: { name: GATEWAY, namespace: FLEET_NAMESPACE },
   spec: {
     gatewayClassName: GATEWAY,
     listeners: ORIGINS.map(origin => ({
@@ -54,7 +60,7 @@ const backend = (name: string, port: number): Yaml => [{ name, port }];
 const httpRoute = (origin: Origin): Yaml => ({
   apiVersion: GATEWAY_API,
   kind: 'HTTPRoute',
-  metadata: { name: origin.app },
+  metadata: { name: origin.app, namespace: FLEET_NAMESPACE },
   spec: {
     parentRefs: [{ name: GATEWAY, sectionName: listenerName(origin) }],
     rules: [
@@ -83,7 +89,7 @@ const httpRoute = (origin: Origin): Yaml => ({
 const clientTrafficPolicy: Yaml = {
   apiVersion: ENVOY_GATEWAY,
   kind: 'ClientTrafficPolicy',
-  metadata: { name: GATEWAY },
+  metadata: { name: GATEWAY, namespace: FLEET_NAMESPACE },
   spec: {
     targetRefs: [
       { group: 'gateway.networking.k8s.io', kind: 'Gateway', name: GATEWAY },
@@ -98,7 +104,7 @@ const clientTrafficPolicy: Yaml = {
 const backendTrafficPolicy: Yaml = {
   apiVersion: ENVOY_GATEWAY,
   kind: 'BackendTrafficPolicy',
-  metadata: { name: GATEWAY },
+  metadata: { name: GATEWAY, namespace: FLEET_NAMESPACE },
   spec: {
     targetRefs: [
       { group: 'gateway.networking.k8s.io', kind: 'Gateway', name: GATEWAY },
@@ -110,6 +116,18 @@ const backendTrafficPolicy: Yaml = {
 };
 
 /** File name under `infra/cluster/edge/` → its documents. */
+/**
+ * The directory's kustomization, so `kubectl apply -k infra/cluster` takes the
+ * edge with the rest (ADR 0083 §7). It sets no namespace: kustomize cannot
+ * tell that a `GatewayClass` is cluster-scoped and would stamp one on it, so
+ * each namespaced resource above names `FLEET_NAMESPACE` itself.
+ */
+export const gatewayKustomization = (): Yaml => ({
+  apiVersion: 'kustomize.config.k8s.io/v1beta1',
+  kind: 'Kustomization',
+  resources: Object.keys(gatewayManifests()),
+});
+
 export const gatewayManifests = (): Readonly<
   Record<string, readonly Yaml[]>
 > => ({

@@ -128,6 +128,16 @@
         "options": {
           "command": "bash tools/free-ports.sh 3110 9110"
         }
+      },
+      "container": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "prune"
+        ],
+        "options": {
+          "command": "docker build -f tools/docker/service.Dockerfile -t r10c/fulfilment-service:local apps/fulfilment-service/dist"
+        }
       }
     }
   },

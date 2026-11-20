@@ -4983,6 +4983,18 @@ importers:
         specifier: workspace:*
         version: link:../slices
 
+  tools/cluster:
+    devDependencies:
+      '@r10c/edge':
+        specifier: workspace:*
+        version: link:../edge
+      '@r10c/slices':
+        specifier: workspace:*
+        version: link:../slices
+      prettier:
+        specifier: 3.10.1
+        version: 3.10.1
+
   tools/conventions:
     devDependencies:
       '@entifix/style':
@@ -4991,6 +5003,9 @@ importers:
 
   tools/docs:
     devDependencies:
+      '@r10c/cluster':
+        specifier: workspace:*
+        version: link:../cluster
       '@r10c/edge':
         specifier: workspace:*
         version: link:../edge

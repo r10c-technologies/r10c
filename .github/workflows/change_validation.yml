@@ -246,12 +246,16 @@ jobs:
         run: pnpm nx test @r10c/capabilities --skip-nx-cache
 
       # The cluster manifests nothing applies yet (infra/cluster/README.md),
-      # checked against their schemas so the shape is right the day one is:
-      # core Kubernetes from kubeconform's default location, Gateway API and
-      # Envoy Gateway CRDs from the datree catalog at a pinned commit. `-strict`
-      # rejects an unknown field, which is how a misspelt timeout would
-      # otherwise pass as silently ignored. The binary is checked against the
-      # release's own SHA-256 before it runs.
+      # rendered exactly as `kubectl apply -k infra/cluster` would send them
+      # and checked against their schemas so the shape is right the day one
+      # is: core Kubernetes from kubeconform's default location, the Gateway
+      # API, Envoy Gateway and RabbitMQ resources from the datree catalog at a
+      # pinned commit. `-strict` rejects an unknown field, which is how a
+      # misspelt timeout would otherwise pass as silently ignored. The vendored
+      # releases' own CRD definitions are skipped: no schema describes a CRD
+      # object, and they are upstream's files, unmodified. Rendering through
+      # kustomize is also what fails a file no kustomization lists. The binary
+      # is checked against the release's own SHA-256 before it runs.
       - name: Validate cluster manifests
         if: ${{ !cancelled() }}
         env:
@@ -263,10 +267,12 @@ jobs:
             "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
           echo "$KUBECONFORM_SHA256  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/kubeconform.tar.gz" -C "$RUNNER_TEMP" kubeconform
+          kubectl kustomize infra/cluster > "$RUNNER_TEMP/cluster.yaml"
           "$RUNNER_TEMP/kubeconform" -strict -summary \
+            -skip CustomResourceDefinition \
             -schema-location default \
             -schema-location "https://raw.githubusercontent.com/datreeio/CRDs-catalog/$CRDS_CATALOG_REF/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json" \
-            infra/cluster
+            "$RUNNER_TEMP/cluster.yaml"
 
       # The cloud half of ADR 0083, which nothing applies before MVP-7 (#702):
       # formatted, valid against its providers with the backend disabled, and
@@ -367,6 +373,10 @@ jobs:
   # application on a runner of its own, the services a few to a runner.
   # `build-libs` is skipped when no library is affected, which is not a reason
   # to skip the applications; failed or cancelled is.
+  #
+  # Each application's image is built here too, from the build on the same
+  # runner (ADR 0083, #682): `container` is a plain `docker build`, tagged
+  # `:local` and never pushed — no step here holds a registry credential.
   build-apps:
     name: Build (${{ matrix.chunk }})
     needs: [initialize, build-libs]
@@ -388,7 +398,7 @@ jobs:
         with:
           nx-cache: build-app-${{ strategy.job-index }}
           nx-cache-from: nx-cache-build-libs
-      - run: pnpm nx run-many -t build,typecheck --projects="${{ matrix.chunk }}"
+      - run: pnpm nx run-many -t build,typecheck,container --projects="${{ matrix.chunk }}"
       - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 

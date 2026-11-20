@@ -140,10 +140,10 @@ export const runnerComposition =
  * The composition, booted against the configuration config-service serves —
  * replica 0, the one that serves HTTP.
  */
-export const makeAppLayer = (servicePort: number) =>
+export const makeAppLayer = (servicePort: number, host?: string) =>
   makeFleetServiceLayer(
     SERVICE_NAME,
-    transactionComposition({ servicePort, replica: 0 }),
+    transactionComposition({ servicePort, replica: 0, host }),
   );
 
 /** A runner-only replica, booted the same way. */

@@ -1,0 +1,106 @@
+# Sessions and OIDC state (ADR 0083 §3): Redis in the cluster, because
+# Memorystore bills by the hour and cannot stop. It holds state, not a cache,
+# so the append-only file lives on a `retained` volume and a pod that comes
+# back after "up" reloads every session.
+#
+# The password is the `redis-secret` Secret's, whose value has a source of its
+# own (#683); the URI row the services read is built from the same value.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        # The image's `redis` user, by number.
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          # The lab's major, pinned to a patch here: a datastore that moves
+          # under a running fleet is not one anybody can reason about.
+          image: redis:7.4.7
+          args: ['--requirepass', '$(REDIS_PASSWORD)', '--appendonly', 'yes']
+          ports:
+            - name: redis
+              containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          # Authenticated on purpose, as in the lab: an unauthenticated PING
+          # answers -NOAUTH, which proves the socket but not that the server
+          # took the password the fleet will send. Loading a large
+          # append-only file is the window this closes.
+          readinessProbe:
+            exec:
+              command:
+                [
+                  'sh',
+                  '-c',
+                  'redis-cli --no-auth-warning -a "$REDIS_PASSWORD" ping | grep -q PONG',
+                ]
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              memory: '64Mi'
+              cpu: '100m'
+            limits:
+              memory: '256Mi'
+              cpu: '250m'
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: retained
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

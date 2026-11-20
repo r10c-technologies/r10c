@@ -1,0 +1,12 @@
+# What runs in the cluster beside the fleet (#681, ADR 0083 §3). Hand-written;
+# the fleet itself is rendered (../fleet).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: r10c
+resources:
+  - storage.yaml
+  - rabbitmq.yaml
+  - redis.yaml
+  - zitadel.yaml
+  - zitadel-login.yaml
+  - otel.yaml

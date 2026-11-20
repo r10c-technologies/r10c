@@ -77,6 +77,16 @@
         "options": {
           "command": "bash tools/free-ports.sh 3200"
         }
+      },
+      "container": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "docker build -f tools/docker/next.Dockerfile --build-arg APP=marketplace-app -t r10c/marketplace-app:local apps/marketplace-app"
+        }
       }
     }
   }

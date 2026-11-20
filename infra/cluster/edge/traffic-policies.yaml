@@ -5,6 +5,7 @@ apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: ClientTrafficPolicy
 metadata:
   name: r10c-edge
+  namespace: r10c
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -24,6 +25,7 @@ apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: BackendTrafficPolicy
 metadata:
   name: r10c-edge
+  namespace: r10c
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io

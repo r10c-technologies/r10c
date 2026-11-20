@@ -31,5 +31,6 @@ makeService({
   description: fleetToken,
   endpoints,
   policy,
-  appLayer: makeAppLayer(port),
+  // A cluster hands each pod its own address; the lab leaves it to the row.
+  appLayer: makeAppLayer(port, process.env.WORKFLOW_RUNNER_HOST),
 });
