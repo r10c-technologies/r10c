@@ -12,8 +12,8 @@
  * The scan pins how many projects it expects, the house rule `docs.spec.ts`
  * states, so a walk that quietly stops finding them fails rather than passes.
  */
-import { createRequire } from 'node:module';
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
