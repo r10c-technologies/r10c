@@ -4,10 +4,12 @@ import {
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
+import { ObjectStoreTag } from '@r10c/business-ts-object-storage';
 import {
   AccessLinkHours,
   AccessLinkIntervalSeconds,
   CancelWindowSeconds,
+  EvidenceLimits,
   type PaymentLinkProvider,
   paymentLinkProviderOf,
   PaymentLinkProvidersTag,
@@ -16,6 +18,8 @@ import {
 } from '@r10c/business-ts-order-management';
 import { smtpBuyerNotifierLayer } from '@r10c/implementation-order-management-smtp';
 import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
+import { makeFsObjectStore } from '@r10c/implementation-payment-evidence-fs';
+import { makeBucketObjectStore } from '@r10c/implementation-payment-evidence-gcs';
 import {
   crossingCallersLayer,
   crossingTokenLayer,
@@ -30,6 +34,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { startEvidenceOrphanSweep } from './evidence-orphan-sweep.js';
 import { startFiscalCertificationSweep } from './fiscal-certification-sweep.js';
 import { startPaymentExpirySweep } from './payment-expiry-sweep.js';
 import { startPaymentStatusProjection } from './payment-status.js';
@@ -131,14 +136,36 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       const provider = paymentLinkProviderOf(row.key, row.value);
       return provider === undefined ? [] : [provider];
     });
+    // A payment receipt's two dials and the orphan sweep's interval (ADR 0081
+    // §7), and where the files live: the lab's directory (§8).
+    const evidenceLimits = {
+      maxBytes: yield* store.in('order').getNumber('evidenceMaxBytes'),
+      maxCount: yield* store.in('order').getNumber('evidenceMaxCount'),
+    };
+    const evidenceOrphanSweepMs = yield* store
+      .in('order')
+      .getNumber('evidenceOrphanSweepMs');
+    // `engine` picks the cell: `fs` writes `directory` in the lab, `gcs` the
+    // bucket `bucket` in the cloud (#692). Read at boot, so a cluster seeded
+    // without its bucket stops here rather than at a buyer's first upload.
+    const evidence = store.in('payment-evidence');
+    const objectStore =
+      (yield* evidence.getString('engine')) === 'gcs'
+        ? makeBucketObjectStore(yield* evidence.getString('bucket'))
+        : makeFsObjectStore(yield* evidence.getString('directory'));
     // Where the buyer's mail goes out: Mailpit in the lab. Not dialled at
     // boot — a mail server that is down fails the notify step, which retries,
     // and never stops orders being taken.
     const smtp = store.in('smtp');
+    // A provider's account and its STARTTLS rule (#692): empty and `false`
+    // in the lab, the provider's in the cloud seed.
     const smtpOptions = {
       host: yield* smtp.getString('host'),
       port: yield* smtp.getNumber('port'),
       from: yield* smtp.getString('from'),
+      user: yield* smtp.getString('user'),
+      password: yield* smtp.getString('password'),
+      tls: (yield* smtp.getString('tls')) === 'true',
     };
 
     // Where the cancellation coordinator answers, and the secret this service
@@ -175,6 +202,8 @@ export const orderComposition = (configuration: FleetConfiguration) =>
       Layer.succeed(AccessLinkIntervalSeconds, accessLinkIntervalSeconds),
       Layer.succeed(StorefrontUrl, storefrontUrl.replace(/\/+$/, '')),
       Layer.succeed(PaymentLinkProvidersTag, providers),
+      Layer.succeed(EvidenceLimits, evidenceLimits),
+      Layer.succeed(ObjectStoreTag, objectStore),
       smtpBuyerNotifierLayer(smtpOptions),
       // The FEL certifier, simulated until one is contracted (Q12).
       SimulatedFiscalCertifierLayer(certifierOutcome),
@@ -215,6 +244,8 @@ export const orderComposition = (configuration: FleetConfiguration) =>
         Layer.effectDiscard(startReceiptRedactionSweep),
         // A payment-link order its buyer never paid lets go at its window.
         Layer.effectDiscard(startPaymentExpirySweep(paymentExpirySweepMs)),
+        // A receipt file no order points at goes after a day (ADR 0081 §6).
+        Layer.effectDiscard(startEvidenceOrphanSweep(evidenceOrphanSweepMs)),
         // A paid order's document is certified, a cancelled one's voided.
         Layer.effectDiscard(
           startFiscalCertificationSweep(fiscalSweepMs, fiscalRetryBackoffMs),

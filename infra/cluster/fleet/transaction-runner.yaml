@@ -16,6 +16,7 @@ spec:
       labels:
         app: transaction-runner
     spec:
+      serviceAccountName: transaction-runner
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -71,3 +72,11 @@ spec:
             capabilities:
               drop:
                 - ALL
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: transaction-runner
+  labels:
+    app: transaction-runner
+automountServiceAccountToken: false

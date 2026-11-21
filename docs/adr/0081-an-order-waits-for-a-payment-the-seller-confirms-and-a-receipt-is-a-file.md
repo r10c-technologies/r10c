@@ -4,6 +4,7 @@
 - Date: 2026-11-16
 - Revised: 2026-11-19 by the payment-confirmation build (#667): the wait is `@2` and provides the authorization number; the confirmation is recorded on the collection route
 - Revised: 2026-11-20 by the delivery-tracking build (#669 #670 #671): the order learns its guide through `order.mark-shipped@1`, the simulator is a feed sweep behind a dial, the buyer's receipt follows its orders by push on the receipt digest, and a seller states a WhatsApp number
+- Revised: 2026-11-20 by the receipt build (#689 #692): the seller's attach is the verb's own path, `POST /api/product-order/:id/attach-payment-evidence`; the storefront reads a buyer's receipt through a same-origin route holding the nonce; the count rides in a counter beside the array; the same file attached twice answers the first; the bucket cell is reached by Workload Identity and the lab's directory is `tmp/payment-evidence`
 - Area: business
 - Read when: a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date
 
@@ -230,12 +231,12 @@ A **payment receipt** is evidence: a screenshot or PDF the buyer received from
 the acquirer or the bank. It is attached to one vendor order while that order
 is `awaiting-payment`, and at most `order / evidenceMaxCount` (3) per order.
 
-| Who                         | Route                                                                              | Credential                                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| the buyer                   | `POST /api/product-order/:id/buyer-payment-evidence`                               | the receipt capability in `x-cancel-nonce` and **no session**, matched by digest against the group, before `receiptEndsAt` |
-| the vendor                  | `POST /api/product-order/:id/payment-evidence`, the verb `attach-payment-evidence` | a session holding `order-management:product-order:attach-payment-evidence`, through the vendor narrowing                   |
-| the buyer, to read          | `GET /api/product-order/:id/buyer-payment-evidence/:evidenceId`                    | the receipt capability, as above                                                                                           |
-| vendor or operator, to read | `GET /api/product-order/:id/payment-evidence/:evidenceId`                          | a session and `order-management:product-order:read`, narrowed as every order read is                                       |
+| Who                         | Route                                                                          | Credential                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| the buyer                   | `POST /api/product-order/:id/buyer-payment-evidence`                           | the receipt capability in `x-cancel-nonce` and **no session**, matched by digest against the group, before `receiptEndsAt` |
+| the vendor                  | `POST /api/product-order/:id/attach-payment-evidence`, the verb's derived path | a session holding `order-management:product-order:attach-payment-evidence`, through the vendor narrowing                   |
+| the buyer, to read          | `GET /api/product-order/:id/buyer-payment-evidence/:evidenceId`                | the receipt capability, as above                                                                                           |
+| vendor or operator, to read | `GET /api/product-order/:id/payment-evidence/:evidenceId`                      | a session and `order-management:product-order:read`, narrowed as every order read is                                       |
 
 - **The capability is the one the buyer already holds**
   ([ADR 0058](0058-the-order-after-payment.md) §5, re-keyable by ADR 0076 §6).
@@ -246,7 +247,11 @@ is `awaiting-payment`, and at most `order / evidenceMaxCount` (3) per order.
   the email on file.
 - **Each route accepts exactly one credential** (ADR 0023, ADR 0058 §4).
 - **Attach races cancel at the store.** The evidence entry is appended with a
-  conditional update on `status: 'awaiting-payment'`. The bytes are written
+  conditional update on `status: 'awaiting-payment'` and on a count kept
+  beside the array (`paymentEvidenceCount`), so the cap is the same write.
+  The same file attached again — by its SHA-256 — answers the first
+  attachment rather than taking a second slot: a retried upload is not a
+  second receipt. The bytes are written
   first under a fresh key. If the conditional update refuses, the object is
   deleted in the same request, and a sweep removes any object with no record
   after a day.
@@ -266,7 +271,10 @@ member, and this member is not picked.
 - **Size:** at most `order / evidenceMaxBytes`, 5 MB. It is enforced by the
   service and, before it, by the storefront's own limit, raised from Next's
   1 MB server-action default to the same figure plus framing.
-- **Serving:** only through order-service, with the sniffed type,
+- **Serving:** only through order-service — for the buyer, through a
+  same-origin storefront route that presents the nonce from the `httpOnly`
+  receipt cookie as `x-cancel-nonce`, so no address the browser holds opens a
+  file — with the sniffed type,
   `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox`,
   `Cache-Control: private, no-store`, and `Content-Disposition: attachment` for
   PDF. No public URL and no signed URL: every read passes the credential check

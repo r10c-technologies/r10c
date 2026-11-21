@@ -16,6 +16,7 @@ spec:
       labels:
         app: stock-service
     spec:
+      serviceAccountName: stock-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -87,3 +88,11 @@ spec:
     - name: http
       port: 3108
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stock-service
+  labels:
+    app: stock-service
+automountServiceAccountToken: false

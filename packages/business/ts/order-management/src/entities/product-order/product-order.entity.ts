@@ -21,6 +21,7 @@ import {
   OrderStatuses,
   OrderStatusTones,
 } from '../../values/order-status';
+import { PaymentEvidence } from '../../values/payment-evidence';
 import type { RelatedChannel } from '../../values/related-channel';
 
 /**
@@ -95,6 +96,7 @@ export class ProductOrder implements Entity {
   #paymentLinkProviderName?: string;
   #paymentLinkSetBy?: string;
   #paymentLinkSetAt?: Date;
+  #paymentEvidence: readonly PaymentEvidence[] = [];
   #cancelCause?: string;
   #courierName?: string;
   #trackingNumber?: string;
@@ -326,6 +328,25 @@ export class ProductOrder implements Entity {
   }
   set items(value: readonly OrderItem[]) {
     this.#items = value;
+  }
+
+  /**
+   * The payment receipts attached while the order waited (ADR 0081 §6): the
+   * record of each attachment, never the file. A `composition`, as `items`
+   * is, so it persists with the order; never hidden, for the same reason.
+   * Travels on no event — ADR 0078 §2 picks `order.*` members one by one,
+   * and this one is not picked.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => PaymentEvidence,
+    labelKey: 'entity:product-order.fields.paymentEvidence',
+  })
+  get paymentEvidence(): readonly PaymentEvidence[] {
+    return this.#paymentEvidence;
+  }
+  set paymentEvidence(value: readonly PaymentEvidence[]) {
+    this.#paymentEvidence = value;
   }
 
   @accessor({

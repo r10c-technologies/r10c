@@ -154,8 +154,9 @@ probed_labels() {
 # three user-lifecycle executions that revoke r10c sessions when a user is
 # deactivated at the provider; rev 4 → 5 moved the OIDC redirect URI onto
 # back-office-app when auth-app merged into it; rev 5 → 6 gave the instance a
-# label policy, which is what the hosted login renders in.
-ZITADEL_SEED_REVISION=6
+# label policy, which is what the hosted login renders in; rev 6 → 7 re-states
+# an existing SMTP provider's account and password on every run (#692).
+ZITADEL_SEED_REVISION=7
 
 # Half of L7's probe: has the Zitadel instance been given its project, app,
 # policies, branding and SMTP — by the version of the seed that is checked in

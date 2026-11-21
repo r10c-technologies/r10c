@@ -444,6 +444,18 @@ export const entity: EsEntity = {
         taxableBase: 'Taxable base',
         taxAmount: 'VAT',
       },
+      paymentEvidence: 'Payment receipts',
+      /** The members of one attached receipt (ADR 0081 §6). */
+      evidence: {
+        id: 'Receipt ID',
+        objectKey: 'File',
+        contentType: 'File type',
+        byteSize: 'Size',
+        sha256: 'SHA-256 fingerprint',
+        attachedBy: 'Attached by',
+        attachedAt: 'Attached on',
+        redactedAt: 'Deleted on',
+      },
       channel: 'Sales channel',
       placedAt: 'Placed at',
       paidAt: 'Paid at',
@@ -518,6 +530,7 @@ export const entity: EsEntity = {
     useCases: {
       confirmPayment: 'Confirm payment',
       setPaymentLink: 'Set payment link',
+      attachPaymentEvidence: 'Attach payment receipt',
       cancel: 'Cancel order',
       cancelConfirm:
         'The buyer will be refunded and the units will go back into your stock. This cannot be undone: charging again is a new purchase.',

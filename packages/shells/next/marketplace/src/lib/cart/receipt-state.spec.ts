@@ -308,6 +308,7 @@ describe('receiptDetailsOf, for a payment-link order', () => {
       awaiting: true,
       dueAt: '2026-11-21T10:00:00.000Z',
       expired: false,
+      evidence: [],
       link: {
         url: 'https://pay.example/p/1',
         host: 'pay.example',
@@ -328,6 +329,7 @@ describe('receiptDetailsOf, for a payment-link order', () => {
     expect(details?.payments.get('o-1')).toEqual({
       awaiting: true,
       expired: false,
+      evidence: [],
     });
   });
 
@@ -348,9 +350,40 @@ describe('receiptDetailsOf, for a payment-link order', () => {
       expect(details?.payments.get('o-1')).toEqual({
         awaiting: true,
         expired: false,
+        evidence: [],
       });
     },
   );
+
+  it('lists the receipts whose file is kept, as an image or a PDF', () => {
+    const details = read([
+      {
+        data: {
+          id: 'o-1',
+          paymentMethod: 'link',
+          status: 'awaiting-payment',
+          paymentEvidence: [
+            {
+              id: 'e-1',
+              objectKey: 'evidence/o-1/e-1',
+              contentType: 'image/png',
+            },
+            {
+              id: 'e-2',
+              objectKey: 'evidence/o-1/e-2',
+              contentType: 'application/pdf',
+            },
+            { id: 'e-3', contentType: 'image/png', redactedAt: '2026-01-01' },
+          ],
+        },
+      },
+    ]);
+
+    expect(details?.payments.get('o-1')?.evidence).toEqual([
+      { id: 'e-1', kind: 'image' },
+      { id: 'e-2', kind: 'pdf' },
+    ]);
+  });
 
   it('names an unnamed provider by its host, and reads an expired order', () => {
     const details = read([

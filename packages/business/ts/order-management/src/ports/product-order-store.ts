@@ -5,6 +5,7 @@ import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
 import type { FiscalDocument, FiscalVoid } from '../values/fiscal-document';
 import type { OrderTransition } from '../values/order-transition';
+import type { PaymentEvidence } from '../values/payment-evidence';
 import type { PaymentLink } from '../values/payment-link';
 
 /** What the seller confirmed a payment link with, and who and when. */
@@ -189,6 +190,31 @@ export interface ProductOrderStore {
     orderId: string,
     reason: string,
   ) => Effect.Effect<boolean, StoreFault>;
+  /**
+   * Append one payment receipt's record (ADR 0081 §6): one conditional write,
+   * only while the order is `awaiting-payment` and holds fewer than
+   * `maxCount` receipts. The order as it now stands, or `undefined` when either
+   * condition failed — so an attach racing a cancellation or an expiry has
+   * exactly one winner, and the loser deletes the bytes it wrote.
+   */
+  readonly appendEvidence: (
+    orderId: string,
+    evidence: PaymentEvidence,
+    maxCount: number,
+  ) => Effect.Effect<ProductOrder | undefined, StoreFault>;
+  /**
+   * Forget where the receipts of a group's orders live (ADR 0081 §9): stamp
+   * `redactedAt` on each one that still has a key and remove the key. Answers
+   * the keys it removed, for the caller to delete; a second pass answers none.
+   */
+  readonly redactEvidence: (
+    groupId: string,
+    now: Date,
+  ) => Effect.Effect<readonly string[], StoreFault>;
+  /** Which of `keys` some order's receipt still points at. */
+  readonly referencedEvidence: (
+    keys: readonly string[],
+  ) => Effect.Effect<ReadonlySet<string>, StoreFault>;
   /** Fold one order's share of a capture: `pending → paid`, once per claim. */
   readonly markPaid: (
     claim: { readonly consumer: string; readonly eventId: string },
@@ -253,12 +279,13 @@ export interface CheckoutGroupStore {
    * from every group whose receipt window ended before `now` and whose every
    * order is `fulfilled` or `cancelled`, stamping `redactedAt`. The copy the
    * group's opening command remembered for a redelivery goes with it, or the
-   * data would leave the record and stay in the store. Answers how many
-   * groups it redacted; a group already redacted is not counted again.
+   * data would leave the record and stay in the store. Answers the ids of the
+   * groups it redacted, so their orders' receipts can go with them (ADR 0081
+   * §9); a group already redacted is not answered again.
    */
   readonly redactEndedReceipts: (
     now: Date,
-  ) => Effect.Effect<number, StoreFault>;
+  ) => Effect.Effect<readonly string[], StoreFault>;
 }
 
 export class CheckoutGroupStoreTag extends Context.Service<

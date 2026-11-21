@@ -92,3 +92,37 @@ export class InvalidPaymentDetails extends Failure.invalid<InvalidPaymentDetails
   { field: Schema.String, reason: Schema.String },
   { message: ({ reason }) => reason },
 ) {}
+
+/**
+ * A payment receipt whose bytes are not a JPEG, PNG, WebP or PDF — whatever
+ * type it was declared as. SVG and HTML are refused because a browser can
+ * execute them (ADR 0081 §7).
+ */
+export class EvidenceTypeRefused extends Failure.invalid<EvidenceTypeRefused>()(
+  'EvidenceTypeRefused',
+  'evidenceTypeRefused',
+  {},
+  { message: () => 'a receipt is a JPEG, PNG, WebP or PDF file' },
+) {}
+
+/** A payment receipt larger than `order / evidenceMaxBytes` (ADR 0081 §7). */
+export class EvidenceTooLarge extends Failure.invalid<EvidenceTooLarge>()(
+  'EvidenceTooLarge',
+  'evidenceTooLarge',
+  { maxBytes: Schema.Number },
+  { message: ({ maxBytes }) => `a receipt is at most ${maxBytes} bytes` },
+) {}
+
+/**
+ * An order that already holds `order / evidenceMaxCount` receipts: the count
+ * and the size bound what one capability can do to its own order, in place of
+ * a rate limit (ADR 0081 §7).
+ */
+export class EvidenceLimitReached extends Failure.declined<EvidenceLimitReached>()(
+  'EvidenceLimitReached',
+  'evidenceLimitReached',
+  { maxCount: Schema.Number },
+  {
+    message: ({ maxCount }) => `an order holds at most ${maxCount} receipts`,
+  },
+) {}

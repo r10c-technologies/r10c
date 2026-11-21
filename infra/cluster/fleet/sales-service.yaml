@@ -16,6 +16,7 @@ spec:
       labels:
         app: sales-service
     spec:
+      serviceAccountName: sales-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -87,3 +88,11 @@ spec:
     - name: http
       port: 3109
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sales-service
+  labels:
+    app: sales-service
+automountServiceAccountToken: false

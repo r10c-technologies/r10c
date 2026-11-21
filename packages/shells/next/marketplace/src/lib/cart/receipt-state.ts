@@ -301,7 +301,30 @@ export interface ReceiptPayment {
     /** `other`: a provider nobody vouched for, so its host is shown. */
     readonly unlisted: boolean;
   };
+  /** The receipts attached whose file is still kept (ADR 0081 §6). */
+  readonly evidence: readonly ReceiptEvidence[];
 }
+
+/** One attached payment receipt, as its buyer is shown it. */
+export interface ReceiptEvidence {
+  readonly id: string;
+  readonly kind: 'image' | 'pdf';
+}
+
+/** The receipts of an order whose file is still kept, in attach order. */
+const evidenceOf = (value: unknown): readonly ReceiptEvidence[] =>
+  (Array.isArray(value) ? value : []).flatMap(
+    (entry: Record<string, unknown>): ReceiptEvidence[] =>
+      filled(entry['id']) && filled(entry['objectKey'])
+        ? [
+            {
+              id: entry['id'],
+              kind:
+                entry['contentType'] === 'application/pdf' ? 'pdf' : 'image',
+            },
+          ]
+        : [],
+  );
 
 /**
  * Where one vendor order stands on its way to the buyer, read back on every
@@ -473,6 +496,7 @@ const paymentOf = (
     awaiting: data['status'] === 'awaiting-payment',
     ...(filled(dueAt) ? { dueAt } : {}),
     expired: data['cancelCause'] === 'payment-expired',
+    evidence: evidenceOf(data['paymentEvidence']),
     ...(host === undefined || !filled(url)
       ? {}
       : {

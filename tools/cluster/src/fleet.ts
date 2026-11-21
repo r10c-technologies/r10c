@@ -310,6 +310,9 @@ const deployment = (workload: Workload): Yaml => ({
     template: {
       metadata: { labels: labels(workload.name) },
       spec: {
+        // Its own identity, never the namespace's `default`: a cloud grant
+        // made to one process's account reaches that process alone (#692).
+        serviceAccountName: workload.name,
         terminationGracePeriodSeconds: workload.grace,
         securityContext: {
           runAsNonRoot: true,
@@ -373,6 +376,19 @@ const deployment = (workload: Workload): Yaml => ({
   },
 });
 
+/**
+ * One account per workload. In the cloud, Workload Identity grants by this
+ * name: order-service's account is the one `infra/gcp/storage.tf` lets write
+ * the receipts bucket, and no other pod can act as it (#692). The token is
+ * not mounted: no process here calls the Kubernetes API.
+ */
+const serviceAccountOf = (workload: Workload): Yaml => ({
+  apiVersion: 'v1',
+  kind: 'ServiceAccount',
+  metadata: { name: workload.name, labels: labels(workload.name) },
+  automountServiceAccountToken: false,
+});
+
 const serviceOf = (workload: Workload): Yaml => ({
   apiVersion: 'v1',
   kind: 'Service',
@@ -415,8 +431,8 @@ export const fleetManifests = (
   };
   for (const workload of workloads(inputs)) {
     files[`${workload.name}.yaml`] = workload.service
-      ? [deployment(workload), serviceOf(workload)]
-      : [deployment(workload)];
+      ? [deployment(workload), serviceOf(workload), serviceAccountOf(workload)]
+      : [deployment(workload), serviceAccountOf(workload)];
   }
   return files;
 };

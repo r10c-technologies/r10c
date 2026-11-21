@@ -1,5 +1,6 @@
 import {
   isCancelOutcome,
+  isEvidenceOutcome,
   OrderStatusPage,
 } from '@r10c/shells-next-marketplace/server';
 
@@ -16,7 +17,8 @@ export const instant = false;
 
 /**
  * Where a buyer waits on their checkout and reads its receipt. `searchParams`
- * carries what a cancel attempt did, for exactly one navigation; the receipt
+ * carries what a cancel attempt or a receipt upload did, for exactly one
+ * navigation; the receipt
  * and the flow ticket are the page's only state, both `httpOnly` cookies.
  */
 export default async function OrderStatusRoute({
@@ -35,6 +37,7 @@ export default async function OrderStatusRoute({
   const query = await searchParams;
   const raw = query?.['cancel'];
   const outcome = typeof raw === 'string' ? raw : undefined;
+  const rawEvidence = query?.['receipt'];
 
   return (
     <OrderStatusPage
@@ -42,6 +45,7 @@ export default async function OrderStatusRoute({
       flowId={decodeURIComponent(flowId)}
       // Narrowed against the closed set: the value decides a translation key.
       outcome={isCancelOutcome(outcome) ? outcome : undefined}
+      evidenceOutcome={isEvidenceOutcome(rawEvidence) ? rawEvidence : undefined}
     />
   );
 }

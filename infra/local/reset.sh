@@ -39,6 +39,7 @@ echo "  wipes /data/marketplace-{mongodb,redis,rabbitmq,postgres} inside minikub
 echo "  destroys the ${C_BOLD}Zitadel instance${C_OFF} (its database lives in the same Postgres)"
 echo "  ${C_YELLOW}Local dev data is lost${C_OFF}: users, sessions, catalog docs, config rows,"
 echo "  and every credential, MFA enrolment and linked social account in Zitadel."
+echo "  Payment receipt files under ${C_BOLD}tmp/payment-evidence${C_OFF} go with them."
 echo "  All of it is re-seeded on the next service boot."
 echo
 if [[ "$ASSUME_YES" != "1" ]]; then
@@ -145,5 +146,9 @@ seed_zitadel || exit 1
 log "clearing nx cache and Next build output"
 ( cd "$REPO_ROOT" && pnpm nx reset >/dev/null 2>&1 ) || true
 rm -rf "$REPO_ROOT"/apps/*/.next
+# Payment receipt files (ADR 0081 §8): the lab's object store is a directory,
+# and the orders that pointed into it are gone with Mongo.
+log "emptying the payment receipt files"
+rm -rf "$REPO_ROOT"/tmp/payment-evidence
 
 log_ok "reset complete — datastores are empty and will re-seed on service boot"

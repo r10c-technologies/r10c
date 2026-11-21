@@ -49,6 +49,13 @@ const CONFIGURATION = fleetConfigurationOf({
     paymentExpirySweepMs: 60_000,
     fiscalSweepMs: 5_000,
     fiscalRetryBackoffMs: 60_000,
+    evidenceMaxBytes: 5_242_880,
+    evidenceMaxCount: 3,
+    evidenceOrphanSweepMs: 3_600_000,
+  }),
+  'payment-evidence': configurationRows({
+    engine: 'fs',
+    directory: 'tmp/spec-evidence',
   }),
   fiscal: configurationRows({ simulatorOutcome: 'certify' }),
   paymentLinkProvider: configurationRows({
@@ -60,6 +67,9 @@ const CONFIGURATION = fleetConfigurationOf({
     host: '127.0.0.1',
     port: 30825,
     from: 'pedidos@r10c.test',
+    user: '',
+    password: '',
+    tls: 'false',
   }),
   transaction: configurationRows({
     url: 'http://coordinator.invalid/api',
@@ -89,6 +99,22 @@ describe('the order shell', () => {
 
     const layer = await Effect.runPromise(
       orderComposition(fleetConfigurationOf(rest)),
+    );
+
+    expect(Layer.isLayer(layer)).toBe(true);
+  });
+
+  it('composes over a bucket when the engine row says gcs', async () => {
+    const layer = await Effect.runPromise(
+      orderComposition(
+        fleetConfigurationOf({
+          ...CONFIGURATION.plain,
+          'payment-evidence': configurationRows({
+            engine: 'gcs',
+            bucket: 'spec-bucket',
+          }),
+        }),
+      ),
     );
 
     expect(Layer.isLayer(layer)).toBe(true);

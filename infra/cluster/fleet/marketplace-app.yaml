@@ -16,6 +16,7 @@ spec:
       labels:
         app: marketplace-app
     spec:
+      serviceAccountName: marketplace-app
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -112,3 +113,11 @@ spec:
     - name: http
       port: 3200
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: marketplace-app
+  labels:
+    app: marketplace-app
+automountServiceAccountToken: false

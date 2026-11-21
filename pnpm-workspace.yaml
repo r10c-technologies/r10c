@@ -44,31 +44,31 @@ packages:
 catalog:
   # Read by the @effect/platform-node-shared override below.
   '@effect/platform-node-shared': 4.0.7
-  '@entifix/amqp': 0.23.4
-  '@entifix/authz': 0.23.4
-  '@entifix/business': 0.23.4
-  '@entifix/core': 0.23.4
-  '@entifix/i18n': 0.23.4
-  '@entifix/jwt': 0.23.4
-  '@entifix/mongo': 0.23.4
-  '@entifix/next-i18n': 0.23.4
-  '@entifix/next-shell': 0.23.4
-  '@entifix/posthog': 0.23.4
-  '@entifix/react-controls': 0.23.4
-  '@entifix/react-integration': 0.23.4
-  '@entifix/redis': 0.23.4
-  '@entifix/rest': 0.23.4
-  '@entifix/service-shell': 0.23.4
-  '@entifix/sql': 0.23.4
-  '@entifix/static': 0.23.4
-  '@entifix/style': 0.23.4
-  '@entifix/testing-auth': 0.23.4
-  '@entifix/testing-e2e': 0.23.4
-  '@entifix/testing-unit': 0.23.4
-  '@entifix/tooling': 0.23.4
-  '@entifix/transactions': 0.23.4
-  '@entifix/workflow': 0.23.4
-  '@entifix/zitadel': 0.23.4
+  '@entifix/amqp': 0.23.5
+  '@entifix/authz': 0.23.5
+  '@entifix/business': 0.23.5
+  '@entifix/core': 0.23.5
+  '@entifix/i18n': 0.23.5
+  '@entifix/jwt': 0.23.5
+  '@entifix/mongo': 0.23.5
+  '@entifix/next-i18n': 0.23.5
+  '@entifix/next-shell': 0.23.5
+  '@entifix/posthog': 0.23.5
+  '@entifix/react-controls': 0.23.5
+  '@entifix/react-integration': 0.23.5
+  '@entifix/redis': 0.23.5
+  '@entifix/rest': 0.23.5
+  '@entifix/service-shell': 0.23.5
+  '@entifix/sql': 0.23.5
+  '@entifix/static': 0.23.5
+  '@entifix/style': 0.23.5
+  '@entifix/testing-auth': 0.23.5
+  '@entifix/testing-e2e': 0.23.5
+  '@entifix/testing-unit': 0.23.5
+  '@entifix/tooling': 0.23.5
+  '@entifix/transactions': 0.23.5
+  '@entifix/workflow': 0.23.5
+  '@entifix/zitadel': 0.23.5
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

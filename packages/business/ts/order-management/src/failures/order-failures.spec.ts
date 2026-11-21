@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CancelNotAuthorized,
+  EvidenceLimitReached,
+  EvidenceTooLarge,
+  EvidenceTypeRefused,
   InvalidPaymentDetails,
   OrderNotAwaitingPayment,
   OrderNotCancellable,
@@ -23,6 +26,9 @@ describe('the order refusals', () => {
       new CancelNotAuthorized(),
       new OrderNotAwaitingPayment({ orderId: 'o', standing: 'cancelled' }),
       new InvalidPaymentDetails({ field: 'url', reason: 'https only' }),
+      new EvidenceTypeRefused(),
+      new EvidenceTooLarge({ maxBytes: 5 }),
+      new EvidenceLimitReached({ maxCount: 3 }),
     ];
 
     expect(refusals.every(isFailure)).toBe(true);
@@ -33,6 +39,9 @@ describe('the order refusals', () => {
       ['cancelNotAuthorized', 'unauthenticated'],
       ['orderNotAwaitingPayment', 'conflict'],
       ['invalidPaymentDetails', 'invalid'],
+      ['evidenceTypeRefused', 'invalid'],
+      ['evidenceTooLarge', 'invalid'],
+      ['evidenceLimitReached', 'declined'],
     ]);
     expect(refusals.map(refusal => refusal.message)).toEqual([
       'past cancelling',
@@ -41,6 +50,9 @@ describe('the order refusals', () => {
       'the order cannot be cancelled from here',
       "an order in 'cancelled' is not waiting for its payment",
       'https only',
+      'a receipt is a JPEG, PNG, WebP or PDF file',
+      'a receipt is at most 5 bytes',
+      'an order holds at most 3 receipts',
     ]);
   });
 });

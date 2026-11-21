@@ -75,7 +75,7 @@ describe('the fleet in the cluster', () => {
       name: 'WORKFLOW_RUNNER_HOST',
       valueFrom: { fieldRef: { fieldPath: 'status.podIP' } },
     });
-    expect(fleetManifests(INPUTS)['transaction-runner.yaml']).toHaveLength(1);
+    expect(fleetManifests(INPUTS)['transaction-runner.yaml']).toHaveLength(2);
   });
 
   it('probes every HTTP process on its health routes, liveness apart from readiness', () => {
@@ -129,6 +129,26 @@ describe('the fleet in the cluster', () => {
     expect(serviceUrlVariable('marketplace-admin-service')).toBe(
       'MARKETPLACE_ADMIN_SERVICE_URL',
     );
+  });
+
+  it('runs each workload as its own account, with no API token mounted', () => {
+    for (const [file, documents] of Object.entries(fleetManifests(INPUTS))) {
+      if (file === 'fleet-env.yaml') continue;
+      const byKind = new Map(
+        documents.map(tree).map(document => [document['kind'], document]),
+      );
+      const account = byKind.get('ServiceAccount');
+      const deployment = byKind.get('Deployment');
+      const name = tree(account?.['metadata'])['name'];
+      expect(account?.['kind'], file).toBe('ServiceAccount');
+      expect(account?.['automountServiceAccountToken'], file).toBe(false);
+      expect(
+        tree(tree(tree(deployment?.['spec'])['template'])['spec'])[
+          'serviceAccountName'
+        ],
+        file,
+      ).toBe(name);
+    }
   });
 
   it('lists every rendered file in its kustomization', () => {

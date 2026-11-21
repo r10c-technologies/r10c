@@ -18,11 +18,20 @@ export interface MailTransport {
   }) => Promise<unknown>;
 }
 
-/** Where the mail server listens, and who the buyer's mail is from. */
+/**
+ * Where the mail server listens, who the buyer's mail is from, and — for a
+ * provider rather than the lab's Mailpit — the account it is sent as and
+ * whether the hop must be encrypted (#692).
+ */
 export interface SmtpOptions {
   readonly host: string;
   readonly port: number;
   readonly from: string;
+  /** Empty or absent: no authentication, as Mailpit takes none. */
+  readonly user?: string;
+  readonly password?: string;
+  /** Upgrade to TLS with `STARTTLS` and refuse to send without it. */
+  readonly tls?: boolean;
 }
 
 /**
@@ -42,16 +51,33 @@ export const smtpBuyerNotifier = (
 });
 
 /**
- * A nodemailer transport for a plain SMTP server: in the lab, Mailpit on
- * `:30825`, which accepts anything and keeps it for the web UI. No TLS and no
- * authentication there; a production server is a configuration row away, and
- * an unencrypted hop to it is not something this cell decides.
+ * The transport's options. In the lab, Mailpit on `:30825`, which accepts
+ * anything: no TLS, no authentication. A provider is the same rows with a
+ * user, a password and `tls` (#692): GCP blocks port 25, so the cloud sends on
+ * 587, where the connection starts plain and `STARTTLS` upgrades it —
+ * `requireTLS` refuses to send a password, or a buyer's mail, over a hop that
+ * did not upgrade.
  */
-export const makeSmtpTransport = ({
+export const transportOptionsOf = ({
   host,
   port,
-}: Pick<SmtpOptions, 'host' | 'port'>): MailTransport =>
-  createTransport({ host, port, secure: false });
+  user,
+  password,
+  tls,
+}: Omit<SmtpOptions, 'from'>) => ({
+  host,
+  port,
+  secure: false,
+  requireTLS: tls === true,
+  ...(user === undefined || user === ''
+    ? {}
+    : { auth: { user, pass: password ?? '' } }),
+});
+
+/** A nodemailer transport over {@link transportOptionsOf}. */
+export const makeSmtpTransport = (
+  options: Omit<SmtpOptions, 'from'>,
+): MailTransport => createTransport(transportOptionsOf(options));
 
 /** The buyer notifier order-service composes, built once at boot. */
 export const smtpBuyerNotifierLayer = (options: SmtpOptions) =>

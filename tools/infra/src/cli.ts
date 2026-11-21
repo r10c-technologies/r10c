@@ -53,6 +53,7 @@ export const dryRunAnswer = (argv: readonly string[]): string => {
           registry: 'us-central1-docker.pkg.dev/r10c-demo/r10c',
           domain: 'example.com',
           edge_address: '203.0.113.10',
+          evidence_bucket: 'r10c-demo-r10c-evidence',
           secret_prefix: 'r10c-',
         }).map(([key, value]) => [key, { value }]),
       ),

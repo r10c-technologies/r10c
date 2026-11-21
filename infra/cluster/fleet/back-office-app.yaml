@@ -16,6 +16,7 @@ spec:
       labels:
         app: back-office-app
     spec:
+      serviceAccountName: back-office-app
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -102,3 +103,11 @@ spec:
     - name: http
       port: 3201
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: back-office-app
+  labels:
+    app: back-office-app
+automountServiceAccountToken: false

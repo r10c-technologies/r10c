@@ -16,6 +16,7 @@ spec:
       labels:
         app: config-service
     spec:
+      serviceAccountName: config-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -104,3 +105,11 @@ spec:
     - name: http
       port: 3190
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: config-service
+  labels:
+    app: config-service
+automountServiceAccountToken: false

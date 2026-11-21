@@ -184,6 +184,13 @@ export const errors = {
     'Este vendedor no acepta links de pago. Elige otra forma de pagarle.',
   orderNotAwaitingPayment:
     'Este pedido ya no espera su pago: se confirmó, venció o el comprador lo retiró. Si el comprador pagó un pedido vencido, devuélvele el dinero por tu proveedor de pagos: r10c nunca lo tuvo.',
+  evidenceTypeRefused:
+    'El comprobante tiene que ser una foto (JPEG, PNG o WebP) o un PDF.',
+  evidenceTooLarge: 'El comprobante pesa demasiado: sube uno de 5 MB o menos.',
+  evidenceLimitReached:
+    'Este pedido ya tiene todos los comprobantes que admite. Escríbele al vendedor si falta algo.',
+  payloadTooLarge: 'El archivo pesa más de lo que se puede subir aquí.',
+  unsupportedMediaType: 'Este tipo de archivo no se puede subir aquí.',
   invalidPaymentDetails:
     'Revisa los datos del pago: un link es una dirección https del proveedor que elegiste, y el número de autorización no puede ir vacío.',
   guideMissing:

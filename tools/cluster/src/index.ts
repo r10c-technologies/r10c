@@ -2,6 +2,7 @@ export {
   CLOUD_ENDPOINTS,
   CONFIG_SEED,
   FLEET_ENV,
+  FLEET_NAMESPACE,
   FLEET_TOKEN,
   fleetEnv,
   type FleetInputs,

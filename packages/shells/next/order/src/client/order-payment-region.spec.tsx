@@ -1,5 +1,11 @@
 import { ProductOrder } from '@r10c/business-ts-order-management';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createClientAdapters } from './adapters/create-client-adapters.js';
@@ -25,6 +31,7 @@ const port = (overrides: Partial<PaymentLinkPort> = {}): PaymentLinkPort => ({
   providers: vi.fn(() => Promise.resolve(PROVIDERS)),
   setLink: vi.fn(() => Promise.resolve({ ok: true as const })),
   confirm: vi.fn(() => Promise.resolve({ ok: true as const })),
+  attachEvidence: vi.fn(() => Promise.resolve({ ok: true as const })),
   ...overrides,
 });
 
@@ -96,7 +103,10 @@ describe('OrderPaymentRegion', () => {
   it('confirms with the authorization number, and shows a refusal', async () => {
     const paymentLink = port({
       confirm: vi.fn(() =>
-        Promise.resolve({ ok: false as const, code: 'orderNotAwaitingPayment' }),
+        Promise.resolve({
+          ok: false as const,
+          code: 'orderNotAwaitingPayment',
+        }),
       ),
     });
     const { onChanged } = mount(anOrder(), paymentLink);
@@ -186,5 +196,61 @@ describe('OrderPaymentRegion', () => {
     await Promise.resolve();
 
     expect(screen.queryByRole('option')).toBeNull();
+  });
+
+  it('lists the receipts still kept, each linked through the proxy', () => {
+    mount(
+      anOrder({
+        paymentEvidence: [
+          {
+            id: 'e-1',
+            objectKey: 'evidence/ord-1/e-1',
+            attachedBy: 'buyer',
+            attachedAt: '2026-11-20T10:00:00.000Z',
+          },
+          { id: 'e-2', attachedBy: 'vendor', redactedAt: '2026-11-21' },
+          { id: 'e-3', objectKey: 'evidence/ord-1/e-3', attachedBy: 'vendor' },
+        ] as never,
+      }),
+    );
+
+    const links = screen.getAllByRole('link');
+    expect(links.map(link => link.getAttribute('href'))).toEqual([
+      '/api/order/product-order/ord-1/payment-evidence/e-1',
+      '/api/order/product-order/ord-1/payment-evidence/e-3',
+    ]);
+    expect(links[0]?.textContent).toMatch(/el comprador/);
+    expect(links[1]?.textContent).toMatch(/tu equipo/);
+  });
+
+  it('attaches a receipt the seller was sent, and shows a refusal by its code', async () => {
+    const refusing = port({
+      attachEvidence: vi.fn(() =>
+        Promise.resolve({ ok: false as const, code: 'evidenceTypeRefused' }),
+      ),
+    });
+    const { onChanged } = mount(anOrder());
+    const input = screen.getByLabelText(/comprobante que te enviaron/i);
+    const file = new File([new Uint8Array([1])], 'r.png', {
+      type: 'image/png',
+    });
+
+    // Nothing chosen: nothing sent.
+    fireEvent.submit(screen.getByTestId('order-payment-evidence-form'));
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.submit(screen.getByTestId('order-payment-evidence-form'));
+
+    await waitFor(() => {
+      expect(onChanged).toHaveBeenCalledTimes(1);
+    });
+
+    cleanup();
+    mount(anOrder(), refusing);
+    fireEvent.change(screen.getByLabelText(/comprobante que te enviaron/i), {
+      target: { files: [file] },
+    });
+    fireEvent.submit(screen.getByTestId('order-payment-evidence-form'));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(refusing.attachEvidence).toHaveBeenCalledWith('ord-1', file);
   });
 });

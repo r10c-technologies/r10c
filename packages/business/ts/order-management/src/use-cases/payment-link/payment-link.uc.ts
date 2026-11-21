@@ -1,13 +1,17 @@
 import { permissionForUseCase } from '@entifix/authz';
-import { NotFound, useCase } from '@entifix/core';
+import { binaryBody, NotFound, useCase } from '@entifix/core';
 import { Effect } from 'effect';
 
 import { ProductOrder } from '../../entities/product-order';
 import {
+  EvidenceLimitReached,
+  EvidenceTooLarge,
+  EvidenceTypeRefused,
   InvalidPaymentDetails,
   OrderNotAwaitingPayment,
 } from '../../failures/order-failures';
 import { statusesBefore } from '../../values/order-transition';
+import { EvidenceTypes } from '../../values/payment-evidence';
 import {
   PaymentConfirmationPayload,
   PaymentLinkPayload,
@@ -86,3 +90,58 @@ export class SetPaymentLinkUC {
 
 /** The permission {@link SetPaymentLinkUC} derives. */
 export const SET_PAYMENT_LINK = permissionForUseCase(SetPaymentLinkUC);
+
+/**
+ * The most a receipt upload may carry on the wire: the service's own limit
+ * (`order / evidenceMaxBytes`, 5 MB seeded) is checked in the flow, and may
+ * only be lower than this one (ADR 0081 §7).
+ */
+export const EVIDENCE_WIRE_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
+ * A receipt as it arrives: raw bytes under one of the four types a receipt may
+ * be. The declared type only opens the door — the flow sniffs the bytes.
+ */
+export const PaymentEvidenceBody = binaryBody({
+  contentTypes: EvidenceTypes,
+  maxBytes: EVIDENCE_WIRE_MAX_BYTES,
+});
+
+/**
+ * Attach a payment receipt — a screenshot or PDF from the acquirer or the bank
+ * — to an order that waits for its payment (ADR 0081 §6). The buyer attaches
+ * one by their receipt capability on a route of its own; this verb is the
+ * seller's, through the vendor narrowing, for a receipt that reached them by
+ * another channel.
+ *
+ * Its body is a file, which the generic verb buttons cannot send, so the
+ * order's payment region carries it as a form, as it does `confirm-payment`.
+ */
+@useCase({
+  entity: ProductOrder,
+  key: 'attach-payment-evidence',
+  binding: 'entity',
+  placement: 'context-independent',
+  labelKey: 'entity:product-order.useCases.attachPaymentEvidence',
+  availableWhen: { member: 'status', in: statusesBefore('confirm-payment') },
+  payload: PaymentEvidenceBody,
+  errors: [
+    NotFound,
+    OrderNotAwaitingPayment,
+    EvidenceTypeRefused,
+    EvidenceTooLarge,
+    EvidenceLimitReached,
+  ],
+})
+export class AttachPaymentEvidenceUC {
+  static run(
+    order: Pick<ProductOrder, 'id' | 'status'>,
+  ): Effect.Effect<void, OrderNotAwaitingPayment> {
+    return awaitingOnly(order);
+  }
+}
+
+/** The permission {@link AttachPaymentEvidenceUC} derives. */
+export const ATTACH_PAYMENT_EVIDENCE = permissionForUseCase(
+  AttachPaymentEvidenceUC,
+);

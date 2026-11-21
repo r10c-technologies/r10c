@@ -1,4 +1,4 @@
-import { isStoreFault } from '@entifix/core';
+import { isStoreFault, serializeEntity } from '@entifix/core';
 import {
   COMMAND_INBOX_COLLECTION,
   OUTBOX_COLLECTION,
@@ -339,6 +339,42 @@ describe('a cancellation', () => {
     for (const failure of [release, remove, group]) {
       expect(isStoreFault(failure)).toBe(true);
     }
+  });
+});
+
+describe('a payment receipt', () => {
+  it('leaves an entry already redacted as it is when it redacts the rest', async () => {
+    const { run } = world({
+      [ORDER_COLLECTION]: [
+        {
+          ...serializeEntity(ProductOrder, anOrder('ord-1')),
+          id: 'ord-1',
+          paymentEvidence: [
+            { id: 'e-0', sha256: 'aa', redactedAt: new Date('2026-01-01') },
+            { id: 'e-1', sha256: 'bb', objectKey: 'evidence/ord-1/e-1' },
+          ],
+        },
+      ],
+    });
+
+    const { removed, order } = await run(stores =>
+      Effect.gen(function* () {
+        const removed = yield* stores.orders.redactEvidence(
+          GROUP,
+          new Date('2026-11-02'),
+        );
+        return { removed, order: yield* stores.orders.get('ord-1') };
+      }),
+    );
+
+    expect(removed).toEqual(['evidence/ord-1/e-1']);
+    expect(order?.paymentEvidence.map(entry => entry.objectKey)).toEqual([
+      undefined,
+      undefined,
+    ]);
+    expect(
+      new Date(order?.paymentEvidence[0]?.redactedAt as Date).toISOString(),
+    ).toBe('2026-01-01T00:00:00.000Z');
   });
 });
 

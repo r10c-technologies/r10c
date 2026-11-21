@@ -11,8 +11,21 @@ import type {
 import { checkoutContactOf } from '../values/checkout-contact';
 import { GroupTotal } from '../values/group-total';
 import { OrderItem } from '../values/order-item';
+import { PaymentEvidence } from '../values/payment-evidence';
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
+
+/** One receipt's record, as the evidence flow builds it. */
+const anEvidence = (id: string, objectKey: string) =>
+  Object.assign(new PaymentEvidence(), {
+    id,
+    objectKey,
+    contentType: 'image/png',
+    byteSize: 4,
+    sha256: 'ab',
+    attachedBy: 'buyer',
+    attachedAt: new Date('2026-11-01T10:00:00Z'),
+  });
 
 const GROUP = 'grp-1';
 
@@ -213,7 +226,7 @@ export const describeProductOrderStoreContract = (
       await run(orders.move('ord-1', 'mark-dispatched', undefined));
       await run(orders.move('ord-1', 'close-fulfilled', undefined));
 
-      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toBe(1);
+      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toEqual([GROUP]);
       const group = await run(groups.get(GROUP));
       expect(group?.contact).toEqual([]);
       expect(new Date(group?.redactedAt as Date).toISOString()).toBe(
@@ -226,7 +239,7 @@ export const describeProductOrderStoreContract = (
       const other = await run(groups.open(aContactedGroup(ENDED), 'open-2'));
       expect((other as { group: CheckoutGroup }).group.contact).toHaveLength(1);
       // A second pass finds nothing left to remove.
-      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toBe(0);
+      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toEqual([]);
     });
 
     it('keeps the contact while a receipt is open, or while any order is', async () => {
@@ -244,7 +257,7 @@ export const describeProductOrderStoreContract = (
       await run(orders.move('ord-2', 'mark-dispatched', undefined));
       await run(orders.move('ord-2', 'close-fulfilled', undefined));
 
-      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toBe(0);
+      expect(await run(groups.redactEndedReceipts(SWEPT_AT))).toEqual([]);
       expect((await run(groups.get(GROUP)))?.contact).toHaveLength(1);
       expect((await run(groups.get('grp-2')))?.contact).toHaveLength(1);
       expect((await run(groups.get(GROUP)))?.redactedAt).toBeUndefined();
@@ -712,6 +725,70 @@ export const describeProductOrderStoreContract = (
         paymentLinkProviderName: 'Mi banco',
         paymentLinkSetBy: 'staff-1',
       });
+    });
+
+    it('appends a receipt to a waiting order, up to its count and never after', async () => {
+      const { orders } = await placed();
+      const evidence = (id: string) => anEvidence(id, `evidence/ord-1/${id}`);
+
+      expect(
+        await run(orders.appendEvidence('ord-1', evidence('e-0'), 2)),
+      ).toBeUndefined();
+      await run(orders.awaitPayment('ord-1', DUE, undefined));
+      const first = await run(
+        orders.appendEvidence('ord-1', evidence('e-1'), 2),
+      );
+      await run(orders.appendEvidence('ord-1', evidence('e-2'), 2));
+      const third = await run(
+        orders.appendEvidence('ord-1', evidence('e-3'), 2),
+      );
+
+      expect(first?.paymentEvidence).toHaveLength(1);
+      expect(first?.paymentEvidence[0]).toMatchObject({
+        id: 'e-1',
+        objectKey: 'evidence/ord-1/e-1',
+        contentType: 'image/png',
+        byteSize: 4,
+        sha256: 'ab',
+        attachedBy: 'buyer',
+      });
+      expect(third).toBeUndefined();
+      expect((await run(orders.get('ord-1')))?.paymentEvidence).toHaveLength(2);
+      expect(
+        await run(orders.appendEvidence('nope', evidence('e-4'), 2)),
+      ).toBeUndefined();
+    });
+
+    it('forgets where a group’s receipts live, once, and says which keys went', async () => {
+      const { orders } = await placed();
+      await run(orders.awaitPayment('ord-1', DUE, undefined));
+      await run(
+        orders.appendEvidence(
+          'ord-1',
+          anEvidence('e-1', 'evidence/ord-1/e-1'),
+          3,
+        ),
+      );
+
+      expect(
+        await run(
+          orders.referencedEvidence(['evidence/ord-1/e-1', 'evidence/x']),
+        ),
+      ).toEqual(new Set(['evidence/ord-1/e-1']));
+      expect(await run(orders.redactEvidence(GROUP, SWEPT_AT))).toEqual([
+        'evidence/ord-1/e-1',
+      ]);
+      const [entry] = ((await run(orders.get('ord-1'))) as ProductOrder)
+        .paymentEvidence;
+      expect(entry?.objectKey).toBeUndefined();
+      expect(new Date(entry?.redactedAt as Date).toISOString()).toBe(
+        SWEPT_AT.toISOString(),
+      );
+      expect(entry).toMatchObject({ id: 'e-1', sha256: 'ab' });
+      expect(await run(orders.redactEvidence(GROUP, SWEPT_AT))).toEqual([]);
+      expect(
+        await run(orders.referencedEvidence(['evidence/ord-1/e-1'])),
+      ).toEqual(new Set());
     });
   });
 };

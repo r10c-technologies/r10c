@@ -16,6 +16,7 @@ spec:
       labels:
         app: realtime-service
     spec:
+      serviceAccountName: realtime-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -87,3 +88,11 @@ spec:
     - name: http
       port: 3191
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: realtime-service
+  labels:
+    app: realtime-service
+automountServiceAccountToken: false

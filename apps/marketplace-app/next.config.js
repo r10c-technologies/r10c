@@ -55,6 +55,10 @@ const nextConfig = {
   // catalog's cache lifetime is the shell's `CATALOG_CACHE`, short enough
   // that no catalog read is baked in at build time (ADR 0051).
   cacheComponents: true,
+  // A payment receipt is up to 5 MB (ADR 0081 §7), posted to a Server Action
+  // as a form: Next's 1 MB default plus framing would refuse it before the
+  // service could say why. order-service holds the real limit.
+  experimental: { serverActions: { bodySizeLimit: '6mb' } },
   images: {
     remotePatterns: imageHosts.map(hostname => ({
       protocol: 'https',

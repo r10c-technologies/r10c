@@ -46,6 +46,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // number — staff work at the counter, as `sell` is (ADR 0081). A verb on
     // the order rather than a `write`, narrowed to the vendor's own orders.
     `${ORDER_DOMAIN}:product-order:confirm-payment`,
+    `${ORDER_DOMAIN}:product-order:attach-payment-evidence`,
     // Seeing what is in stock. Recording a movement is an `admin` act — see the
     // note there for why these are named per entity rather than wildcarded.
     `${STOCK_DOMAIN}:stock-item:read`,
@@ -195,6 +196,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // orders only, and neither is a `write`. Literals for the reason above.
     `${ORDER_DOMAIN}:product-order:set-payment-link`,
     `${ORDER_DOMAIN}:product-order:confirm-payment`,
+    `${ORDER_DOMAIN}:product-order:attach-payment-evidence`,
     // The organization's own fiscal identity — the NIT, legal name, regime and
     // establishment every order it sells is documented under (ADR 0078 §6).
     // A verb rather than `organization:write`, because the record's name, slug

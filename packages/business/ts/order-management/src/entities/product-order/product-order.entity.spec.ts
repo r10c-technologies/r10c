@@ -52,6 +52,7 @@ describe('ProductOrder', () => {
       channel: { id: 'ch-1', type: 'counter' },
       status: 'pending',
       items: [lineData(1000)],
+      paymentEvidence: [],
       placedAt: PLACED,
       paidAt: PAID,
       // Undocumented until a checkout states them (ADR 0078 §6).

@@ -1,9 +1,13 @@
 import { ShutdownRegistryTag } from '@entifix/business';
 import { Unavailable } from '@entifix/core';
+import { ObjectStoreTag } from '@r10c/business-ts-object-storage';
+import { makeInMemoryObjectStore } from '@r10c/business-ts-object-storage/testing';
 import {
   type CheckoutGroupStore,
   CheckoutGroupStoreTag,
+  ProductOrderStoreTag,
 } from '@r10c/business-ts-order-management';
+import { makeInMemoryOrderStores } from '@r10c/business-ts-order-management/testing';
 import { Effect, Logger, References } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -53,18 +57,33 @@ const groupsThat = (
   redactEndedReceipts: CheckoutGroupStore['redactEndedReceipts'],
 ) => ({ redactEndedReceipts }) as unknown as CheckoutGroupStore;
 
+const withStores = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(
+    Effect.provideService(
+      ProductOrderStoreTag,
+      makeInMemoryOrderStores().orders,
+    ),
+    Effect.provideService(ObjectStoreTag, makeInMemoryObjectStore()),
+  );
+
 const pass = (groups: CheckoutGroupStore) =>
-  sweepEndedReceipts.pipe(Effect.provideService(CheckoutGroupStoreTag, groups));
+  withStores(
+    sweepEndedReceipts.pipe(
+      Effect.provideService(CheckoutGroupStoreTag, groups),
+    ),
+  );
 
 describe('one buyer-contact sweep pass', () => {
   it('logs how many contacts it removed', async () => {
-    const logged = await logs(pass(groupsThat(() => Effect.succeed(2))));
+    const logged = await logs(
+      pass(groupsThat(() => Effect.succeed(['g-1', 'g-2']))),
+    );
 
     expect(logged).toEqual([{ level: 'Debug', annotations: { redacted: 2 } }]);
   });
 
   it('logs nothing for a pass with nothing to do', async () => {
-    expect(await logs(pass(groupsThat(() => Effect.succeed(0))))).toEqual([]);
+    expect(await logs(pass(groupsThat(() => Effect.succeed([]))))).toEqual([]);
   });
 
   it('logs a pass that could not run, and does not fail', async () => {
@@ -91,9 +110,10 @@ describe('the buyer-contact sweep daemon', () => {
       }).pipe(
         Effect.provideService(
           CheckoutGroupStoreTag,
-          groupsThat(() => Effect.succeed(0)),
+          groupsThat(() => Effect.succeed([])),
         ),
         Effect.provideService(ShutdownRegistryTag, registry(hooks)),
+        withStores,
       ),
     );
 

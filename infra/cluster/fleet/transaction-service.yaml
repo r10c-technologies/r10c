@@ -16,6 +16,7 @@ spec:
       labels:
         app: transaction-service
     spec:
+      serviceAccountName: transaction-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -93,3 +94,11 @@ spec:
     - name: http
       port: 3103
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: transaction-service
+  labels:
+    app: transaction-service
+automountServiceAccountToken: false

@@ -479,6 +479,18 @@ export const entity = {
         taxableBase: 'Base imponible',
         taxAmount: 'IVA',
       },
+      paymentEvidence: 'Comprobantes de pago',
+      /** Los miembros de un comprobante adjunto (ADR 0081 §6). */
+      evidence: {
+        id: 'ID del comprobante',
+        objectKey: 'Archivo',
+        contentType: 'Tipo de archivo',
+        byteSize: 'Tamaño',
+        sha256: 'Huella SHA-256',
+        attachedBy: 'Adjuntado por',
+        attachedAt: 'Adjuntado el',
+        redactedAt: 'Borrado el',
+      },
       channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
       paidAt: 'Fecha de pago',
@@ -554,6 +566,7 @@ export const entity = {
     useCases: {
       confirmPayment: 'Confirmar pago',
       setPaymentLink: 'Poner link de pago',
+      attachPaymentEvidence: 'Adjuntar comprobante de pago',
       cancel: 'Cancelar pedido',
       cancelConfirm:
         'Se devolverá el dinero al comprador y las unidades volverán a tu inventario. Esto no se puede deshacer: volver a cobrar es una compra nueva.',

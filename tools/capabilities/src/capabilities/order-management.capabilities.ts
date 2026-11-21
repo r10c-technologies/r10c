@@ -59,8 +59,8 @@ export const orderManagementCapabilities: readonly Capability[] = [
     oda: 'TMFC002',
     entities: ['order-management:product-order'],
     permissions: ['order-management:product-order:attach-payment-evidence'],
-    screens: ['storefront:orderStatus'],
-    status: 'planned',
+    screens: ['storefront:orderStatus', 'operation:product-order'],
+    status: 'implemented',
     verticals: 'all',
   },
   {

@@ -48,3 +48,5 @@ export * from './lib/cart/cart-actions';
 export * from './lib/cart/cart-cookie';
 export * from './lib/cart/cart-notice';
 export * from './lib/cart/cart-state';
+export * from './lib/cart/evidence-file';
+export * from './lib/cart/evidence-outcome';

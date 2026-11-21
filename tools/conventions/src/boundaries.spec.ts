@@ -162,6 +162,56 @@ describe('an smtp cell', () => {
   }, 60_000);
 });
 
+/** A file that does not exist, placed where a `tech:fs` cell's source lives. */
+const IN_AN_FS_CELL = join(
+  REPO_ROOT,
+  'packages/implementation/payment-evidence/fs/src/planted.ts',
+);
+
+/**
+ * An object store's cells are the same shape (ADR 0081 §8): the lab's writes
+ * a directory and the cloud's a bucket, each its own engine's adapter, and the
+ * bucket's driver stays in the bucket's cell.
+ */
+describe('an object-store cell', () => {
+  const errorsIn = async (code: string, filePath = IN_AN_FS_CELL) => {
+    const eslint = new ESLint({ cwd: REPO_ROOT });
+    const [result] = await eslint.lintText(code, { filePath });
+    return (result?.messages ?? [])
+      .filter(message => message.ruleId === BOUNDARY_RULE)
+      .map(message => message.message);
+  };
+
+  it.each([
+    ["import { Storage } from '@google-cloud/storage';", 'the bucket driver'],
+    ["import { MongoClient } from 'mongodb';", 'a store driver'],
+    ["import { createElement } from 'react';", 'a renderer'],
+  ])(
+    'may not import %s (%s)',
+    async source => {
+      expect(await errorsIn(`${source}\nexport {};\n`)).toHaveLength(1);
+    },
+    60_000,
+  );
+
+  it('may import the filesystem and the port it implements', async () => {
+    expect(
+      await errorsIn(
+        "import { readFile } from 'node:fs/promises';\nimport { ObjectStoreTag } from '@r10c/business-ts-object-storage';\nexport {};\n",
+      ),
+    ).toEqual([]);
+  }, 60_000);
+
+  it('is not a driver a mongo cell may reach for', async () => {
+    expect(
+      await errorsIn(
+        "import { Storage } from '@google-cloud/storage';\nexport {};\n",
+        join(REPO_ROOT, 'packages/implementation/order/mongo/src/planted.ts'),
+      ),
+    ).toHaveLength(1);
+  }, 60_000);
+});
+
 /** A file that does not exist, placed where a `tech:http` cell's source lives. */
 const IN_AN_HTTP_CELL = join(
   REPO_ROOT,

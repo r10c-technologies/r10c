@@ -387,6 +387,20 @@ export const r10c: EsR10c = {
           'This link is the seller’s own, and opens {{host}}. Pay only if you recognise it.',
         expired:
           'This order expired before the seller confirmed a payment. If you paid, ask the seller for your money back.',
+        // The receipt a buyer attaches (ADR 0081 §6).
+        evidence: {
+          title: 'Payment receipt',
+          hint: 'Upload the screenshot or PDF your bank or the link provider gave you: a photo (JPEG, PNG or WebP) or a PDF of up to 5 MB.',
+          file: 'Receipt file',
+          submit: 'Attach receipt',
+          attachedOne: 'Receipt {{n}} ({{kind}})',
+          view: 'View',
+          image: 'image',
+          pdf: 'PDF',
+          attached:
+            'You attached the receipt. The seller will check it and confirm your payment.',
+          failed: 'We could not attach the receipt. Try again.',
+        },
       },
       delivery: {
         heading: 'Delivery',
@@ -527,6 +541,12 @@ export const r10c: EsR10c = {
       setLink: 'Set payment link',
       reference: 'Authorization number',
       confirm: 'Confirm payment',
+      // The payment receipts attached (ADR 0081 §6).
+      evidence: 'Payment receipts',
+      evidenceOne: 'Receipt {{n}}, attached by {{by}} on {{time}}',
+      attachedBy: { buyer: 'the buyer', vendor: 'your team' },
+      evidenceFile: 'Receipt you were sent (photo or PDF, up to 5 MB)',
+      attachEvidence: 'Attach receipt',
     },
   },
   fulfilment: {
