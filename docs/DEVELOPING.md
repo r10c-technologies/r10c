@@ -400,11 +400,11 @@ The fleet's cloud home is GCP, brought up for a demo and taken down after
 seed and demo data only, reset the way the local one is. Three directories
 hold it, and one command each brings it up and takes it down:
 
-| What                                                                       | Where                                          | Applied by                                                |
-| -------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------- |
-| The cloud: network, cluster, Cloud SQL, Atlas, registry, secret containers | [`infra/gcp/`](../infra/gcp/README.md)         | `tofu apply`, by a person, once and on every change to it |
-| What runs in the cluster                                                   | [`infra/cluster/`](../infra/cluster/README.md) | the up command                                            |
-| The up and down commands                                                   | `tools/infra` (`tools/infra.mjs`)              | `pnpm run infra:up` / `infra:down`                        |
+| What                                                                                        | Where                                          | Applied by                                                |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| The cloud: network, cluster, Cloud SQL, Atlas, registry, secret containers, receipts bucket | [`infra/gcp/`](../infra/gcp/README.md)         | `tofu apply`, by a person, once and on every change to it |
+| What runs in the cluster                                                                    | [`infra/cluster/`](../infra/cluster/README.md) | the up command                                            |
+| The up and down commands                                                                    | `tools/infra` (`tools/infra.mjs`)              | `pnpm run infra:up` / `infra:down`                        |
 
 **Nothing has been applied yet.** The first apply is MVP-7 (#702); until then
 every command below is exercised with `--dry-run`, or against minikube with
@@ -430,10 +430,21 @@ every command below is exercised with `--dry-run`, or against minikube with
    - `grafana-cloud` — `{"endpoint", "instanceId", "token"}` from the stack's
      OTLP page;
    - `smtp` — `{"host", "port", "user", "password", "from", "tls"}`, the mail
-     provider (#692; GCP blocks port 25, so 587);
+     provider (#692; GCP blocks port 25, so 587 with `"tls": true`, which
+     upgrades with STARTTLS and refuses to send if it cannot). The up command
+     writes it into order-service's `smtp` rows and re-states it to Zitadel on
+     every run, so a rotated password reaches both. No provider's name is
+     written in this repository (ADR 0025);
    - `posthog` — `{"key", "host"}`, or `{}` to leave analytics off.
 
    Every other secret is minted by the first up and never rotated by it.
+
+   Payment receipts need nothing from you: the bucket is `tofu output
+evidence_bucket`, the up command seeds it into order-service's
+   `payment-evidence` rows, and order-service reaches it as its own
+   Kubernetes account through Workload Identity — no key exists to supply
+   (ADR 0081 §8, #692). A `--target lab` rehearsal has no bucket and keeps
+   receipts in the pod's `/tmp`, gone with it.
 
 ### Up, smoke test, down
 

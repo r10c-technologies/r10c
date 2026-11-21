@@ -98,8 +98,7 @@ const productOrderUseCases = makeEntityRestUseCaseRunner(
 const refusalOf = async (response: Response): Promise<PaymentLinkOutcome> => {
   if (response.ok) return { ok: true };
   const body = (await response.json().catch(() => undefined)) as
-    | { code?: unknown }
-    | undefined;
+    { code?: unknown } | undefined;
   return {
     ok: false,
     code: typeof body?.code === 'string' ? body.code : 'unexpected',
@@ -108,19 +107,16 @@ const refusalOf = async (response: Response): Promise<PaymentLinkOutcome> => {
 
 /** One verb on one order, posted through the proxy with its body. */
 const postVerb = (orderId: string, verb: string, body: unknown) =>
-  fetch(
-    `/api/order/product-order/${encodeURIComponent(orderId)}/${verb}`,
-    {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        // An RFC 9651 String, fresh per submit: a retried click is a new
-        // decision, and the order's status refuses a second confirmation.
-        'idempotency-key': `"${globalThis.crypto.randomUUID()}"`,
-      },
-      body: JSON.stringify(body),
+  fetch(`/api/order/product-order/${encodeURIComponent(orderId)}/${verb}`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      // An RFC 9651 String, fresh per submit: a retried click is a new
+      // decision, and the order's status refuses a second confirmation.
+      'idempotency-key': `"${globalThis.crypto.randomUUID()}"`,
     },
-  )
+    body: JSON.stringify(body),
+  })
     .then(refusalOf)
     .catch((): PaymentLinkOutcome => ({ ok: false, code: 'unexpected' }));
 
@@ -143,6 +139,17 @@ const paymentLink: PaymentLinkPort = {
       .catch(() => []),
   setLink: (orderId, body) => postVerb(orderId, 'set-payment-link', body),
   confirm: (orderId, body) => postVerb(orderId, 'confirm-payment', body),
+  attachEvidence: (orderId, file) =>
+    fetch(
+      `/api/order/product-order/${encodeURIComponent(orderId)}/attach-payment-evidence`,
+      {
+        method: 'POST',
+        headers: { 'content-type': file.type || 'application/pdf' },
+        body: file,
+      },
+    )
+      .then(refusalOf)
+      .catch((): PaymentLinkOutcome => ({ ok: false, code: 'unexpected' })),
 };
 
 export function createClientAdapters(): OrderAdapters {

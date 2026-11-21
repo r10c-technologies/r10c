@@ -3,9 +3,13 @@ import {
   type EntityApiContext,
   type EntityApiRequest,
   IdempotencyKeyTag,
+  RequestPrincipalTag,
   verbEndpoint,
 } from '@entifix/business';
 import {
+  type BinaryBody,
+  type BinaryReply,
+  binaryResponse,
   defineEndpoint,
   DuplicateKey,
   type EntifixEnvelopeLink,
@@ -26,6 +30,9 @@ import {
   FlowNotStarted,
 } from '@r10c/business-ts-flow-contracts';
 import {
+  attachEvidenceAsBuyer,
+  attachEvidenceAsVendor,
+  AttachPaymentEvidenceUC,
   awaitPayment,
   buyerReceipt,
   CancelNotAuthorized,
@@ -38,14 +45,23 @@ import {
   CheckoutGroupStoreTag,
   confirmPayment,
   ConfirmPaymentUC,
+  type EvidenceFile,
+  evidenceForBuyer,
+  evidenceForStaff,
+  EvidenceLimitReached,
+  EvidenceTooLarge,
+  EvidenceTypeRefused,
   moveOrder,
   openGroup,
   type OrderGuide,
   orderNarrowing,
+  OrderNotAwaitingPayment,
   OrderNotCancellable,
   OrderNotTransitionable,
   orderScopeFor,
   type PaymentConfirmationPayload,
+  type PaymentEvidence,
+  PaymentEvidenceBody,
   type PaymentLinkPayload,
   PaymentLinkProvidersTag,
   PaymentPending,
@@ -225,6 +241,22 @@ export const productOrderApi = defineEntityApi(ProductOrder, KEY, {
           ),
         ),
     }),
+    // ADR 0081 §6: the seller's attach, through the vendor narrowing. Not
+    // remembered at the edge: the same file attached twice answers the first
+    // attachment by its digest, and a body this size is not one to replay.
+    verbEndpoint(AttachPaymentEvidenceUC, {
+      guard: { kind: 'permission' },
+      handler: (request: EntityApiRequest, context: EntityApiContext) =>
+        attachEvidenceAsVendor({
+          orderId: idOf(request),
+          scope: orderScopeFor(principalOf(context)),
+          bytes: (request.payload as BinaryBody).bytes,
+        }).pipe(
+          Effect.map(order =>
+            envelopeOf(order, context.links.record(idOf(request))),
+          ),
+        ),
+    }),
   ],
 });
 
@@ -351,6 +383,92 @@ const paymentLinkProviders = defineEndpoint({
     permission: 'order-management:product-order:read',
   },
 });
+
+const evidenceParams = { id: Schema.String, evidenceId: Schema.String };
+
+/** The receipt errors every attach answers, whoever attaches. */
+const EVIDENCE_ERRORS = [
+  OrderNotAwaitingPayment,
+  EvidenceTypeRefused,
+  EvidenceTooLarge,
+  EvidenceLimitReached,
+] as const;
+
+/**
+ * `POST /:id/buyer-payment-evidence` — the buyer attaches a payment receipt
+ * by the capability their receipt carries, in `x-cancel-nonce`, and **no
+ * session** (ADR 0081 §6). The body is the file itself.
+ */
+const buyerEvidenceAttach = defineEndpoint({
+  name: 'buyer-payment-evidence',
+  method: 'POST',
+  path: `${BASE}/:id/buyer-payment-evidence`,
+  params,
+  headers: Schema.Record(Schema.String, Schema.String),
+  payload: PaymentEvidenceBody,
+  success: JsonBody,
+  errors: [CancelNotAuthorized, NotFound, ...EVIDENCE_ERRORS],
+  guard: { kind: 'public' },
+});
+
+/** `GET /:id/buyer-payment-evidence/:evidenceId` — the buyer reads one back. */
+const buyerEvidenceRead = defineEndpoint({
+  name: 'buyer-payment-evidence-file',
+  method: 'GET',
+  path: `${BASE}/:id/buyer-payment-evidence/:evidenceId`,
+  params: evidenceParams,
+  headers: Schema.Record(Schema.String, Schema.String),
+  success: binaryResponse(),
+  errors: [CancelNotAuthorized, NotFound],
+  guard: { kind: 'public' },
+});
+
+/**
+ * `GET /:id/payment-evidence/:evidenceId` — the seller or an operator reads
+ * one, narrowed as every order read is.
+ */
+const staffEvidenceRead = defineEndpoint({
+  name: 'payment-evidence-file',
+  method: 'GET',
+  path: `${BASE}/:id/payment-evidence/:evidenceId`,
+  params: evidenceParams,
+  success: binaryResponse(),
+  errors: [NotFound],
+  guard: {
+    kind: 'permission',
+    permission: 'order-management:product-order:read',
+  },
+});
+
+/**
+ * A receipt served as a file only the credentials above may read (ADR 0081
+ * §7): the sniffed type, never sniffed again by the browser; a sandbox, so
+ * nothing in it runs; never cached; and a PDF saved rather than opened in the
+ * page.
+ */
+const servedEvidence = (file: EvidenceFile): BinaryReply => ({
+  bytes: file.bytes,
+  contentType: file.contentType,
+  headers: {
+    'x-content-type-options': 'nosniff',
+    'content-security-policy': 'sandbox',
+    'cache-control': 'private, no-store',
+    ...(file.contentType === 'application/pdf'
+      ? { 'content-disposition': 'attachment; filename="comprobante.pdf"' }
+      : {}),
+  },
+});
+
+/** What a buyer is told of their receipts: the facts, never the keys. */
+const evidenceFacts = (evidence: readonly PaymentEvidence[]) =>
+  evidence.map(entry => ({
+    id: entry.id,
+    contentType: entry.contentType,
+    byteSize: entry.byteSize,
+    attachedBy: entry.attachedBy,
+    attachedAt: entry.attachedAt,
+    kept: entry.objectKey !== undefined,
+  }));
 
 /** The body of an order withdrawn while it waited for a payment link. */
 const withdrawnEnvelope = (order: ProductOrder) => envelopeOf(order, []);
@@ -688,6 +806,36 @@ export const productOrderEndpoints = [
       return settled === undefined
         ? yield* answerWithOrder(id)
         : envelopeOf(settled, recordLinks(id));
+    }),
+  ),
+  implement(buyerEvidenceAttach, ({ params: { id }, headers, payload }) =>
+    attachEvidenceAsBuyer({
+      orderId: id,
+      nonce: headers['x-cancel-nonce'],
+      bytes: payload.bytes,
+    }).pipe(
+      Effect.map(order => ({
+        orderId: id,
+        paymentEvidence: evidenceFacts(order.paymentEvidence),
+      })),
+    ),
+  ),
+  implement(buyerEvidenceRead, ({ params: { id, evidenceId }, headers }) =>
+    evidenceForBuyer({
+      orderId: id,
+      evidenceId,
+      nonce: headers['x-cancel-nonce'],
+    }).pipe(Effect.map(servedEvidence)),
+  ),
+  implement(staffEvidenceRead, ({ params: { id, evidenceId } }) =>
+    Effect.gen(function* () {
+      const principal = yield* RequestPrincipalTag;
+      const file = yield* evidenceForStaff({
+        orderId: id,
+        evidenceId,
+        scope: orderScopeFor(principal),
+      });
+      return servedEvidence(file);
     }),
   ),
 ] as const;

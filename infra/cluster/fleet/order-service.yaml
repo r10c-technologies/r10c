@@ -16,6 +16,7 @@ spec:
       labels:
         app: order-service
     spec:
+      serviceAccountName: order-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -87,3 +88,11 @@ spec:
     - name: http
       port: 3105
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: order-service
+  labels:
+    app: order-service
+automountServiceAccountToken: false

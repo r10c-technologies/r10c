@@ -9,6 +9,7 @@ import {
   makeSmtpTransport,
   smtpBuyerNotifier,
   smtpBuyerNotifierLayer,
+  transportOptionsOf,
 } from './smtp-buyer-notifier.js';
 
 const MAIL: BuyerMail = {
@@ -48,6 +49,36 @@ describe('the smtp layer', () => {
     const transport = makeSmtpTransport({ host: '127.0.0.1', port: 30825 });
 
     expect(typeof transport.sendMail).toBe('function');
+  });
+
+  it('authenticates and requires STARTTLS only when the rows ask for it', () => {
+    expect(transportOptionsOf({ host: 'h', port: 30825 })).toEqual({
+      host: 'h',
+      port: 30825,
+      secure: false,
+      requireTLS: false,
+    });
+    expect(
+      transportOptionsOf({ host: 'h', port: 587, user: '', tls: false }),
+    ).not.toHaveProperty('auth');
+    expect(
+      transportOptionsOf({
+        host: 'smtp.example.test',
+        port: 587,
+        user: 'u',
+        password: 'p',
+        tls: true,
+      }),
+    ).toEqual({
+      host: 'smtp.example.test',
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      auth: { user: 'u', pass: 'p' },
+    });
+    expect(transportOptionsOf({ host: 'h', port: 1, user: 'u' })).toMatchObject(
+      { auth: { user: 'u', pass: '' } },
+    );
   });
 
   it('provides the notifier from the configured server', async () => {

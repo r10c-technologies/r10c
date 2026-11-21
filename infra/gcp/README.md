@@ -18,6 +18,7 @@ and tflint on every change, and no CI job holds a GCP or Atlas credential.
 | `atlas.tf`    | the Atlas project, a Flex cluster in GCP `us-central1`, the access list holding the NAT address   | #680  |
 | `secrets.tf`  | one Secret Manager container per secret, by who supplies it; never a value                        | #683  |
 | `registry.tf` | the Artifact Registry repository the up command pushes to, keeping two versions per image         | #685  |
+| `storage.tf`  | the private receipts bucket, and order-service's Workload Identity grant on it                    | #692  |
 | `outputs.tf`  | what the up and down commands and the manifests read                                              | —     |
 
 ## Validate locally

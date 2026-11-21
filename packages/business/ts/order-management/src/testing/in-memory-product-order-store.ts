@@ -16,6 +16,25 @@ import type {
 import { FISCAL_DUE_STATUSES } from '../values/fiscal-document';
 import { type OrderStatus } from '../values/order-status';
 import { MOVE_STAMP_OF, orderStatusAfter } from '../values/order-transition';
+import type { PaymentEvidence } from '../values/payment-evidence';
+
+/**
+ * A receipt's record as the Mongo store holds it: its members, not the class.
+ * An entry arriving off the wire is already one.
+ */
+const plain = (entry: PaymentEvidence) =>
+  Object.fromEntries(
+    Object.entries({
+      id: entry.id,
+      objectKey: entry.objectKey,
+      contentType: entry.contentType,
+      byteSize: entry.byteSize,
+      sha256: entry.sha256,
+      attachedBy: entry.attachedBy,
+      attachedAt: entry.attachedAt,
+      redactedAt: entry.redactedAt,
+    }).filter(([, value]) => value !== undefined),
+  ) as unknown as PaymentEvidence;
 
 /** The statuses a group's contact waits for every order to reach. */
 const CLOSED: readonly OrderStatus[] = ['fulfilled', 'cancelled'];
@@ -216,6 +235,45 @@ export const makeInMemoryOrderStores = (): {
           )
           .map(order => String(order.id)),
       ),
+    appendEvidence: (orderId, evidence, maxCount) =>
+      Effect.sync(() => {
+        const order = orders.get(orderId);
+        if (
+          order?.status !== 'awaiting-payment' ||
+          order.paymentEvidence.length >= maxCount
+        )
+          return undefined;
+        order.paymentEvidence = [...order.paymentEvidence, plain(evidence)];
+        return copyOrder(order);
+      }),
+    redactEvidence: (groupId, now) =>
+      Effect.sync(() => {
+        const removed: string[] = [];
+        const inGroup = Array.from(orders.values()).filter(
+          order => order.groupId === groupId,
+        );
+        for (const order of inGroup) {
+          order.paymentEvidence = order.paymentEvidence.map(entry => {
+            if (entry.objectKey === undefined) return entry;
+            removed.push(entry.objectKey);
+            const { objectKey: _gone, ...kept } = plain(
+              entry,
+            ) as unknown as Record<string, unknown>;
+            return { ...kept, redactedAt: now } as unknown as PaymentEvidence;
+          });
+        }
+        return removed;
+      }),
+    referencedEvidence: keys =>
+      Effect.sync(() => {
+        const wanted = new Set(keys);
+        const found = new Set<string>();
+        for (const order of orders.values())
+          for (const entry of order.paymentEvidence)
+            if (entry.objectKey !== undefined && wanted.has(entry.objectKey))
+              found.add(entry.objectKey);
+        return found;
+      }),
     setPaymentLink: (orderId, link) =>
       Effect.sync(() => {
         const order = orders.get(orderId);
@@ -378,7 +436,7 @@ export const makeInMemoryOrderStores = (): {
       }),
     redactEndedReceipts: now =>
       Effect.sync(() => {
-        let redacted = 0;
+        const redacted: string[] = [];
         for (const group of groups.values()) {
           if (
             group.contact.length === 0 ||
@@ -394,7 +452,7 @@ export const makeInMemoryOrderStores = (): {
           if (open) continue;
           group.contact = [];
           group.redactedAt = now;
-          redacted += 1;
+          redacted.push(String(group.id));
           // The opening's remembered copy, as the command inbox holds it.
           for (const remembered of commands.values()) {
             if (

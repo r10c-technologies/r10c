@@ -24,6 +24,13 @@ export interface Environment {
   readonly store: SecretStore;
   /** Postgres, as config-service, the flow engine and Zitadel reach it. */
   readonly sqlHost: string;
+  /**
+   * Where order-service keeps payment receipts (#692): the bucket in the
+   * cloud; in a rehearsal, a directory inside the pod, gone with it.
+   */
+  readonly objectStore:
+    | { readonly engine: 'gcs'; readonly bucket: string }
+    | { readonly engine: 'fs'; readonly directory: string };
   readonly databases: { readonly config: string; readonly workflow: string };
   /** Appended to a Postgres URL: Cloud SQL accepts encrypted connections only. */
   readonly sqlOptions: string;
@@ -63,6 +70,7 @@ export interface TofuOutputs {
   readonly registry: string;
   readonly domain: string;
   readonly edge_address: string;
+  readonly evidence_bucket: string;
   readonly secret_prefix: string;
 }
 
@@ -118,6 +126,7 @@ export const gcp = (io: Io, nodes: number): Environment => {
     address: out.edge_address,
     store,
     sqlHost: out.sql_private_address,
+    objectStore: { engine: 'gcs', bucket: out.evidence_bucket },
     databases: { config: 'postgres', workflow: 'workflow' },
     sqlOptions: '?sslmode=require',
     mongoUri: (service, secret) =>
@@ -370,6 +379,7 @@ export const lab = (io: Io, repoRoot: string): Environment => {
     address: undefined,
     store,
     sqlHost: labHost('postgres'),
+    objectStore: { engine: 'fs', directory: '/tmp/payment-evidence' },
     databases: LAB_DATABASES,
     sqlOptions: '',
     mongoUri: (service, secret) =>

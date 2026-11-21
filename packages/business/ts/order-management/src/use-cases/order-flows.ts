@@ -1,18 +1,24 @@
+import { createHash, randomUUID } from 'node:crypto';
+
 import { IdempotencyKeyTag } from '@entifix/business';
 import { NotFound } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import { ObjectStoreTag } from '@r10c/business-ts-object-storage';
 import {
   decodeBuyerContact,
   drawOrderNumber,
   normalizeOrderNumber,
 } from '@r10c/business-ts-order-contracts';
-import { Effect, Option } from 'effect';
+import { Context, Effect, Option } from 'effect';
 
 import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
 import {
   CancelNotAuthorized,
+  EvidenceLimitReached,
+  EvidenceTooLarge,
+  EvidenceTypeRefused,
   InvalidPaymentDetails,
   OrderNotAwaitingPayment,
   OrderNotTransitionable,
@@ -45,13 +51,26 @@ import { checkoutContactOf } from '../values/checkout-contact';
 import type { OrderScope } from '../values/order-scope';
 import type { OrderTransition } from '../values/order-transition';
 import {
+  EVIDENCE_PREFIX,
+  type EvidenceAttacher,
+  evidenceKeyOf,
+  type EvidenceType,
+  keptEvidence,
+  PaymentEvidence,
+  sniffEvidenceType,
+} from '../values/payment-evidence';
+import {
   type PaymentConfirmationPayload,
   paymentLinkOf,
   type PaymentLinkPayload,
   paymentReferenceOf,
 } from '../values/payment-link';
 import { CancelProductOrderUC } from './cancel-product-order';
-import { ConfirmPaymentUC, SetPaymentLinkUC } from './payment-link';
+import {
+  AttachPaymentEvidenceUC,
+  ConfirmPaymentUC,
+  SetPaymentLinkUC,
+} from './payment-link';
 
 const MILLISECONDS = 1000;
 /** A day, in milliseconds: `order.receiptDays` is counted in whole days. */
@@ -695,4 +714,188 @@ export const expireOverduePayments = (now: Date) =>
       if (ended !== undefined) expired += 1;
     }
     return expired;
+  });
+
+/**
+ * The two dials on a payment receipt (ADR 0081 §7): its size and how many one
+ * order holds — `order / evidenceMaxBytes` and `order / evidenceMaxCount`.
+ */
+export class EvidenceLimits extends Context.Service<
+  EvidenceLimits,
+  { readonly maxBytes: number; readonly maxCount: number }
+>()('EvidenceLimits') {}
+
+/** The file a receipt read answers: its bytes, as the bytes say they are. */
+export interface EvidenceFile {
+  readonly bytes: Uint8Array;
+  readonly contentType: EvidenceType;
+}
+
+const evidenceNotFound = new NotFound({ entity: 'payment-evidence' });
+
+/**
+ * Attach a receipt to an order that waits for its payment (ADR 0081 §6, §7).
+ * The bytes are sniffed — the declared type and the extension are ignored —
+ * and written first, under a fresh key; then one conditional append on
+ * `awaiting-payment` and the count decides. When it refuses, the object goes
+ * in the same request, and the orphan sweep removes any a crash left behind.
+ * The same file attached twice answers the first attachment rather than
+ * spending a second slot: a retried upload is not a second receipt.
+ */
+const attachEvidence = (
+  order: ProductOrder,
+  bytes: Uint8Array,
+  attachedBy: EvidenceAttacher,
+) =>
+  Effect.gen(function* () {
+    const limits = yield* EvidenceLimits;
+    const contentType = sniffEvidenceType(bytes);
+    if (contentType === undefined) return yield* new EvidenceTypeRefused();
+    if (bytes.length > limits.maxBytes)
+      return yield* new EvidenceTooLarge({ maxBytes: limits.maxBytes });
+    yield* AttachPaymentEvidenceUC.run(order);
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    const kept = keptEvidence(order.paymentEvidence);
+    if (kept.some(entry => entry.sha256 === sha256)) return order;
+    if (order.paymentEvidence.length >= limits.maxCount)
+      return yield* new EvidenceLimitReached({ maxCount: limits.maxCount });
+
+    const id = randomUUID();
+    const objectKey = evidenceKeyOf(String(order.id), id);
+    const objects = yield* ObjectStoreTag;
+    yield* objects.put(objectKey, bytes, contentType);
+    const store = yield* ProductOrderStoreTag;
+    const appended = yield* store.appendEvidence(
+      String(order.id),
+      Object.assign(new PaymentEvidence(), {
+        id,
+        objectKey,
+        contentType,
+        byteSize: bytes.length,
+        sha256,
+        attachedBy,
+        attachedAt: new Date(),
+      }),
+      limits.maxCount,
+    );
+    if (appended !== undefined) return appended;
+    // Lost to a cancellation, an expiry or another attach: the bytes go now.
+    yield* objects.delete(objectKey);
+    const current = yield* store.get(String(order.id));
+    if (current?.status === 'awaiting-payment')
+      return yield* new EvidenceLimitReached({ maxCount: limits.maxCount });
+    return yield* notAwaiting(String(order.id));
+  });
+
+/** A receipt's bytes, when the order keeps it and the store still has them. */
+const evidenceFileOf = (order: ProductOrder, evidenceId: string) =>
+  Effect.gen(function* () {
+    const entry = keptEvidence(order.paymentEvidence).find(
+      candidate => candidate.id === evidenceId,
+    );
+    if (entry?.objectKey === undefined) return yield* evidenceNotFound;
+    const objects = yield* ObjectStoreTag;
+    const found = yield* objects.get(entry.objectKey);
+    if (found === undefined) return yield* evidenceNotFound;
+    return {
+      bytes: found.bytes,
+      contentType: entry.contentType,
+    } as EvidenceFile;
+  });
+
+/** The order a buyer's receipt capability opens, read before any check on it. */
+const orderForBuyer = (orderId: string, nonce: string | undefined) =>
+  Effect.gen(function* () {
+    const store = yield* ProductOrderStoreTag;
+    const order = yield* store.get(orderId);
+    if (order === undefined) return yield* new CancelNotAuthorized();
+    yield* groupForBuyer(order.groupId, nonce, verifyReceiptCapability);
+    return order;
+  });
+
+/**
+ * The buyer attaches a receipt by the capability their receipt carries, with
+ * no session, for as long as the receipt can be read (ADR 0081 §6).
+ */
+export const attachEvidenceAsBuyer = (input: {
+  readonly orderId: string;
+  readonly nonce: string | undefined;
+  readonly bytes: Uint8Array;
+}) =>
+  Effect.flatMap(orderForBuyer(input.orderId, input.nonce), order =>
+    attachEvidence(order, input.bytes, 'buyer'),
+  );
+
+/** The seller attaches a receipt that reached them by another channel. */
+export const attachEvidenceAsVendor = (input: {
+  readonly orderId: string;
+  readonly scope: OrderScope;
+  readonly bytes: Uint8Array;
+}) =>
+  Effect.flatMap(orderInScope(input.orderId, input.scope), order =>
+    attachEvidence(order, input.bytes, 'vendor'),
+  );
+
+/** A receipt read back by the buyer's capability. */
+export const evidenceForBuyer = (input: {
+  readonly orderId: string;
+  readonly evidenceId: string;
+  readonly nonce: string | undefined;
+}) =>
+  Effect.flatMap(orderForBuyer(input.orderId, input.nonce), order =>
+    evidenceFileOf(order, input.evidenceId),
+  );
+
+/** A receipt read by the seller or an operator, narrowed as every order read. */
+export const evidenceForStaff = (input: {
+  readonly orderId: string;
+  readonly evidenceId: string;
+  readonly scope: OrderScope;
+}) =>
+  Effect.flatMap(orderInScope(input.orderId, input.scope), order =>
+    evidenceFileOf(order, input.evidenceId),
+  );
+
+/**
+ * One pass of the receipt-retention sweep (ADR 0076 §4, ADR 0081 §9): remove
+ * the buyer's contact from every group whose receipt ended with all its
+ * orders closed, then the payment receipts of those orders. The records keep
+ * their facts and lose their keys first, so a file whose delete fails here is
+ * no longer pointed at, and the orphan sweep takes it. Answers how many groups
+ * it redacted.
+ */
+export const redactEndedReceipts = (now: Date) =>
+  Effect.gen(function* () {
+    const groups = yield* CheckoutGroupStoreTag;
+    const store = yield* ProductOrderStoreTag;
+    const objects = yield* ObjectStoreTag;
+    const redacted = yield* groups.redactEndedReceipts(now);
+    for (const groupId of redacted)
+      for (const key of yield* store.redactEvidence(groupId, now))
+        yield* objects.delete(key);
+    return redacted.length;
+  });
+
+/**
+ * One pass of the orphan sweep (ADR 0081 §6): delete every receipt file older
+ * than `graceMs` that no order points at — the bytes an attach wrote before a
+ * crash, or a delete the redaction sweep could not finish. The grace is what
+ * keeps a file whose record is still being written from being swept under it.
+ * Answers how many it deleted.
+ */
+export const sweepOrphanEvidence = (now: Date, graceMs: number) =>
+  Effect.gen(function* () {
+    const objects = yield* ObjectStoreTag;
+    const store = yield* ProductOrderStoreTag;
+    const listed = yield* objects.list(
+      EVIDENCE_PREFIX,
+      new Date(now.getTime() - graceMs),
+    );
+    if (listed.length === 0) return 0;
+    const referenced = yield* store.referencedEvidence(
+      listed.map(object => object.key),
+    );
+    const orphans = listed.filter(object => !referenced.has(object.key));
+    for (const orphan of orphans) yield* objects.delete(orphan.key);
+    return orphans.length;
   });

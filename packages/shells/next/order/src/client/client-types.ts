@@ -11,8 +11,7 @@ export interface PaymentLinkProviderOption {
 
 /** How a payment-link write went: done, or refused under an `errors` code. */
 export type PaymentLinkOutcome =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly code: string };
+  { readonly ok: true } | { readonly ok: false; readonly code: string };
 
 /**
  * A payment-link order's two staff verbs and the provider dictionary, through
@@ -32,6 +31,15 @@ export interface PaymentLinkPort {
   readonly confirm: (
     orderId: string,
     body: { readonly reference: string },
+  ) => Promise<PaymentLinkOutcome>;
+  /**
+   * Attach a payment receipt the seller received (ADR 0081 §6): the file
+   * itself as the body, under the type the browser gave it — the service
+   * sniffs the bytes regardless.
+   */
+  readonly attachEvidence: (
+    orderId: string,
+    file: Blob,
   ) => Promise<PaymentLinkOutcome>;
 }
 

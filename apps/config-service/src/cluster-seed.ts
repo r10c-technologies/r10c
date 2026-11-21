@@ -60,7 +60,19 @@ export interface ClusterSeedInputs {
     readonly host: string;
     readonly port: string;
     readonly from: string;
+    /** The provider's account; empty for a server that takes none. */
+    readonly user: string;
+    readonly password: string;
+    /** Whether the hop must upgrade with STARTTLS (587 in the cloud). */
+    readonly tls: boolean;
   };
+  /**
+   * Where payment receipts live (ADR 0081 §8, #692): the cloud's bucket, or a
+   * directory in a rehearsal cluster with no bucket to write.
+   */
+  readonly objectStore:
+    | { readonly engine: 'gcs'; readonly bucket: string }
+    | { readonly engine: 'fs'; readonly directory: string };
   /** The OIDC app's client id: minted by the instance, public. */
   readonly zitadelClientId: string;
   /** Every {@link ClusterSecret}, plus a {@link mongoSecretOf} per Mongo service. */
@@ -165,6 +177,16 @@ export const clusterRows = (
       'order-service/smtp/host': inputs.smtp.host,
       'order-service/smtp/port': inputs.smtp.port,
       'order-service/smtp/from': inputs.smtp.from,
+      'order-service/smtp/user': inputs.smtp.user,
+      'order-service/smtp/password': inputs.smtp.password,
+      'order-service/smtp/tls': String(inputs.smtp.tls),
+      'order-service/payment-evidence/engine': inputs.objectStore.engine,
+      'order-service/payment-evidence/bucket':
+        inputs.objectStore.engine === 'gcs' ? inputs.objectStore.bucket : '',
+      'order-service/payment-evidence/directory':
+        inputs.objectStore.engine === 'fs'
+          ? inputs.objectStore.directory
+          : 'tmp/payment-evidence',
       'transaction-service/workflow/url': required(
         inputs,
         'workflow-database-url',

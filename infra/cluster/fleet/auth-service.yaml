@@ -16,6 +16,7 @@ spec:
       labels:
         app: auth-service
     spec:
+      serviceAccountName: auth-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -87,3 +88,11 @@ spec:
     - name: http
       port: 3102
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: auth-service
+  labels:
+    app: auth-service
+automountServiceAccountToken: false

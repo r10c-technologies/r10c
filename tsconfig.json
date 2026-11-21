@@ -362,6 +362,15 @@
     },
     {
       "path": "./tools/infra"
+    },
+    {
+      "path": "./packages/business/ts/object-storage"
+    },
+    {
+      "path": "./packages/implementation/payment-evidence/fs"
+    },
+    {
+      "path": "./packages/implementation/payment-evidence/gcs"
     }
   ],
   "compilerOptions": {

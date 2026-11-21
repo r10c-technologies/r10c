@@ -33,7 +33,15 @@ const inputs = (
     backOffice: 'https://office.example.test',
     identity: 'https://id.example.test',
   },
-  smtp: { host: 'smtp.example.test', port: '587', from: 'r10c <a@b.test>' },
+  smtp: {
+    host: 'smtp.example.test',
+    port: '587',
+    from: 'r10c <a@b.test>',
+    user: 'mailer',
+    password: 'mail-secret',
+    tls: true,
+  },
+  objectStore: { engine: 'gcs', bucket: 'proj-r10c-evidence' },
   zitadelClientId: '123@r10c',
   secrets: {
     ...Object.fromEntries(
@@ -123,6 +131,29 @@ describe('the cluster seed', () => {
     );
     expect(find(rows, 'order-service', 'order', 'storefrontUrl')).toBe(
       'https://shop.example.test',
+    );
+  });
+
+  it('sends mail through the provider’s account over STARTTLS, and keeps receipts in the bucket', () => {
+    const rows = clusterRows(SEED_ROWS, inputs());
+    const order = (group: string, key: string) =>
+      find(rows, 'order-service', group, key);
+
+    expect(order('smtp', 'user')).toBe('mailer');
+    expect(order('smtp', 'password')).toBe('mail-secret');
+    expect(order('smtp', 'tls')).toBe('true');
+    expect(order('payment-evidence', 'engine')).toBe('gcs');
+    expect(order('payment-evidence', 'bucket')).toBe('proj-r10c-evidence');
+
+    const rehearsal = clusterRows(SEED_ROWS, {
+      ...inputs(),
+      objectStore: { engine: 'fs', directory: '/tmp/payment-evidence' },
+    });
+    expect(
+      find(rehearsal, 'order-service', 'payment-evidence', 'directory'),
+    ).toBe('/tmp/payment-evidence');
+    expect(find(rehearsal, 'order-service', 'payment-evidence', 'bucket')).toBe(
+      '',
     );
   });
 

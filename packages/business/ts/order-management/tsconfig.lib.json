@@ -23,6 +23,9 @@
       "path": "../order-contracts/tsconfig.lib.json"
     },
     {
+      "path": "../object-storage/tsconfig.lib.json"
+    },
+    {
       "path": "../i18n/tsconfig.lib.json"
     },
     {

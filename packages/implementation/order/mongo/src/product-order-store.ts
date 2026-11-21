@@ -38,6 +38,7 @@ import {
   type OrderPlacement,
   type OrderStatus,
   orderStatusAfter,
+  type PaymentEvidence,
   ProductOrder,
   ProductOrderStoreTag,
   statusesBefore,
@@ -91,6 +92,20 @@ type SerializedOrder = Record<string, unknown> & {
 };
 
 const WITHOUT_ID = { projection: { _id: 0 } } as const;
+
+/** How many receipts an order holds, kept beside them for the cap's write. */
+const EVIDENCE_COUNT = 'paymentEvidenceCount';
+
+/** A receipt's record as stored: its members, dates as dates. */
+const evidenceDocument = (evidence: PaymentEvidence) => ({
+  id: evidence.id,
+  objectKey: evidence.objectKey,
+  contentType: evidence.contentType,
+  byteSize: evidence.byteSize,
+  sha256: evidence.sha256,
+  attachedBy: evidence.attachedBy,
+  attachedAt: evidence.attachedAt,
+});
 
 const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
@@ -663,6 +678,97 @@ export const MongoProductOrderStoreLayer = Layer.effect(
           catch: storeUnavailable,
         }).pipe(Effect.map(rows => rows.map(row => String(row['id'])))),
 
+      // ADR 0081 §6. The count rides in a counter of its own: a filter on the
+      // array's length is an `$expr` this store keeps out of its writes, and
+      // the counter makes the cap one more condition on the same write.
+      appendEvidence: (orderId, evidence, maxCount) =>
+        Effect.tryPromise({
+          try: () =>
+            orders.findOneAndUpdate(
+              {
+                id: orderId,
+                status: 'awaiting-payment',
+                $or: [
+                  { [EVIDENCE_COUNT]: { $exists: false } },
+                  { [EVIDENCE_COUNT]: { $lt: maxCount } },
+                ],
+              },
+              {
+                $push: { paymentEvidence: evidenceDocument(evidence) },
+                $inc: { [EVIDENCE_COUNT]: 1 },
+              } as never,
+              { returnDocument: 'after', ...WITHOUT_ID },
+            ),
+          catch: storeUnavailable,
+        }).pipe(Effect.flatMap(reviveOrNone)),
+
+      // ADR 0081 §9. Only closed orders reach here — the group sweep checked
+      // — so nothing appends while the array is rewritten.
+      redactEvidence: (groupId, now) =>
+        Effect.gen(function* () {
+          const held = yield* Effect.tryPromise({
+            try: () =>
+              orders
+                .find(
+                  {
+                    groupId,
+                    'paymentEvidence.objectKey': { $exists: true },
+                  },
+                  { projection: { _id: 0, id: 1, paymentEvidence: 1 } },
+                )
+                .toArray(),
+            catch: storeUnavailable,
+          });
+          const removed: string[] = [];
+          for (const row of held as unknown as ReadonlyArray<{
+            id: string;
+            paymentEvidence: ReadonlyArray<Record<string, unknown>>;
+          }>) {
+            const next = row.paymentEvidence.map(entry => {
+              if (typeof entry['objectKey'] !== 'string') return entry;
+              removed.push(entry['objectKey']);
+              const { objectKey: _gone, ...kept } = entry;
+              return { ...kept, redactedAt: now };
+            });
+            yield* Effect.tryPromise({
+              try: () =>
+                orders.updateOne(
+                  { id: row.id },
+                  { $set: { paymentEvidence: next } },
+                ),
+              catch: storeUnavailable,
+            });
+          }
+          return removed;
+        }),
+
+      referencedEvidence: keys =>
+        Effect.tryPromise({
+          try: () =>
+            orders
+              .find(
+                { 'paymentEvidence.objectKey': { $in: [...keys] } },
+                { projection: { _id: 0, paymentEvidence: 1 } },
+              )
+              .toArray(),
+          catch: storeUnavailable,
+        }).pipe(
+          Effect.map(rows => {
+            const wanted = new Set(keys);
+            return new Set(
+              rows
+                .flatMap(
+                  row =>
+                    row['paymentEvidence'] as ReadonlyArray<{
+                      objectKey?: string;
+                    }>,
+                )
+                .map(entry => entry.objectKey)
+                .filter((key): key is string => wanted.has(String(key))),
+            );
+          }),
+        ),
+
       setPaymentLink: (orderId, link) =>
         Effect.tryPromise({
           try: () =>
@@ -983,7 +1089,7 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
                 .toArray(),
             catch: storeUnavailable,
           });
-          let redacted = 0;
+          const redacted: string[] = [];
           for (const { id, number } of ended as unknown as ReadonlyArray<{
             id: string;
             number: string;
@@ -999,7 +1105,7 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
               catch: storeUnavailable,
             });
             if (open > 0) continue;
-            const outcome = yield* units.run(unit =>
+            yield* units.run(unit =>
               Effect.tryPromise({
                 try: async () => {
                   const session = unit.handle.session;
@@ -1023,7 +1129,9 @@ export const MongoCheckoutGroupStoreLayer = Layer.effect(
             );
             // A unit with no claim and no refusal of its own only commits; a
             // store fault fails the effect instead of reaching here.
-            redacted += (outcome as { readonly value: number }).value;
+            // A group a racing pass redacted first is answered by both: its
+            // receipts' second redaction finds nothing left to remove.
+            redacted.push(id);
           }
           return redacted;
         }),

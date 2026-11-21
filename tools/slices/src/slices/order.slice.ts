@@ -53,6 +53,16 @@ export const orderSlice: SliceDeclaration = {
       partitioning: 'single',
       truth: 'system-of-record',
     },
+    // The bytes of a payment receipt (ADR 0081 §8): a directory in the lab, a
+    // bucket in the cloud — an engine of its own, so a store of its own. It
+    // holds files, not entities; the record of each lives in `order`.
+    {
+      name: 'payment-evidence',
+      plane: 'platform',
+      hosts: [],
+      partitioning: 'single',
+      truth: 'system-of-record',
+    },
   ],
   deployments: ['order-service'],
   coDeployedWith: [],
@@ -71,6 +81,12 @@ export const orderSlice: SliceDeclaration = {
     'POST /api/product-order/:id/confirm-payment',
     'POST /api/product-order/:id/set-payment-link',
     'GET /api/payment-link-provider',
+    // A payment receipt (ADR 0081 §6): the buyer attaches and reads one by the
+    // receipt capability, the seller by a verb and a narrowed read.
+    'POST /api/product-order/:id/buyer-payment-evidence',
+    'GET /api/product-order/:id/buyer-payment-evidence/:evidenceId',
+    'POST /api/product-order/:id/attach-payment-evidence',
+    'GET /api/product-order/:id/payment-evidence/:evidenceId',
     'POST /api/product-order/:id/dispatched',
     'POST /api/product-order/:id/closed',
     'GET|POST /api/checkout-group',

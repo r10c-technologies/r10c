@@ -72,3 +72,8 @@ output "node_pool_max" {
   description = "The autoscaling ceiling the up command turns autoscaling back on with."
   value       = var.fleet_max_nodes
 }
+
+output "evidence_bucket" {
+  description = "The bucket order-service keeps payment receipts in (#692)."
+  value       = google_storage_bucket.evidence.name
+}

@@ -20,6 +20,12 @@
       "path": "../flow-catalog/tsconfig.lib.json"
     },
     {
+      "path": "../../../implementation/payment-evidence/gcs/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../implementation/payment-evidence/fs/tsconfig.lib.json"
+    },
+    {
       "path": "../../../implementation/order/mongo/tsconfig.lib.json"
     },
     {
@@ -33,6 +39,9 @@
     },
     {
       "path": "../../../business/ts/order-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/object-storage/tsconfig.lib.json"
     }
   ],
   "exclude": [

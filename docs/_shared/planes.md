@@ -55,6 +55,7 @@ declaration as `bindingReason`.
 | `fulfilment-idempotency` | control  | `fulfilment`        | active       | —                | —                                                             | single           | system-of-record         |
 | `fulfilment`             | tenant   | `fulfilment`        | active       | —                | `shipping-order-management`                                   | per-organization | system-of-record         |
 | `order`                  | platform | `order`             | active       | —                | `order-management`                                            | single           | system-of-record         |
+| `payment-evidence`       | platform | `order`             | active       | —                | —                                                             | single           | system-of-record         |
 | `payment`                | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record         |
 | `published-catalog`      | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog`  |
 | `published-vendor`       | platform | `marketplace`       | active       | —                | `marketplace-vendor`                                          | single           | `projection-of:auth`     |

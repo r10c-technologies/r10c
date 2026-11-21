@@ -16,6 +16,7 @@ spec:
       labels:
         app: settlement-service
     spec:
+      serviceAccountName: settlement-service
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
@@ -87,3 +88,11 @@ spec:
     - name: http
       port: 3107
       targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: settlement-service
+  labels:
+    app: settlement-service
+automountServiceAccountToken: false

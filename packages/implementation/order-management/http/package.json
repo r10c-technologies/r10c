@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",
+    "@r10c/business-ts-object-storage": "workspace:*",
     "@r10c/testing-cells": "workspace:*"
   }
 }

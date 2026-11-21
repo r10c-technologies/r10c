@@ -154,6 +154,13 @@ export const errors: EsErrors = {
     'This seller does not take payment links. Choose another way to pay them.',
   orderNotAwaitingPayment:
     'This order is no longer waiting for its payment: it was confirmed, it expired or the buyer withdrew it. If the buyer paid an expired order, give the money back through your payment provider — r10c never held it.',
+  evidenceTypeRefused:
+    'A receipt has to be a photo (JPEG, PNG or WebP) or a PDF.',
+  evidenceTooLarge: 'The receipt is too large: upload one of 5 MB or less.',
+  evidenceLimitReached:
+    'This order already holds every receipt it takes. Write to the seller if something is missing.',
+  payloadTooLarge: 'The file is larger than can be uploaded here.',
+  unsupportedMediaType: 'This kind of file cannot be uploaded here.',
   invalidPaymentDetails:
     'Check the payment details: a link is an https address from the provider you chose, and an authorization number is not empty.',
   guideMissing:

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fleetManifests } from '@r10c/cluster';
+import { FLEET_NAMESPACE, fleetManifests } from '@r10c/cluster';
 import {
   ADDRESS_PLACEHOLDER as EDGE_ADDRESS,
   DOMAIN_PLACEHOLDER as EDGE_DOMAIN,
@@ -62,6 +62,19 @@ describe('what the up command and the cloud code agree on', () => {
     expect(tfList('generated_secrets')).toEqual([...GENERATED_SECRETS]);
     expect(tfList('minted_secrets')).toEqual([...MINTED_SECRETS]);
     expect(tfList('provided_secrets')).toEqual([...PROVIDED_SECRETS]);
+  });
+
+  it('grants the receipts bucket to order-service’s own account in the fleet’s namespace', () => {
+    const storage = read('infra/gcp/storage.tf');
+
+    expect(storage).toContain(
+      `/subject/ns/${FLEET_NAMESPACE}/sa/order-service"`,
+    );
+    // The rendered manifest the cluster runs, not a fresh render: the grant
+    // must name the account that is actually applied.
+    expect(read('infra/cluster/fleet/order-service.yaml')).toMatch(
+      /kind: ServiceAccount\nmetadata:\n {2}name: order-service\n/,
+    );
   });
 
   it('substitutes the placeholders tools/edge writes', () => {

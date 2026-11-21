@@ -465,6 +465,20 @@ export const r10c = {
           'Este link es del propio vendedor y abre {{host}}. Paga solo si lo reconoces.',
         expired:
           'Este pedido venció antes de que el vendedor confirmara un pago. Si pagaste, pide al vendedor que te devuelva el dinero.',
+        // El comprobante que el comprador adjunta (ADR 0081 §6).
+        evidence: {
+          title: 'Comprobante de pago',
+          hint: 'Sube la captura o el PDF que te dio tu banco o el proveedor del link: una foto (JPEG, PNG o WebP) o un PDF de hasta 5 MB.',
+          file: 'Archivo del comprobante',
+          submit: 'Adjuntar comprobante',
+          attachedOne: 'Comprobante {{n}} ({{kind}})',
+          view: 'Ver',
+          image: 'imagen',
+          pdf: 'PDF',
+          attached:
+            'Adjuntaste el comprobante. El vendedor lo revisará y confirmará tu pago.',
+          failed: 'No pudimos adjuntar el comprobante. Inténtalo otra vez.',
+        },
       },
       cancelledAll: 'Todos los pedidos de esta compra quedaron cancelados.',
       cancelWindow: 'Puedes cancelar este pedido hasta las {{time}}.',
@@ -562,6 +576,12 @@ export const r10c = {
       setLink: 'Poner link de pago',
       reference: 'Número de autorización',
       confirm: 'Confirmar pago',
+      // Los comprobantes de pago adjuntos (ADR 0081 §6).
+      evidence: 'Comprobantes de pago',
+      evidenceOne: 'Comprobante {{n}}, adjuntado por {{by}} el {{time}}',
+      attachedBy: { buyer: 'el comprador', vendor: 'tu equipo' },
+      evidenceFile: 'Comprobante que te enviaron (foto o PDF, hasta 5 MB)',
+      attachEvidence: 'Adjuntar comprobante',
     },
   },
   fulfilment: {

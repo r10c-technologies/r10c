@@ -4,6 +4,7 @@
 - Date: 2026-11-20
 - Area: platform
 - Revised: 2026-11-20 — #683 and #685 built §4, §5 and the secrets row: a secret reaches a pod through the up command, each Atlas user may read and write any database, and the edge's certificate comes from cert-manager.
+- Revised: 2026-11-20 — #692 built the receipts and mail rows: a private bucket in `infra/gcp/storage.tf`, granted by Workload Identity to order-service's own Kubernetes account (every workload now runs as its own), and the SMTP provider's account and STARTTLS rule carried into order-service's rows and re-stated to Zitadel on every seed.
 - Read when: declaring a cloud resource, choosing what runs managed and what runs in the cluster, writing the up or down command, or wondering whether "nothing runs in production" still holds once a cluster exists — one region, one zonal cluster scaled to zero, and the demo environment is reset like the lab
 
 ## Context

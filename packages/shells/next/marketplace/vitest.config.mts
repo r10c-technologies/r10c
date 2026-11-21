@@ -79,5 +79,11 @@ export default defineEntifixTest({
     '**/lib/cart/settle-cancel-action.ts',
     '**/lib/cart/flow-ticket-cookie.ts',
     '**/lib/cart/cancel-ticket-cookie.ts',
+    // The receipt upload and its read-back (ADR 0081 §6): a `'use server'`
+    // action over `cookies()` and `redirect`, and the route's proxy over the
+    // same cookie, like the cancel above. What they decide is
+    // `evidence-outcome.ts` and `receipt-state.ts`, covered here.
+    '**/lib/cart/evidence-action.ts',
+    '**/lib/cart/evidence-file.ts',
   ],
 });

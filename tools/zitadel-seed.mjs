@@ -556,8 +556,30 @@ const ensureSmtp = async () => {
       })
     ).id;
 
+  // Found by its host, so a rotated password or a changed account on the
+  // same host would otherwise never reach Zitadel (#692): re-state both on
+  // every run. Both writes leave an unchanged provider as it was.
+  if (existing !== undefined) {
+    // Zitadel refuses an update that changes nothing: that is convergence.
+    const restate = (path, body) =>
+      api('PUT', path, body).catch(error => {
+        if (!/not ?changed/i.test(`${error.zitadelId} ${error.zitadelMessage}`))
+          throw error;
+      });
+    await restate(`/admin/v1/smtp/${id}`, {
+      senderAddress: SMTP.senderAddress,
+      senderName: 'r10c',
+      host: SMTP.host,
+      user: SMTP.user,
+      tls: SMTP.tls,
+      description: `r10c (${SMTP.host})`,
+    });
+    await restate(`/admin/v1/smtp/${id}/password`, {
+      password: SMTP.password,
+    });
+  }
   if (existing?.state === 'SMTP_CONFIG_ACTIVE') {
-    log(`smtp: ${SMTP.host} already active`);
+    log(`smtp: ${SMTP.host} already active, account re-stated`);
     return;
   }
   await api('POST', `/admin/v1/smtp/${id}/_activate`, {});

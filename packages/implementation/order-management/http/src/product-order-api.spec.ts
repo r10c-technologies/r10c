@@ -1,10 +1,16 @@
-import { type EntityApiContext, IdempotencyKeyTag } from '@entifix/business';
+import {
+  type EntityApiContext,
+  IdempotencyKeyTag,
+  RequestPrincipalTag,
+} from '@entifix/business';
 import { makeEntityEnvelope } from '@entifix/core';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import {
   acceptedAnswer,
   makeScriptedFlowStarter,
 } from '@r10c/business-ts-flow-contracts/testing';
+import { ObjectStoreTag } from '@r10c/business-ts-object-storage';
+import { makeInMemoryObjectStore } from '@r10c/business-ts-object-storage/testing';
 import {
   AccessLinkHours,
   AccessLinkIntervalSeconds,
@@ -13,6 +19,7 @@ import {
   CheckoutGroup,
   CheckoutGroupStoreTag,
   digestOf,
+  EvidenceLimits,
   OrderItem,
   PaymentLinkProvidersTag,
   ProductOrder,
@@ -79,6 +86,8 @@ const world = (windows = { cancelWindowSeconds: 600, receiptDays: 30 }) => {
     Layer.succeed(PaymentLinkProvidersTag, [
       { key: 'other', name: 'Other', hosts: [] },
     ]),
+    Layer.succeed(ObjectStoreTag, makeInMemoryObjectStore()),
+    Layer.succeed(EvidenceLimits, { maxBytes: 1024, maxCount: 3 }),
   );
   type R =
     | ProductOrderStoreTag
@@ -86,7 +95,9 @@ const world = (windows = { cancelWindowSeconds: 600, receiptDays: 30 }) => {
     | FlowStarterTag
     | CancelWindowSeconds
     | ReceiptDays
-    | PaymentLinkProvidersTag;
+    | PaymentLinkProvidersTag
+    | ObjectStoreTag
+    | EvidenceLimits;
   return {
     stores,
     started,
@@ -102,7 +113,7 @@ const world = (windows = { cancelWindowSeconds: 600, receiptDays: 30 }) => {
 const keyed = <A, E, R>(effect: Effect.Effect<A, E, R>, key: string) =>
   Effect.provideService(effect, IdempotencyKeyTag, key);
 
-const [cancel, confirmPaymentVerb, setLinkVerb] =
+const [cancel, confirmPaymentVerb, setLinkVerb, attachVerb] =
   productOrderApi.options.useCases;
 const [
   buyerCancellation,
@@ -116,6 +127,9 @@ const [
   awaitingPayment,
   dispatch,
   close,
+  buyerEvidenceAttach,
+  buyerEvidenceRead,
+  staffEvidenceRead,
 ] = productOrderEndpoints;
 
 /** A flow step's body: the record's members, flat — an envelope's `data`. */
@@ -736,6 +750,70 @@ describe('a payment-link order (ADR 0081)', () => {
       paymentConfirmedBy: 'staff-1',
     });
     expect(userOnly.code).toBe('orderNotAwaitingPayment');
+  });
+
+  it('takes a receipt from the buyer by the capability and from the seller, and serves each back', async () => {
+    const w = world();
+    const { orderId } = await waiting(w);
+    const pdf = new TextEncoder().encode('%PDF-1.7 the receipt');
+    const png = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+
+    const fromBuyer = (await w.run(
+      at(buyerEvidenceAttach, {
+        params: { id: orderId },
+        headers: { 'x-cancel-nonce': NONCE },
+        payload: { bytes: pdf, contentType: 'application/pdf' },
+      }) as never,
+    )) as { paymentEvidence: { id: string; kept: boolean }[] };
+    const fromSeller = (await w.run(
+      attachVerb.handler(
+        {
+          params: { id: orderId },
+          payload: { bytes: png, contentType: 'image/png' },
+        },
+        own,
+      ) as never,
+    )) as { data: { paymentEvidence: { id: string }[] } };
+    const [pdfId, pngId] = fromSeller.data.paymentEvidence.map(e => e.id);
+
+    const read = (await w.run(
+      at(buyerEvidenceRead, {
+        params: { id: orderId, evidenceId: pdfId },
+        headers: { 'x-cancel-nonce': NONCE },
+      }) as never,
+    )) as { contentType: string; headers: Record<string, string> };
+    const staffRead = (await w.run(
+      Effect.provideService(
+        at(staffEvidenceRead, {
+          params: { id: orderId, evidenceId: pngId },
+        }) as never,
+        RequestPrincipalTag,
+        { partyRole: 'vendor', organizationId: 'v-1' } as never,
+      ),
+    )) as { bytes: Uint8Array; headers: Record<string, string> };
+
+    expect(fromBuyer.paymentEvidence).toMatchObject([
+      { contentType: 'application/pdf', attachedBy: 'buyer', kept: true },
+    ]);
+    expect(fromBuyer.paymentEvidence[0]).not.toHaveProperty('objectKey');
+    expect(read).toMatchObject({
+      contentType: 'application/pdf',
+      headers: {
+        'x-content-type-options': 'nosniff',
+        'content-security-policy': 'sandbox',
+        'cache-control': 'private, no-store',
+        'content-disposition': 'attachment; filename="comprobante.pdf"',
+      },
+    });
+    expect(staffRead.bytes).toEqual(png);
+    expect(staffRead.headers).not.toHaveProperty('content-disposition');
+    expect(staffEvidenceRead.descriptor.guard).toEqual({
+      kind: 'permission',
+      permission: 'order-management:product-order:read',
+    });
+    expect(buyerEvidenceAttach.descriptor.guard).toEqual({ kind: 'public' });
   });
 
   it('lists the providers a seller may name', async () => {

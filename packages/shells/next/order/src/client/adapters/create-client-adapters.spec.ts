@@ -102,7 +102,9 @@ describe('the payment-link port', () => {
   it('reads the provider dictionary through the proxy, and an unreadable one as empty', async () => {
     server.use(
       http.get('*/api/order/payment-link-provider', () =>
-        HttpResponse.json({ items: [{ key: 'other', name: 'Other', hosts: [] }] }),
+        HttpResponse.json({
+          items: [{ key: 'other', name: 'Other', hosts: [] }],
+        }),
       ),
     );
     expect(await paymentLink.providers()).toEqual([
@@ -171,6 +173,48 @@ describe('the payment-link port', () => {
       ),
     );
     expect(await paymentLink.confirm('o', { reference: 'A' })).toEqual({
+      ok: false,
+      code: 'unexpected',
+    });
+  });
+
+  it('posts a receipt as its bytes under its type, and a type the browser left blank as a PDF', async () => {
+    const posted: Array<{ url: string; type: string | null; size: number }> =
+      [];
+    server.use(
+      http.post('*/api/order/product-order/:id/:verb', async ({ request }) => {
+        posted.push({
+          url: request.url,
+          type: request.headers.get('content-type'),
+          size: (await request.arrayBuffer()).byteLength,
+        });
+        return posted.length === 1
+          ? HttpResponse.json({ data: {} })
+          : HttpResponse.json({ code: 'evidenceTypeRefused' }, { status: 400 });
+      }),
+    );
+
+    const attached = await paymentLink.attachEvidence(
+      'ord-1',
+      new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }),
+    );
+    const refused = await paymentLink.attachEvidence(
+      'ord-1',
+      new Blob([new Uint8Array([1])]),
+    );
+
+    expect(attached).toEqual({ ok: true });
+    expect(refused).toEqual({ ok: false, code: 'evidenceTypeRefused' });
+    expect(posted[0]).toMatchObject({ type: 'image/png', size: 3 });
+    expect(posted[0]?.url).toMatch(/ord-1\/attach-payment-evidence$/);
+    expect(posted[1]?.type).toBe('application/pdf');
+
+    server.use(
+      http.post('*/api/order/product-order/:id/:verb', () =>
+        HttpResponse.error(),
+      ),
+    );
+    expect(await paymentLink.attachEvidence('o', new Blob(['x']))).toEqual({
       ok: false,
       code: 'unexpected',
     });

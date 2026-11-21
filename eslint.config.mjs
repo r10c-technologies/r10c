@@ -357,6 +357,12 @@ const ENGINES = {
   // Not a store but a transport, and the same shape: an smtp cell is its
   // driver's adapter and nothing else (ADR 0076 §6).
   smtp: both(['nodemailer']),
+  // An object store's two cells (ADR 0081 §8): the lab writes a directory,
+  // the cloud a bucket. The filesystem is a Node builtin, which the boundary
+  // rule does not treat as an external import, so `fs` names no driver — the
+  // bucket's is the one another cell must not reach for.
+  fs: [],
+  gcs: both(['@google-cloud/storage']),
 };
 const otherEngines = own => [
   ...Object.entries(ENGINES)

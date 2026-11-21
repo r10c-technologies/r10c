@@ -13,6 +13,7 @@ import {
   StatusTag,
   SubmitButton,
   Text,
+  TextInput,
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
@@ -30,6 +31,8 @@ import type { CancelTicket } from '../cart/cancel-ticket';
 import { readCancelTicket } from '../cart/cancel-ticket-cookie';
 import { cancelWindowLabel } from '../cart/cancel-window';
 import { checkout } from '../cart/checkout-action';
+import { attachPaymentReceipt } from '../cart/evidence-action';
+import type { EvidenceOutcome } from '../cart/evidence-outcome';
 import { readFlowTicket } from '../cart/flow-ticket-cookie';
 import { OrderStatusFlow } from '../cart/order-status-flow';
 import { readReceipt } from '../cart/receipt-cookie';
@@ -67,10 +70,13 @@ export async function OrderStatusPage({
   locale,
   flowId,
   outcome,
+  evidenceOutcome,
 }: {
   readonly locale: Locale;
   readonly flowId: string;
   readonly outcome?: CancelOutcome;
+  /** What a receipt upload did, for exactly one navigation (ADR 0081 §6). */
+  readonly evidenceOutcome?: EvidenceOutcome;
 }) {
   const t = getServerTFor(locale, 'r10c');
   const receipt = await readReceipt();
@@ -78,7 +84,12 @@ export async function OrderStatusPage({
   if (receipt?.groupId === flowId) {
     return (
       <StoreShell locale={locale}>
-        <ReceiptView locale={locale} receipt={receipt} outcome={outcome} />
+        <ReceiptView
+          locale={locale}
+          receipt={receipt}
+          outcome={outcome}
+          evidenceOutcome={evidenceOutcome}
+        />
       </StoreShell>
     );
   }
@@ -180,11 +191,14 @@ async function ReceiptView({
   locale,
   receipt,
   outcome,
+  evidenceOutcome,
 }: {
   readonly locale: Locale;
   readonly receipt: Receipt;
   readonly outcome?: CancelOutcome;
+  readonly evidenceOutcome?: EvidenceOutcome;
 }) {
+  const tErrors = getServerTFor(locale, 'errors');
   const t = getServerTFor(locale, 'r10c');
   // What the cookie never keeps — where it goes, and each line's stored name —
   // read from the server on every render by the receipt's own capability. A
@@ -280,6 +294,18 @@ async function ReceiptView({
           {t('storefront.order.cancelled')}
         </Alert>
       ) : undefined}
+      {evidenceOutcome === undefined ? undefined : evidenceOutcome ===
+        'attached' ? (
+        <Alert tone="success" data-testid="evidence-attached">
+          {t('storefront.order.payment.evidence.attached')}
+        </Alert>
+      ) : (
+        <Alert tone="danger" data-testid="evidence-refused">
+          {evidenceOutcome === 'failed'
+            ? t('storefront.order.payment.evidence.failed')
+            : tErrors(evidenceOutcome)}
+        </Alert>
+      )}
 
       {cancelling === undefined ? undefined : (
         <Card>
@@ -449,7 +475,11 @@ async function VendorOrderCard({
           </Text>
         </Cluster>
         {payment === undefined ? undefined : (
-          <LinkPayment locale={locale} payment={payment} />
+          <LinkPayment
+            locale={locale}
+            orderId={order.orderId}
+            payment={payment}
+          />
         )}
         {order.cancelled === true ? (
           <span>
@@ -610,9 +640,11 @@ function DeliveryCard({
  */
 function LinkPayment({
   locale,
+  orderId,
   payment,
 }: {
   readonly locale: Locale;
+  readonly orderId: string;
   readonly payment: ReceiptPayment;
 }) {
   const t = getServerTFor(locale, 'r10c');
@@ -668,6 +700,83 @@ function LinkPayment({
           ) : undefined}
         </Stack>
       )}
+      <PaymentEvidence locale={locale} orderId={orderId} payment={payment} />
+    </Stack>
+  );
+}
+
+/**
+ * The receipts a buyer attached to an order that waits for its payment, each
+ * read back through the storefront's own origin, and the form that attaches
+ * another (ADR 0081 §6). A plain multipart post: it works with scripting off.
+ */
+function PaymentEvidence({
+  locale,
+  orderId,
+  payment,
+}: {
+  readonly locale: Locale;
+  readonly orderId: string;
+  readonly payment: ReceiptPayment;
+}) {
+  const t = getServerTFor(locale, 'r10c');
+  const inputId = `evidence-${orderId}`;
+  return (
+    <Stack gap="3xs" data-testid="vendor-order-evidence">
+      <Text weight="semibold">
+        {t('storefront.order.payment.evidence.title')}
+      </Text>
+      {payment.evidence.length === 0 ? undefined : (
+        <ul className="flex flex-col gap-3xs" data-testid="evidence-list">
+          {payment.evidence.map((entry, index) => (
+            <li key={entry.id}>
+              <a
+                className="underline"
+                href={`/api/receipt-evidence/${encodeURIComponent(
+                  orderId,
+                )}/${encodeURIComponent(entry.id)}`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {t('storefront.order.payment.evidence.attachedOne', {
+                  n: index + 1,
+                  kind: t(`storefront.order.payment.evidence.${entry.kind}`),
+                })}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        action={attachPaymentReceipt}
+        encType="multipart/form-data"
+        data-testid="evidence-form"
+      >
+        <Stack gap="3xs">
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="orderId" value={orderId} />
+          <label htmlFor={inputId} className="text-step--1 font-semibold">
+            {t('storefront.order.payment.evidence.file')}
+          </label>
+          <Text muted id={`${inputId}-hint`}>
+            {t('storefront.order.payment.evidence.hint')}
+          </Text>
+          <TextInput
+            id={inputId}
+            name="receipt"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            aria-describedby={`${inputId}-hint`}
+            className="w-full min-w-0"
+            required
+          />
+          <div>
+            <SubmitButton variant="secondary">
+              {t('storefront.order.payment.evidence.submit')}
+            </SubmitButton>
+          </div>
+        </Stack>
+      </form>
     </Stack>
   );
 }

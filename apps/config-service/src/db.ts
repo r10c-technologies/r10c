@@ -1007,6 +1007,53 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'paymentExpirySweepMs',
     value: '60000',
   },
+  // A payment receipt (ADR 0081 §7): at most 5 MB and three per order — the
+  // count and the size bound what one capability can do to its own order, in
+  // place of a rate limit. The wire limit is the same 5 MB, fixed in the
+  // descriptor; this row may lower it, never raise it.
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'evidenceMaxBytes',
+    value: '5242880',
+  },
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'evidenceMaxCount',
+    value: '3',
+  },
+  // How often receipt files no order points at are looked for (§6). Each is
+  // kept a day first, so an hourly pass is plenty.
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'evidenceOrphanSweepMs',
+    value: '3600000',
+  },
+  // Where receipt files live (§8): `fs` in the lab, a directory under the
+  // checkout's own `tmp/` that `dev:reset` empties with the rest; the cluster
+  // seed turns it to `gcs` and names the bucket (#692).
+  {
+    service: 'order-service',
+    group_name: 'payment-evidence',
+    key: 'engine',
+    value: 'fs',
+  },
+  {
+    service: 'order-service',
+    group_name: 'payment-evidence',
+    key: 'directory',
+    value: 'tmp/payment-evidence',
+  },
+  // The bucket, when `engine` is `gcs`: nothing in the lab, `tofu output
+  // evidence_bucket` in the cloud (#692).
+  {
+    service: 'order-service',
+    group_name: 'payment-evidence',
+    key: 'bucket',
+    value: '',
+  },
   // The fiscal sweep (ADR 0078 §6, #668): how often order-service certifies the
   // FEL document of every paid order and voids the document of every order
   // cancelled after it, and how long a refused or unanswered attempt waits
@@ -1088,6 +1135,28 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'smtp',
     key: 'from',
     value: 'r10c <pedidos@r10c.test>',
+  },
+  // The provider's account and its STARTTLS rule (#692). Mailpit takes no
+  // account and no TLS; the cluster seed writes the provider's, and the
+  // password is a secret row like every credential.
+  {
+    service: 'order-service',
+    group_name: 'smtp',
+    key: 'user',
+    value: '',
+  },
+  {
+    service: 'order-service',
+    group_name: 'smtp',
+    key: 'password',
+    value: '',
+    is_secret: true,
+  },
+  {
+    service: 'order-service',
+    group_name: 'smtp',
+    key: 'tls',
+    value: 'false',
   },
   // Where the cancellation coordinator answers, and the secret this service
   // presents to start a flow through it.

@@ -1,0 +1,49 @@
+{
+  "name": "@r10c/implementation-payment-evidence-fs",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "tech:fs",
+      "scope:order"
+    ],
+    "sourceRoot": "packages/implementation/payment-evidence/fs/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/implementation/payment-evidence/fs/dist",
+          "main": "packages/implementation/payment-evidence/fs/src/index.ts",
+          "tsConfig": "packages/implementation/payment-evidence/fs/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/core": "catalog:",
+    "@r10c/business-ts-object-storage": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.7"
+  }
+}

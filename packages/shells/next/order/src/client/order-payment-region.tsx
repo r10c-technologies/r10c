@@ -99,10 +99,22 @@ export function OrderPaymentRegion({
       })
       .then(settle);
   };
+  const submitEvidence = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // A file input always carries a list; an empty one is nothing chosen.
+    const input = event.currentTarget.elements.namedItem(
+      'receipt',
+    ) as HTMLInputElement;
+    const [file] = Array.from(input.files as FileList);
+    if (file === undefined) return;
+    void paymentLink.attachEvidence(orderId, file).then(settle);
+  };
   const submitConfirmation = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void paymentLink
-      .confirm(orderId, { reference: fieldOf(event.currentTarget, 'reference') })
+      .confirm(orderId, {
+        reference: fieldOf(event.currentTarget, 'reference'),
+      })
       .then(settle);
   };
 
@@ -110,6 +122,10 @@ export function OrderPaymentRegion({
   const linkUrl = textOf(order.paymentLinkUrl);
   const reference = textOf(order.paymentReference);
   const confirmedAt = formatted(order.paymentConfirmedAt, locale);
+  // The receipts whose file is still kept, each read through the proxy.
+  const evidence = order.paymentEvidence.filter(
+    entry => textOf(entry.objectKey) !== undefined,
+  );
 
   return (
     <Card>
@@ -135,6 +151,31 @@ export function OrderPaymentRegion({
               time: confirmedAt ?? '',
             })}
           </Text>
+        )}
+        {evidence.length === 0 ? null : (
+          <Stack gap="3xs" data-testid="order-payment-evidence">
+            <Text weight="semibold">{t('order.payment.evidence')}</Text>
+            <ul className="flex flex-col gap-3xs">
+              {evidence.map((entry, index) => (
+                <li key={entry.id}>
+                  <a
+                    className="underline"
+                    href={`/api/order/product-order/${encodeURIComponent(
+                      orderId,
+                    )}/payment-evidence/${encodeURIComponent(entry.id)}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {t('order.payment.evidenceOne', {
+                      n: index + 1,
+                      by: t(`order.payment.attachedBy.${entry.attachedBy}`),
+                      time: formatted(entry.attachedAt, locale) ?? '',
+                    })}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Stack>
         )}
         {refused === undefined ? null : (
           <Alert tone="danger">{tErrors(refused)}</Alert>
@@ -195,6 +236,30 @@ export function OrderPaymentRegion({
                 />
                 <SubmitButton className="touch-target">
                   {t('order.payment.setLink')}
+                </SubmitButton>
+              </Stack>
+            </form>
+            <form
+              onSubmit={submitEvidence}
+              data-testid="order-payment-evidence-form"
+            >
+              <Stack gap="2xs">
+                <label
+                  htmlFor="payment-evidence"
+                  className="text-step--1 font-semibold"
+                >
+                  {t('order.payment.evidenceFile')}
+                </label>
+                <TextInput
+                  id="payment-evidence"
+                  name="receipt"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  required
+                  className="w-full min-w-0"
+                />
+                <SubmitButton className="touch-target">
+                  {t('order.payment.attachEvidence')}
                 </SubmitButton>
               </Stack>
             </form>

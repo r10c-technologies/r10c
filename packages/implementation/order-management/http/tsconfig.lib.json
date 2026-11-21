@@ -24,6 +24,9 @@
     },
     {
       "path": "../../../testing/cells"
+    },
+    {
+      "path": "../../../business/ts/object-storage/tsconfig.lib.json"
     }
   ],
   "exclude": [

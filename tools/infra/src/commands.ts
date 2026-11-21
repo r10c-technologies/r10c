@@ -328,7 +328,15 @@ const seedInputs = (io: Io, env: Environment): string => {
       backOffice: `https://${backOffice}`,
       identity: `https://${identity}`,
     },
-    smtp: { host: smtp.host, port: smtp.port, from: smtp.from },
+    smtp: {
+      host: smtp.host,
+      port: smtp.port,
+      from: smtp.from,
+      user: smtp.user,
+      password: smtp.password,
+      tls: smtp.tls,
+    },
+    objectStore: env.objectStore,
     zitadelClientId: value(env, 'zitadel-client-id'),
     secrets: {
       'jwt-private-key': value(env, 'jwt-private-key'),

@@ -44,8 +44,13 @@ describe('The capability register matches the source tree (ADR 0080)', () => {
     expect(world.crossing.size).toBeGreaterThanOrEqual(10);
   });
 
-  it('holds an entry for each status, so each check has something to say', () => {
-    for (const status of ['implemented', 'planned', 'in-design']) {
+  // `planned` is not required here: it is the status of what a milestone
+  // committed to and nobody built yet, so a register where every commitment
+  // is built is a true one. The check a `planned` entry meets is pinned by the
+  // fixtures below ("refuses a planned entry whose id resolves to code"),
+  // which do not depend on the register's contents.
+  it('holds an implemented and an in-design entry, so each check has something to say', () => {
+    for (const status of ['implemented', 'in-design']) {
       expect(CAPABILITIES.some(c => c.status === status)).toBe(true);
     }
   });
