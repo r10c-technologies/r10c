@@ -37,6 +37,20 @@ export const OfferingStatusTones = {
 } as const satisfies Readonly<Partial<Record<OfferingStatus, EnumTone>>>;
 
 /** Narrow an unknown value to an offering status. */
+/**
+ * The statuses of an offering that was never on sale. Its unit can still
+ * change (ADR 0082 §3): nothing was quoted, carted or stocked against it in
+ * the storefront's eyes. Once published it is fixed for good, and an
+ * unpublished offering is one that was published.
+ */
+export const NeverPublishedStatuses = [
+  'draft',
+  'pending-review',
+] as const satisfies readonly OfferingStatus[];
+
+export const isNeverPublished = (status: OfferingStatus): boolean =>
+  (NeverPublishedStatuses as readonly OfferingStatus[]).includes(status);
+
 export const isOfferingStatus = (value: unknown): value is OfferingStatus =>
   typeof value === 'string' &&
   (OfferingStatuses as readonly string[]).includes(value);

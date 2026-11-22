@@ -325,7 +325,10 @@ export const productOfferingCrudWith = ({
     // `statusChangedAt` joins them for the same reason and one more: it is the
     // moment the rebuild walk re-announces from, so an operator editing it would
     // silently move an offering's place in the projection's ordering.
-    hiddenFields: ['id', 'status', 'statusChangedAt'],
+    // `saleUnit` too (ADR 0082 §3): only `set-sale-unit` changes it, and the
+    // save carries the stored unit across, so an input here would offer a
+    // choice the write ignores. The step and minimum stay, read in its scale.
+    hiddenFields: ['id', 'status', 'statusChangedAt', 'saleUnit'],
     // `specificationId` is a plain `string` into the same store, and the picker
     // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
     // `link` and `string`, and `applyEntityLinks` skips a non-`link` descriptor,

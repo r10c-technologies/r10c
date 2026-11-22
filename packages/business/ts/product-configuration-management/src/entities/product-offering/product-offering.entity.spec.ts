@@ -24,6 +24,9 @@ describe('ProductOffering', () => {
       specificationId: 'product-specification-1',
       status: 'published',
       statusChangedAt: new Date('2026-03-04T05:06:07.008Z'),
+      saleUnit: 'UN',
+      quantityStep: 1,
+      quantityMinimum: 1,
     });
   });
 
@@ -112,8 +115,36 @@ describe('ProductOffering', () => {
       'specificationId',
       'status',
       'statusChangedAt',
+      'saleUnit',
+      'quantityStep',
+      'quantityMinimum',
       'revision',
     ]);
+  });
+
+  it('counts its step and minimum in the scale of its own unit (ADR 0082)', () => {
+    const columns = describeEntityColumns(ProductOffering);
+    const saleUnit = columns.find(column => column.name === 'saleUnit');
+
+    expect(saleUnit?.type).toBe('enum');
+    expect(saleUnit?.enumValues).toContain('M');
+    for (const name of ['quantityStep', 'quantityMinimum']) {
+      expect(columns.find(column => column.name === name)?.scaled).toEqual({
+        unitMember: 'saleUnit',
+        units: expect.objectContaining({ UN: 0, M: 3 }),
+        unitLabelKey: 'entity:product-offering.values.unitSymbol',
+      });
+    }
+  });
+
+  it('is sold one by one until it says otherwise', () => {
+    const offering = new ProductOffering('Lamp', 'spec-1');
+
+    expect([
+      offering.saleUnit,
+      offering.quantityStep,
+      offering.quantityMinimum,
+    ]).toEqual(['UN', 1, 1]);
   });
 
   it('lets the publisher query for what is publishable', () => {

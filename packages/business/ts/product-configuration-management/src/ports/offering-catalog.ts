@@ -27,6 +27,17 @@ export interface OfferingCatalog {
     event: CatalogEvent,
   ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
   /**
+   * Write an offering's unit with the step and minimum it was reset to,
+   * **only while it is still unpublished and at the revision it was read
+   * at**, moving the revision in the same write (ADR 0082 §3, ADR 0079 §4).
+   * `changed` means it was published, saved or is not held, and nothing was
+   * written.
+   */
+  readonly setSaleUnit: (
+    organizationId: string,
+    offering: ProductOffering,
+  ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
+  /**
    * Put one publication back on the outbox for the rebuild walk (ADR 0050):
    * `alreadyAnnounced` when the outbox holds it, `revived` when it held it
    * quarantined.

@@ -104,6 +104,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // and the `@useCase()` declarations from drifting apart.
     `${CATALOG_DOMAIN}:product-offering:publish`,
     `${CATALOG_DOMAIN}:product-offering:unpublish`,
+    // What one of an offering is (ADR 0082 §3), until it is first published.
+    `${CATALOG_DOMAIN}:product-offering:set-sale-unit`,
     // A specification's lifecycle (ADR 0079 §1): the vendor's own versions,
     // moved by the same person who authors them. `revise` creates the next
     // version and `obsolete` is refused while anything published pins it.

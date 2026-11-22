@@ -1,5 +1,12 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import {
+  DEFAULT_SALE_UNIT,
+  oneWholeUnit,
+  SALE_UNIT_SCALES,
+  type SaleUnit,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 
 import {
   type OfferingStatus,
@@ -45,6 +52,9 @@ export class ProductOffering implements Entity {
   #specificationId: string;
   #status: OfferingStatus = 'draft';
   #statusChangedAt?: Date;
+  #saleUnit: SaleUnit = DEFAULT_SALE_UNIT;
+  #quantityStep = oneWholeUnit(DEFAULT_SALE_UNIT);
+  #quantityMinimum = oneWholeUnit(DEFAULT_SALE_UNIT);
   #revision?: number;
   // #endregion
 
@@ -178,6 +188,70 @@ export class ProductOffering implements Entity {
   }
   set statusChangedAt(value: Date | undefined) {
     this.#statusChangedAt = value;
+  }
+
+  /**
+   * What one of this offering is: a piece, a pair, a metre… (ADR 0082 §1).
+   * Every quantity of it — step, minimum, cart, hold, order line — is an
+   * integer in this unit's scale, so it never travels without it.
+   *
+   * ⚠️ **Server-owned.** An offering starts in `UN`; only `set-sale-unit`
+   * changes it, and only until the first publication. A save carries the
+   * stored unit across, as it does `status`, because a unit that changed under
+   * stored quantities would change what each of them means.
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-offering.fields.saleUnit',
+    enumValues: SaleUnits,
+    enumLabelKey: 'entity:product-offering.values.saleUnit',
+    filterable: true,
+  })
+  get saleUnit(): SaleUnit {
+    return this.#saleUnit;
+  }
+  set saleUnit(value: SaleUnit) {
+    this.#saleUnit = value;
+  }
+
+  /**
+   * The quantities this offering sells come in steps of this much, in the
+   * unit's scale: `500` in `M` sells by the half metre. Effective at the next
+   * publication; a quantity between steps is refused, never rounded (§3).
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-offering.fields.quantityStep',
+    required: true,
+    scaled: {
+      unitMember: 'saleUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: 'entity:product-offering.values.unitSymbol',
+    },
+  })
+  get quantityStep(): number {
+    return this.#quantityStep;
+  }
+  set quantityStep(value: number) {
+    this.#quantityStep = value;
+  }
+
+  /** The least one line may ask, in the unit's scale; a multiple of the step. */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-offering.fields.quantityMinimum',
+    required: true,
+    scaled: {
+      unitMember: 'saleUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: 'entity:product-offering.values.unitSymbol',
+    },
+  })
+  get quantityMinimum(): number {
+    return this.#quantityMinimum;
+  }
+  set quantityMinimum(value: number) {
+    this.#quantityMinimum = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

@@ -12,6 +12,11 @@ import {
   loadRequestFor,
 } from '@entifix/core';
 import { refuseSelectionAbove } from '@r10c/business-ts-common';
+import {
+  DEFAULT_SALE_UNIT,
+  isPricePer,
+  isSellableRule,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Option, Schema } from 'effect';
 
 import { ProductOffering } from '../../entities/product-offering';
@@ -19,6 +24,10 @@ import { ProductOfferingPrice } from '../../entities/product-offering-price';
 import { ProductSpecification } from '../../entities/product-specification';
 import { OfferingCatalogTag } from '../../ports/offering-catalog';
 import type { OfferingTransition } from '../../values/offering-transition';
+import {
+  PricePerInvalid,
+  SaleRuleInvalid,
+} from '../set-sale-unit/sale-unit-failures';
 import {
   OfferingPriceRepositoryTag,
   OfferingSpecificationRepositoryTag,
@@ -107,6 +116,9 @@ export const transitionOfferingFor = (input: {
     if (committed === 'changed') {
       return yield* new OfferingChanged({ id: String(input.id) });
     }
+    // The write moved the revision; answer the one now stored, so a form
+    // that reloads from this answer saves against it rather than a 409.
+    decision.offering.revision = (decision.offering.revision ?? 0) + 1;
     return decision.offering;
   });
 
@@ -167,22 +179,47 @@ export const transitionOfferingSelection = (input: {
   });
 
 /**
- * ⚠️ **`status` is server-owned** (ADR 0047): a save carries the stored
- * status across, whatever the body said, and a new offering starts `draft`.
- * Without this the publish verb would be decoration — a `PUT` could set
- * `published` with no price check and no announcement.
+ * ⚠️ **`status` and `saleUnit` are server-owned** (ADR 0047, ADR 0082 §3): a
+ * save carries the stored values across, whatever the body said, and a new
+ * offering starts `draft`, sold in `UN`. Without this the publish verb would
+ * be decoration — a `PUT` could set `published` with no price check and no
+ * announcement — and a `PUT` could change what every stored quantity means.
+ *
+ * It also refuses a step and minimum that sell nothing ({@link SaleRuleInvalid}),
+ * so nothing unsellable reaches a publication.
  */
 export const preserveOfferingLifecycle = (
   offering: ProductOffering,
   organizationId: string,
 ) =>
   Effect.gen(function* () {
-    const fresh = () => {
+    const stored = yield* storedOffering(offering, organizationId);
+    if (Option.isNone(stored)) {
       offering.status = 'draft';
       offering.statusChangedAt = undefined;
-      return offering;
-    };
-    if (offering.id == null) return fresh();
+      // A new offering is sold one by one until `set-sale-unit` says
+      // otherwise: a unit chosen in the same body as a step would leave the
+      // step's meaning to whichever field the form happened to send first.
+      offering.saleUnit = DEFAULT_SALE_UNIT;
+    } else {
+      offering.status = stored.value.status;
+      offering.statusChangedAt = stored.value.statusChangedAt;
+      offering.saleUnit = stored.value.saleUnit;
+    }
+    if (!isSellableRule(offering)) {
+      return yield* new SaleRuleInvalid({
+        saleUnit: offering.saleUnit,
+        quantityStep: offering.quantityStep,
+        quantityMinimum: offering.quantityMinimum,
+      });
+    }
+    return offering;
+  });
+
+/** The stored offering a save names, or none when it is new. */
+const storedOffering = (offering: ProductOffering, organizationId: string) =>
+  Effect.gen(function* () {
+    if (offering.id == null) return Option.none<ProductOffering>();
     const factory = yield* EntityRepositoryFactoryTag;
     const repository = yield* factory.for(ProductOffering, {
       organizationId,
@@ -190,18 +227,23 @@ export const preserveOfferingLifecycle = (
     // Only an absent row makes this a new offering. A store that cannot be
     // read fails the save — reading it as absent would let the body's
     // `status` through, which is the bypass this rule exists to close.
-    const stored = yield* repository.get<ProductOffering>(offering.id).pipe(
+    return yield* repository.get<ProductOffering>(offering.id).pipe(
       Effect.map(Option.some),
       Effect.catchIf(
         failure => isFailure(failure) && failure.category === 'notFound',
         () => Effect.succeed(Option.none<ProductOffering>()),
       ),
     );
-    if (Option.isNone(stored)) return fresh();
-    offering.status = stored.value.status;
-    offering.statusChangedAt = stored.value.statusChangedAt;
-    return offering;
   });
+
+/**
+ * A price is for one, a hundred or a thousand whole units (ADR 0082 §5);
+ * anything else is refused before it is stored.
+ */
+export const refuseUnknownPricePer = (price: ProductOfferingPrice) =>
+  isPricePer(price.pricePer)
+    ? Effect.succeed(price)
+    : Effect.fail(new PricePerInvalid({ pricePer: Number(price.pricePer) }));
 
 export type RebuildOutcome =
   'announced' | 'revived' | 'alreadyAnnounced' | 'unannounceable' | 'unstamped';

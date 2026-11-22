@@ -5,6 +5,8 @@ import type {
   OfferingCatalog,
   SpecificationCommands,
 } from '../ports/offering-catalog';
+import type { OfferingStatus } from '../values/offering-status';
+import { isNeverPublished } from '../values/offering-status';
 
 /** An organization's offerings, by id, as each one stands. */
 export type OfferingSeed = Readonly<
@@ -45,6 +47,18 @@ export const makeInMemoryOfferingCatalog = (
         record.status = offering.status;
         record.revision = (record.revision ?? 0) + 1;
         announced.add(`${organizationId}/${event.id}`);
+        return 'committed';
+      }),
+    setSaleUnit: (organizationId, offering) =>
+      Effect.sync(() => {
+        const record = stored.get(`${organizationId}/${String(offering.id)}`);
+        if (
+          record === undefined ||
+          !isNeverPublished(record.status as OfferingStatus) ||
+          record.revision !== offering.revision
+        )
+          return 'changed';
+        record.revision = (record.revision ?? 0) + 1;
         return 'committed';
       }),
     reannounce: (organizationId, event) =>

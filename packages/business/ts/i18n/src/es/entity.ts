@@ -753,8 +753,39 @@ export const entity = {
       specificationId: 'Especificación',
       status: 'Estado',
       statusChangedAt: 'Último cambio de estado',
+      saleUnit: 'Unidad de venta',
+      quantityStep: 'Se vende de',
+      quantityMinimum: 'Cantidad mínima',
     },
     values: {
+      saleUnit: {
+        UN: 'Unidad',
+        PAR: 'Par',
+        M: 'Metro',
+        YD: 'Yarda',
+        FT: 'Pie',
+        M2: 'Metro cuadrado',
+        FT2: 'Pie cuadrado',
+        DM2: 'Decímetro cuadrado',
+        KG: 'Kilogramo',
+        LB: 'Libra',
+        L: 'Litro',
+        GAL: 'Galón',
+      },
+      unitSymbol: {
+        UN: 'u.',
+        PAR: 'par',
+        M: 'm',
+        YD: 'yd',
+        FT: 'ft',
+        M2: 'm²',
+        FT2: 'ft²',
+        DM2: 'dm²',
+        KG: 'kg',
+        LB: 'lb',
+        L: 'L',
+        GAL: 'gal',
+      },
       status: {
         draft: 'Borrador',
         'pending-review': 'Pendiente de revisión',
@@ -764,9 +795,7 @@ export const entity = {
     },
     useCases: {
       publish: 'Publicar',
-      // En diseño (ADR 0082): el registro de capacidades ya los nombra.
       setSaleUnit: 'Definir unidad de venta',
-      setDeviceFit: 'Indicar con qué dispositivos es compatible',
       publishConfirm:
         'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',
       unpublish: 'Retirar',
@@ -791,6 +820,7 @@ export const entity = {
       offeringId: 'Producto',
       amount: 'Importe',
       currency: 'Moneda',
+      pricePer: 'Precio por',
     },
   },
   'entity-specification': {
