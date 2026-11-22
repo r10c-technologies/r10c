@@ -1432,6 +1432,44 @@ never blocks — it can only see that a doc was not edited, not that it is wrong
 and a blocking version would teach everyone to make a trivial edit to whatever
 file it names.
 
+## The documentation site
+
+`apps/docs-site` publishes the contract (ADR 0025's third artifact) as a
+static site, built on `@entifix/docs-engine`. **Nothing on it is written by
+hand**: each page is derived at build time from what the build already checks.
+
+| Section               | Derived from                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
+| One page per use case | `tools/capabilities/` (`CAPABILITIES`, `DOMAINS`), titled from the verb's catalog copy (ADR 0080 §7) |
+| Four audience doors   | the same entries, filtered and columned per reader (Q24)                                             |
+| Services              | `tools/slices/` and `FLEET`, plus each deployment's own `nx.tags` (#653)                             |
+| Stores and the map    | `tools/slices/`: plane, partitioning, truth and the single writer (#657)                             |
+| `/ui/`                | `@r10c/storefront-storybook`'s build, copied in                                                      |
+
+It is exported twice, `/es/…` and `/en/…`, one engine site per language, and
+Pagefind splits its index by `<html lang>`. Its own words are the `docs` block
+of the `app` catalog in `@r10c/business-ts-i18n`; a register entry whose verb
+has no catalog copy fails the build rather than render an id as a heading.
+
+```sh
+pnpm nx build @r10c/docs-site          # next build, Storybook into out/ui, Pagefind, link check
+pnpm nx run @r10c/docs-site:serve-static   # out/ as a static host serves it, :3220
+pnpm nx run @r10c/docs-site:dev        # next dev on :3220
+```
+
+⚠️ **Three facts that look like mistakes.** It is tagged `layer:docs`, not
+`layer:app`: an app may not import `tools/capabilities` or `tools/slices`, and
+the site exists to read them, so the registers carry `contract:register` and
+`layer:docs` may reach only that, `business` and `utils`
+([Module boundaries](#module-boundaries)). It builds with **webpack**, not
+Turbopack: the registers are workspace TypeScript with `.js` specifiers, and
+Turbopack silently drops their `export * from './x.js'` re-exports where
+webpack's `extensionAlias` resolves them. And its Change Validation job runs
+**every time, uncached** (ADR 0074), because a deployment's `package.json` is
+read from disk and no graph edge points at it — an affected-only build could
+publish a site that disagrees with the tree. `finish.mjs` fails the build on any
+internal link or asset that names no file in `out/`.
+
 ## Where knowledge goes
 
 Four artifacts, one job each. Putting a fact in the wrong one is how it stops

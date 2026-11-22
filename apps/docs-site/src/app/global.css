@@ -1,0 +1,20 @@
+/* `source(none)`: Tailwind scans exactly the `@source` lines below. */
+@import 'tailwindcss' source(none);
+@import '@entifix/style/tokens.css';
+@import '@entifix/style/presets/fixed-scale.css';
+@import '@entifix/style/presets/aurora.css';
+@import '@entifix/style/presets/midnight.css';
+@import '@entifix/docs-engine/ui/docs.css';
+
+/* This app's own source, and the installed packages whose markup carries
+   classes: the framework's controls, the docs engine and fumadocs. */
+@source '..';
+@source '../../node_modules/@entifix/react-controls/dist';
+@source '../../node_modules/@entifix/docs-engine/dist';
+@source '../../node_modules/fumadocs-ui/dist';
+
+body {
+  margin: 0;
+  background-color: var(--color-surface);
+  color: var(--color-content);
+}

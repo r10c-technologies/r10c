@@ -595,6 +595,12 @@ open `EventSource` kills it for good; a stream nearing its token's `exp` is sent
 `event: reauth` instead. The SSE dials — the jittered `retry:` range, the reauth
 margin and the drain window — are configuration rows.
 
+**The documentation site is `3220`, and it is no origin.** `apps/docs-site`
+is a static export — files, built from the registers, with no server behind it
+in any environment — so it takes neither a `300N` nor the edge. Its `dev` and
+its `serve-static` (which serves `out/` the way a static host does) both bind
+`3220`, outside every range above.
+
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime
 config from config-service (`GET /api/config/:service`); they never hardcode it.

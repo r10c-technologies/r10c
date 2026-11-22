@@ -9,9 +9,19 @@
  * would pass vacuously. This sees it.
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export const REPO_ROOT = join(import.meta.dirname, '..', '..', '..');
+// `import.meta.url` rather than `import.meta.dirname`, and never inside a
+// `new URL(…)`: the docs site bundles this register with webpack, which
+// inlines the URL, leaves `dirname` undefined and treats a `new URL` as an
+// asset to emit.
+export const REPO_ROOT = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+);
 export const BUSINESS_ROOT = join(REPO_ROOT, 'packages', 'business', 'ts');
 export const APPS_ROOT = join(REPO_ROOT, 'apps');
 

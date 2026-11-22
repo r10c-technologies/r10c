@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "types": ["node"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "ignoreDeprecations": "6.0"
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "out",
+    "node_modules",
+    "vitest.config.mts",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    ".next",
+    "eslint.config.mjs"
+  ],
+  "references": [
+    { "path": "../../packages/business/ts/i18n" },
+    { "path": "../../packages/business/ts/authz-grants" },
+    { "path": "../../tools/capabilities" },
+    { "path": "../../tools/slices" }
+  ]
+}

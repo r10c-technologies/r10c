@@ -135,7 +135,9 @@ jobs:
           # stops here.
           lint=$(projects lint)
           libs=$(projects build lib)
-          apps=$(projects build app)
+          # The docs site is built by its own job on every run, uncached:
+          # it is drawn from files outside its project graph.
+          apps=$(except "$(projects build app)" '["@r10c/docs-site"]')
           test=$(projects test)
           e2e=$(projects e2e)
           storybook=$(projects build-storybook)
@@ -508,6 +510,25 @@ jobs:
       - if: ${{ !cancelled() && env.NX_REMOTE_CACHE_NAME != '' }}
         uses: ./.github/actions/nx-cache-upload
 
+  # The documentation site (#658), on every run and never from the cache
+  # (ADR 0074): its pages are drawn from the registers, the catalogs and every
+  # deployment's own `package.json`, and those last are files no project graph
+  # edge points at, so an affected-only or cached build could publish a site
+  # that disagrees with the tree. The build fails on a register entry with no
+  # copy, on any internal link that names no file, and it carries the
+  # storefront's Storybook at `/ui/`.
+  docs-site:
+    name: Documentation site
+    needs: initialize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # No `nx-cache`: the Nx cache stays off, as the assertions keep it.
+      - uses: ./.github/actions/setup
+      - run: pnpm nx build @r10c/docs-site --skip-nx-cache
+
   # The run's Nx cache, saved for the next run: what this run restored and
   # wrote, pruned to the entries some job actually used, so a cache restored
   # and saved run after run does not grow without bound. A pull request saves
@@ -597,6 +618,7 @@ jobs:
         e2e-services,
         e2e-browser,
         storybook,
+        docs-site,
       ]
     # ⚠️ The one `always()` left, on purpose: a required check that is
     # skipped counts as passing, so a cancelled run must still answer here,

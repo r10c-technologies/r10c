@@ -338,6 +338,10 @@ export const entity: EsEntity = {
   'published-offering': {
     label: 'Published offering',
     plural: 'Published offerings',
+    useCases: {
+      // In design (ADR 0082): the capability register already names it.
+      filterByDevice: 'Filter by device',
+    },
     fields: {
       id: 'ID',
       offeringId: 'Offering ID',
@@ -714,6 +718,9 @@ export const entity: EsEntity = {
     },
     useCases: {
       publish: 'Publish',
+      // In design (ADR 0082): the capability register already names them.
+      setSaleUnit: 'Set the sale unit',
+      setDeviceFit: 'State which devices it fits',
       publishConfirm:
         'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',
       unpublish: 'Unpublish',

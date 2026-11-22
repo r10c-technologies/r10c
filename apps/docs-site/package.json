@@ -1,0 +1,87 @@
+{
+  "name": "@r10c/docs-site",
+  "version": "0.0.1",
+  "private": true,
+  "description": "The documentation site: one page per use case from the capability register, the service catalog and the store map from the slice register, exported as static files and searched with Pagefind.",
+  "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/docs-engine": "catalog:",
+    "@entifix/i18n": "catalog:",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/style": "catalog:",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-i18n": "workspace:*",
+    "@r10c/capabilities": "workspace:*",
+    "@r10c/slices": "workspace:*",
+    "fumadocs-ui": "16.17.10",
+    "i18next": "27.1.1",
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-i18next": "18.0.1"
+  },
+  "devDependencies": {
+    "pagefind": "1.6.0"
+  },
+  "nx": {
+    "tags": [
+      "layer:docs",
+      "scope:shared",
+      "host:next"
+    ],
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^build",
+          {
+            "projects": [
+              "@r10c/storefront-storybook"
+            ],
+            "target": "build-storybook"
+          }
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          {
+            "externalDependencies": [
+              "next",
+              "pagefind"
+            ]
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/out"
+        ],
+        "cache": true,
+        "options": {
+          "command": "next build --webpack && node finish.mjs",
+          "cwd": "apps/docs-site",
+          "forwardAllArgs": false
+        }
+      },
+      "dev": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "options": {
+          "command": "next dev -p 3220 --webpack",
+          "cwd": "apps/docs-site",
+          "forwardAllArgs": false
+        }
+      },
+      "serve-static": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "options": {
+          "command": "node serve.mjs",
+          "cwd": "apps/docs-site"
+        }
+      }
+    }
+  }
+}
