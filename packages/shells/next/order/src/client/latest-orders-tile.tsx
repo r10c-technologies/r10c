@@ -1,6 +1,7 @@
 'use client';
 
 import { type EntityRepositoryTag, loadUCFactory } from '@entifix/business';
+import { formattingLocale } from '@entifix/core';
 import { LocaleLink } from '@entifix/next-shell';
 import {
   SummaryTile,
@@ -54,7 +55,9 @@ export function LatestOrdersTile() {
     initialSorting: { 0: { property: 'placedAt', type: 'desc' } },
     queryKey: [...entityQueryScope(ProductOrder), 'latest'],
   });
-  const day = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+  const day = new Intl.DateTimeFormat(formattingLocale(locale), {
+    dateStyle: 'medium',
+  });
 
   return (
     <SummaryTile

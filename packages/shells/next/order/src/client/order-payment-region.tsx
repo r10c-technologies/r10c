@@ -1,5 +1,6 @@
 'use client';
 
+import { formattingLocale } from '@entifix/core';
 import { Alert, Card, Stack, Text, useT } from '@entifix/react-controls';
 import {
   Select,
@@ -28,7 +29,7 @@ const formatted = (value: unknown, locale: string) => {
   const at = new Date(value as string);
   return Number.isNaN(at.getTime())
     ? undefined
-    : new Intl.DateTimeFormat(locale, {
+    : new Intl.DateTimeFormat(formattingLocale(locale), {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(at);

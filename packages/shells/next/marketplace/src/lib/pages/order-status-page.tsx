@@ -1,4 +1,4 @@
-import { type Locale, localeHref } from '@entifix/core';
+import { formattingLocale, type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import { ConfirmAction } from '@entifix/next-shell';
 import {
@@ -218,9 +218,9 @@ async function ReceiptView({
   const readableUntil =
     receipt.receiptEndsAt === undefined
       ? undefined
-      : new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(
-          new Date(receipt.receiptEndsAt),
-        );
+      : new Intl.DateTimeFormat(formattingLocale(locale), {
+          dateStyle: 'long',
+        }).format(new Date(receipt.receiptEndsAt));
   // A cancellation this browser started and is waiting on, for an order on
   // this receipt; one at a time, so the other cancel buttons wait too.
   const ticket = await readCancelTicket();
@@ -659,7 +659,7 @@ function LinkPayment({
   const until =
     payment.dueAt === undefined
       ? undefined
-      : new Intl.DateTimeFormat(locale, {
+      : new Intl.DateTimeFormat(formattingLocale(locale), {
           dateStyle: 'medium',
           timeStyle: 'short',
         }).format(new Date(payment.dueAt));

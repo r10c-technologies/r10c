@@ -1,4 +1,4 @@
-import type { Locale } from '@entifix/core';
+import { formattingLocale, type Locale } from '@entifix/core';
 
 import type { Receipt } from './receipt-state';
 
@@ -40,7 +40,7 @@ export const cancelWindowLabel = (
   if (Number.isNaN(endsAt.getTime())) return undefined;
   if (endsAt.getTime() <= now.getTime()) return undefined;
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(formattingLocale(locale), {
     hour: 'numeric',
     minute: '2-digit',
   }).format(endsAt);

@@ -103,6 +103,8 @@ optional-member rule does not reach them.
   `quantityBelowMinimum`, `quantityOffStep` (which names the nearest valid
   quantity on each side) or `quantityAboveMaximum`. The maximum is 9,999 whole
   units per line and replaces the cart's 99.
+- What stands for no quantity at all (empty or ambiguous text, or a number
+  that is no integer in the scale) is refused `quantityUnreadable`.
 - The storefront and the till check it to help a person. The checkout and the
   counter sale check it again against the published projection they already
   re-price from
