@@ -9,6 +9,7 @@
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — settlement joins per order on its payment allocation
 - Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the join is per vendor order, a capture contributes each allocation, a partial refund mirrors its share, and cash a vendor collected on delivery is netted as a debit of the cut; a cash-on-delivery order cancelled uncollected is voided
 - Revised: 2026-11-16 by [ADR 0078](0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) — the rejected widening of `payment.captured` is scoped to its premise: a capture may carry what the checkout flow states into it, and the join stays as built
+- Revised: 2026-11-21 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — proposed: the subtotal §6 rounds on is the sum of the lines' stored totals, never price times quantity
 
 ## Context
 
