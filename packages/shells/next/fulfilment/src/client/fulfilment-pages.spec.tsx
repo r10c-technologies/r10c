@@ -104,11 +104,11 @@ describe('the worklist', () => {
     renderPage(<ShippingOrderListClientPage />);
 
     await waitFor(() =>
-      expect(
-        screen.getAllByText('2 × Lámpara Aurora').length,
-      ).toBeGreaterThan(0),
+      expect(screen.getAllByText('2 × Lámpara Aurora').length).toBeGreaterThan(
+        0,
+      ),
     );
-    expect(screen.getAllByText(/25,00\sGTQ/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Q\s25\.00/).length).toBeGreaterThan(0);
     // The number names the order; its id is the record's business.
     expect(screen.queryByText('order-so-1')).not.toBeInTheDocument();
   });

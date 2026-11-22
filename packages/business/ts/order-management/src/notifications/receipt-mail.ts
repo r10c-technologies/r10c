@@ -1,3 +1,8 @@
+// order-service loads no catalog shell, so the declaration is loaded here:
+// without it `es` would be written as Spain writes it.
+import '@r10c/business-ts-i18n/locales';
+
+import { formattingLocale } from '@entifix/core';
 import { r10cCatalogs } from '@r10c/business-ts-i18n';
 import { departamentoOf, municipioOf } from '@r10c/business-ts-order-contracts';
 
@@ -16,7 +21,7 @@ const copyFor = (locale: string | undefined): MailCopy =>
  * quetzal reads `Q45.00` in either, as the storefront writes it.
  */
 const localeOf = (locale: string | undefined) =>
-  locale === 'en' ? 'en-GT' : 'es-GT';
+  formattingLocale(locale === 'en' ? 'en' : 'es');
 
 /** `{{name}}` placeholders, filled from `values`; an unknown one stays put. */
 export const fillMailTemplate = (

@@ -15,7 +15,7 @@ test.describe('the offering list', () => {
     await page.goto('/es/catalog/product-offering');
 
     const row = record(page, 'Taza de cerámica');
-    await expect(row).toContainText(/45,00/);
+    await expect(row).toContainText(/(?<!GT)Q\s45\.00/);
     await expect(row.getByRole('img')).toHaveAttribute(
       'alt',
       'Un widget azul sobre fondo blanco',
@@ -38,7 +38,9 @@ test.describe('the offering list', () => {
     });
 
     await page.goto('/es/catalog/product-offering');
-    await expect(record(page, 'Taza de cerámica')).toContainText(/45,00/);
+    await expect(record(page, 'Taza de cerámica')).toContainText(
+      /(?<!GT)Q\s45\.00/,
+    );
     await expect(record(page, 'Taza de cerámica')).toContainText('10');
 
     const count = (path: string) =>
@@ -57,7 +59,9 @@ test.describe('the offering list', () => {
     });
     await page.goto('/es/catalog/product-offering');
 
-    await expect(record(page, 'Taza de cerámica')).toContainText(/45,00/);
+    await expect(record(page, 'Taza de cerámica')).toContainText(
+      /(?<!GT)Q\s45\.00/,
+    );
     await expect(
       page.getByRole('columnheader', { name: 'Disponible' }),
     ).toHaveCount(0);

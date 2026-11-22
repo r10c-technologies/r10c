@@ -44,11 +44,11 @@ test('says on each row what goes in the parcel and where it goes (#557)', async 
   const cod = record(page, AWAITING_SHIPMENT_NUMBER).first();
   await expect(cod).toContainText('2 × Aurora Desk Lamp');
   await expect(cod).toContainText('Mixco, Guatemala');
-  // 50 minor units is 0,50 quetzales, and only cash on delivery is collected.
-  await expect(cod).toContainText(/0,50\sGTQ/);
+  // 50 minor units is Q 0.50, and only cash on delivery is collected.
+  await expect(cod).toContainText(/(?<!GT)Q\s0\.50/);
   const card = record(page, AWAITING_SHIPMENT_2_NUMBER).first();
   await expect(card).toContainText('2 × Aurora Desk Lamp');
-  await expect(card).not.toContainText('GTQ');
+  await expect(card).not.toContainText(/(?<!GT)Q\s\d/);
 });
 
 test('names a shipment by its order number, never by an id (#557)', async ({
@@ -74,8 +74,8 @@ test('reads what the courier collects as money, never as minor units', async ({
 }) => {
   await page.goto(`/fulfilment/shipping-order/${AWAITING_SHIPMENT_ID}`);
 
-  // 50 minor units is 0,50 quetzales (#596).
-  await expect(page.getByText(/0,50\sGTQ/).first()).toBeVisible();
+  // 50 minor units is Q 0.50 (#596).
+  await expect(page.getByText(/(?<!GT)Q\s0\.50/).first()).toBeVisible();
 });
 
 test('reaches the worklist from the navigation', async ({ page }) => {
@@ -195,12 +195,8 @@ test('dispatches a selection from the worklist, and names the shipment that coul
   await expect(record(page, AWAITING_SHIPMENT_2_NUMBER).first()).toBeVisible();
   moveShipment(AWAITING_SHIPMENT_2_ID, 'held');
 
-  await record(page, AWAITING_SHIPMENT_NUMBER)
-    .getByRole('checkbox')
-    .check();
-  await record(page, AWAITING_SHIPMENT_2_NUMBER)
-    .getByRole('checkbox')
-    .check();
+  await record(page, AWAITING_SHIPMENT_NUMBER).getByRole('checkbox').check();
+  await record(page, AWAITING_SHIPMENT_2_NUMBER).getByRole('checkbox').check();
   await page
     .getByTestId('bulk-action-bar')
     .getByRole('button', { name: 'Despachar' })

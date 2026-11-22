@@ -89,7 +89,7 @@ describe('AmountDueCell', () => {
       />,
     );
 
-    expect(screen.getByText(/125,00\sGTQ/)).toBeInTheDocument();
+    expect(screen.getByText(/Q\s125\.00/)).toBeInTheDocument();
   });
 
   it('shows nothing on a parcel nobody collects for', () => {

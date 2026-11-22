@@ -27,4 +27,17 @@ export const R10C_LOCALES = ['es', 'en'] as const;
 
 export const R10C_DEFAULT_LOCALE = 'es';
 
-defineLocales({ locales: R10C_LOCALES, defaultLocale: R10C_DEFAULT_LOCALE });
+/**
+ * Spanish is written with Guatemala's numbers and dates: `Q 1,234.50`, the
+ * point before the decimals and the day first. Bare `es` is Spain's, where
+ * `64.999` reads as sixty-four thousand. The language of URLs, cookies and
+ * catalogs stays `es`; only `Intl` and the parser ask for the region, through
+ * `formattingLocale` — never a tag written at the call site.
+ */
+export const R10C_FORMATTING_LOCALES = { es: 'es-GT' } as const;
+
+defineLocales({
+  locales: R10C_LOCALES,
+  defaultLocale: R10C_DEFAULT_LOCALE,
+  formattingLocales: R10C_FORMATTING_LOCALES,
+});

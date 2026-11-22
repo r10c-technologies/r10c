@@ -1,6 +1,6 @@
 /**
- * **sales-vocabulary** — the channel types and the order tenders, and nothing
- * else.
+ * **sales-vocabulary** — the channel types, the order tenders, and how a
+ * thing is sold: its unit, its step and what a line of it costs.
  *
  * `business:policy`, the role `@entifix/authz` plays for permissions: a
  * vocabulary several domains express themselves in, depended on by any of them
@@ -28,6 +28,10 @@
  * checkout group's orders, their payments, their shipping orders and the flow
  * catalog all carry the buyer's choice, and no two of them may see each other
  * ([ADR 0070](../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
+ *
+ * The sale unit joined with ADR 0082: the offering, the stock ledger, the
+ * order, the shipment and the checkout all hold a quantity, which means nothing
+ * without its unit, and {@link lineTotal} is the one place a price meets one.
  *
  * ⚠️ **Vocabulary only — it declares no `*_DOMAIN` constant and never will.** A
  * domain constant here would have to be claimed by a slice, and this package

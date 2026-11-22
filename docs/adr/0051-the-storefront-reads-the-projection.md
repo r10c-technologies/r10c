@@ -8,6 +8,7 @@
 - Revised: 2026-10-26 — a listing also reads its facet counts from `$facets`, in parallel with the page and through the same never-rejecting runner, so a failed count renders the panel without numbers rather than the page without products (#350).
 - Revised: 2026-11-11 by [ADR 0075](0075-accessible-by-default-the-screen-gate-and-heuristics-per-surface.md) — a failed listing read no longer renders the empty-catalog copy: it renders a notice with a retry and is cached for seconds, so empty and broken stop looking alike (#533); and every price renders through entifix's `Money`, which replaced `formatPrice` (#528).
 - Revised: 2026-11-20 — every storefront route now blocks (`instant = false`, no `loading.tsx`) and renders its catalog reads before the first byte, the header's category links included: a streamed `Suspense` hole is hidden without script, so with scripting off the home, category and search pages listed nothing and no page had category links (#730). Measured on a production build against the mocked service: a warm first byte rose from ~23 ms to ~27 ms, since every read is a `CATALOG_CACHE` hit; a cold entry waits on one marketplace-service read. A seller's own page, `/s/<vendorId>`, is the search composition with the seller set (#675).
+- Revised: 2026-11-22 — Spanish prices are written with Guatemala's conventions (`formattingLocales`, `es` as `es-GT`), so `1999` GTQ reads `Q 19.99` where it read `19,99 GTQ` (#672).
 - Read when: the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read still renders and logs, but says it failed
 
 ## Context
@@ -225,7 +226,7 @@ Price and availability, which ADR 0049 put on the projection precisely so a card
 could be drawn without reading tenant storage, and which nothing had read.
 `amount` is in **minor units**, so the conversion lives in one function rather
 than at each render site (entifix's `Money`, `unit: 'minor'`, since #528), and `Intl` decides the symbol and the
-separators from the locale — `1999` GTQ is `19,99 GTQ` in Spanish and
+separators from the locale — `1999` GTQ is `Q 19.99` in Spanish and
 `GTQ 19.99` in English, neither of which belongs in a template literal. An
 unrecognised currency falls back to the bare amount rather than throwing inside a
 render.

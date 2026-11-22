@@ -175,4 +175,11 @@ export const errors: EsErrors = {
   municipioOutsideDepartamento: 'Choose a municipio from the list.',
   zonaOutOfRange: 'The zona is a number from 1 to 25.',
   addressLineRequired: 'Enter the address: neighbourhood, street and number.',
+  quantityUnreadable: 'Enter the quantity as a number, for example 2 or 3.5.',
+  quantityBelowMinimum: 'That is less than the minimum this product sells.',
+  quantityOffStep:
+    'This product is not sold in that exact quantity. Choose one of the quantities it sells.',
+  quantityAboveMaximum: 'That is more than one line of an order can hold.',
+  lineBelowOneMinorUnit:
+    'That quantity costs less than one cent. Ask for a larger quantity.',
 };
