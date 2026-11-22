@@ -545,7 +545,7 @@ test.describe('browsing the catalog', () => {
     await page.waitForURL(/min=50/);
     await expect(page).toHaveURL(/q=a/);
     await expect(page).toHaveURL(/max=100/);
-    // Every fixture between 50,00 and 100,00 in its own currency whose name
+    // Every fixture between 50.00 and 100.00 in its own currency whose name
     // has an "a" — the range compares minor units, so 5000 ≤ amount ≤ 10000.
     await expect(page.getByRole('textbox', { name: 'Desde' })).toHaveValue(
       '50',
@@ -557,12 +557,10 @@ test.describe('browsing the catalog', () => {
       const price = Number(
         (
           await article
-            .getByText(/\d+,\d{2}/)
+            .getByText(/\d+\.\d{2}/)
             .first()
             .innerText()
-        )
-          .replace(/[^\d,]/g, '')
-          .replace(',', '.'),
+        ).replace(/[^\d.]/g, ''),
       );
       expect(price).toBeGreaterThanOrEqual(50);
       expect(price).toBeLessThanOrEqual(100);
@@ -938,10 +936,14 @@ test.describe('the cart', () => {
       await page.waitForURL(/\/es\/cart(\?|$)/);
     }
 
-    // 2 × 1999 minor units, in `es`'s separators. A count of units would read
-    // "2".
-    await expect(page.getByTestId('cart-line-price')).toContainText('39,98');
-    await expect(page.getByTestId('cart-total')).toContainText('39,98');
+    // 2 × 1999 minor units, as `es` writes quetzales. A count of units would
+    // read "2".
+    await expect(page.getByTestId('cart-line-price')).toContainText(
+      /(?<!GT)Q\s39\.98/,
+    );
+    await expect(page.getByTestId('cart-total')).toContainText(
+      /(?<!GT)Q\s39\.98/,
+    );
   });
 
   test('the buy box adds the quantity it is given', async ({ page }) => {
@@ -951,7 +953,9 @@ test.describe('the cart', () => {
     await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
 
     await page.waitForURL(/\/es\/cart(\?|$)/);
-    await expect(page.getByTestId('cart-line-price')).toContainText('39,98');
+    await expect(page.getByTestId('cart-line-price')).toContainText(
+      /(?<!GT)Q\s39\.98/,
+    );
   });
 
   test('a cart is kept out of search engines', async ({ page }) => {
@@ -1026,8 +1030,12 @@ test.describe('the cart', () => {
     await page.getByRole('button', { name: 'Actualizar' }).click();
 
     // 3 × 1999 minor units: the server re-rendered the line and the total.
-    await expect(page.getByTestId('cart-line-price')).toContainText('59,97');
-    await expect(page.getByTestId('cart-total')).toContainText('59,97');
+    await expect(page.getByTestId('cart-line-price')).toContainText(
+      /(?<!GT)Q\s59\.97/,
+    );
+    await expect(page.getByTestId('cart-total')).toContainText(
+      /(?<!GT)Q\s59\.97/,
+    );
 
     await quantity.fill('0');
     await page.getByRole('button', { name: 'Actualizar' }).click();
@@ -1078,7 +1086,9 @@ test.describe('the cart', () => {
     await expect(
       page.getByRole('spinbutton', { name: 'Cantidad de Aurora Desk Lamp' }),
     ).toHaveValue('3');
-    await expect(page.getByTestId('cart-line-price')).toContainText('59,97');
+    await expect(page.getByTestId('cart-line-price')).toContainText(
+      /(?<!GT)Q\s59\.97/,
+    );
     await expect(page.getByTestId('cart-removed')).toHaveCount(0);
   });
 

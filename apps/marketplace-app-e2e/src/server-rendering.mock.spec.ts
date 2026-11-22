@@ -68,10 +68,10 @@ test.describe('server rendering', () => {
     expect(html).toContain('Aurora');
     expect(html).toContain('Iluminación');
     // And the price, from the same snapshot. Stored in **minor units** and
-    // rendered by `Intl` for the page's locale — so `1999` GTQ reads
-    // `19,99 GTQ` in Spanish, comma and all. Asserting the dotted form here
-    // would be asserting an English page.
-    expect(html).toContain('19,99');
+    // rendered by `Intl` for the page's formatting locale — so `1999` GTQ
+    // reads `Q 19.99` in Spanish, as Guatemala writes it. English writes
+    // `GTQ 19.99`, which the lookbehind refuses.
+    expect(html).toMatch(/(?<!GT)Q(?:\s|&nbsp;)19\.99/);
   });
 
   /**

@@ -36,7 +36,7 @@ test('a vendor sees what needs them today, with the seeded counts', async ({
   await page.goto('/es/home');
 
   // Two shipments wait for dispatch, one position has nothing to sell, and
-  // the next run pays 125,50.
+  // the next run pays Q 125.50.
   await expect(
     page.getByRole('link', { name: /Envíos por despachar.*2/ }),
   ).toBeVisible();
@@ -44,7 +44,7 @@ test('a vendor sees what needs them today, with the seeded counts', async ({
     page.getByRole('link', { name: /Productos agotados.*1/ }),
   ).toBeVisible();
   await expect(
-    page.getByRole('link', { name: /Su próximo pago.*125,50/ }),
+    page.getByRole('link', { name: /Su próximo pago.*(?<!GT)Q\s125\.50/ }),
   ).toBeVisible();
   // And the latest order, one activation from its own record.
   const orders = tiles(page).filter({ hasText: 'Últimos pedidos' });

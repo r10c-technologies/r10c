@@ -312,12 +312,12 @@ describe('the till', () => {
     // 2 × 6499 minor units — display only. The route re-prices every line server-side, so a
     // total computed here that disagreed would be a bug in this file alone,
     // never a mischarge.
-    // Minor units, formatted: 12998 is 129,98 quetzales, never "12998 GTQ".
+    // Minor units, formatted: 12998 is Q 129.98, never "12998 GTQ".
     // `Money` renders the figure in a span of its own, so the line is matched
     // by its own words and the amount by the whole line's text.
-    expect(await screen.findByText(/^Total:/)).toHaveTextContent(/129,98/);
+    expect(await screen.findByText(/^Total:/)).toHaveTextContent(/Q\s129\.98/);
     expect(screen.getByText(/^2 × Café de altura —/)).toHaveTextContent(
-      /129,98/,
+      /Q\s129\.98/,
     );
   });
 
@@ -442,7 +442,7 @@ describe('the till', () => {
     expect(
       await screen.findByText('No hay existencia suficiente para reservar.'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/^Total:/)).toHaveTextContent(/129,98/);
+    expect(screen.getByText(/^Total:/)).toHaveTextContent(/Q\s129\.98/);
   });
 });
 
