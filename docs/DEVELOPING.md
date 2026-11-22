@@ -1444,12 +1444,20 @@ hand**: each page is derived at build time from what the build already checks.
 | Four audience doors   | the same entries, filtered and columned per reader (Q24)                                             |
 | Services              | `tools/slices/` and `FLEET`, plus each deployment's own `nx.tags` (#653)                             |
 | Stores and the map    | `tools/slices/`: plane, partitioning, truth and the single writer (#657)                             |
+| A use case's map      | each domain package's own `@entity`/`@accessor` metadata (#656)                                      |
 | `/ui/`                | `@r10c/storefront-storybook`'s build, copied in                                                      |
 
 It is exported twice, `/es/…` and `/en/…`, one engine site per language, and
 Pagefind splits its index by `<html lang>`. Its own words are the `docs` block
 of the `app` catalog in `@r10c/business-ts-i18n`; a register entry whose verb
 has no catalog copy fails the build rather than render an id as a heading.
+
+The entity map reads metadata from the domain packages themselves, so **a new
+domain package is added to `apps/docs-site/src/content/entity-graph.ts`** and to
+the site's dependencies; its spec compares the graph with the entities
+`tools/slices` finds in source and fails otherwise. A relation that crosses a
+store is drawn dashed and called an id, whatever its member is named. An id list
+with no `references` in its metadata is not drawn, because nothing declares it.
 
 ```sh
 pnpm nx build @r10c/docs-site          # next build, Storybook into out/ui, Pagefind, link check

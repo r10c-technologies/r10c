@@ -11,9 +11,9 @@ import {
   type DomainRow,
   DOMAINS,
 } from '@r10c/capabilities';
-import { SLICES } from '@r10c/slices';
 
 import { actionTitle, docsCopy, entityLabel, type SiteLocale } from './copy';
+import { entityMap } from './entity-map';
 import {
   code,
   facts,
@@ -24,6 +24,10 @@ import {
   section,
   table,
 } from './markdown';
+import { storeOf } from './stores';
+
+/** What marks an image as a use case's entity map rather than a file. */
+export const MAP_SCHEME = '/entity-map/';
 
 /** `<domain>:<entityKey>:<action>`, split. */
 export const partsOf = (capability: Capability) => {
@@ -76,22 +80,39 @@ export const rolesGranting = (permission: string) =>
     )
     .map(([role]) => role);
 
-/** The store that hosts a domain's entities, and the one slice that writes it. */
-export const storeOf = (domain: string) => {
-  for (const slice of SLICES) {
-    const store = slice.stores.find(candidate =>
-      candidate.hosts.includes(domain),
-    );
-    if (store !== undefined) return { store, slice };
-  }
-  return undefined;
-};
-
 export const entriesOf = (domain: string) =>
   CAPABILITIES.filter(capability => partsOf(capability).domain === domain);
 
 const statusLine = (locale: SiteLocale, capability: Capability) =>
   docsCopy(locale).statuses[capability.status];
+
+/**
+ * The map, then the same relations as a table: what a screen reader, a search
+ * and a reader without the picture get. The image's address is not a file; the
+ * page's `img` component draws it (`app/entity-map.tsx`).
+ */
+const mapSection = (locale: SiteLocale, capability: Capability) => {
+  const words = docsCopy(locale).entityMap;
+  const { edges } = entityMap(capability);
+  return section(
+    words.title,
+    page(
+      `![${words.description}](${MAP_SCHEME}${locale}/${capability.id})`,
+      edges.length === 0
+        ? words.noRelation
+        : table(
+            [words.from, words.member, words.relation, words.to, words.store],
+            edges.map(({ from, member, kind, to }) => [
+              code(from.entity),
+              code(member),
+              words.kinds[kind],
+              to.part === undefined ? code(to.entity) : words.part,
+              to.store === undefined ? words.noStore : code(to.store),
+            ]),
+          ),
+    ).trimEnd(),
+  );
+};
 
 const capabilityPage = (
   locale: SiteLocale,
@@ -139,6 +160,7 @@ const capabilityPage = (
           )
           .join('\n'),
       ),
+      mapSection(locale, capability),
       section(
         words.permissions,
         capability.permissions
