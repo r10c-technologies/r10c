@@ -28,7 +28,7 @@ const aGroup = (extra: Partial<CheckoutGroup> = {}) =>
   Object.assign(new CheckoutGroup(), {
     id: 'g-1',
     number: '7KQ4-M2XD',
-    totals: [new GroupTotal(4500, 'GTQ')],
+    totals: [new GroupTotal(8500, 'GTQ')],
     contact: [contact({ zona: 10, reference: 'portón negro' })],
     ...extra,
   });
@@ -42,6 +42,11 @@ const anOrder = (
     number,
     paymentMethod,
     items,
+    // As the coordinator stated it and the order's write checked it.
+    totalAmount: items.reduce(
+      (sum, item) => sum + item.amount * item.quantity,
+      0,
+    ),
   });
 
 describe('composeReceiptMail', () => {
@@ -72,7 +77,10 @@ describe('composeReceiptMail', () => {
     expect(mail?.text).toContain('Pedido AAAA-1111 · Tarjeta');
     expect(mail?.text).toContain('Pedido BBBB-2222 · Contra entrega');
     expect(mail?.text).toMatch(/2 × Lámpara Aurora — Q\s40\.00/);
-    expect(mail?.text).toMatch(/Total: Q\s45\.00/);
+    // The seller's total is the order's own: two at Q40 is Q80, not Q40.
+    expect(mail?.text).toMatch(/Total de[^\n]*: Q\s80\.00/);
+    expect(mail?.text).toMatch(/Total de[^\n]*: Q\s5\.00/);
+    expect(mail?.text).toMatch(/Total: Q\s85\.00/);
     // IVA broken out for the general regime only: a pequeño contribuyente's
     // document shows none.
     expect(mail?.text).toMatch(/IVA incluido: Q\s4\.29/);

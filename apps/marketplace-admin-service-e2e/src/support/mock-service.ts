@@ -132,8 +132,8 @@ const MockAppLayer = (() => {
   // fail, and a service that cannot open its own store has nothing to serve, so
   // the failure belongs in the defect channel rather than in a caller's types.
   // The real catalog cell and repository factory over the fakes, so the
-  // status compare-and-set, the transactional create and the save all run
-  // their own code.
+  // status and revision compare-and-set, the transactional create and the
+  // save all run their own code.
   const stored = Layer.provideMerge(
     Layer.mergeAll(
       MongoOfferingCatalogLayer,

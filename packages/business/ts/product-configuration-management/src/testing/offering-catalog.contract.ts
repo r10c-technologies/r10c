@@ -5,16 +5,27 @@ import { describe, expect, it } from 'vitest';
 import { ProductOffering } from '../entities/product-offering';
 import type { OfferingCatalog } from '../ports/offering-catalog';
 
-/** What every subject is made with: `acme` holds a draft `o-1`, `other` nothing. */
+/**
+ * What every subject is made with: `acme` holds a draft `o-1` at revision 1
+ * and a seeded draft `o-seeded`, which has no revision; `other` nothing.
+ */
 export const CONTRACT_OFFERINGS = {
-  acme: [{ id: 'o-1', status: 'draft' as const }],
+  acme: [
+    { id: 'o-1', status: 'draft' as const, revision: 1 },
+    { id: 'o-seeded', status: 'draft' as const },
+  ],
   other: [],
 } as const;
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
 
-const moved = (status: ProductOffering['status']) =>
-  Object.assign(new ProductOffering('A mug', 'spec-1'), { id: 'o-1', status });
+/** The offering as a transition decided it, at the revision it was read at. */
+const moved = (status: ProductOffering['status'], revision = 1) =>
+  Object.assign(new ProductOffering('A mug', 'spec-1'), {
+    id: 'o-1',
+    status,
+    revision,
+  });
 
 const announcement = (publishedAt: string) =>
   catalogPublishedEvent(
@@ -34,7 +45,8 @@ const announcement = (publishedAt: string) =>
 
 /**
  * What every {@link OfferingCatalog} must guarantee, through the port alone: a
- * transition commits only from the status it was decided against, so the
+ * transition commits only from the status and revision it was decided
+ * against, so the
  * loser of two transitions read from one status is told `changed` (#371), and
  * an announcement is enqueued once however often it is re-stated.
  *
@@ -71,13 +83,49 @@ export const describeOfferingCatalogContract = (
       const next = await run(
         catalog.commitTransition(
           'acme',
-          moved('unpublished'),
+          moved('unpublished', 2),
           'published',
           announcement('2026-10-25T10:00:02.000Z'),
         ),
       );
 
       expect([won, lost, next]).toEqual(['committed', 'changed', 'committed']);
+    });
+
+    it('refuses a transition decided on a revision a save has since replaced', async () => {
+      const catalog = await make();
+
+      // The status still matches: only the revision says what was decided on
+      // is not what is stored, and committing would write it over the save.
+      expect(
+        await run(
+          catalog.commitTransition(
+            'acme',
+            moved('published', 0),
+            'draft',
+            announcement('2026-10-25T10:00:00.000Z'),
+          ),
+        ),
+      ).toBe('changed');
+    });
+
+    it('moves a seeded offering, which has no revision until it first moves', async () => {
+      const catalog = await make();
+      const seeded = Object.assign(new ProductOffering('A mug', 'spec-1'), {
+        id: 'o-seeded',
+        status: 'published' as const,
+      });
+
+      expect(
+        await run(
+          catalog.commitTransition(
+            'acme',
+            seeded,
+            'draft',
+            announcement('2026-10-25T10:00:00.000Z'),
+          ),
+        ),
+      ).toBe('committed');
     });
 
     it('answers changed for an offering the organization does not hold', async () => {

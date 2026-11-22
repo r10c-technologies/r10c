@@ -148,7 +148,7 @@ describe('committing a transition', () => {
       Effect.flatMap(OfferingCatalogTag, catalog =>
         catalog.commitTransition(
           'acme',
-          offering('published'),
+          Object.assign(offering('published'), { revision: 3 }),
           'draft',
           publicationEvent(),
         ),
@@ -334,6 +334,24 @@ describe('a specification version', () => {
     ...overrides,
   });
 
+  it('moves a seeded version, which has no revision until it first moves', async () => {
+    const seeded: Record<string, unknown> = { ...stored('active') };
+    delete seeded['revision'];
+    const w = world({ [SPECIFICATION_COLLECTION]: [seeded] });
+    const retired = Object.assign(new ProductSpecification('product-001'), {
+      ...seeded,
+      lifecycleStatus: 'retired',
+    });
+
+    expect(
+      await w.run(
+        Effect.flatMap(SpecificationCommandsTag, commands =>
+          commands.move('acme', retired, 'active'),
+        ),
+      ),
+    ).toBe('committed');
+  });
+
   it('retires the active version a release replaces, moving both revisions', async () => {
     const w = world({
       [SPECIFICATION_COLLECTION]: [
@@ -343,7 +361,7 @@ describe('a specification version', () => {
     });
     const at = new Date('2026-11-19T10:00:00.000Z');
     const release = Object.assign(new ProductSpecification('product-001'), {
-      ...stored('active', { id: 's-2', version: 2 }),
+      ...stored('active', { id: 's-2', version: 2, revision: 1 }),
       validFrom: at,
     });
 

@@ -119,6 +119,22 @@ export const describeSpecificationCommandsContract = (
       expect(created.revision).toBe(2);
     });
 
+    it('moves a version only at the revision it was read at', async () => {
+      const commands = await make();
+      const created = await Effect.runPromise(
+        commands.create('acme', named('A'), undefined),
+      );
+      // Read before a save that has since landed: the state is still
+      // `in-design`, and releasing would freeze the content without that save.
+      created.revision = 0;
+
+      expect(
+        await Effect.runPromise(
+          commands.move('acme', movedTo(created, 'active'), 'in-design'),
+        ),
+      ).toBe('changed');
+    });
+
     it('retires the version a release replaces, so one is active per key', async () => {
       const commands = await make();
       const first = await Effect.runPromise(
@@ -141,6 +157,8 @@ export const describeSpecificationCommandsContract = (
           commands.move('acme', movedTo(first, 'retired'), 'active'),
         ),
       ).toBe('changed');
+      // Retiring it moved its revision, so this decision reads that one.
+      first.revision = 3;
       expect(
         await Effect.runPromise(
           commands.move('acme', movedTo(first, 'obsolete'), 'retired'),
