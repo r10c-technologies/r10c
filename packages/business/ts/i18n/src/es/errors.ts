@@ -206,4 +206,11 @@ export const errors = {
   zonaOutOfRange: 'La zona es un número del 1 al 25.',
   addressLineRequired:
     'Escribe la dirección: colonia, calle o avenida y número.',
+  quantityUnreadable: 'Escribe la cantidad como número, por ejemplo 2 o 3.5.',
+  quantityBelowMinimum: 'Es menos del mínimo que se vende de este producto.',
+  quantityOffStep:
+    'Este producto no se vende en esa cantidad exacta. Elige una de las que se venden.',
+  quantityAboveMaximum: 'Es más de lo que cabe en una línea del pedido.',
+  lineBelowOneMinorUnit:
+    'Esa cantidad cuesta menos de un centavo. Pide una cantidad mayor.',
 };
