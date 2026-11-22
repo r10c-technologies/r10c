@@ -34,6 +34,19 @@ import { r10cPlugin } from './tools/eslint/no-foreign-app-namespace.mjs';
 // ---------------------------------------------------------------------------
 
 const layerConstraints = [
+  // The documentation site (apps/docs-site) runs nothing: it reads the two
+  // registers that are the contract (ADR 0025, ADR 0080 §7) at build time and
+  // exports files. So it is not `layer:app`, which may not reach a register,
+  // and the registers say so with their own tag rather than the rule opening
+  // `type:testing` to a shipped project.
+  {
+    sourceTag: 'layer:docs',
+    onlyDependOnLibsWithTags: [
+      'contract:register',
+      'layer:business',
+      'layer:utils',
+    ],
+  },
   {
     sourceTag: 'layer:app',
     onlyDependOnLibsWithTags: [

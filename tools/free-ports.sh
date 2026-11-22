@@ -18,7 +18,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # The fleet (docs/_shared/ports.md): the edge's origins 300N, the Next apps
 # behind them on 320N (the origin + 200), backends 310N, platform 319x.
-ALL_PORTS=(3000 3001 3200 3201 3100 3101 3102 3103 3105 3106 3107 3108 3109 3110 3190 3191)
+ALL_PORTS=(3000 3001 3200 3201 3100 3101 3102 3103 3105 3106 3107 3108 3109 3110 3190 3191 3220)
 # The Node inspector each `@nx/js:node` dev target opens, at its service port
 # + 6000. One shared 9229 meant only the first service of a fleet got a debugger
 # and every other one logged "address already in use".

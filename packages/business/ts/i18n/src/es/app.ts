@@ -89,4 +89,149 @@ export const app = {
         'Pie de foto — los colores de marca vienen del themes.css de esta app.',
     },
   },
+  /**
+   * The documentation site's own copy (apps/docs-site, #652 #653). Every page
+   * of the site is generated from the capability and slice registers; this is
+   * only the words around what they say.
+   */
+  docs: {
+    brand: 'r10c',
+    title: 'Documentación de r10c',
+    description:
+      'Qué hace r10c, quién puede hacerlo y dónde vive cada dato, generado desde el código.',
+    languages: {
+      title: 'Elige un idioma',
+      es: 'Español',
+      en: 'English',
+    },
+    home: {
+      title: 'Inicio',
+      description: 'Cuatro puertas al mismo registro, una por lector.',
+      intro:
+        'Cada caso de uso tiene una sola página, generada desde el registro de capacidades. Empieza por la entrada que te corresponde.',
+      storybook: 'Componentes de la tienda (Storybook)',
+      storybookNote:
+        'Los componentes de la tienda, cada uno en sus estados, con su verificación de accesibilidad.',
+    },
+    audiences: {
+      title: 'Para quién',
+      developer: {
+        title: 'Quien desarrolla',
+        description:
+          'Cada caso de uso por dominio, con los permisos que exige y los cruces entre servicios que usa.',
+      },
+      operator: {
+        title: 'Quien opera la plataforma',
+        description:
+          'Qué rol concede cada permiso, y qué pasos hace un servicio en nombre de otro.',
+      },
+      merchant: {
+        title: 'El comercio',
+        description:
+          'Lo que un vendedor puede hacer hoy, en qué pantalla, y lo que todavía no existe.',
+      },
+      evaluator: {
+        title: 'Quien evalúa r10c',
+        description:
+          'Lo construido y lo planeado, contado desde el registro y no desde una promesa.',
+      },
+    },
+    useCase: {
+      id: 'Identificador',
+      status: 'Estado',
+      domain: 'Dominio',
+      oda: 'Componente ODA',
+      odaNone: 'Sin equivalente ODA',
+      entities: 'Entidades',
+      subject: 'sujeto',
+      permissions: 'Permisos',
+      crossing: 'cruce entre servicios',
+      crossings: 'Cruces entre servicios',
+      roles: 'Roles que lo conceden',
+      noRole: 'Ningún rol: lo hace un servicio o el comprador',
+      screens: 'Pantallas',
+      noScreen: 'Ninguna pantalla: se invoca desde otra acción',
+      verticals: 'Verticales',
+      allVerticals: 'Todas',
+      notBuilt:
+        'Todavía no existe en el código. La fecha está en el hito, no aquí.',
+      count: 'Casos de uso',
+    },
+    statuses: {
+      implemented: 'Construido',
+      planned: 'Planeado',
+      'in-design': 'En diseño',
+    },
+    verticals: {
+      hardware: 'Ferretería',
+      'phone-accessories': 'Accesorios de celular',
+      'shoemaking-supplies': 'Insumos de zapatería',
+    },
+    catalog: {
+      title: 'Servicios',
+      description:
+        'Cada slice con lo que despliega, los stores que escribe y las APIs y eventos que expone, derivado de tools/slices.',
+      storesTitle: 'Stores',
+      storesDescription:
+        'Cada store con su plano, su partición y su único escritor.',
+      kind: 'Tipo',
+      kinds: {
+        domain: 'Dominio',
+        system: 'Sistema',
+        component: 'Componente',
+        resource: 'Recurso',
+        api: 'API',
+      },
+      slice: 'Slice',
+      status: 'Estado',
+      sliceStatuses: { active: 'Activo', planned: 'Planeado' },
+      domains: 'Dominios',
+      noDomain: 'Ninguno: es un slice de plataforma',
+      deployments: 'Despliegues',
+      noDeployment: 'Ninguno todavía',
+      port: 'Puerto',
+      inspector: 'Inspector',
+      tags: 'Etiquetas',
+      coDeployedWith: 'Desplegado junto a',
+      stores: 'Stores que escribe',
+      noStore: 'Ninguno',
+      exposedAPIs: 'APIs que expone',
+      dependantAPIs: 'APIs que consume',
+      publishedEvents: 'Eventos que publica',
+      subscriptions: 'Suscripciones',
+      subscription: {
+        event: 'Evento',
+        mode: 'Modo',
+        attempts: 'Intentos',
+        dedupe: 'Deduplicación',
+      },
+      none: 'Ninguno',
+      plane: 'Plano',
+      planes: {
+        control: 'Control',
+        platform: 'Plataforma',
+        tenant: 'Organización',
+      },
+      partitioning: 'Partición',
+      partitionings: {
+        single: 'Una base compartida',
+        'per-organization': 'Una base por organización',
+      },
+      truth: 'Verdad',
+      systemOfRecord: 'Registro original',
+      projectionOf: 'Proyección de',
+      writer: 'Único escritor',
+      hosts: 'Dominios que aloja',
+      noHosts: 'Ninguno: guarda registros que no son entidades',
+      binding: 'Por qué comparten store',
+      useCases: 'Casos de uso del dominio',
+      package: 'Paquete',
+      capability: 'Capacidad',
+      store: 'Store',
+      map: 'Mapa de stores por plano',
+      mapDescription:
+        'Los stores agrupados por plano, con el slice que escribe cada uno y la flecha de cada proyección.',
+      mapLink: 'Ver el mapa',
+    },
+  },
 };

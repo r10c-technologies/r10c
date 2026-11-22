@@ -83,6 +83,10 @@ pnpm nx run fulfilment-service:dev         # :3110 (Mongo + RabbitMQ; a vendor's
 # started some other way:
 pnpm nx run @r10c/source:watch-libs
 
+# The documentation site (static, :3220; DEVELOPING.md → "The documentation site")
+pnpm nx build @r10c/docs-site              # export + Storybook at /ui + Pagefind + link check
+pnpm nx run @r10c/docs-site:serve-static   # serve out/ as a static host would
+
 # Build / typecheck / lint / test a single project
 pnpm nx build <project>       # libs: @nx/js:swc, per-file .js — never a bundler
                               # a declaration error fails a library build — no

@@ -14,7 +14,8 @@
     "tags": [
       "layer:app",
       "scope:shared",
-      "type:testing"
+      "type:testing",
+      "contract:register"
     ],
     "sourceRoot": "tools/slices/src",
     "targets": {

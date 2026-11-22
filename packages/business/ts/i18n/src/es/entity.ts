@@ -372,6 +372,10 @@ export const entity = {
   'published-offering': {
     label: 'Oferta publicada',
     plural: 'Ofertas publicadas',
+    useCases: {
+      // En diseño (ADR 0082): el registro de capacidades ya lo nombra.
+      filterByDevice: 'Filtrar por dispositivo',
+    },
     fields: {
       id: 'ID',
       offeringId: 'ID de oferta',
@@ -760,6 +764,9 @@ export const entity = {
     },
     useCases: {
       publish: 'Publicar',
+      // En diseño (ADR 0082): el registro de capacidades ya los nombra.
+      setSaleUnit: 'Definir unidad de venta',
+      setDeviceFit: 'Indicar con qué dispositivos es compatible',
       publishConfirm:
         'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',
       unpublish: 'Retirar',

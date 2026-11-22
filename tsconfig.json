@@ -371,6 +371,9 @@
     },
     {
       "path": "./packages/implementation/payment-evidence/gcs"
+    },
+    {
+      "path": "./apps/docs-site"
     }
   ],
   "compilerOptions": {
