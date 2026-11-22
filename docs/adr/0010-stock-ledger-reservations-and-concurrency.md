@@ -35,6 +35,7 @@
   reserve is dispatched by transaction-service, not by order-management.
 - Revised: 2026-11-03 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — a hold converts after the checkout's commit point rather than on payment, a restoration can be a `return`, and every counter move announces `stock-item.changed` at the item's version
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — a hold's expiry may be stated per hold by the coordinator, bounded by stock-service's `maxHoldSeconds`
+- Revised: 2026-11-21 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — proposed: a quantity is an integer in its unit's scale, the counters' conditional write also matches the unit, and a presentation reserves on its base offering
 
 ## Trigger
 
