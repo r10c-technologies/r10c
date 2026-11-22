@@ -83,7 +83,6 @@ export const composeReceiptMail = (input: {
 
   const sellerOrders = orders.map(order => {
     const currency = order.items[0]?.currency ?? 'GTQ';
-    const total = order.items.reduce((sum, item) => sum + item.amount, 0);
     return [
       fillMailTemplate(copy.receipt.sellerOrder, {
         number: order.number,
@@ -97,7 +96,9 @@ export const composeReceiptMail = (input: {
         }),
       ),
       fillMailTemplate(copy.receipt.orderTotal, {
-        amount: money(locale, total, currency),
+        // The document's stored total, never re-derived: a line's `amount` is
+        // a unit price, so summing it says Q40 for two at Q40.
+        amount: money(locale, order.totalAmount, currency),
       }),
       // A pequeño contribuyente's document shows no IVA (ADR 0078 §6): its
       // tax is on the gross, not broken out of the price.
