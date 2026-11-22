@@ -24,9 +24,11 @@ import {
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
+import { atRevision } from './at-revision.js';
+
 export const OFFERING_COLLECTION = envelopeEntityName(ProductOffering);
 
-/** The stored status moved under this transition: the compare-and-set missed. */
+/** The stored record moved under this transition: the compare-and-set missed. */
 class OfferingMoved {
   readonly _tag = 'OfferingMoved';
 }
@@ -35,12 +37,14 @@ class OfferingMoved {
  * The `catalog` store's two writes that are not a save, over the
  * organization's own `tenant_<id>` database.
  *
- * ⚠️ **The transition is a status compare-and-set.** It was a plain replace,
- * so two publishes racing on one offering both read `draft`, both wrote, and
- * both emitted `catalog.published` — two announcements, and an unpublish that
- * lost the race could overwrite a publish that won it (#371). The write now
- * names the status the decision was read in; a miss rolls the unit back,
- * outbox entry and all, and answers `changed`.
+ * ⚠️ **The transition is a compare-and-set on status and revision.** It was
+ * a plain replace, so two publishes racing on one offering both read `draft`,
+ * both wrote, and both emitted `catalog.published` — two announcements, and
+ * an unpublish that lost the race could overwrite one that won (#371). The
+ * status alone does not see a save, which leaves it where it was and would
+ * be written over by the whole document the decision read. So the write names
+ * both; a miss rolls the unit back, outbox entry and all, and answers
+ * `changed`.
  *
  * The event drains right after the commit rather than waiting for the sweep,
  * so a publish reaches the storefront in milliseconds.
@@ -85,13 +89,15 @@ export const MongoOfferingCatalogLayer = Layer.effect(
               Effect.gen(function* () {
                 const written = yield* Effect.tryPromise({
                   try: () =>
-                    unit.handle.db
-                      .collection(OFFERING_COLLECTION)
-                      .updateOne(
-                        { id: offering.id, status: from },
-                        { $set: fields, ...bumpRevision.mongo },
-                        { session: unit.handle.session },
-                      ),
+                    unit.handle.db.collection(OFFERING_COLLECTION).updateOne(
+                      {
+                        id: offering.id,
+                        status: from,
+                        ...atRevision(offering.revision),
+                      },
+                      { $set: fields, ...bumpRevision.mongo },
+                      { session: unit.handle.session },
+                    ),
                   catch: mongoUnitFault,
                 });
                 if (written.matchedCount === 0) {

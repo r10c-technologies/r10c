@@ -6,26 +6,31 @@ import type {
   SpecificationCommands,
 } from '../ports/offering-catalog';
 
-/** An organization's offerings, by id, as the status each one stands at. */
+/** An organization's offerings, by id, as each one stands. */
 export type OfferingSeed = Readonly<
   Record<
     string,
-    ReadonlyArray<{ readonly id: string; readonly status: string }>
+    ReadonlyArray<{
+      readonly id: string;
+      readonly status: string;
+      readonly revision?: number;
+    }>
   >
 >;
 
 /**
  * An {@link OfferingCatalog} held in memory, for the specs of whatever
  * consumes the port. It runs `describeOfferingCatalogContract`, so a
- * transition commits only from the status it was decided against.
+ * transition commits only from the status and revision it was decided
+ * against.
  */
 export const makeInMemoryOfferingCatalog = (
   seed: OfferingSeed = {},
 ): OfferingCatalog => {
-  const statuses = new Map<string, string>();
+  const stored = new Map<string, { status: string; revision?: number }>();
   for (const [organizationId, offerings] of Object.entries(seed)) {
-    for (const { id, status } of offerings) {
-      statuses.set(`${organizationId}/${id}`, status);
+    for (const { id, status, revision } of offerings) {
+      stored.set(`${organizationId}/${id}`, { status, revision });
     }
   }
   const announced = new Set<string>();
@@ -34,8 +39,11 @@ export const makeInMemoryOfferingCatalog = (
     commitTransition: (organizationId, offering, from, event) =>
       Effect.sync(() => {
         const key = `${organizationId}/${String(offering.id)}`;
-        if (statuses.get(key) !== from) return 'changed';
-        statuses.set(key, offering.status);
+        const record = stored.get(key);
+        if (record?.status !== from || record.revision !== offering.revision)
+          return 'changed';
+        record.status = offering.status;
+        record.revision = (record.revision ?? 0) + 1;
         announced.add(`${organizationId}/${event.id}`);
         return 'committed';
       }),
@@ -122,7 +130,11 @@ export const makeInMemorySpecificationCommands = (
     move: (organizationId, specification, from) =>
       Effect.sync(() => {
         const stored = versions.get(at(organizationId, specification.id));
-        if (stored?.lifecycleStatus !== from) return 'changed';
+        if (
+          stored?.lifecycleStatus !== from ||
+          stored.revision !== specification.revision
+        )
+          return 'changed';
         if (specification.lifecycleStatus === 'active') {
           for (const [key, other] of versions) {
             if (

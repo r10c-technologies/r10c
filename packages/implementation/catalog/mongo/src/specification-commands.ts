@@ -21,6 +21,8 @@ import {
 import { Effect, Layer, Option } from 'effect';
 import type { Db } from 'mongodb';
 
+import { atRevision } from './at-revision.js';
+
 export const SPECIFICATION_COLLECTION =
   envelopeEntityName(ProductSpecification);
 
@@ -163,7 +165,13 @@ export const MongoSpecificationCommandsLayer = Layer.effect(
               const written = yield* Effect.tryPromise({
                 try: () =>
                   specifications.findOneAndUpdate(
-                    { id: specification.id, lifecycleStatus: from },
+                    {
+                      id: specification.id,
+                      lifecycleStatus: from,
+                      // A save leaves the status where it was, and `fields`
+                      // would write over it: the revision is what sees one.
+                      ...atRevision(specification.revision),
+                    },
                     { $set: fields, ...bumpRevision.mongo },
                     { returnDocument: 'after', session },
                   ),

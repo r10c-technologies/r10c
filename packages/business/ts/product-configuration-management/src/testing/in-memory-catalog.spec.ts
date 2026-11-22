@@ -36,6 +36,7 @@ describe('the in-memory commands, seeded', () => {
       id: 's-1',
       specKey: 'product-001',
       lifecycleStatus: 'retired',
+      revision: 1,
     });
 
     expect(

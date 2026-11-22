@@ -66,6 +66,8 @@ const world = () => {
         specKey: id === 'spec-1' ? 'product-001' : 'product-002',
         version: 1,
         lifecycleStatus,
+        // The revision the commands hold a seeded version at.
+        revision: 1,
       }),
     ),
   );

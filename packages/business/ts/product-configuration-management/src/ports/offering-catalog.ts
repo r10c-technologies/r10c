@@ -13,10 +13,12 @@ import type { SpecificationLifecycleStatus } from '../values/specification-lifec
 export interface OfferingCatalog {
   /**
    * Write a transitioned offering and the event announcing it as **one
-   * unit**, and only while the stored offering is still in `from` — a status
-   * compare-and-set (ADR 0010's rule pointed at a status rather than a
-   * quantity). `changed` means another transition landed first and nothing
-   * was written: two publishes racing on one offering must not both emit.
+   * unit**, and only while the stored offering is still in `from` **at the
+   * revision it was read at** — a compare-and-set (ADR 0010's rule pointed at
+   * a record rather than a quantity). `changed` means another write landed
+   * first and nothing was written: two publishes racing on one offering must
+   * not both emit, and a save landing under a publish must not be overwritten
+   * by what that publish read (ADR 0079 §4).
    */
   readonly commitTransition: (
     organizationId: string,
@@ -64,9 +66,10 @@ export interface SpecificationCommands {
   ) => Effect.Effect<ProductSpecification, StoreFailure | Invalid>;
   /**
    * Write a version moved along its lifecycle, **only while it still stands
-   * in `from`** — the compare-and-set every status move in this repository
-   * is — and move its `revision` in the same write, so a form opened before
-   * the move cannot save over it (ADR 0079 §4). A release (`active`) also
+   * in `from` at the revision it was read at** — so a save landing under a
+   * release is never frozen out of it — and move its `revision` in the same
+   * write, so a form opened before the move cannot save over it (ADR 0079
+   * §4). A release (`active`) also
    * retires, in the same unit, whichever other version of the same `specKey`
    * was active, closing its `validTo` at this one's `validFrom`: one active
    * version per key. `changed` means another move landed first and nothing
