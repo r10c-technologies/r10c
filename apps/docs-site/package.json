@@ -35,6 +35,7 @@
         "executor": "nx:run-commands",
         "dependsOn": [
           "^build",
+          "^typecheck",
           {
             "projects": [
               "@r10c/storefront-storybook"
