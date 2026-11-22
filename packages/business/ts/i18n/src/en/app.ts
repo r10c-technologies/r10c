@@ -142,6 +142,32 @@ export const app: EsApp = {
       notBuilt: 'Not in the code yet. The date is on the milestone, not here.',
       count: 'Use cases',
     },
+    entityMap: {
+      title: 'Entity map',
+      description:
+        'The entities this use case touches, with the parts each one owns and the records it points at.',
+      from: 'From',
+      member: 'Member',
+      relation: 'Relation',
+      to: 'To',
+      store: 'Store',
+      part: 'A part of its own',
+      noStore: 'No store',
+      noRelation:
+        'Its metadata declares no composition, link or reference to another record.',
+      kinds: {
+        composition: 'Composition: written and read with its owner',
+        link: 'Link',
+        reference: 'Reference in the same store',
+        id: 'Id in another store, never a link',
+      },
+      short: {
+        composition: 'owns',
+        link: 'link',
+        reference: 'reference',
+        id: 'id',
+      },
+    },
     statuses: {
       implemented: 'Built',
       planned: 'Planned',

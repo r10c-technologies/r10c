@@ -1,6 +1,9 @@
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { ComponentProps } from 'react';
 
+import { MAP_SCHEME } from '../content/use-cases';
+import { EntityMap } from './entity-map';
+
 /** What the site serves beside it rather than renders: the Storybook. */
 const BESIDE = '/ui/';
 
@@ -20,4 +23,15 @@ export function Anchor(props: ComponentProps<'a'>) {
   return <Link {...props} />;
 }
 
-export const PAGE_COMPONENTS = { a: Anchor };
+/** A page's images: fumadocs' own, except the maps the site draws itself. */
+export function Figure(props: ComponentProps<'img'>) {
+  if (typeof props.src === 'string' && props.src.startsWith(MAP_SCHEME)) {
+    return <EntityMap src={props.src} />;
+  }
+  const Image = defaultMdxComponents.img as (
+    imageProps: ComponentProps<'img'>,
+  ) => React.ReactNode;
+  return <Image {...props} alt={props.alt ?? ''} />;
+}
+
+export const PAGE_COMPONENTS = { a: Anchor, img: Figure };

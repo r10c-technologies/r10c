@@ -838,12 +838,54 @@ importers:
       '@entifix/style':
         specifier: 'catalog:'
         version: 0.23.6
+      '@r10c/business-ts-access-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/access-management
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authn
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
+      '@r10c/business-ts-catalog-reference':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/catalog-reference
+      '@r10c/business-ts-configuration':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/configuration
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../packages/business/ts/i18n
+      '@r10c/business-ts-marketplace-catalog':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/marketplace-catalog
+      '@r10c/business-ts-marketplace-vendor':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/marketplace-vendor
+      '@r10c/business-ts-order-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/order-management
+      '@r10c/business-ts-party-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/party-management
+      '@r10c/business-ts-payment-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/payment-management
+      '@r10c/business-ts-product-configuration-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/product-configuration-management
+      '@r10c/business-ts-sales-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-management
+      '@r10c/business-ts-settlement-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/settlement-management
+      '@r10c/business-ts-shipping-order-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/shipping-order-management
+      '@r10c/business-ts-stock-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/stock-management
       '@r10c/capabilities':
         specifier: workspace:*
         version: link:../../tools/capabilities

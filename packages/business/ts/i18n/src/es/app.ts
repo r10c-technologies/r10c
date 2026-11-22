@@ -157,6 +157,32 @@ export const app = {
         'Todavía no existe en el código. La fecha está en el hito, no aquí.',
       count: 'Casos de uso',
     },
+    entityMap: {
+      title: 'Mapa de entidades',
+      description:
+        'Las entidades que toca este caso de uso, con las partes que posee cada una y los registros a los que apunta.',
+      from: 'Desde',
+      member: 'Miembro',
+      relation: 'Relación',
+      to: 'Hacia',
+      store: 'Store',
+      part: 'Una parte propia',
+      noStore: 'Sin store',
+      noRelation:
+        'Sus metadatos no declaran composición, enlace ni referencia a otro registro.',
+      kinds: {
+        composition: 'Composición: se escribe y se lee con su dueño',
+        link: 'Enlace',
+        reference: 'Referencia en el mismo store',
+        id: 'Id en otro store, nunca un enlace',
+      },
+      short: {
+        composition: 'posee',
+        link: 'enlace',
+        reference: 'referencia',
+        id: 'id',
+      },
+    },
     statuses: {
       implemented: 'Construido',
       planned: 'Planeado',
