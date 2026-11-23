@@ -513,9 +513,9 @@
       "fingerprint": "053fa05152ea93"
     },
     {
-      "ref": "fulfilment.open@5",
+      "ref": "fulfilment.open@6",
       "id": "fulfilment.open",
-      "version": 5,
+      "version": 6,
       "module": "shipping-order-management",
       "kind": "retriable",
       "cardinality": "perVendor",
@@ -717,25 +717,33 @@
                       "type": "string",
                       "minLength": 1
                     },
-                    "quantity": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Infinity",
-                            "-Infinity",
-                            "NaN"
-                          ]
-                        }
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "UN",
+                        "PAR",
+                        "M",
+                        "YD",
+                        "FT",
+                        "M2",
+                        "FT2",
+                        "DM2",
+                        "KG",
+                        "LB",
+                        "L",
+                        "GAL"
                       ]
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
                     "offeringId",
                     "name",
+                    "unit",
                     "quantity"
                   ],
                   "allOf": [
@@ -824,7 +832,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "01d8a9a8a8c3a2"
+      "fingerprint": "19897ec685d53e"
     },
     {
       "ref": "fulfilment.release@2",
@@ -3644,9 +3652,9 @@
       "fingerprint": "027b108c32d686"
     },
     {
-      "ref": "stock.reserve@3",
+      "ref": "stock.reserve@4",
       "id": "stock.reserve",
-      "version": 3,
+      "version": 4,
       "module": "stock-management",
       "kind": "compensatable",
       "cardinality": "perLine",
@@ -3688,20 +3696,27 @@
                 "type": "string",
                 "minLength": 1
               },
-              "quantity": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "UN",
+                  "PAR",
+                  "M",
+                  "YD",
+                  "FT",
+                  "M2",
+                  "FT2",
+                  "DM2",
+                  "KG",
+                  "LB",
+                  "L",
+                  "GAL"
                 ]
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "holdSeconds": {
                 "anyOf": [
@@ -3718,6 +3733,7 @@
             },
             "required": [
               "offeringId",
+              "unit",
               "quantity"
             ],
             "allOf": [
@@ -3759,7 +3775,8 @@
                 "type": "string",
                 "enum": [
                   "invalidBody",
-                  "insufficientStock"
+                  "insufficientStock",
+                  "unitMismatch"
                 ]
               },
               "category": {
@@ -3780,12 +3797,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "12b0764c7b428a"
+      "fingerprint": "0208b64acabd16"
     },
     {
-      "ref": "stock.restore@4",
+      "ref": "stock.restore@5",
       "id": "stock.restore",
-      "version": 4,
+      "version": 5,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",
@@ -3815,20 +3832,27 @@
                 "type": "string",
                 "minLength": 1
               },
-              "quantity": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "UN",
+                  "PAR",
+                  "M",
+                  "YD",
+                  "FT",
+                  "M2",
+                  "FT2",
+                  "DM2",
+                  "KG",
+                  "LB",
+                  "L",
+                  "GAL"
                 ]
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "cause": {
                 "type": "string",
@@ -3844,6 +3868,7 @@
             },
             "required": [
               "offeringId",
+              "unit",
               "quantity",
               "cause",
               "orderId"
@@ -3887,7 +3912,8 @@
                 "type": "string",
                 "enum": [
                   "invalidBody",
-                  "inconsistentMovement"
+                  "inconsistentMovement",
+                  "unitMismatch"
                 ]
               },
               "category": {
@@ -3908,7 +3934,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1b6ab4dbd2d592"
+      "fingerprint": "050ab33a7da789"
     }
   ]
 }

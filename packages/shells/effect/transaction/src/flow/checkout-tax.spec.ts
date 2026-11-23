@@ -17,7 +17,16 @@ const SELLER = {
 
 const PART = {
   vendorId: 'v-1',
-  lines: [{ offeringId: 'o-1', amount: 560, quantity: 2, currency: 'GTQ' }],
+  // A line as the coordinator priced it: its total stated (ADR 0082 §6).
+  lines: [
+    {
+      offeringId: 'o-1',
+      amount: 560,
+      quantity: 2,
+      lineTotal: 1120,
+      currency: 'GTQ',
+    },
+  ],
 };
 
 describe('taxedPart', () => {

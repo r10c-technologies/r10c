@@ -478,6 +478,9 @@ export const entity = {
         description: 'Descripción vendida',
         specificationId: 'ID de la versión del producto',
         specificationVersion: 'Versión del producto',
+        saleUnit: 'Unidad',
+        pricePer: 'Precio por',
+        lineTotal: 'Total de la línea',
         quantity: 'Cantidad',
         amount: 'Importe',
         currency: 'Moneda',
@@ -906,6 +909,7 @@ export const entity = {
     fields: {
       id: 'ID',
       offeringId: 'Producto',
+      unit: 'Unidad',
       onHand: 'En almacén',
       reserved: 'Reservado',
       available: 'Disponible',
@@ -923,6 +927,7 @@ export const entity = {
     fields: {
       id: 'ID',
       offeringId: 'Producto',
+      unit: 'Unidad',
       quantity: 'Cantidad',
       reason: 'Motivo',
       occurredAt: 'Fecha',
@@ -956,6 +961,7 @@ export const entity = {
     fields: {
       id: 'ID',
       offeringId: 'Producto',
+      unit: 'Unidad',
       quantity: 'Cantidad',
       status: 'Estado',
       expiresAt: 'Vence el',
@@ -1004,6 +1010,7 @@ export const entity = {
       line: {
         offeringId: 'Producto',
         name: 'Vendido como',
+        unit: 'Unidad',
         quantity: 'Cantidad',
       },
       status: 'Estado',

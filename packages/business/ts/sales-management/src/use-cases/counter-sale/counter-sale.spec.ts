@@ -53,6 +53,20 @@ const prices: Record<string, PublishedPrice> = {
     specificationVersion: 1,
     ...ONE_PIECE,
   },
+  // Sold by the half metre from one metre: two units of the scale is 2 mm.
+  cable: {
+    offeringId: 'cable',
+    name: 'Cable',
+    vendorId: 'org-1',
+    amount: 4500,
+    currency: 'GTQ',
+    specificationId: 'spec-cable',
+    specificationVersion: 1,
+    saleUnit: 'M',
+    quantityStep: 500,
+    quantityMinimum: 1000,
+    pricePer: 1,
+  },
   theirs: {
     offeringId: 'theirs',
     name: 'Plato',
@@ -183,8 +197,10 @@ describe('sellAtCounter', () => {
                   description: 'Esmaltada a mano.',
                   specificationId: 'spec-mine',
                   specificationVersion: 3,
+                  saleUnit: 'UN',
                   quantity: 2,
                   amount: 500,
+                  pricePer: 1,
                   currency: 'GTQ',
                 },
               ],
@@ -221,6 +237,9 @@ describe('sellAtCounter', () => {
       sell('c-shut'),
       sell('c-open', 'ghost'),
       sell('c-open', 'theirs'),
+      // 2 in the metre's scale is 2 mm: below the published minimum, refused
+      // rather than rounded up to a metre (ADR 0082 §3).
+      sell('c-open', 'cable'),
     ]);
 
     expect(refusals.map(refusal => refusal.code)).toEqual([
@@ -228,6 +247,7 @@ describe('sellAtCounter', () => {
       'channelInactive',
       'invalidBody',
       'notYours',
+      'quantityBelowMinimum',
     ]);
     expect(started).toEqual([]);
   });

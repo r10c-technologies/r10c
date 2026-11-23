@@ -1,4 +1,11 @@
 import { accessor } from '@entifix/core';
+import {
+  SALE_UNIT_NAME_KEY,
+  SALE_UNIT_SCALES,
+  SALE_UNIT_SYMBOL_KEY,
+  type SaleUnit,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 
 /**
  * One line of a shipment: what goes in the parcel, and what it was sold for.
@@ -16,6 +23,8 @@ export class ShippingLine {
   // #region properties
   #offeringId: string;
   #name: string;
+  // No default: a parcel line states what its quantity is counted in.
+  #unit?: SaleUnit;
   #quantity: number;
   // #endregion
 
@@ -54,10 +63,30 @@ export class ShippingLine {
     this.#name = value;
   }
 
+  /** The order line's unit, so a packer reads 3.5 m and never 3500. */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:shipping-order.fields.line.unit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+    required: true,
+  })
+  get unit(): SaleUnit | undefined {
+    return this.#unit;
+  }
+  set unit(value: SaleUnit | undefined) {
+    this.#unit = value;
+  }
+
   @accessor({
     type: 'number',
     labelKey: 'entity:shipping-order.fields.line.quantity',
     required: true,
+    scaled: {
+      unitMember: 'unit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
   })
   get quantity(): number {
     return this.#quantity;

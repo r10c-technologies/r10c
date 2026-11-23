@@ -6,6 +6,7 @@ import {
   VENDOR_DOES_NOT_SHIP,
   type VendorDoesNotShip,
 } from '@r10c/business-ts-flow-contracts';
+import type { PricePer, SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import { Option, Schema } from 'effect';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
@@ -58,8 +59,17 @@ export interface PricedLine {
   readonly specificationId: string;
   readonly specificationVersion: number;
   readonly vendorId: string;
+  /** What one is, and how many in its scale (ADR 0082 §2). */
+  readonly saleUnit: SaleUnit;
   readonly quantity: number;
+  /** What `pricePer` whole units cost, as published. */
   readonly amount: number;
+  readonly pricePer: PricePer;
+  /**
+   * The preview of what the line costs, by `lineTotal`. The coordinator
+   * computes it again and its figure is the one charged (ADR 0082 §6).
+   */
+  readonly lineTotal: number;
   readonly currency: string;
 }
 

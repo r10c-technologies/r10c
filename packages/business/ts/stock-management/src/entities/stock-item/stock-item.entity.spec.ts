@@ -12,6 +12,7 @@ describe('StockItem', () => {
   it('serializes the offering and both counters', () => {
     const item = new StockItem('offering-1');
     item.id = 'stock-1';
+    item.unit = 'M';
     item.onHand = 50;
     item.reserved = 3;
     item.available = 47;
@@ -19,6 +20,7 @@ describe('StockItem', () => {
     expect(serializeEntity(StockItem, item)).toEqual({
       id: 'stock-1',
       offeringId: 'offering-1',
+      unit: 'M',
       onHand: 50,
       reserved: 3,
       available: 47,
@@ -58,6 +60,7 @@ describe('StockItem', () => {
     expect(columns.map(column => column.name)).toEqual([
       'id',
       'offeringId',
+      'unit',
       'onHand',
       'reserved',
       'available',
@@ -65,16 +68,22 @@ describe('StockItem', () => {
     expect(available).toMatchObject({ sortable: true, filterable: true });
   });
 
-  it('makes both counters filterable, since the checkout guard spans them', () => {
-    // The conditional write is `onHand - reserved >= qty`; member metadata is
-    // also the server-side allowlist, so a counter that is not filterable
-    // cannot appear in that predicate.
-    const filterable = describeEntityColumns(StockItem)
-      .filter(column => column.filterable)
-      .map(column => column.name);
+  it('queries no counter whose number means something else on the next row (ADR 0082 §4)', () => {
+    // 3500 is 3.5 m on one item and 3,500 pieces on the next, so a list cannot
+    // order or filter on it. `available` stays both: a zero means the same in
+    // every unit, and the out-of-stock tile and the list's order read it. The
+    // checkout's guard is the store's own conditional write, never a query.
+    const columns = describeEntityColumns(StockItem);
+    const column = (name: string) =>
+      columns.find(candidate => candidate.name === name);
 
-    expect(filterable).toContain('onHand');
-    expect(filterable).toContain('reserved');
-    expect(filterable).toContain('offeringId');
+    for (const name of ['onHand', 'reserved']) {
+      expect(column(name)).toMatchObject({
+        sortable: false,
+        filterable: false,
+      });
+    }
+    expect(column('unit')).toMatchObject({ filterable: true });
+    expect(column('onHand')?.scaled).toMatchObject({ unitMember: 'unit' });
   });
 });

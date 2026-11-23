@@ -34,10 +34,10 @@ const slipOf = (refs: readonly string[]): Slip => ({
 describe('stock fragments', () => {
   it('are pinned and owned by stock-management', () => {
     expect(STOCK_FRAGMENTS.map(fragmentRef)).toEqual([
-      'stock.reserve@3',
+      'stock.reserve@4',
       'stock.convert@3',
       'stock.release@1',
-      'stock.restore@4',
+      'stock.restore@5',
     ]);
     expect(new Set(STOCK_FRAGMENTS.map(f => f.module))).toEqual(
       new Set(['stock-management']),

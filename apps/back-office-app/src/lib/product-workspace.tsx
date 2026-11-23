@@ -50,7 +50,10 @@ function OfferingStockRegions({
       <stockMovementCrud.RelatedList
         labelKey="r10c:marketplaceAdmin.offering.regions.movements"
         filtering={ofOffering(offering)}
-        prefill={{ offeringId: String(offering.id) }}
+        // In the offering's own unit, the one its stock is counted in: a
+        // movement in another is refused `unitMismatch` (ADR 0082 §4), and
+        // the quantity field reads nothing until it knows its scale.
+        prefill={{ offeringId: String(offering.id), unit: offering.saleUnit }}
       />
     </>
   );

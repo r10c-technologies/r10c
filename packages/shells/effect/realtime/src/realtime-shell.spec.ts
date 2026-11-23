@@ -81,7 +81,10 @@ const order = (overrides: Partial<DomainEvent> = {}): DomainEvent => ({
     items: [
       {
         amount: 10,
+        pricePer: 1,
+        saleUnit: 'UN',
         quantity: 1,
+        lineTotal: 10,
         currency: 'GTQ',
         offeringId: 'off-1',
         name: 'Cog',

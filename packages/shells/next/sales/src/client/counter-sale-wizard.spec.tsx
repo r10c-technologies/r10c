@@ -23,6 +23,8 @@ import {
   CounterSaleWizard,
   currencyOf,
   lastChannelKey,
+  previewOf,
+  quantityTextOf,
   readLines,
 } from './counter-sale-wizard.js';
 import { SalesProvider } from './sales-context.js';
@@ -126,8 +128,25 @@ const publishedOffering = () => {
   offering.amount = 6499;
   offering.currency = 'GTQ';
   offering.publishedAt = new Date('2026-09-01T00:00:00.000Z');
+  // One piece at a time, priced for one (ADR 0082).
+  offering.saleUnit = 'UN';
+  offering.quantityStep = 1;
+  offering.quantityMinimum = 1;
+  offering.pricePer = 1;
   return offering;
 };
+
+/** Sold by the half metre from one metre, at Q45 the metre. */
+const cable = () =>
+  Object.assign(publishedOffering(), {
+    id: 'published-cable',
+    offeringId: 'cable',
+    name: 'Cable',
+    amount: 4500,
+    saleUnit: 'M',
+    quantityStep: 500,
+    quantityMinimum: 1000,
+  });
 
 const adapters = (
   channels: () => SalesChannel[] = twoChannels,
@@ -148,6 +167,7 @@ const adapters = (
       publishedOffering(),
       // The projection answering the same offering twice: the picker lists it once.
       Object.assign(publishedOffering(), { id: 'published-1-again' }),
+      cable(),
     ] as Entity[]),
   ),
   metadata: real.metadata,
@@ -316,9 +336,54 @@ describe('the till', () => {
     // `Money` renders the figure in a span of its own, so the line is matched
     // by its own words and the amount by the whole line's text.
     expect(await screen.findByText(/^Total:/)).toHaveTextContent(/Q\s129\.98/);
-    expect(screen.getByText(/^2 × Café de altura —/)).toHaveTextContent(
+    // The quantity with its unit, as every quantity reads (ADR 0082 §2).
+    expect(screen.getByText(/^2 u\. × Café de altura —/)).toHaveTextContent(
       /Q\s129\.98/,
     );
+  });
+
+  it('previews a line by its live published terms, and one no longer listed as nothing', () => {
+    const line = {
+      key: 'k',
+      offeringId: 'cable',
+      name: 'Cable',
+      amount: 0,
+      currency: 'GTQ',
+      quantity: 3500,
+    };
+    // 3.5 m at Q45.00 the metre: Q157.50, by `lineTotal` (ADR 0082 §6).
+    const cable = Object.assign(new PublishedOffering('cable', 'v', 'Cable'), {
+      amount: 4500,
+      currency: 'GTQ',
+      saleUnit: 'M' as const,
+      pricePer: 1 as const,
+    });
+
+    expect(previewOf(line, [cable])).toBe(15_750);
+    expect(previewOf(line, [])).toBe(0);
+  });
+
+  it('writes a line’s quantity in its offering’s unit, and a bare one when it is gone', () => {
+    const [read] = readLines([{ offeringId: 'cable', quantity: '3500' }]);
+    const line = read as NonNullable<typeof read>;
+    const symbol = (key: string) => (key.endsWith('.M') ? 'm' : key);
+
+    expect(quantityTextOf(line, [cable()], 'es', symbol)).toBe('3.5 m');
+    expect(quantityTextOf(line, [], 'es', symbol)).toBe('3500');
+  });
+
+  it('empties the quantity again when the product is un-picked', async () => {
+    const user = userEvent.setup();
+    renderTill();
+    await user.click(await channelChoice('Mostrador principal'));
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    const picker = await screen.findByRole('combobox', { name: 'Producto' });
+    await waitFor(() => expect(picker).toBeEnabled());
+
+    await user.selectOptions(picker, 'cable');
+    await user.selectOptions(picker, '');
+
+    expect(screen.getByRole('spinbutton', { name: 'Cantidad' })).toBeDisabled();
   });
 
   it('sends offering ids and quantities, never prices', async () => {
@@ -516,7 +581,9 @@ describe('the lines step', () => {
     ).toBeVisible();
   });
 
-  it('clamps a count below one to one before it reaches the line', async () => {
+  // Refused rather than rounded up to what is sold (ADR 0082 §3): the field
+  // says why, and nothing reaches the basket.
+  it('refuses a quantity below what the offering sells, and adds nothing', async () => {
     const user = userEvent.setup();
     renderTill();
     await reachLines(user);
@@ -527,10 +594,36 @@ describe('the lines step', () => {
     const quantity = screen.getByRole('spinbutton', { name: 'Cantidad' });
     await user.clear(quantity);
     await user.type(quantity, '0');
+    await user.tab();
 
     await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
 
-    expect(screen.getByText(/^1 × Café de altura/)).toBeVisible();
+    expect(quantity).toHaveAttribute('aria-invalid', 'true');
+    expect(
+      screen.getByText('Es menos del mínimo que se vende de este producto.'),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Agregue al menos un producto para cobrar.'),
+    ).toBeVisible();
+  });
+
+  it('sells a measured offering in its unit, from its minimum', async () => {
+    const user = userEvent.setup();
+    renderTill();
+    await reachLines(user);
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Producto' }),
+      'cable',
+    );
+    const quantity = screen.getByRole('spinbutton', { name: 'Cantidad' });
+    expect(quantity).toHaveValue('1');
+
+    await user.clear(quantity);
+    await user.type(quantity, '3.5');
+    await user.tab();
+    await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
+
+    expect(await screen.findByText(/^3\.5 m × Cable/)).toBeVisible();
   });
 
   it('removes a line the seller changed their mind about', async () => {

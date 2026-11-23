@@ -50,6 +50,7 @@ import { ReceiptWatch } from '../cart/receipt-watch';
 import { refreshCheckout, settleCheckout } from '../cart/settle-action';
 import { settleCancellation } from '../cart/settle-cancel-action';
 import { runRead } from '../catalog/catalog-reads';
+import { quantityLabel } from '../catalog/price-basis';
 import { storePaths } from '../routing/paths';
 import { OrderTracker } from './order-tracker';
 import { StoreShell } from './store-shell';
@@ -514,12 +515,17 @@ async function VendorOrderCard({
                   {name ?? line.offeringId}
                 </Text>
                 <Text muted>
-                  {t('storefront.order.units', { count: line.quantity })}
+                  {t('storefront.order.units', {
+                    quantity: quantityLabel(
+                      (key, values) => (values ? t(key, values) : t(key)),
+                      locale,
+                    )(line.quantity, line.unit),
+                  })}
                 </Text>
               </Stack>
               <Text>
                 <Money
-                  amount={line.amount * line.quantity}
+                  amount={line.lineTotal}
                   currency={line.currency}
                   unit="minor"
                   locale={locale}

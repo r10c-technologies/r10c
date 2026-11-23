@@ -114,8 +114,11 @@ const CONFIGURATION = {
  *   below, so a grid naming it shows every card without a seller line. Its
  *   one offering's picture is on a host the image optimizer may not fetch.
  *
- * All three are old, uncategorized and out of stock, so no home strip or
- * category count picks them up.
+ * - **A cable sold by the metre.** Its quantities are in the metre's scale,
+ *   so 3.5 m is `3500` everywhere it is held.
+ *
+ * All of them are old, uncategorized and out of stock, so no home strip or
+ * category count picks them up; the whole catalog's count does (40).
  */
 const SELLER_DOWN_VENDOR = 'e2e-vendor-down';
 /** A media host not on `STOREFRONT_IMAGE_HOSTS`; the browser is told it does not resolve. */
@@ -184,6 +187,19 @@ const JOURNEY_OFFERINGS = [
     // On a host the optimizer is not allowed to fetch from, so its picture
     // renders as it is, with no `srcset` (#571).
     media: [{ url: `${OUTSIDE_MEDIA_HOST}/runner.jpg`, alt: 'Runner, folded' }],
+  },
+  // Sold by the half metre from one metre, at Q45.00 the metre (ADR 0082):
+  // the storefront's quantity journeys in a unit that is not a piece.
+  {
+    ...journeyOffering(
+      'offering-coax-cable',
+      'demo-organization',
+      'Coax Cable',
+      4500,
+    ),
+    saleUnit: 'M',
+    quantityStep: 500,
+    quantityMinimum: 1000,
   },
 ];
 
@@ -401,10 +417,9 @@ const flowStatusHandler = http.get(FLOW_STATUS_URL, ({ request, params }) => {
 
 /** The IVA a 12 % IVA-inclusive gross carries, rounded once per document. */
 const ivaIncludedIn = lines => {
-  const gross = lines.reduce(
-    (sum, line) => sum + line.amount * line.quantity,
-    0,
-  );
+  // Each line's total as the storefront previewed it, which this mock states
+  // as the coordinator would: `lineTotal`, never a price times a quantity.
+  const gross = lines.reduce((sum, line) => sum + line.lineTotal, 0);
   return gross - Math.round((gross * 10000) / 11200);
 };
 

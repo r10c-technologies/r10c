@@ -12,10 +12,13 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../packages/business/ts/authn"
+      "path": "../../packages/utils/ts/fleet"
     },
     {
-      "path": "../../packages/utils/ts/fleet"
+      "path": "../../packages/business/ts/sales-vocabulary"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
     }
   ]
 }

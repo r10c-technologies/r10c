@@ -60,7 +60,9 @@ const subtotalFor = (
     ...PlacedOrderLine[],
   ];
   const currency = first.currency;
-  let amount = first.amount * first.quantity;
+  // Each line's own total, as placed: never its price times its quantity
+  // again (ADR 0082 §6).
+  let amount = first.lineTotal;
   for (const line of rest) {
     if (line.currency !== currency) {
       return Effect.fail(
@@ -70,7 +72,7 @@ const subtotalFor = (
         }),
       );
     }
-    amount += line.amount * line.quantity;
+    amount += line.lineTotal;
   }
   return Effect.succeed({ amount, currency });
 };

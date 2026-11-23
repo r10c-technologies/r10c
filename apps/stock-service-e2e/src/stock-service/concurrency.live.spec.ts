@@ -70,13 +70,13 @@ const itemsFor = async (offeringId: string) => {
 const recordMovement = (offeringId: string, quantity: number, reason: string) =>
   service.client.post('/api/stock-movement', {
     meta: { type: 'entity', entity: 'stock-movement' },
-    data: { offeringId, quantity, reason },
+    data: { offeringId, unit: 'UN', quantity, reason },
   });
 
 const takeHold = (offeringId: string, quantity: number) =>
   service.client.post(
     '/api/reservation',
-    { offeringId, quantity },
+    { offeringId, unit: 'UN', quantity },
     { headers: crossingHeaders() },
   );
 

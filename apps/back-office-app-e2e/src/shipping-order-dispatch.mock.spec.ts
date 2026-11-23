@@ -42,12 +42,12 @@ test('says on each row what goes in the parcel and where it goes (#557)', async 
   await page.goto('/fulfilment/shipping-order');
 
   const cod = record(page, AWAITING_SHIPMENT_NUMBER).first();
-  await expect(cod).toContainText('2 × Aurora Desk Lamp');
+  await expect(cod).toContainText('2 u. × Aurora Desk Lamp');
   await expect(cod).toContainText('Mixco, Guatemala');
   // 50 minor units is Q 0.50, and only cash on delivery is collected.
   await expect(cod).toContainText(/(?<!GT)Q\s0\.50/);
   const card = record(page, AWAITING_SHIPMENT_2_NUMBER).first();
-  await expect(card).toContainText('2 × Aurora Desk Lamp');
+  await expect(card).toContainText('2 u. × Aurora Desk Lamp');
   await expect(card).not.toContainText(/(?<!GT)Q\s\d/);
 });
 

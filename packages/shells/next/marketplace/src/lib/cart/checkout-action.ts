@@ -54,7 +54,7 @@ import { reviewedTotalsOf } from './priced-cart-state';
  * buy, a start the coordinator did not accept, or a seller it refused because
  * they do not ship — named by the `seller` beside it (#589).
  */
-export type CheckoutOutcome = 'empty' | 'failed' | 'doesNotShip';
+export type CheckoutOutcome = 'empty' | 'failed' | 'doesNotShip' | 'quantity';
 
 /** The SHA-256 digest of a nonce, as order-service stores a cancel capability. */
 const cancelDigestOf = (nonce: string) =>
@@ -185,10 +185,17 @@ const start = async (
   const locale = String(formData.get('locale') ?? '');
   // Re-priced here rather than trusted from the review: the published price
   // at the moment the flow starts is the one the buyer pays.
-  const { priced, parts: lines, totals } = await readPricedCart();
+  const { priced, parts: lines, totals, refusals } = await readPricedCart();
 
   if (priced.length === 0) {
     redirect(`/${locale}/cart?checkout=empty`);
+  }
+
+  // The decision (ADR 0082 §3): every quantity is checked against the terms
+  // published now, not the ones the cart was filled under. A line they no
+  // longer sell goes back to the cart, which says which one and why.
+  if (refusals.size > 0) {
+    redirect(`/${locale}/cart?checkout=quantity`);
   }
 
   // What the buyer agreed to must still be what they pay: a price that moved,

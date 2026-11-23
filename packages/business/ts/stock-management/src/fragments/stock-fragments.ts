@@ -1,6 +1,7 @@
 import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
 import { participantRefusal } from '@r10c/business-ts-flow-contracts';
+import { SaleUnits } from '@r10c/business-ts-sales-vocabulary';
 import { Schema } from 'effect';
 
 /** The participant every stock fragment calls. */
@@ -23,7 +24,7 @@ const REQUIRES = { entitlements: ['stock-management'] } as const;
  */
 export const stockReserve = defineFragment({
   id: 'stock.reserve',
-  version: 3,
+  version: 4,
   module: 'stock-management',
   kind: 'compensatable',
   participant: PARTICIPANT,
@@ -36,11 +37,18 @@ export const stockReserve = defineFragment({
   contract: {
     input: openStruct({
       offeringId: Schema.NonEmptyString,
-      quantity: Schema.Number,
+      // The line's unit and a quantity in its scale (ADR 0082 §4): a hold in
+      // another unit than the item's is refused, never added.
+      unit: Schema.Literals(SaleUnits),
+      quantity: Schema.Int,
       holdSeconds: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
     }),
     output: openStruct({ id: ReservationId }),
-    failure: participantRefusal(['invalidBody', 'insufficientStock']),
+    failure: participantRefusal([
+      'invalidBody',
+      'insufficientStock',
+      'unitMismatch',
+    ]),
   },
 });
 
@@ -100,7 +108,7 @@ export const stockRelease = defineFragment({
  */
 export const stockRestore = defineFragment({
   id: 'stock.restore',
-  version: 4,
+  version: 5,
   module: 'stock-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -111,12 +119,17 @@ export const stockRestore = defineFragment({
   contract: {
     input: openStruct({
       offeringId: Schema.NonEmptyString,
-      quantity: Schema.Number,
+      unit: Schema.Literals(SaleUnits),
+      quantity: Schema.Int,
       cause: Schema.Literals(['cancellation', 'return']),
       orderId: Schema.NonEmptyString,
     }),
     output: openStruct({ id: Schema.String }),
-    failure: participantRefusal(['invalidBody', 'inconsistentMovement']),
+    failure: participantRefusal([
+      'invalidBody',
+      'inconsistentMovement',
+      'unitMismatch',
+    ]),
   },
 });
 

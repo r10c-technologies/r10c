@@ -43,7 +43,10 @@ export default async function CartRoute({
       // reaches a translation key, and an arbitrary query param must not be
       // able to name one.
       outcome={
-        outcome === 'empty' || outcome === 'failed' || outcome === 'doesNotShip'
+        outcome === 'empty' ||
+        outcome === 'failed' ||
+        outcome === 'doesNotShip' ||
+        outcome === 'quantity'
           ? outcome
           : undefined
       }

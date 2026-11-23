@@ -1,4 +1,8 @@
-import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
+import {
+  DEMO_VENDOR,
+  seededSaleTermsOf,
+  type SeededVendor,
+} from '@r10c/utils-ts-fleet';
 
 import { productTempDataFor } from './product-temp-data';
 
@@ -22,6 +26,10 @@ export interface ProductOfferingRecord {
   specificationId: string;
   status: string;
   statusChangedAt: Date;
+  /** How it is sold (ADR 0082), stated on every row rather than defaulted. */
+  saleUnit: string;
+  quantityStep: number;
+  quantityMinimum: number;
 }
 
 export interface ProductOfferingPriceRecord {
@@ -29,6 +37,8 @@ export interface ProductOfferingPriceRecord {
   offeringId: string;
   amount: number;
   currency: string;
+  /** How many whole units `amount` buys: 1, or 100 for the one per hundred. */
+  pricePer: number;
 }
 
 /**
@@ -58,18 +68,30 @@ const SEEDED_AT = new Date('2026-01-01T00:00:00.000Z');
 
 /** One seeded vendor's offerings, one per specification, under its prefix. */
 export const offeringTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): ProductOfferingRecord[] =>
-  productTempDataFor(vendor).map((specification, index) => ({
-    id: `${vendor.idPrefix}product-offering-${index + 1}`,
-    name: `${specification.name} — oferta`,
-    specificationId: specification.id,
-    status: STATUSES[index % STATUSES.length],
-    // Without this the seeded `published` offerings carry no moment, the walk
-    // reports them `unstamped`, and a fresh lab still serves an empty
-    // storefront — which is the whole defect this seed change exists to close.
-    statusChangedAt: SEEDED_AT,
-  }));
+  productTempDataFor(vendor).map((specification, index) => {
+    // One by the half metre and one priced per hundred, the rest by the
+    // piece: the shared seed terms, so stock counts each in its own unit.
+    const { saleUnit, quantityStep, quantityMinimum } = seededSaleTermsOf(
+      vendor,
+      index,
+    );
+    return {
+      id: `${vendor.idPrefix}product-offering-${index + 1}`,
+      name: `${specification.name} — oferta`,
+      specificationId: specification.id,
+      status: STATUSES[index % STATUSES.length],
+      // Without this the seeded `published` offerings carry no moment, the
+      // walk reports them `unstamped`, and a fresh lab still serves an empty
+      // storefront — which is the whole defect this seed change exists to
+      // close.
+      statusChangedAt: SEEDED_AT,
+      saleUnit,
+      quantityStep,
+      quantityMinimum,
+    };
+  });
 
 /** The demo vendor's offerings. */
 export const offeringTempData: ProductOfferingRecord[] =
@@ -87,7 +109,7 @@ export const offeringTempData: ProductOfferingRecord[] =
 const CURRENCIES = ['GTQ', 'USD', 'EUR'];
 
 export const offeringPriceTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): ProductOfferingPriceRecord[] =>
   offeringTempDataFor(vendor).map((offering, index) => ({
     id: `${vendor.idPrefix}product-offering-price-${index + 1}`,
@@ -96,6 +118,7 @@ export const offeringPriceTempDataFor = (
     // that drops the fractional part is visible at a glance.
     amount: 1999 + index * 500,
     currency: CURRENCIES[index % CURRENCIES.length],
+    pricePer: seededSaleTermsOf(vendor, index).pricePer,
   }));
 
 /** The demo vendor's prices. */

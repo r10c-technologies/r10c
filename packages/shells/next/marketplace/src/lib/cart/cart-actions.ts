@@ -1,17 +1,22 @@
 'use server';
 
+import { isLocale, type Locale } from '@entifix/core';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
 import { type CartNotice, cartNoticeQuery } from './cart-notice';
+import { addedLine, type CartDecision, setLine } from './cart-quantity';
 import {
   CART_COOKIE,
   type CartLine,
   parseCart,
   serializeCart,
-  withAdded,
+  withLine,
   withQuantity,
 } from './cart-state';
 import { safeReturn, withAddedNotice } from './return-to';
@@ -55,9 +60,43 @@ async function writeCart(lines: readonly CartLine[]) {
   revalidatePath('/[locale]/cart', 'page');
 }
 
+/** The published offering a line names, or `undefined` once it is gone. */
+const publishedTerms = (offeringId: string) =>
+  runRead(PublishedOffering, getOffering(offeringId), undefined);
+
+/** The locale a form posted, narrowed: what its quantity was typed in. */
+const postedLocale = (formData: FormData): Locale | undefined => {
+  const locale = formData.get('locale');
+  return isLocale(locale) ? locale : undefined;
+};
+
 /**
- * Adds the units asked for (one, unless the form says otherwise), then sends
- * the visitor back to the listing the card was on, or to the cart.
+ * Back to the cart, saying which line was refused and why. A refusal writes
+ * nothing: the cart keeps what it held, and the buyer is told rather than
+ * sold a quantity they did not ask for (ADR 0082 §3).
+ */
+const refuse = (
+  locale: Locale,
+  offeringId: string,
+  decision: Extract<CartDecision, { refusal: unknown }>,
+): never =>
+  redirect(
+    cartWith(locale, {
+      kind: 'refused',
+      offeringId,
+      refusal: decision.refusal,
+    }),
+  );
+
+/**
+ * Adds what the form asked for, read in the offering's unit, then sends the
+ * visitor back to the listing the card was on, or to the cart. A card's form
+ * asks for nothing: a new line starts at the offering's minimum, and one
+ * already there grows by a step.
+ *
+ * The quantity is decided here, against the published terms rather than
+ * whatever the page rendered (ADR 0082 §3): one the offering does not sell is
+ * refused, and the cart says why. The checkout checks again.
  *
  * A card's form carries `returnTo`, the listing's own address (#574): building
  * a basket from a search is then one add after another rather than a trip to
@@ -75,20 +114,20 @@ async function writeCart(lines: readonly CartLine[]) {
  */
 export async function addToCart(formData: FormData) {
   const offeringId = String(formData.get('offeringId') ?? '');
-  const locale = String(formData.get('locale') ?? '');
-  if (!offeringId) return;
+  const locale = postedLocale(formData);
+  if (!offeringId || locale === undefined) return;
 
-  // The product page's buy box sends a quantity; a card's form sends none
-  // and adds one.
-  const quantity = Number(formData.get('quantity') ?? 1);
+  const offering = await publishedTerms(offeringId);
+  if (offering === undefined) redirect(cartWith(locale));
 
   const store = await cookies();
-  await writeCart(
-    withAdded(parseCart(store.get(CART_COOKIE)?.value), offeringId, quantity),
-  );
+  const lines = parseCart(store.get(CART_COOKIE)?.value);
+  const held = lines.find(line => line.offeringId === offeringId)?.quantity;
+  const decision = addedLine(offering, held, formData.get('quantity'), locale);
+  if ('refusal' in decision) refuse(locale, offeringId, decision);
+  else await writeCart(withLine(lines, offeringId, decision.quantity));
 
   // `redirect` throws to unwind the action, so it must come after the write.
-  if (!locale) return;
   const back = safeReturn(formData.get('returnTo'), locale);
   redirect(
     back === undefined
@@ -130,32 +169,38 @@ export async function restoreToCart(formData: FormData) {
   const locale = String(formData.get('locale') ?? '');
   if (!offeringId) return;
 
+  // The count the removal carried, in the scale the cookie held it in. Only a
+  // positive whole number goes back, and the cart and the checkout check it
+  // against the terms like any other line.
+  const quantity = Number(formData.get('quantity'));
   const store = await cookies();
-  await writeCart(
-    withAdded(
-      parseCart(store.get(CART_COOKIE)?.value),
-      offeringId,
-      Number(formData.get('quantity') ?? 1),
-    ),
-  );
+  const lines = parseCart(store.get(CART_COOKIE)?.value);
+  const held = lines.find(line => line.offeringId === offeringId)?.quantity;
+  await writeCart(withLine(lines, offeringId, (held ?? 0) + quantity));
 
   if (locale) redirect(cartWith(locale));
 }
 
 /**
- * Sets one line's quantity from the cart's own number field. Zero removes the
- * line; the rules are `withQuantity`'s.
+ * Sets one line's quantity from the cart's own field, read in the offering's
+ * unit and decided like an add. Zero removes the line; a quantity the
+ * offering does not sell is refused and the cart says why.
  */
 export async function setQuantity(formData: FormData) {
   const offeringId = String(formData.get('offeringId') ?? '');
-  if (!offeringId) return;
+  const locale = postedLocale(formData);
+  if (!offeringId || locale === undefined) return;
 
+  const offering = await publishedTerms(offeringId);
   const store = await cookies();
-  await writeCart(
-    withQuantity(
-      parseCart(store.get(CART_COOKIE)?.value),
-      offeringId,
-      Number(formData.get('quantity') ?? Number.NaN),
-    ),
-  );
+  const lines = parseCart(store.get(CART_COOKIE)?.value);
+  // An offering unpublished since: the only change left is removing it.
+  if (offering === undefined) {
+    await writeCart(withQuantity(lines, offeringId, 0));
+    redirect(cartWith(locale));
+  }
+
+  const decision = setLine(offering, formData.get('quantity'), locale);
+  if ('refusal' in decision) refuse(locale, offeringId, decision);
+  else await writeCart(withQuantity(lines, offeringId, decision.quantity));
 }

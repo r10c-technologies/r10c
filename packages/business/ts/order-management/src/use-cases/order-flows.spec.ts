@@ -39,6 +39,7 @@ import {
   fiscalFactsProblem,
   foreignLinesProblem,
   issueAccessLink,
+  lineTotalsProblem,
   moveOrder,
   openGroup,
   placeOrder,
@@ -307,10 +308,16 @@ describe('placeOrder', () => {
     const undocumented = await place(
       Object.assign(anOrder(), { sellerTaxId: '' }),
     );
+    const unitless = anOrder();
+    (unitless.items[0] as OrderItem).saleUnit = undefined;
+    const unmeasured = await place(unitless);
 
     expect(
-      [empty, vendorless, groupless, twoVendors, undocumented].map(r => r.code),
+      [empty, vendorless, groupless, twoVendors, undocumented, unmeasured].map(
+        r => r.code,
+      ),
     ).toEqual([
+      'invalidBody',
       'invalidBody',
       'invalidBody',
       'invalidBody',
@@ -354,6 +361,32 @@ describe('moveOrder', () => {
   });
 });
 
+describe('lineTotalsProblem', () => {
+  const measured = () =>
+    Object.assign(new OrderItem('o-1', 'Cable', 3500, 4500, 'GTQ'), {
+      saleUnit: 'M' as const,
+      pricePer: 1 as const,
+      lineTotal: 15_750,
+    });
+  const orderOf = (line: OrderItem) =>
+    Object.assign(new ProductOrder('buyer-1'), { items: [line] });
+
+  it('accepts a line whose total is its own terms’ (3.5 m at Q45.00)', () => {
+    expect(lineTotalsProblem(orderOf(measured()))).toBeUndefined();
+  });
+
+  it.each([
+    ['names no unit', { saleUnit: undefined }],
+    ['names no price basis', { pricePer: undefined }],
+    ['adds up to something else', { lineTotal: 15_750_000 }],
+    ['sells nothing', { quantity: 0, lineTotal: 0 }],
+  ])('refuses a line that %s', (_, change) => {
+    expect(lineTotalsProblem(orderOf(Object.assign(measured(), change)))).toBe(
+      'every line states its unit, its price basis and the total they make',
+    );
+  });
+});
+
 describe('cancellationInput', () => {
   it('states the order, its vendor and tender, each line to put back, and whether it shipped', () => {
     const order = Object.assign(anOrder('v-9'), { id: 'o-1' });
@@ -362,7 +395,7 @@ describe('cancellationInput', () => {
       orderId: 'o-1',
       vendorId: 'v-9',
       paymentMethod: 'card',
-      lines: [{ offeringId: 'o-1', quantity: 2 }],
+      lines: [{ offeringId: 'o-1', unit: 'UN', quantity: 2 }],
       shipped: true,
       buyerId: 'buyer-1',
       capabilityDigest: 'cap',
@@ -470,7 +503,13 @@ describe('cancelOrderAsBuyer', () => {
   it('withdraws an order waiting for its payment link, with no flow', async () => {
     const { run, started, placed, stores } = world();
     const orderId = await placed('pending');
-    await run(stores.orders.awaitPayment(orderId, new Date(Date.now() + 60_000), undefined));
+    await run(
+      stores.orders.awaitPayment(
+        orderId,
+        new Date(Date.now() + 60_000),
+        undefined,
+      ),
+    );
 
     const answer = await run(cancelOrderAsBuyer({ orderId, nonce: NONCE }));
 
@@ -484,7 +523,13 @@ describe('cancelOrderAsBuyer', () => {
   it('answers a withdrawal that lost to a confirmation as the paid order it now is', async () => {
     const { run, started, placed, stores } = world();
     const orderId = await placed('pending');
-    await run(stores.orders.awaitPayment(orderId, new Date(Date.now() + 60_000), undefined));
+    await run(
+      stores.orders.awaitPayment(
+        orderId,
+        new Date(Date.now() + 60_000),
+        undefined,
+      ),
+    );
     const losing = {
       ...stores.orders,
       endAwaitingPayment: () => {

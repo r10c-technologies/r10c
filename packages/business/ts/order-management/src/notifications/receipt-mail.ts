@@ -5,6 +5,7 @@ import '@r10c/business-ts-i18n/locales';
 import { formattingLocale } from '@entifix/core';
 import { r10cCatalogs } from '@r10c/business-ts-i18n';
 import { departamentoOf, municipioOf } from '@r10c/business-ts-order-contracts';
+import { formatQuantity } from '@r10c/business-ts-sales-vocabulary';
 
 import type { CheckoutGroup } from '../entities/checkout-group';
 import type { ProductOrder } from '../entities/product-order';
@@ -52,6 +53,21 @@ const money = (locale: string, amount: number, currency: string): string => {
   return format.format(amount / 10 ** digits);
 };
 
+/**
+ * How much of a line was sold, as the buyer's locale writes it, with its
+ * unit's symbol: `3.5 m`, `2 u.` (ADR 0082 §2). The order write refuses a line
+ * with no unit, so a placed one always has it; the bare number is only the
+ * member's type's other case, never a unit guessed for it.
+ */
+const soldQuantity = (
+  language: string | undefined,
+  item: ProductOrder['items'][number],
+): string => {
+  if (item.saleUnit === undefined) return String(item.quantity);
+  const catalog = language === 'en' ? r10cCatalogs.en : r10cCatalogs.es;
+  return `${formatQuantity(item.quantity, item.saleUnit, language === 'en' ? 'en' : 'es')} ${catalog.entity['sale-unit'].symbol[item.saleUnit]}`;
+};
+
 /** One paragraph per entry: text joined by blank lines, HTML as `<p>`s. */
 const render = (
   paragraphs: readonly (readonly string[])[],
@@ -95,9 +111,11 @@ export const composeReceiptMail = (input: {
       }),
       ...order.items.map(item =>
         fillMailTemplate(copy.receipt.line, {
-          quantity: item.quantity,
+          quantity: soldQuantity(group.locale, item),
           name: item.name,
-          amount: money(locale, item.amount, item.currency),
+          // What the line cost, as placed: never the unit price, which for a
+          // measured line or one priced per hundred is not what was paid.
+          amount: money(locale, item.lineTotal, item.currency),
         }),
       ),
       fillMailTemplate(copy.receipt.orderTotal, {

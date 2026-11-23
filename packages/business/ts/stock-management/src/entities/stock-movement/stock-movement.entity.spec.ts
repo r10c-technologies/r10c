@@ -12,10 +12,12 @@ describe('StockMovement', () => {
   it('serializes a signed quantity with its reason', () => {
     const movement = new StockMovement('offering-1', -1, 'sale');
     movement.id = 'mov-1';
+    movement.unit = 'UN';
 
     expect(serializeEntity(StockMovement, movement)).toEqual({
       id: 'mov-1',
       offeringId: 'offering-1',
+      unit: 'UN',
       quantity: -1,
       reason: 'sale',
       causeId: '',
@@ -80,6 +82,7 @@ describe('StockMovement', () => {
     expect(names).toEqual([
       'id',
       'offeringId',
+      'unit',
       'quantity',
       'reason',
       'occurredAt',

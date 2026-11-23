@@ -15,8 +15,13 @@
  * services that otherwise have none.
  */
 
+import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import type { MovementReason } from '@r10c/business-ts-stock-management';
-import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
+import {
+  DEMO_VENDOR,
+  seededSaleTermsOf,
+  type SeededVendor,
+} from '@r10c/utils-ts-fleet';
 
 /**
  * How many of a vendor's offerings carry stock at all: two thirds, so the
@@ -46,6 +51,8 @@ const offeringId = (
 export interface StockMovementRecord {
   id: string;
   offeringId: string;
+  /** The unit the offering is sold in, its ledger's unit (ADR 0082 §4). */
+  unit: SaleUnit;
   /** Signed: positive is `in`, negative is `out`. */
   quantity: number;
   reason: MovementReason;
@@ -63,6 +70,7 @@ const SEEDED_FROM = Date.parse('2026-01-01T00:00:00.000Z');
 export interface StockItemRecord {
   id: string;
   offeringId: string;
+  unit: SaleUnit;
   onHand: number;
   reserved: number;
   available: number;
@@ -87,9 +95,12 @@ export interface StockItemRecord {
  * exactly the unreconcilable state the fold exists to prevent.
  */
 const movementsFor = (
+  vendor: Pick<SeededVendor, 'measured'>,
   index: number,
 ): ReadonlyArray<{ quantity: number; reason: MovementReason }> => {
-  const received = 10 + ((index * 7) % 90);
+  // Counted the way the goods are bought: 73 m is 73000, 67 hundreds 6700.
+  const received =
+    (10 + ((index * 7) % 90)) * seededSaleTermsOf(vendor, index).stockCount;
   switch (index % 4) {
     case 0:
       return [{ quantity: received, reason: 'receipt' }];
@@ -124,14 +135,15 @@ const movementsFor = (
  * proves nothing.
  */
 export const stockMovementTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): readonly StockMovementRecord[] =>
   Array.from({ length: stockedOf(vendor) }, (_, index) =>
-    movementsFor(index).map((movement, position) => {
+    movementsFor(vendor, index).map((movement, position) => {
       const id = `${vendor.idPrefix}stock-movement-${index + 1}-${position + 1}`;
       return {
         id,
         offeringId: offeringId(vendor, index),
+        unit: seededSaleTermsOf(vendor, index).saleUnit,
         ...movement,
         occurredAt: new Date(SEEDED_FROM + position * 60_000).toISOString(),
         causeType: 'manual' as const,
@@ -158,10 +170,10 @@ export const stockMovementTempData: readonly StockMovementRecord[] =
  * would then have to explain.
  */
 export const stockItemTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): readonly StockItemRecord[] =>
   Array.from({ length: stockedOf(vendor) }, (_, index) => {
-    const onHand = movementsFor(index).reduce(
+    const onHand = movementsFor(vendor, index).reduce(
       (total, movement) => total + movement.quantity,
       0,
     );
@@ -169,6 +181,7 @@ export const stockItemTempDataFor = (
     return {
       id: `${vendor.idPrefix}stock-item-${index + 1}`,
       offeringId: offeringId(vendor, index),
+      unit: seededSaleTermsOf(vendor, index).saleUnit,
       onHand,
       reserved: 0,
       available: onHand,

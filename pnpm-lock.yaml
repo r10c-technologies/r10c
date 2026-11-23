@@ -926,6 +926,9 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-vocabulary
       '@r10c/utils-ts-fleet':
         specifier: workspace:*
         version: link:../../packages/utils/ts/fleet
@@ -2303,6 +2306,9 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-vocabulary
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/stock-management
@@ -2807,6 +2813,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.23.9(effect@4.0.7)
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -3102,6 +3111,9 @@ importers:
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../flow-contracts
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -3949,6 +3961,9 @@ importers:
       '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.23.9(effect@4.0.7)
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../../business/ts/stock-management
@@ -4705,6 +4720,9 @@ importers:
       '@r10c/business-ts-order-contracts':
         specifier: workspace:*
         version: link:../../../business/ts/order-contracts
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/business-ts-shipping-order-management':
         specifier: workspace:*
         version: link:../../../business/ts/shipping-order-management
@@ -4925,6 +4943,9 @@ importers:
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../../business/ts/sales-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/utils-react-ui':
         specifier: workspace:*
         version: link:../../../utils/react/ui

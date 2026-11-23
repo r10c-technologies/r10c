@@ -51,6 +51,7 @@ const restore = (
     '/api/stock-restoration',
     {
       offeringId: OFFERING,
+      unit: 'UN',
       quantity: 2,
       cause: 'cancellation',
       orderId: 'order-e2e',
@@ -62,7 +63,7 @@ const restore = (
 const takeHold = (quantity: number) =>
   service.client.post(
     '/api/reservation',
-    { offeringId: OFFERING, quantity },
+    { offeringId: OFFERING, unit: 'UN', quantity },
     { headers: crossing() },
   );
 
@@ -111,7 +112,13 @@ describe('restoring stock after a cancellation', () => {
     const offeringId = `offering-ledger-${String(Date.now())}`;
     await service.client.post(
       '/api/stock-restoration',
-      { offeringId, quantity: 5, cause: 'cancellation', orderId: 'order-e2e' },
+      {
+        offeringId,
+        unit: 'UN',
+        quantity: 5,
+        cause: 'cancellation',
+        orderId: 'order-e2e',
+      },
       { headers: crossing() },
     );
 
@@ -139,6 +146,7 @@ describe('restoring stock after a cancellation', () => {
       '/api/stock-restoration',
       {
         offeringId,
+        unit: 'UN',
         quantity: 3,
         reason: 'receipt',
         cause: 'cancellation',
@@ -166,6 +174,7 @@ describe('restoring stock after a cancellation', () => {
         '/api/stock-restoration',
         {
           offeringId,
+          unit: 'UN',
           quantity: 4,
           cause: 'cancellation',
           orderId: 'order-e2e',
@@ -220,6 +229,7 @@ describe('restoring stock after a cancellation', () => {
       '/api/stock-restoration',
       {
         offeringId: OFFERING,
+        unit: 'UN',
         quantity: 1,
         cause: 'cancellation',
         orderId: 'order-e2e',
@@ -243,6 +253,7 @@ describe('restoring stock after a cancellation', () => {
       '/api/stock-restoration',
       {
         offeringId: OFFERING,
+        unit: 'UN',
         quantity: 1,
         cause: 'cancellation',
         orderId: 'order-e2e',

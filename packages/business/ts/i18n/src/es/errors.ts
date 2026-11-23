@@ -101,6 +101,9 @@ export const errors = {
   // una escritura atómica condicionada a eso. Cero documentos alcanzados *es* la
   // respuesta de falta de existencia, no un error del sistema.
   insufficientStock: 'No hay existencia suficiente para reservar.',
+  // ADR 0082 §4: el inventario se cuenta en la unidad de su primer movimiento.
+  unitMismatch:
+    'Este producto se lleva en inventario en otra unidad. Usa la misma unidad, o crea otra oferta para venderlo en esta.',
   flowNotStarted:
     'No se pudo iniciar. Revisa lo solicitado e inténtalo de nuevo.',
   // La venta se compensó por completo: alguna línea fue rechazada y toda

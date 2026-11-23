@@ -8,7 +8,16 @@ import {
   readPlacedOrder,
 } from './order-event.js';
 
-const line = { amount: 10, quantity: 2, currency: 'GTQ' };
+const line = {
+  amount: 10,
+  pricePer: 1,
+  saleUnit: 'UN',
+  quantity: 2,
+  lineTotal: 20,
+  currency: 'GTQ',
+};
+/** A placed line as a reader pricing an order sees it: what it cost. */
+const placedLine = { vendorId: 'v-1', lineTotal: 20, currency: 'GTQ' };
 
 const fullLine = {
   ...line,
@@ -57,7 +66,7 @@ describe('readPlacedOrder', () => {
       groupId: 'g-1',
       paymentMethod: 'card',
       // Each line carries the order's vendor for a reader pricing per line.
-      lines: [{ ...line, vendorId: 'v-1' }],
+      lines: [placedLine],
       channelType: 'counter',
     });
   });
@@ -72,7 +81,7 @@ describe('readPlacedOrder', () => {
       vendorId: 'v-1',
       groupId: 'g-1',
       paymentMethod: 'card',
-      lines: [{ ...line, vendorId: 'v-1' }],
+      lines: [placedLine],
     });
   });
 
@@ -88,6 +97,12 @@ describe('readPlacedOrder', () => {
       { ...order, items: [null] },
       { ...order, items: [{ ...fullLine, amount: Number.NaN }] },
       { ...order, items: [{ ...fullLine, quantity: 'two' }] },
+      // A quantity in the unit's scale is an integer, and a line names its
+      // unit and price basis (ADR 0082).
+      { ...order, items: [{ ...fullLine, quantity: 2.5 }] },
+      { ...order, items: [{ ...fullLine, saleUnit: 'BOX' }] },
+      { ...order, items: [{ ...fullLine, pricePer: 12 }] },
+      { ...order, items: [{ ...fullLine, lineTotal: undefined }] },
       { ...order, items: [{ ...fullLine, currency: '' }] },
       // The whole fact (ADR 0078 §2): a fiscal member missing is a wrong ledger
       // entry, not a smaller one.

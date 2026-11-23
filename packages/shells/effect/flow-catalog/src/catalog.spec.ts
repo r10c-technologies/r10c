@@ -48,8 +48,12 @@ const line = (offeringId: string) => ({
   name: `Name of ${offeringId}`,
   specificationId: `spec-${offeringId}`,
   specificationVersion: 2,
+  saleUnit: 'UN' as const,
   quantity: 2,
   amount: 500,
+  pricePer: 1 as const,
+  // As the coordinator states it: `lineTotal` over the line's terms.
+  lineTotal: 1000,
   currency: 'GTQ',
 });
 
@@ -401,7 +405,9 @@ describe('the checkout recipe', () => {
         specificationVersion: 2,
       }),
     ]);
-    expect(step('fulfilment.open')?.lines).toEqual([{ ...sold, quantity: 2 }]);
+    expect(step('fulfilment.open')?.lines).toEqual([
+      { ...sold, unit: 'UN', quantity: 2 },
+    ]);
     // The slip is composed from the start alone: nothing reads the projection
     // again, so a rename after the checkout reaches neither write.
   });
@@ -461,7 +467,7 @@ const cancellation = (
   orderId: 'ord-1',
   vendorId: 'v-1',
   paymentMethod,
-  lines: [{ offeringId: 'o-1', quantity: 2 }],
+  lines: [{ offeringId: 'o-1', unit: 'UN', quantity: 2 }],
   shipped,
   entitlements: PROVISIONED,
 });
@@ -518,6 +524,7 @@ describe('the cancellation recipe', () => {
     });
     expect(slipSteps(slip)[3]?.parameters).toEqual({
       offeringId: 'o-1',
+      unit: 'UN',
       quantity: 2,
       organizationId: 'v-1',
       orderId: 'ord-1',
@@ -560,7 +567,7 @@ const delivery = (
   taxAmount: 107,
   taxRegime: 'general',
   currency: 'GTQ',
-  lines: [{ offeringId: 'o-1', quantity: 2 }],
+  lines: [{ offeringId: 'o-1', unit: 'UN', quantity: 2 }],
   entitlements: PROVISIONED,
   awaitDeliveryMs: 1_209_600_000,
   awaitReturnMs: 2_592_000_000,

@@ -62,7 +62,9 @@ describe('isConsistentMovement', () => {
     expect(isConsistentMovement('sale', Number.NEGATIVE_INFINITY)).toBe(false);
   });
 
-  it('accepts a fractional quantity, for a vendor selling by weight', () => {
-    expect(isConsistentMovement('receipt', 2.5)).toBe(true);
+  it('refuses a fraction, which is a quantity that lost its unit (ADR 0082 §2)', () => {
+    // 2.5 kg is 2500 in `KG`; 2.5 reached here only by being read without one.
+    expect(isConsistentMovement('receipt', 2.5)).toBe(false);
+    expect(isConsistentMovement('receipt', 2500)).toBe(true);
   });
 });

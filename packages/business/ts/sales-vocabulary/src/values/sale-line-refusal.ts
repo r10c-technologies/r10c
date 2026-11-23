@@ -50,7 +50,14 @@ export const saleLineRefusal = (
 ): SaleLineRefusal | undefined => {
   const refused = quantityRefusal(offeringId, quantity, rule);
   if (refused !== undefined) return refused;
-  return lineTotal({ ...price, quantity, saleUnit: rule.saleUnit }) === 0
+  // Named rather than spread: a published offering is an entity, whose
+  // members are accessors a spread does not copy.
+  return lineTotal({
+    amount: price.amount,
+    pricePer: price.pricePer,
+    quantity,
+    saleUnit: rule.saleUnit,
+  }) === 0
     ? new LineBelowOneMinorUnit({ offeringId, saleUnit: rule.saleUnit })
     : undefined;
 };

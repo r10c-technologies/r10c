@@ -11,12 +11,12 @@ const price = (input: Parameters<typeof commissionsForOrder>[0]) =>
 const payout = (...args: Parameters<typeof payoutFor>) =>
   Effect.runSync(payoutFor(...args));
 
+/** A placed line: what it cost, as the coordinator computed it once. */
 const line = (
   vendorId: string,
-  amount: number,
-  quantity: number,
+  lineTotal: number,
   currency = 'GTQ',
-): PlacedOrderLine => ({ vendorId, amount, quantity, currency });
+): PlacedOrderLine => ({ vendorId, lineTotal, currency });
 
 const agreementFor = (
   vendorId: string,
@@ -36,7 +36,7 @@ const agreements = (...built: Agreement[]) =>
 describe('commissionsForOrder', () => {
   it('prices a vendor’s lines at the agreement’s default rate', () => {
     const { commissions } = price({
-      lines: [line('acme', 1000, 2), line('acme', 500, 1)],
+      lines: [line('acme', 2000), line('acme', 500)],
       agreements: agreements(agreementFor('acme', 800)),
     });
 
@@ -51,23 +51,24 @@ describe('commissionsForOrder', () => {
     ]);
   });
 
-  it('multiplies the unit price by the quantity', () => {
-    // `amount` on a line is per unit, which is the one thing about the payload
-    // that reads wrong if you skim it: a line of 3 at 1000 is a 3000 sale.
+  it('prices a line by what it cost, never its price times its quantity again', () => {
+    // 3.5 m at Q45.00 cost Q157.50: the line's `lineTotal`. Multiplying the
+    // quantity, 3500 in the metre's scale, would price a Q157,500 sale
+    // (ADR 0082 §6).
     const { commissions } = price({
-      lines: [line('acme', 1000, 3)],
+      lines: [line('acme', 15_750)],
       agreements: agreements(agreementFor('acme', 1000)),
     });
 
-    expect(commissions[0]?.saleAmount).toBe(3000);
-    expect(commissions[0]?.commissionAmount).toBe(300);
+    expect(commissions[0]?.saleAmount).toBe(15_750);
+    expect(commissions[0]?.commissionAmount).toBe(1575);
   });
 
   it('takes nothing when the channel’s negotiated rate is zero', () => {
     // The whole reason per-channel rates exist, and the trap #94 was opened
     // for: `rates[type] || fallback` charges the full 8% here.
     const { commissions } = price({
-      lines: [line('acme', 1000, 1)],
+      lines: [line('acme', 1000)],
       channelType: 'counter',
       agreements: agreements(agreementFor('acme', 800, { counter: 0 })),
     });
@@ -78,7 +79,7 @@ describe('commissionsForOrder', () => {
 
   it('falls back to the default for a channel with no explicit rate', () => {
     const { commissions } = price({
-      lines: [line('acme', 1000, 1)],
+      lines: [line('acme', 1000)],
       channelType: 'storefront',
       agreements: agreements(agreementFor('acme', 800, { counter: 0 })),
     });
@@ -89,7 +90,7 @@ describe('commissionsForOrder', () => {
   it('falls back to the default when the sale came through no channel', () => {
     // A storefront checkout carries no channel at all.
     const { commissions } = price({
-      lines: [line('acme', 1000, 1)],
+      lines: [line('acme', 1000)],
       agreements: agreements(agreementFor('acme', 800, { counter: 0 })),
     });
 
@@ -100,7 +101,7 @@ describe('commissionsForOrder', () => {
     // The multi-vendor case ADR 0022 embedded vendor-tagged lines for: one
     // receipt for the buyer, one commission entry per vendor.
     const { commissions } = price({
-      lines: [line('acme', 1000, 1), line('globex', 2000, 1)],
+      lines: [line('acme', 1000), line('globex', 2000)],
       agreements: agreements(
         agreementFor('acme', 800),
         agreementFor('globex', 500),
@@ -128,7 +129,7 @@ describe('commissionsForOrder', () => {
     // rounds to 17. The entry has to equal the invoice, so the subtotal is what
     // gets rounded.
     const { commissions } = price({
-      lines: [line('acme', 333, 1), line('acme', 333, 1)],
+      lines: [line('acme', 333), line('acme', 333)],
       agreements: agreements(agreementFor('acme', 250)),
     });
 
@@ -139,7 +140,7 @@ describe('commissionsForOrder', () => {
     // Flooring would leave the platform systematically short by up to a cent on
     // every sale in the ledger, which over a period is a real number.
     const { commissions } = price({
-      lines: [line('acme', 999, 1)],
+      lines: [line('acme', 999)],
       agreements: agreements(agreementFor('acme', 500)),
     });
 
@@ -151,7 +152,7 @@ describe('commissionsForOrder', () => {
     // an agreement. Inventing one would put a term nobody negotiated into a
     // ledger built to be defensible.
     const { commissions, unpriced } = price({
-      lines: [line('acme', 1000, 1), line('globex', 2000, 1)],
+      lines: [line('acme', 1000), line('globex', 2000)],
       agreements: agreements(agreementFor('acme', 800)),
     });
 
@@ -166,7 +167,7 @@ describe('commissionsForOrder', () => {
       Effect.runSync(
         Effect.flip(
           commissionsForOrder({
-            lines: [line('acme', 500, 1, 'EUR'), line('acme', 500, 1, 'GBP')],
+            lines: [line('acme', 500, 'EUR'), line('acme', 500, 'GBP')],
             agreements: agreements(agreementFor('acme', 800)),
           }),
         ),
@@ -180,7 +181,7 @@ describe('commissionsForOrder', () => {
 
   it('allows two vendors on one order to use different currencies', () => {
     const { commissions } = price({
-      lines: [line('acme', 1000, 1, 'EUR'), line('globex', 1000, 1, 'GBP')],
+      lines: [line('acme', 1000, 'EUR'), line('globex', 1000, 'GBP')],
       agreements: agreements(
         agreementFor('acme', 800),
         agreementFor('globex', 800),

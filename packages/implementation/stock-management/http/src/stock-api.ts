@@ -28,6 +28,7 @@ import {
   StockLedgerTag,
   StockMovement,
   takeReservation,
+  UnitMismatch,
 } from '@r10c/business-ts-stock-management';
 import { Effect, Option, Schema } from 'effect';
 
@@ -83,7 +84,7 @@ export const stockMovementApi = defineEntityApi(
     guard: { kind: 'organization' },
     override: {
       create: {
-        errors: [InvalidBody, InconsistentMovement, Invalid],
+        errors: [InvalidBody, InconsistentMovement, UnitMismatch, Invalid],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
             const movement = yield* readEntityEnvelope(
@@ -129,7 +130,7 @@ export const reservationApi = defineEntityApi(
       create: {
         idempotent: 'unit',
         payload: JsonBody,
-        errors: [InvalidBody, InsufficientStock, Invalid],
+        errors: [InvalidBody, InsufficientStock, UnitMismatch, Invalid],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
             const reservation = yield* readStepRecord(
@@ -200,6 +201,7 @@ const restoration = defineEndpoint({
   errors: [
     InconsistentMovement,
     InvalidBody,
+    UnitMismatch,
     Invalid,
     DuplicateKey,
     StaleRevision,

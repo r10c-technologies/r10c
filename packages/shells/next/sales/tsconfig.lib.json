@@ -30,6 +30,9 @@
       "path": "../../../utils/react/ui/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/sales-management/tsconfig.lib.json"
     },
     {

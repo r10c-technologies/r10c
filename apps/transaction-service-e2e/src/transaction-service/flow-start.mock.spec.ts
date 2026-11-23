@@ -43,8 +43,10 @@ const basket = (vendorId = PROVISIONED_VENDOR) => ({
           name: 'Lámpara',
           specificationId: 'spec-1',
           specificationVersion: 1,
+          saleUnit: 'UN',
           quantity: 1,
           amount: 500,
+          pricePer: 1,
           currency: 'GTQ',
         },
       ],
@@ -169,7 +171,9 @@ describe('POST /api/flow/cancellation', () => {
         orderId: 'ord-1',
         vendorId: PROVISIONED_VENDOR,
         paymentMethod: 'card',
-        lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
+        lines: [
+          { offeringId: 'o-1', name: 'Lámpara', unit: 'UN', quantity: 1 },
+        ],
         shipped: true,
       },
       { headers: crossing() },
@@ -201,7 +205,9 @@ describe('POST /api/flow/delivery', () => {
         taxAmount: 54,
         taxRegime: 'general',
         currency: 'GTQ',
-        lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
+        lines: [
+          { offeringId: 'o-1', name: 'Lámpara', unit: 'UN', quantity: 1 },
+        ],
       },
       { headers: crossing() },
     );

@@ -5,6 +5,8 @@ import {
   type PriceBasis,
   quotedQuantity,
   SALE_UNIT_SYMBOL_KEY,
+  type SaleRule,
+  type SaleUnit,
 } from '@r10c/business-ts-sales-vocabulary';
 
 /** The slice of a translate function the label needs. */
@@ -32,4 +34,36 @@ export const priceBasisLabel =
           quantity: formatQuantity(quoted.quantity, quoted.saleUnit, locale),
           symbol,
         });
+  };
+
+/**
+ * A quantity with its unit, worded for `locale`: "3.5 m", "2 u.". Every place
+ * the storefront shows a line's quantity shows this, because `3500` alone is
+ * neither 3.5 m nor 3,500 of anything (ADR 0082 §2).
+ */
+export const quantityLabel =
+  (t: Translate, locale: Locale) =>
+  (quantity: number, saleUnit: SaleUnit): string =>
+    t('storefront.price.quantity', {
+      quantity: formatQuantity(quantity, saleUnit, locale),
+      symbol: t(`${SALE_UNIT_SYMBOL_KEY}.${saleUnit}`),
+    });
+
+/**
+ * How an offering not sold one whole unit at a time is sold — "Desde 1 m, de
+ * 0.5 m en 0.5 m" — or `undefined` for one that is, which the field's own
+ * unit already says. Shown beside every quantity field, so a refusal is
+ * never the first the buyer hears of the rule.
+ */
+export const saleRuleLabel =
+  (t: Translate, locale: Locale) =>
+  (rule: SaleRule): string | undefined => {
+    const whole = oneWholeUnit(rule.saleUnit);
+    if (rule.quantityStep === whole && rule.quantityMinimum === whole)
+      return undefined;
+    const label = quantityLabel(t, locale);
+    return t('storefront.price.sold', {
+      minimum: label(rule.quantityMinimum, rule.saleUnit),
+      step: label(rule.quantityStep, rule.saleUnit),
+    });
   };

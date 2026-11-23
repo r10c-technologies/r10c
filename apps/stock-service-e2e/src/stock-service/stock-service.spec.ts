@@ -74,7 +74,7 @@ const itemFor = async (offeringId: string) => {
 const recordMovement = (offeringId: string, quantity: number, reason: string) =>
   service.client.post('/api/stock-movement', {
     meta: { type: 'entity', entity: 'stock-movement' },
-    data: { offeringId, quantity, reason },
+    data: { offeringId, unit: 'UN', quantity, reason },
   });
 
 describe('stock-service', () => {
@@ -295,17 +295,14 @@ describe('the query protocol', () => {
     expect(res.data.code).toBe('invalidQuery');
   });
 
-  it('sorts a ledger by quantity', async () => {
+  it('refuses to sort a ledger by quantity, which means another thing per unit', async () => {
+    // 3500 is 3.5 m on one line and 3,500 pieces on the next, so the member is
+    // off the server-side allowlist (ADR 0082 §4): a sort on it is refused
+    // rather than answered in an order that means nothing.
     const res: Page = await service.client.get(
       '/api/stock-movement?sort=quantity&pageSize=10',
     );
 
-    expect(res.status).toBe(200);
-    const quantities = pageOf(res).items.map(
-      movement => movement['quantity'] as number,
-    );
-    expect([...quantities].sort((left, right) => left - right)).toEqual(
-      quantities,
-    );
+    expect(res.status).toBe(400);
   });
 });

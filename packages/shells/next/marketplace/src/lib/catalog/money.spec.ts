@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { totalsByCurrency } from './money';
 
 describe('totalsByCurrency', () => {
-  it('multiplies each line by its quantity', () => {
+  it('sums what each line cost, and never multiplies again (ADR 0082 §6)', () => {
     expect(
       totalsByCurrency([
-        { amount: 1999, currency: 'GTQ', quantity: 2 },
-        { amount: 500, currency: 'GTQ', quantity: 1 },
+        { lineTotal: 3998, currency: 'GTQ' },
+        { lineTotal: 500, currency: 'GTQ' },
       ]),
     ).toEqual([{ currency: 'GTQ', amount: 4498 }]);
   });
@@ -16,9 +16,9 @@ describe('totalsByCurrency', () => {
   it('keeps one total per currency, in first-seen order', () => {
     expect(
       totalsByCurrency([
-        { amount: 1000, currency: 'USD', quantity: 1 },
-        { amount: 2000, currency: 'GTQ', quantity: 1 },
-        { amount: 300, currency: 'USD', quantity: 2 },
+        { lineTotal: 1000, currency: 'USD' },
+        { lineTotal: 2000, currency: 'GTQ' },
+        { lineTotal: 600, currency: 'USD' },
       ]),
     ).toEqual([
       { currency: 'USD', amount: 1600 },

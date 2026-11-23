@@ -677,7 +677,7 @@
       "name": "order.cancelled",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "d0ba79d7fc49de34",
+      "fingerprint": "6e69a3e58846c99e",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -725,8 +725,40 @@
                   "amount": {
                     "type": "number"
                   },
+                  "pricePer": {
+                    "type": "number",
+                    "enum": [
+                      1,
+                      100,
+                      1000
+                    ]
+                  },
+                  "saleUnit": {
+                    "type": "string",
+                    "enum": [
+                      "UN",
+                      "PAR",
+                      "M",
+                      "YD",
+                      "FT",
+                      "M2",
+                      "FT2",
+                      "DM2",
+                      "KG",
+                      "LB",
+                      "L",
+                      "GAL"
+                    ]
+                  },
                   "quantity": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "lineTotal": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   },
                   "currency": {
                     "type": "string",
@@ -756,7 +788,10 @@
                   "specificationId",
                   "specificationVersion",
                   "amount",
+                  "pricePer",
+                  "saleUnit",
                   "quantity",
+                  "lineTotal",
                   "currency",
                   "kind",
                   "taxTreatment",
@@ -871,7 +906,7 @@
       "name": "order.dispatched",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "ffc04af406510bb9",
+      "fingerprint": "7c5a4c16922edee7",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -919,8 +954,40 @@
                   "amount": {
                     "type": "number"
                   },
+                  "pricePer": {
+                    "type": "number",
+                    "enum": [
+                      1,
+                      100,
+                      1000
+                    ]
+                  },
+                  "saleUnit": {
+                    "type": "string",
+                    "enum": [
+                      "UN",
+                      "PAR",
+                      "M",
+                      "YD",
+                      "FT",
+                      "M2",
+                      "FT2",
+                      "DM2",
+                      "KG",
+                      "LB",
+                      "L",
+                      "GAL"
+                    ]
+                  },
                   "quantity": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "lineTotal": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   },
                   "currency": {
                     "type": "string",
@@ -950,7 +1017,10 @@
                   "specificationId",
                   "specificationVersion",
                   "amount",
+                  "pricePer",
+                  "saleUnit",
                   "quantity",
+                  "lineTotal",
                   "currency",
                   "kind",
                   "taxTreatment",
@@ -1065,7 +1135,7 @@
       "name": "order.fulfilled",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "c099ffbbe9cd3f9e",
+      "fingerprint": "5725f41b89e753c4",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -1113,8 +1183,40 @@
                   "amount": {
                     "type": "number"
                   },
+                  "pricePer": {
+                    "type": "number",
+                    "enum": [
+                      1,
+                      100,
+                      1000
+                    ]
+                  },
+                  "saleUnit": {
+                    "type": "string",
+                    "enum": [
+                      "UN",
+                      "PAR",
+                      "M",
+                      "YD",
+                      "FT",
+                      "M2",
+                      "FT2",
+                      "DM2",
+                      "KG",
+                      "LB",
+                      "L",
+                      "GAL"
+                    ]
+                  },
                   "quantity": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "lineTotal": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   },
                   "currency": {
                     "type": "string",
@@ -1144,7 +1246,10 @@
                   "specificationId",
                   "specificationVersion",
                   "amount",
+                  "pricePer",
+                  "saleUnit",
                   "quantity",
+                  "lineTotal",
                   "currency",
                   "kind",
                   "taxTreatment",
@@ -1259,7 +1364,7 @@
       "name": "order.payment-confirmed",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "39be71c3c09daf66",
+      "fingerprint": "fb1216c567c0ddcc",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -1307,8 +1412,40 @@
                   "amount": {
                     "type": "number"
                   },
+                  "pricePer": {
+                    "type": "number",
+                    "enum": [
+                      1,
+                      100,
+                      1000
+                    ]
+                  },
+                  "saleUnit": {
+                    "type": "string",
+                    "enum": [
+                      "UN",
+                      "PAR",
+                      "M",
+                      "YD",
+                      "FT",
+                      "M2",
+                      "FT2",
+                      "DM2",
+                      "KG",
+                      "LB",
+                      "L",
+                      "GAL"
+                    ]
+                  },
                   "quantity": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "lineTotal": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   },
                   "currency": {
                     "type": "string",
@@ -1338,7 +1475,10 @@
                   "specificationId",
                   "specificationVersion",
                   "amount",
+                  "pricePer",
+                  "saleUnit",
                   "quantity",
+                  "lineTotal",
                   "currency",
                   "kind",
                   "taxTreatment",
@@ -1453,7 +1593,7 @@
       "name": "order.placed",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "4dd879dbecfe08b0",
+      "fingerprint": "2311c651013db72e",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -1501,8 +1641,40 @@
                   "amount": {
                     "type": "number"
                   },
+                  "pricePer": {
+                    "type": "number",
+                    "enum": [
+                      1,
+                      100,
+                      1000
+                    ]
+                  },
+                  "saleUnit": {
+                    "type": "string",
+                    "enum": [
+                      "UN",
+                      "PAR",
+                      "M",
+                      "YD",
+                      "FT",
+                      "M2",
+                      "FT2",
+                      "DM2",
+                      "KG",
+                      "LB",
+                      "L",
+                      "GAL"
+                    ]
+                  },
                   "quantity": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "lineTotal": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   },
                   "currency": {
                     "type": "string",
@@ -1532,7 +1704,10 @@
                   "specificationId",
                   "specificationVersion",
                   "amount",
+                  "pricePer",
+                  "saleUnit",
                   "quantity",
+                  "lineTotal",
                   "currency",
                   "kind",
                   "taxTreatment",
@@ -2159,7 +2334,7 @@
       "name": "stock-item.changed",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "885518b50fab0886",
+      "fingerprint": "b4a467a9d92b4e0a",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -2172,6 +2347,23 @@
             "offeringId": {
               "type": "string",
               "minLength": 1
+            },
+            "unit": {
+              "type": "string",
+              "enum": [
+                "UN",
+                "PAR",
+                "M",
+                "YD",
+                "FT",
+                "M2",
+                "FT2",
+                "DM2",
+                "KG",
+                "LB",
+                "L",
+                "GAL"
+              ]
             },
             "onHand": {
               "type": "number"
@@ -2186,6 +2378,7 @@
           "required": [
             "id",
             "offeringId",
+            "unit",
             "onHand",
             "reserved",
             "available"
@@ -2204,7 +2397,7 @@
       "name": "stock-movement.recorded",
       "versioned": true,
       "audience": "none",
-      "fingerprint": "ed006f8a6f4db2f6",
+      "fingerprint": "17a5b9ecd0530e2d",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -2222,8 +2415,27 @@
               "type": "string",
               "minLength": 1
             },
+            "unit": {
+              "type": "string",
+              "enum": [
+                "UN",
+                "PAR",
+                "M",
+                "YD",
+                "FT",
+                "M2",
+                "FT2",
+                "DM2",
+                "KG",
+                "LB",
+                "L",
+                "GAL"
+              ]
+            },
             "quantity": {
-              "type": "number"
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             },
             "reason": {
               "type": "string",
@@ -2261,6 +2473,7 @@
             "id",
             "organizationId",
             "offeringId",
+            "unit",
             "quantity",
             "reason",
             "occurredAt",

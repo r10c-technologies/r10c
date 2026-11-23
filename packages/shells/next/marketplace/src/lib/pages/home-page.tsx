@@ -26,10 +26,7 @@ import { AddedNotice } from '../cart/added-notice';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { emptyPage, runRead, runReadOutcome } from '../catalog/catalog-reads';
 import { CatalogUnavailable } from '../catalog/catalog-unavailable';
-import {
-  loadCardNames,
-  OfferingGrid,
-} from '../catalog/offering-grid';
+import { loadCardNames, OfferingGrid } from '../catalog/offering-grid';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 

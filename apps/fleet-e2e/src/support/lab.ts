@@ -5,6 +5,7 @@ import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
+import { lineTotal, saleTermsOf } from '@r10c/business-ts-sales-vocabulary';
 import { configSourceFor, SEEDED_VENDORS } from '@r10c/utils-ts-fleet';
 import { type Db, MongoClient } from 'mongodb';
 
@@ -33,6 +34,7 @@ export const FLEET = {
   payment: url('PAYMENT_SERVICE_URL', 3106),
   settlement: url('SETTLEMENT_SERVICE_URL', 3107),
   stock: url('STOCK_SERVICE_URL', 3108),
+  sales: url('SALES_SERVICE_URL', 3109),
   fulfilment: url('FULFILMENT_SERVICE_URL', 3110),
   realtime: url('REALTIME_SERVICE_URL', 3191),
   /** The edge (ADR 0072): what a browser opens a stream through. */
@@ -235,7 +237,14 @@ const sellableOfferings = async (organizationId: string, atLeast: number) => {
     await mongo('marketplace')
   )
     .collection('published-offering')
-    .find({ vendorId: organizationId, currency: 'GTQ' })
+    // Sold by the piece, priced for one: what a spec buying `quantity: 1`
+    // means. The seed's measured offerings are read by `measuredOffering`.
+    .find({
+      vendorId: organizationId,
+      currency: 'GTQ',
+      saleUnit: 'UN',
+      pricePer: 1,
+    })
     .toArray();
   const items = await (
     await mongo(`stock_${organizationId}`)
@@ -295,8 +304,9 @@ export interface Started {
 }
 
 /**
- * The specification version an offering is on sale under, read off the
- * projection as the storefront prices a line (ADR 0079 §3).
+ * The specification version an offering is on sale under, and the terms its
+ * price is quoted on, read off the projection as the storefront prices a line
+ * (ADR 0079 §3, ADR 0082). An offering without terms is no published price.
  */
 const pinOf = async (offeringId: string) => {
   const published = await (
@@ -304,9 +314,14 @@ const pinOf = async (offeringId: string) => {
   )
     .collection('published-offering')
     .findOne({ offeringId });
+  const terms = saleTermsOf(published ?? undefined);
+  if (terms === undefined)
+    throw new Error(`${offeringId} is published with no sale terms`);
   return {
     specificationId: String(published?.['specificationId'] ?? ''),
     specificationVersion: Number(published?.['specificationVersion'] ?? 0),
+    saleUnit: terms.saleUnit,
+    pricePer: terms.pricePer,
   };
 };
 
@@ -325,9 +340,21 @@ export const startCheckout = async (
         ),
     ),
   );
+  // What the coordinator will state again, by `lineTotal` (ADR 0082 §6).
   const total = segments
     .flatMap(segment => segment.lines)
-    .reduce((sum, line) => sum + line.amount * line.quantity, 0);
+    .reduce((sum, line) => {
+      const pin = pins.get(line.offeringId);
+      return pin === undefined
+        ? sum
+        : sum +
+            lineTotal({
+              amount: line.amount,
+              quantity: line.quantity,
+              saleUnit: pin.saleUnit,
+              pricePer: pin.pricePer,
+            });
+    }, 0);
   const res = await fetch(`${FLEET.transaction}/api/flow/checkout`, {
     method: 'POST',
     // The coordinator's inbound token — the one the storefront holds.

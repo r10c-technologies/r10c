@@ -18,6 +18,7 @@ export const stockItemSeed = [
   {
     id: 'stock-item-1',
     offeringId: 'product-offering-1',
+    unit: 'UN',
     onHand: 10,
     reserved: 0,
     available: 10,
@@ -25,6 +26,7 @@ export const stockItemSeed = [
   {
     id: 'stock-item-2',
     offeringId: 'product-offering-2',
+    unit: 'UN',
     onHand: 13,
     reserved: 0,
     available: 13,
@@ -32,6 +34,7 @@ export const stockItemSeed = [
   {
     id: 'stock-item-3',
     offeringId: 'product-offering-3',
+    unit: 'UN',
     onHand: 17,
     reserved: 2,
     available: 15,
@@ -39,6 +42,7 @@ export const stockItemSeed = [
   {
     id: 'stock-item-4',
     offeringId: 'product-offering-4',
+    unit: 'UN',
     onHand: 0,
     reserved: 0,
     available: 0,
@@ -49,36 +53,42 @@ export const stockMovementSeed = [
   {
     id: 'stock-movement-1-1',
     offeringId: 'product-offering-1',
+    unit: 'UN',
     quantity: 10,
     reason: 'receipt',
   },
   {
     id: 'stock-movement-2-1',
     offeringId: 'product-offering-2',
+    unit: 'UN',
     quantity: 17,
     reason: 'receipt',
   },
   {
     id: 'stock-movement-2-2',
     offeringId: 'product-offering-2',
+    unit: 'UN',
     quantity: -4,
     reason: 'sale',
   },
   {
     id: 'stock-movement-3-1',
     offeringId: 'product-offering-3',
+    unit: 'UN',
     quantity: 24,
     reason: 'receipt',
   },
   {
     id: 'stock-movement-3-2',
     offeringId: 'product-offering-3',
+    unit: 'UN',
     quantity: -6,
     reason: 'sale',
   },
   {
     id: 'stock-movement-3-3',
     offeringId: 'product-offering-3',
+    unit: 'UN',
     quantity: -1,
     reason: 'adjustment',
   },
@@ -93,6 +103,7 @@ export const reservationSeed = [
   {
     id: 'reservation-1',
     offeringId: 'product-offering-3',
+    unit: 'UN',
     quantity: 2,
     status: 'held',
     expiresAt: '2026-12-01T00:00:00.000Z',

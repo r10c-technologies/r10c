@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../../../business/ts/stock-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
     }
   ],
   "exclude": [

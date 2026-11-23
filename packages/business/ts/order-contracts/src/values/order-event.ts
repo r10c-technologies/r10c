@@ -4,6 +4,7 @@ import {
   openStruct,
   registerEvent,
 } from '@entifix/core';
+import { PricePers, SaleUnits } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
 const invalidPayload = (detail: string) =>
@@ -54,9 +55,17 @@ const OrderLineSchema = openStruct({
    */
   specificationId: Schema.NonEmptyString,
   specificationVersion: Schema.Finite,
-  /** Minor units, **per unit**. */
+  /** Minor units, for `pricePer` whole `saleUnit`s (ADR 0082 §5). */
   amount: Schema.Finite,
-  quantity: Schema.Finite,
+  pricePer: Schema.Literals(PricePers),
+  saleUnit: Schema.Literals(SaleUnits),
+  /** An integer in the unit's scale: 3500 is 3.5 m (ADR 0082 §2). */
+  quantity: Schema.Int,
+  /**
+   * What the line costs, computed once at placement by `lineTotal` and copied
+   * here (ADR 0082 §6). A reader sums it and never multiplies.
+   */
+  lineTotal: Schema.Int,
   currency: Schema.NonEmptyString,
   kind: Schema.NonEmptyString,
   taxTreatment: Schema.NonEmptyString,
@@ -144,10 +153,14 @@ export const orderAudience = (
     : [{ kind: 'flow' as const, id: order.groupId, digest: receiptDigest }]),
 ];
 
+/**
+ * A line as a reader pricing an order sees it: what it cost, never the price
+ * and quantity it cost that from — multiplying those again is how a measured
+ * line is charged a thousand times over (ADR 0082 §6).
+ */
 export interface PlacedOrderLine {
   readonly vendorId: string;
-  readonly amount: number;
-  readonly quantity: number;
+  readonly lineTotal: number;
   readonly currency: string;
 }
 
@@ -185,10 +198,9 @@ export const readPlacedOrder = (
       paymentMethod: order.paymentMethod,
       // Each line carries its order's vendor, so a reader pricing per line
       // needs no second lookup.
-      lines: order.items.map(({ amount, quantity, currency }) => ({
+      lines: order.items.map(({ lineTotal, currency }) => ({
         vendorId: order.vendorId,
-        amount,
-        quantity,
+        lineTotal,
         currency,
       })),
       ...(order.channel === undefined || order.channel === null

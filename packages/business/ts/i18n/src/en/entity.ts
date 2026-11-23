@@ -443,6 +443,9 @@ export const entity: EsEntity = {
         description: 'Description as sold',
         specificationId: 'Product version ID',
         specificationVersion: 'Product version',
+        saleUnit: 'Unit',
+        pricePer: 'Price per',
+        lineTotal: 'Line total',
         quantity: 'Quantity',
         amount: 'Amount',
         currency: 'Currency',
@@ -860,6 +863,7 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       offeringId: 'Product',
+      unit: 'Unit',
       onHand: 'On hand',
       reserved: 'Reserved',
       available: 'Available',
@@ -877,6 +881,7 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       offeringId: 'Product',
+      unit: 'Unit',
       quantity: 'Quantity',
       reason: 'Reason',
       occurredAt: 'Occurred at',
@@ -910,6 +915,7 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       offeringId: 'Product',
+      unit: 'Unit',
       quantity: 'Quantity',
       status: 'Status',
       expiresAt: 'Expires at',
@@ -958,6 +964,7 @@ export const entity: EsEntity = {
       line: {
         offeringId: 'Product',
         name: 'Sold as',
+        unit: 'Unit',
         quantity: 'Quantity',
       },
       status: 'Status',

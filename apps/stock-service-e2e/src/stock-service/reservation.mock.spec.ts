@@ -57,7 +57,7 @@ const takeHold = (
 ) =>
   service.client.post(
     '/api/reservation',
-    { offeringId, quantity },
+    { offeringId, unit: 'UN', quantity },
     { headers },
   );
 
@@ -199,7 +199,7 @@ describe('the crossing guard', () => {
     // the weaker of two accepted credentials is the security level (ADR 0023).
     const res = await service.client.post(
       '/api/reservation',
-      { offeringId: OFFERING, quantity: 1 },
+      { offeringId: OFFERING, unit: 'UN', quantity: 1 },
       { headers: { Authorization: await bearerFor(['super-admin']) } },
     );
 

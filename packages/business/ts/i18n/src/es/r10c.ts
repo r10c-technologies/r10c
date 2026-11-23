@@ -188,6 +188,10 @@ export const r10c = {
     price: {
       per: 'por {{symbol}}',
       perQuantity: 'por {{quantity}} {{symbol}}',
+      // Una cantidad con su unidad: «3.5 m», «2 u.».
+      quantity: '{{quantity}} {{symbol}}',
+      // Cómo se vende lo que no se vende de uno en uno.
+      sold: 'Desde {{minimum}}, de {{step}} en {{step}}',
     },
     product: {
       buy: 'Comprar',
@@ -292,6 +296,10 @@ export const r10c = {
       undo: 'Deshacer',
       quantity: 'Cantidad',
       quantityOf: 'Cantidad de {{name}}',
+      // Una cantidad rechazada, no redondeada (ADR 0082 §3): el motivo es el
+      // del catálogo `errors`.
+      refused: 'No se cambió {{name}} en el carrito.',
+      blocked: 'Cambia las cantidades marcadas para revisar el pedido.',
       update: 'Actualizar',
       total: 'Total',
       keepShopping: 'Seguir comprando',
@@ -372,6 +380,8 @@ export const r10c = {
       doesNotShip:
         '{{seller}} no hace envíos, así que no se le puede comprar en la tienda. Quita sus productos del carrito para continuar.',
       thisSeller: 'Uno de los vendedores',
+      quantity:
+        'Una cantidad del carrito ya no se vende así. Cámbiala para continuar.',
       // Un medio de pago por vendedor (ADR 0070). El pago contra entrega solo
       // se ofrece donde el vendedor lo acepta.
       method: {
@@ -410,7 +420,7 @@ export const r10c = {
         phone: 'Teléfono: •••• {{ending}}',
         zona: 'Zona {{zona}}',
       },
-      units: 'Cant. {{count}}',
+      units: 'Cant. {{quantity}}',
       total: 'Total',
       tooManyLines:
         'Este pedido tiene {{count}} artículos, demasiados para mostrarlos aquí. El número de pedido de arriba los identifica a todos.',

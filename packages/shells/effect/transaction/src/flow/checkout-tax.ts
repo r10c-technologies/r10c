@@ -73,12 +73,11 @@ export const taxedPart = (
   const lines = Array.isArray(part['lines'])
     ? (part['lines'] as unknown[]).map(line => recordOf(line) ?? {})
     : [];
-  const grosses = lines.map(
-    line => Number(line['amount']) * Number(line['quantity']),
-  );
+  // What each line cost, as the coordinator priced it (ADR 0082 §6).
+  const grosses = lines.map(line => line['lineTotal']);
   if (
-    // A line that is not whole minor units is the start's decoding to refuse;
-    // nothing is stated for it here.
+    // A line with no total did not add up; the start's decoding refuses it,
+    // and nothing is stated for it here.
     !grosses.every(Number.isSafeInteger) ||
     seller === undefined ||
     !filled(seller['taxId']) ||
@@ -90,7 +89,10 @@ export const taxedPart = (
     return rest;
   }
   const document = taxDocument(
-    grosses.map(gross => ({ gross, treatment: 'taxed' as const })),
+    (grosses as number[]).map(gross => ({
+      gross,
+      treatment: 'taxed' as const,
+    })),
     rules[regime],
   );
   return {

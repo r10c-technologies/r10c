@@ -9,6 +9,12 @@ import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { InvalidBody } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import {
+  lineTotal,
+  type PricePer,
+  saleLineRefusal,
+  type SaleUnit,
+} from '@r10c/business-ts-sales-vocabulary';
+import {
   type BuyerTax,
   BuyerTaxIdInvalid,
   BuyerTaxIdTypeUnknown,
@@ -55,18 +61,26 @@ interface PricedLine {
   readonly description?: string;
   readonly specificationId: string;
   readonly specificationVersion: number;
+  /** What one is, and how many in its scale (ADR 0082 §2). */
+  readonly saleUnit: SaleUnit;
   readonly quantity: number;
+  /** What `pricePer` whole units cost, as published. */
   readonly amount: number;
+  readonly pricePer: PricePer;
   readonly currency: string;
 }
 
-/** The sale's totals, one per currency: unit price times quantity. */
+/**
+ * The sale's totals, one per currency, as the coordinator will state them
+ * again: each line's `lineTotal` — never a price times a quantity here
+ * (ADR 0082 §6).
+ */
 const totalsOf = (lines: readonly PricedLine[]) => {
   const byCurrency = new Map<string, number>();
   for (const line of lines)
     byCurrency.set(
       line.currency,
-      (byCurrency.get(line.currency) ?? 0) + line.amount * line.quantity,
+      (byCurrency.get(line.currency) ?? 0) + lineTotal(line),
     );
   return Array.from(byCurrency, ([currency, amount]) => ({ currency, amount }));
 };
@@ -150,6 +164,15 @@ export const sellAtCounter = (input: {
       if (price.vendorId !== organizationId) {
         return yield* new OfferingNotYours({ offeringId: line.offeringId });
       }
+      // The decision (ADR 0082 §3): checked against the terms the projection
+      // publishes, refused rather than rounded — whatever the till showed.
+      const refused = saleLineRefusal(
+        line.offeringId,
+        line.quantity,
+        price,
+        price,
+      );
+      if (refused !== undefined) return yield* refused;
       priced.push({
         offeringId: line.offeringId,
         name: price.name,
@@ -158,8 +181,10 @@ export const sellAtCounter = (input: {
           : { description: price.description }),
         specificationId: price.specificationId,
         specificationVersion: price.specificationVersion,
+        saleUnit: price.saleUnit,
         quantity: line.quantity,
         amount: price.amount,
+        pricePer: price.pricePer,
         currency: price.currency,
       });
     }
