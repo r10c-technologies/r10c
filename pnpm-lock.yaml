@@ -1158,6 +1158,9 @@ importers:
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/product-configuration-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-vocabulary
       '@r10c/implementation-catalog-mongo':
         specifier: workspace:*
         version: link:../../packages/implementation/catalog/mongo
@@ -1319,6 +1322,9 @@ importers:
       '@r10c/testing-catalog-fixtures':
         specifier: workspace:*
         version: link:../../packages/testing/catalog-fixtures
+      '@r10c/utils-ts-fleet':
+        specifier: workspace:*
+        version: link:../../packages/utils/ts/fleet
 
   apps/marketplace-service:
     dependencies:
@@ -5327,6 +5333,12 @@ importers:
       '@r10c/slices':
         specifier: workspace:*
         version: link:../slices
+
+  tools/sample-media:
+    dependencies:
+      '@r10c/utils-ts-fleet':
+        specifier: workspace:*
+        version: link:../../packages/utils/ts/fleet
 
   tools/slices:
     devDependencies:

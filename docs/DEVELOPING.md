@@ -341,17 +341,29 @@ entities moved to the `marketplace` database entirely. A corrected seed _value_
 behaves the same way — the row is already there, so the fix never lands. Neither
 is a code change; both are `dev:reset`, and a fresh machine needs nothing.
 
-**Two vendors are seeded, from one list.** `SEEDED_VENDORS` in
-`@r10c/utils-ts-fleet` names them — `demo-organization` (run by Alan,
-`alan@example.com`) and `second-organization` (run by Margaret,
-`margaret@example.com`, password `Password123!` like every seeded account) — and
+**Three sample stores are seeded, from one list** (#676). `SEEDED_VENDORS` in
+`@r10c/utils-ts-fleet` names them, one per vertical the MVP is shown in, and
 every seeding service reads it, so auth, the catalog, stock, sales and
-settlement cannot disagree about who exists. Each vendor's catalog and stock ids
-carry its own `idPrefix` (`second-product-offering-10`): the published catalog
-is one platform projection keyed by offering id, and two vendors seeded with the
-same ids would overwrite each other's publications. A basket spanning sellers, a
-ledger with two payouts and a stream with two audiences all need the second
-one.
+settlement cannot disagree about who exists:
+
+| Store (organization id)                          | Run by                           | Regime           | Sells                                                                           |
+| ------------------------------------------------ | -------------------------------- | ---------------- | ------------------------------------------------------------------------------- |
+| Ferretería El Martillo (`hardware-store`)        | Alan, `alan@example.com`         | `general`        | cable by the metre, screws per hundred, nails by the pound; takes payment links |
+| Accesorios Punto Cel (`phone-accessories-store`) | Margaret, `margaret@example.com` | `small-taxpayer` | cases, glass and chargers by the piece, each fitted to phone models             |
+| Peletería La Horma (`shoemaking-supplies-store`) | Hedy, `hedy@example.com`         | `simplified`     | faux leather by the yard, soles by the pair, contact cement by the litre        |
+
+Every seeded account's password is `Password123!`. Alan is also a member of the
+phone store, not by default, so the organization switcher has somewhere to go.
+Each store's catalog is a hand-written list in
+`packages/utils/ts/fleet/src/sample-stores/`, with invented names and brands
+(ADR 0025) and **illustrative** prices in quetzales; the stores are flagged
+`sampleStore`, which the storefront states beside their products. Each product
+has one picture, an SVG drawn from the same data by
+`pnpm nx run @r10c/sample-media:generate` and committed into both apps'
+`public/samples/`. Each store's catalog and stock ids carry its own `idPrefix`
+(`ph-product-offering-3`): the published catalog is one platform projection
+keyed by offering id, and two stores seeded with the same ids would overwrite
+each other's publications.
 
 **Each slice seeds its own stores, and only its own.** config-service writes the
 `configuration` rows, auth-service the identities and tenancy,

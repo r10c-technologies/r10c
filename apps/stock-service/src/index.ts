@@ -25,7 +25,6 @@ export { seedStock };
  * mock profile has to provide every value the shipped composition root reads
  * from config-service, and a tag it cannot name is a layer it cannot build.
  */
-export { stockItemTempData, stockMovementTempData } from './stock-temp-data';
 export {
   ReservationMaxHoldSecondsTag,
   ReservationTtlSecondsTag,

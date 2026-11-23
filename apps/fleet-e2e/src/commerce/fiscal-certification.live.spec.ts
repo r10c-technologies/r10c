@@ -1,8 +1,8 @@
 import {
   closeMongo,
-  DEMO,
   eventually,
   FLEET,
+  HARDWARE,
   mongo,
   ordersOf,
   sellable,
@@ -25,15 +25,15 @@ const ORDERS = Number(process.env['LIVE_FISCAL_ORDERS'] ?? 6);
 afterAll(closeMongo);
 
 it(`certifies every paid order once, and voids the ones cancelled after, ${String(ORDERS)} orders over`, async () => {
-  const offering = await sellable(DEMO.organizationId, ORDERS);
-  const bearer = await vendorBearer(DEMO.organizationId);
+  const offering = await sellable(HARDWARE.organizationId, ORDERS);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
   const orders = (await mongo('order')).collection('product-order');
 
   const placed = await Promise.all(
     Array.from({ length: ORDERS }, async () => {
       const checkout = await startCheckout([
         {
-          vendorId: DEMO.organizationId,
+          vendorId: HARDWARE.organizationId,
           paymentMethod: 'card',
           lines: [
             {

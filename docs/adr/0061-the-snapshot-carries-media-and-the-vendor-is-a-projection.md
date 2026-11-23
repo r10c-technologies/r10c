@@ -6,6 +6,7 @@
 - Read when: rendering a product image or a seller's name on the storefront — media is a reference the vendor authored, and a vendor's name is its own projection
 - Amends: [ADR 0049](0049-the-publication-snapshot-carries-what-the-storefront-renders.md) — the snapshot gains an optional `media` member.
 - Amends: [ADR 0022](0022-v1-marketplace-module-boundaries.md) — one domain (`marketplace-vendor`), one entity (`PublishedVendor`) and one store (`published-vendor`) join the inventory; slices and deployments are unchanged.
+- Revised: 2026-11-23 by the sample-stores build (#676) — one URL that is not `https` is accepted: `/samples/<store>/<product>.svg`, a drawing the platform generates and each of its apps serves from its own origin, matched whole so nothing else rides along. It is what the lab's sample stores show, so a reset lab fetches no picture from anybody else's host.
 - Revised: 2026-11-22 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — the card's `unitPrice` role is filled: it says what the price buys when that is not one piece ("por 100 u."), from the closed sale-unit vocabulary ADR 0082 decided rather than ADR 0014's dictionary. A price per net quantity of a packaged good ("Q 12.50 / kg" for a 400 g jar) is still unbuilt.
 
 ## Context
@@ -46,7 +47,11 @@ it to `PublishedOffering` unchanged.
 - **`https` only, checked when the specification is saved.** The storefront
   renders the URL into a page served over `https`. Mixed content is blocked by
   the browser, and a `javascript:` or `data:` value in an `src` is a hole, so
-  the check lives at the one write path rather than at every reader.
+  the check lives at the one write path rather than at every reader. The one
+  exception is the platform's own sample art (#676): `/samples/<store>/<product>.svg`,
+  lower-case letters, digits and hyphens, matched whole. It names a file the
+  platform generated and every app serves from its own origin, so it cannot
+  reach a stranger's host and cannot carry a scheme, a query or a parent step.
 - **`alt` is required on every entry.** An image without a text alternative is
   an accessibility defect, and the vendor is the only party who knows what the
   picture shows.

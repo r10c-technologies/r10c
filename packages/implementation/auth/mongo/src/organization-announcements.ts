@@ -88,6 +88,8 @@ export const announcementOf = (
     acceptsLink: row['acceptsPaymentLink'] === true,
     whatsappNumber:
       typeof row['whatsappNumber'] === 'string' ? row['whatsappNumber'] : '',
+    // Written by the lab's seed only, at creation (#676).
+    sampleStore: row['sampleStore'] === true,
     fiscal,
   };
 };

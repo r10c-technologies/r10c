@@ -51,7 +51,7 @@ const PRELOAD = join(__dirname, 'src/support/server-mocks.mjs');
  * reached. The Next binary is still relative to `cwd`, which the preset sets
  * to the app's directory; the preload is not — see `PRELOAD` above.
  */
-const MOCK_SERVER = `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next/dist/bin/next start -p 3200`;
+const MOCK_SERVER = `STOREFRONT_IMAGE_HOSTS=picsum.photos NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next/dist/bin/next start -p 3200`;
 
 /**
  * ⚠️ **Two servers, replacing the preset's one.** The browser reaches the
@@ -65,7 +65,9 @@ const MOCK_SERVER = `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next
 /**
  * ⚠️ **The fixtures' pictures are never fetched from their host by the
  * browser.** The catalog fixtures name their media on `picsum.photos`, as a
- * vendor names a real host. A card or gallery picture goes through the
+ * vendor names a real host, and the mock server allows that one host
+ * (`STOREFRONT_IMAGE_HOSTS` in `MOCK_SERVER`), since the storefront allows
+ * none by default (#676). A card or gallery picture goes through the
  * storefront's image optimizer (#571), so the browser asks `/_next/image` and
  * the Next process fetches the original, which `support/server-mocks.mjs`
  * answers with one pixel. What is left for the browser to fetch directly — an

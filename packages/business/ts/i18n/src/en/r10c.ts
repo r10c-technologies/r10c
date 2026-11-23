@@ -159,6 +159,9 @@ export const r10c: EsR10c = {
       newest: 'New in',
       featured: 'Featured',
     },
+    sampleStore: {
+      note: 'Sample store · prices are illustrative, not a quote.',
+    },
     seller: {
       overline: 'Store',
       empty: 'This seller has no products published yet.',

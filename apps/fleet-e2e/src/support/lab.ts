@@ -53,15 +53,42 @@ export const MONGO_URI =
   process.env['MONGO_URI'] ??
   'mongodb://admin:password@127.0.0.1:30017/?directConnection=true';
 
-export const [DEMO, SECOND] = SEEDED_VENDORS as unknown as readonly [
-  (typeof SEEDED_VENDORS)[number],
-  (typeof SEEDED_VENDORS)[number],
-];
+/**
+ * The sample stores (#676): hardware takes payment links and sells by the
+ * metre and the hundred; phones are small-taxpayer; shoemaking sells by the
+ * yard under the simplified regime.
+ */
+export const [HARDWARE, PHONE, SHOEMAKING] = SEEDED_VENDORS;
 
-/** Each seeded vendor's member: the session a vendor's verbs run under. */
+/**
+ * A seeded product's offering id, by its key in the store's catalog — the id
+ * the catalog seed writes for its position, under the store's prefix.
+ */
+export const offeringIdOf = (
+  vendor: (typeof SEEDED_VENDORS)[number],
+  key: string,
+): string => {
+  const index = vendor.products.findIndex(product => product.key === key);
+  if (index < 0) throw new Error(`${vendor.slug} seeds no product '${key}'`);
+  return `${vendor.idPrefix}product-offering-${String(index + 1)}`;
+};
+
+/** Each store's offering ids whose seeded status is `status`. */
+export const offeringIdsWith = (
+  vendor: (typeof SEEDED_VENDORS)[number],
+  status: string,
+): string[] =>
+  vendor.products.flatMap((product, index) =>
+    product.status === status
+      ? [`${vendor.idPrefix}product-offering-${String(index + 1)}`]
+      : [],
+  );
+
+/** Each seeded store's member: the session a vendor's verbs run under. */
 export const MEMBERS = {
-  [DEMO.organizationId]: { userId: 'user-2', partyId: 'party-user-2' },
-  [SECOND.organizationId]: { userId: 'user-5', partyId: 'party-user-5' },
+  [HARDWARE.organizationId]: { userId: 'user-2', partyId: 'party-user-2' },
+  [PHONE.organizationId]: { userId: 'user-5', partyId: 'party-user-5' },
+  [SHOEMAKING.organizationId]: { userId: 'user-6', partyId: 'party-user-6' },
 } as const;
 
 export const sleep = (ms: number) =>

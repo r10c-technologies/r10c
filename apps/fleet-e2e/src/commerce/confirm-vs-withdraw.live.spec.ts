@@ -1,7 +1,7 @@
 import {
   closeMongo,
-  DEMO,
   FLEET,
+  HARDWARE,
   mongo,
   ordersOf,
   sellable,
@@ -27,9 +27,9 @@ const ORDERS = Number(process.env['LIVE_RACE_ORDERS'] ?? 10);
 afterAll(closeMongo);
 
 it(`lets exactly one of confirm, withdraw and expiry win, ${String(ORDERS)} orders over`, async () => {
-  const offering = await sellable(DEMO.organizationId, ORDERS);
-  const bearer = await vendorBearer(DEMO.organizationId);
-  const stock = await mongo(`stock_${DEMO.organizationId}`);
+  const offering = await sellable(HARDWARE.organizationId, ORDERS);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
+  const stock = await mongo(`stock_${HARDWARE.organizationId}`);
   // A hold names no order, so this run's holds are the ones taken after now.
   const holdsBefore = new Set(
     (await stock.collection('reservation').find({}).toArray()).map(hold =>
@@ -42,7 +42,7 @@ it(`lets exactly one of confirm, withdraw and expiry win, ${String(ORDERS)} orde
   for (let n = 0; n < ORDERS; n++) {
     const checkout = await startCheckout([
       {
-        vendorId: DEMO.organizationId,
+        vendorId: HARDWARE.organizationId,
         paymentMethod: 'link',
         lines: [
           {
@@ -191,7 +191,7 @@ it(`lets exactly one of confirm, withdraw and expiry win, ${String(ORDERS)} orde
   for (const holdId of holdsBy('converted')) {
     expect(causes).toContainEqual(
       expect.objectContaining({
-        organizationId: DEMO.organizationId,
+        organizationId: HARDWARE.organizationId,
         reason: 'sale',
         cause: { type: 'reservation', id: holdId },
       }),
@@ -217,10 +217,10 @@ it(`lets exactly one of confirm, withdraw and expiry win, ${String(ORDERS)} orde
  * a minute in the lab) and its flow following it to the end.
  */
 it('expires an order nobody decided, and its flow releases the hold', async () => {
-  const offering = await sellable(DEMO.organizationId, 1);
+  const offering = await sellable(HARDWARE.organizationId, 1);
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'link',
       lines: [
         {

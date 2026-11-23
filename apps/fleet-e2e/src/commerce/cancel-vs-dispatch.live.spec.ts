@@ -1,7 +1,7 @@
 import {
   closeMongo,
-  DEMO,
   FLEET,
+  HARDWARE,
   mongo,
   ordersOf,
   recordGuide,
@@ -25,15 +25,15 @@ const ORDERS = Number(process.env['LIVE_RACE_ORDERS'] ?? 10);
 afterAll(closeMongo);
 
 it(`lets exactly one of cancel and dispatch win, ${String(ORDERS)} orders over`, async () => {
-  const offering = await sellable(DEMO.organizationId, ORDERS);
-  const bearer = await vendorBearer(DEMO.organizationId);
+  const offering = await sellable(HARDWARE.organizationId, ORDERS);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
 
   // The orders, placed one by one so each race starts from a settled order.
   const placed: string[] = [];
   for (let n = 0; n < ORDERS; n++) {
     const checkout = await startCheckout([
       {
-        vendorId: DEMO.organizationId,
+        vendorId: HARDWARE.organizationId,
         paymentMethod: 'cod',
         lines: [
           {
@@ -97,7 +97,7 @@ it(`lets exactly one of cancel and dispatch win, ${String(ORDERS)} orders over`,
   );
 
   const shipments = (
-    await mongo(`fulfilment_${DEMO.organizationId}`)
+    await mongo(`fulfilment_${HARDWARE.organizationId}`)
   ).collection('shipping-order');
   const orders = (await mongo('order')).collection('product-order');
   const outcomes = await Promise.all(

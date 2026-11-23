@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import {
   closeMongo,
   crossingHeaders,
-  DEMO,
   FLEET,
+  HARDWARE,
   mongo,
   ordersOf,
   sellable,
@@ -24,12 +24,12 @@ const REFUNDS = 20;
 afterAll(closeMongo);
 
 it('never refunds more than was captured, however many refunds race', async () => {
-  const offering = await sellable(DEMO.organizationId, 2);
+  const offering = await sellable(HARDWARE.organizationId, 2);
   const quantity = 2;
 
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'card',
       lines: [
         {

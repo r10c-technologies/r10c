@@ -14,17 +14,17 @@ import {
  * for an offering's name, marketplace-service for a vendor's — and then the
  * records that refer to the matches.
  *
- * Alan, because stock and settlement are the demo organization's: a vendor's
+ * Alan, because stock and settlement are the hardware store's: a vendor's
  * reads are narrowed to their own records.
  */
 
 const VENDOR = 'alan@example.com';
 
-/** Every seeded offering is called `<specification> — oferta`. */
-const OFFERING_TERM = 'oferta';
+/** Two of the hardware store's stocked offerings are THHN cable (#676). */
+const OFFERING_TERM = 'Cable';
 
-/** The demo organization's display name, from the seeded vendors. */
-const VENDOR_NAME = 'Demo Vendor';
+/** The hardware store's display name, from the seeded vendors. */
+const VENDOR_NAME = 'Ferretería El Martillo';
 
 /** What a raw id reads like: a UUID, or a seeded `<key>-<n>`. */
 const RAW_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-|^[a-z]+(-[a-z]+)*-\d+$/;
@@ -99,7 +99,7 @@ test('finds a vendor’s order by its number, and calls it by that number', asyn
     data: { items: readonly { number?: string }[] };
   };
   const number = body.data.items[0]?.number;
-  test.skip(number === undefined, 'the demo organization has no order yet');
+  test.skip(number === undefined, 'the hardware store has no order yet');
 
   const groups = await search(page, String(number), 'product-order');
   const labels = groups.flatMap(group => group.items.map(item => item.label));

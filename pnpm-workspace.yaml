@@ -36,6 +36,9 @@ packages:
   # `infra` is the up and down commands over infra/gcp and infra/cluster
   # (ADR 0083 §5).
   - 'tools/infra'
+  # `sample-media` draws the sample stores' pictures into each app's public/
+  # (#676).
+  - 'tools/sample-media'
 # entifix is installed from the registry, at one version for every package: it
 # releases on fixed versioning, so two @entifix/* at different versions is a
 # combination nobody tested. Every manifest says `catalog:` and this is the only

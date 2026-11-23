@@ -1,0 +1,43 @@
+{
+  "name": "@r10c/sample-media",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:shared",
+      "type:testing"
+    ],
+    "sourceRoot": "tools/sample-media/src",
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts",
+          "cwd": "tools/sample-media"
+        }
+      },
+      "generate": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node --import ./tools/ts-source-resolver.mjs tools/sample-media/src/generate.ts"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@r10c/utils-ts-fleet": "workspace:*"
+  }
+}

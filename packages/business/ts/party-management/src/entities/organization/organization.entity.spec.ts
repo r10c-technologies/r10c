@@ -30,6 +30,7 @@ describe('Organization', () => {
       establishmentCode: '',
       acceptsPaymentLink: false,
       whatsappNumber: '',
+      sampleStore: false,
     });
   });
 
@@ -41,11 +42,13 @@ describe('Organization', () => {
         slug: 'globex',
         status: 'suspended',
         whatsappNumber: '+50255551234',
+        sampleStore: true,
       }),
     );
 
     expect(organization?.name).toBe('Globex');
     expect(organization?.whatsappNumber).toBe('+50255551234');
+    expect(organization?.sampleStore).toBe(true);
     expect(organization?.status).toBe(OrganizationStatus.Suspended);
   });
 
@@ -70,6 +73,7 @@ describe('Organization', () => {
       ['establishmentCode', 'string'],
       ['acceptsPaymentLink', 'boolean'],
       ['whatsappNumber', 'string'],
+      ['sampleStore', 'boolean'],
       ['updatedAt', 'date'],
     ]);
   });

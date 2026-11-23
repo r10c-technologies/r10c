@@ -21,6 +21,8 @@ export interface ProductRead {
    * checkout decides.
    */
   readonly ships?: boolean;
+  /** Whether the seller is a sample store with illustrative prices (#676). */
+  readonly sampleStore?: boolean;
 }
 
 /**
@@ -49,7 +51,11 @@ export const readProduct = cache(
       offering,
       ...(brand ? { brandName: brand.name } : {}),
       ...(vendor
-        ? { sellerName: vendor.displayName, ships: vendor.acceptsCod }
+        ? {
+            sellerName: vendor.displayName,
+            ships: vendor.acceptsCod,
+            sampleStore: vendor.sampleStore,
+          }
         : {}),
     };
   },

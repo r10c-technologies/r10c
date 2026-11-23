@@ -40,24 +40,27 @@ const pageOf = (res: Page) => res.data.data;
  * ⚠️ Naming them is the point of this suite. An assertion that some item exists
  * passes against a store the seed never touched, which is the exact defect
  * #223 was written for: a walk that finds nothing passing for the wrong reason.
- * These four are the four shapes the seed cycles, so between them every read
- * path has a row it was asked about by name.
+ * These four are the four shapes the seed writes, so between them every read
+ * path has a row it was asked about by name — the hardware store's (#676),
+ * every one sold by the piece, and none of them one another live journey
+ * moves: the screws are bought by `fleet-e2e`'s sale-unit pass, the
+ * switches received by the back office's stock journey.
  */
 const SEEDED = {
-  /** One receipt, nothing else: the ordinary case. */
-  simple: { offeringId: 'product-offering-1', onHand: 10, movements: 1 },
-  /** A receipt and a sale — a fold of two, one of them negative. */
-  sold: { offeringId: 'product-offering-2', onHand: 13, movements: 2 },
-  /** Receipt, sale and a negative `adjustment` — a fold of three. */
-  adjusted: { offeringId: 'product-offering-3', onHand: 17, movements: 3 },
+  /** One receipt, nothing else: the ordinary case (PVC pipe). */
+  simple: { offeringId: 'product-offering-16', onHand: 35, movements: 1 },
+  /** A receipt and a sale — a fold of two, one of them negative (pliers). */
+  sold: { offeringId: 'product-offering-14', onHand: 15, movements: 2 },
+  /** Receipt, sale and a negative `adjustment` — a fold of three (sockets). */
+  adjusted: { offeringId: 'product-offering-9', onHand: 45, movements: 3 },
   /** A receipt cancelled by an equal sale: zero on hand, *through the ledger*. */
-  soldOut: { offeringId: 'product-offering-4', onHand: 0, movements: 2 },
+  soldOut: { offeringId: 'product-offering-10', onHand: 0, movements: 2 },
   /**
    * Seeded with no `StockItem` row at all. Not the same thing as zero on hand,
    * and the branch `take-reservation` meets first — it does not upsert, so a
    * missing item is a `409` from a path nothing else reaches.
    */
-  unstocked: { offeringId: 'product-offering-41' },
+  unstocked: { offeringId: 'product-offering-20' },
 } as const;
 
 const byOffering = (offeringId: string) =>

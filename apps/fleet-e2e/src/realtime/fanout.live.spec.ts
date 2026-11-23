@@ -1,9 +1,9 @@
 import {
   closeMongo,
-  DEMO,
+  HARDWARE,
+  PHONE,
   PORTS,
   present,
-  SECOND,
   sellable,
   settled,
   startCheckout,
@@ -56,10 +56,10 @@ afterAll(async () => {
 it(`keeps ${String(PER_ORG * 2 + HOLDERS)} streams to their own audiences under a write burst`, async () => {
   const before = sample(PORTS.realtime);
   const members = {
-    [DEMO.organizationId]: [] as Stream[],
-    [SECOND.organizationId]: [] as Stream[],
+    [HARDWARE.organizationId]: [] as Stream[],
+    [PHONE.organizationId]: [] as Stream[],
   };
-  for (const vendor of [DEMO, SECOND]) {
+  for (const vendor of [HARDWARE, PHONE]) {
     const bearer = await vendorBearer(vendor.organizationId);
     const opened = await Promise.all(
       Array.from({ length: PER_ORG }, (_, n) =>
@@ -76,11 +76,11 @@ it(`keeps ${String(PER_ORG * 2 + HOLDERS)} streams to their own audiences under 
   const opened = sample(PORTS.realtime);
 
   // The burst: checkouts on both vendors at once, each with its own holder.
-  const demoOffering = await sellable(DEMO.organizationId, HOLDERS);
-  const secondOffering = await sellable(SECOND.organizationId, HOLDERS);
+  const demoOffering = await sellable(HARDWARE.organizationId, HOLDERS);
+  const secondOffering = await sellable(PHONE.organizationId, HOLDERS);
   const checkouts = await Promise.all(
     Array.from({ length: HOLDERS }, (_, n) => {
-      const vendor = n % 2 === 0 ? DEMO : SECOND;
+      const vendor = n % 2 === 0 ? HARDWARE : PHONE;
       const offering = n % 2 === 0 ? demoOffering : secondOffering;
       return startCheckout([
         {

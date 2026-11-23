@@ -2,18 +2,19 @@ import type { OrganizationSeed } from '@r10c/implementation-auth-mongo';
 import type { SeededVendor } from '@r10c/utils-ts-fleet';
 
 /**
- * Control-plane seed for the local demo tenant, in the entity wire shape.
+ * Control-plane seed for the lab's sample stores (#676), in the entity wire
+ * shape.
  *
  * The point of seeding this at all is that an `Organization` is only meaningful
  * once a request resolves to its storage: with these records, signing in as a
- * vendor member resolves the catalog to `tenant_demo-organization`, and the
+ * store's member resolves the catalog to `tenant_hardware-store`, and the
  * isolation is physical rather than a filter someone could forget.
  *
- * Two personas, deliberately different:
+ * Two kinds of persona, deliberately different:
  *
- * - **Alan Turing** (`user-2`) is a member of the demo organization playing the
- *   `vendor` role. His sessions carry `activeOrganizationId`, so he reaches the
- *   catalog.
+ * - **Alan Turing** (`user-2`) runs the hardware store, playing the `vendor`
+ *   role, as Margaret and Hedy run the other two. His sessions carry
+ *   `activeOrganizationId`, so he reaches the catalog.
  * - **Ada Lovelace** (`user-1`) is an **operator**. She holds no membership and
  *   therefore no tenant scope, which is correct: reaching a tenant is an
  *   explicit, audited act-as-organization crossing (ADR 0012), not a wider
@@ -32,6 +33,7 @@ export const organizationSeedData = (
     | 'fiscal'
     | 'acceptsPaymentLink'
     | 'whatsappNumber'
+    | 'sampleStore'
   >,
 ): ReadonlyArray<OrganizationSeed> => [
   {
@@ -46,6 +48,7 @@ export const organizationSeedData = (
       ...vendor.fiscal,
       acceptsPaymentLink: vendor.acceptsPaymentLink,
       whatsappNumber: vendor.whatsappNumber,
+      sampleStore: vendor.sampleStore,
     },
   },
 ];
@@ -60,7 +63,7 @@ export interface VendorMember {
   readonly fullName: string;
 }
 
-/** The demo vendor's member. */
+/** The hardware store's member. */
 export const ALAN: VendorMember = {
   userId: 'user-2',
   partyId: 'party-user-2',
@@ -68,9 +71,9 @@ export const ALAN: VendorMember = {
 };
 
 /**
- * The second vendor's member (#492): a vendor with its own person, so a session
- * scoped to it is a real sign-in rather than a token minted for an id nobody
- * belongs to.
+ * The phone-accessories store's member (#492): a store with its own person, so
+ * a session scoped to it is a real sign-in rather than a token minted for an
+ * id nobody belongs to.
  */
 export const MARGARET: VendorMember = {
   userId: 'user-5',
@@ -79,12 +82,23 @@ export const MARGARET: VendorMember = {
 };
 
 /**
+ * The shoemaking-supplies store's member (#676). A person of her own rather
+ * than Grace, who is the seed's member of nothing: the auth journeys rely on
+ * one signed-in user no organization claims.
+ */
+export const HEDY: VendorMember = {
+  userId: 'user-6',
+  partyId: 'party-user-6',
+  fullName: 'Hedy Lamarr',
+};
+
+/**
  * Who runs each seeded vendor, **by position in `SEEDED_VENDORS`**. The spec
  * beside this file fails when the two lists differ in length, so a vendor added
  * to the fleet's list without a member here is caught before it seeds an
  * organization nobody can sign in to.
  */
-export const VENDOR_MEMBERS: readonly VendorMember[] = [ALAN, MARGARET];
+export const VENDOR_MEMBERS: readonly VendorMember[] = [ALAN, MARGARET, HEDY];
 
 /**
  * One vendor member's party role, tenant role and membership.

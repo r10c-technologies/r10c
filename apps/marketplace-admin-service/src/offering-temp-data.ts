@@ -1,8 +1,4 @@
-import {
-  DEMO_VENDOR,
-  seededSaleTermsOf,
-  type SeededVendor,
-} from '@r10c/utils-ts-fleet';
+import type { SeededVendor } from '@r10c/utils-ts-fleet';
 
 import { productTempDataFor } from './product-temp-data';
 
@@ -46,11 +42,10 @@ export interface ProductOfferingPriceRecord {
  *
  * A seed where everything is `draft` cannot exercise `unpublish` and a seed
  * where everything is `published` cannot exercise the illegal transition, so
- * the four states are cycled: every verb has a record it legitimately applies
- * to and a record it must refuse, without anybody hand-editing a row first.
+ * every sample store holds all four states: every verb has a record it
+ * legitimately applies to and a record it must refuse, without anybody
+ * hand-editing a row first (`sample-stores.spec.ts` checks it).
  */
-const STATUSES = ['draft', 'published', 'unpublished', 'pending-review'];
-
 /**
  * When the seed decided every offering's status.
  *
@@ -66,36 +61,28 @@ const STATUSES = ['draft', 'published', 'unpublished', 'pending-review'];
  */
 const SEEDED_AT = new Date('2026-01-01T00:00:00.000Z');
 
-/** One seeded vendor's offerings, one per specification, under its prefix. */
+/** One seeded store's offerings, one per specification, under its prefix. */
 export const offeringTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'products' | 'slug'>,
 ): ProductOfferingRecord[] =>
   productTempDataFor(vendor).map((specification, index) => {
-    // One by the half metre and one priced per hundred, the rest by the
-    // piece: the shared seed terms, so stock counts each in its own unit.
-    const { saleUnit, quantityStep, quantityMinimum } = seededSaleTermsOf(
-      vendor,
-      index,
-    );
+    const product = vendor.products[index];
     return {
       id: `${vendor.idPrefix}product-offering-${index + 1}`,
-      name: `${specification.name} — oferta`,
+      // The product's own name: a store sells "Cable THHN #12", not an
+      // "offer" of it.
+      name: specification.name,
       specificationId: specification.id,
-      status: STATUSES[index % STATUSES.length],
+      status: product.status,
       // Without this the seeded `published` offerings carry no moment, the
       // walk reports them `unstamped`, and a fresh lab still serves an empty
-      // storefront — which is the whole defect this seed change exists to
-      // close.
+      // storefront.
       statusChangedAt: SEEDED_AT,
-      saleUnit,
-      quantityStep,
-      quantityMinimum,
+      saleUnit: product.unit,
+      quantityStep: product.step,
+      quantityMinimum: product.minimum,
     };
   });
-
-/** The demo vendor's offerings. */
-export const offeringTempData: ProductOfferingRecord[] =
-  offeringTempDataFor(DEMO_VENDOR);
 
 /**
  * One price per offering, in **minor units** — `amount` is an integer number of
@@ -103,24 +90,17 @@ export const offeringTempData: ProductOfferingRecord[] =
  * and money that is off by a rounding error is money a settlement run has to
  * reconcile by hand.
  *
- * Currency is cycled over three so a list sorted or filtered by it has more
- * than one group to show.
+ * Every sample price is in quetzales and **illustrative**: near what the
+ * research found a Guatemalan store asking, never a quote anybody gave. The
+ * stores are flagged `sampleStore`, and the storefront says so.
  */
-const CURRENCIES = ['GTQ', 'USD', 'EUR'];
-
 export const offeringPriceTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'products' | 'slug'>,
 ): ProductOfferingPriceRecord[] =>
-  offeringTempDataFor(vendor).map((offering, index) => ({
+  vendor.products.map((product, index) => ({
     id: `${vendor.idPrefix}product-offering-price-${index + 1}`,
-    offeringId: offering.id,
-    // 19.99, 24.99, 29.99 … in minor units. Never a round number, so a display
-    // that drops the fractional part is visible at a glance.
-    amount: 1999 + index * 500,
-    currency: CURRENCIES[index % CURRENCIES.length],
-    pricePer: seededSaleTermsOf(vendor, index).pricePer,
+    offeringId: `${vendor.idPrefix}product-offering-${index + 1}`,
+    amount: product.amount,
+    currency: 'GTQ',
+    pricePer: product.pricePer,
   }));
-
-/** The demo vendor's prices. */
-export const offeringPriceTempData: ProductOfferingPriceRecord[] =
-  offeringPriceTempDataFor(DEMO_VENDOR);

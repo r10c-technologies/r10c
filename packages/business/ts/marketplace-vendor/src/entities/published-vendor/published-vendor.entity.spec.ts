@@ -23,6 +23,7 @@ describe('PublishedVendor', () => {
       holdsStock: false,
       acceptsLink: false,
       whatsappNumber: '',
+      sampleStore: false,
       taxId: '',
       legalName: '',
       taxRegime: '',
@@ -41,6 +42,7 @@ describe('PublishedVendor', () => {
         holdsStock: true,
         acceptsLink: true,
         whatsappNumber: '+50255551234',
+        sampleStore: true,
         taxId: '20000006',
         legalName: 'Terra Studio',
         taxRegime: 'small-taxpayer',
@@ -51,6 +53,7 @@ describe('PublishedVendor', () => {
     expect(vendor?.vendorId).toBe('org-2');
     expect(vendor?.displayName).toBe('Terra Studio');
     expect(vendor?.whatsappNumber).toBe('+50255551234');
+    expect(vendor?.sampleStore).toBe(true);
     expect(vendor?.announcedAt.toISOString()).toBe('2026-10-23T11:00:00.000Z');
     expect(vendor?.acceptsCod).toBe(true);
     expect(vendor?.holdsStock).toBe(true);

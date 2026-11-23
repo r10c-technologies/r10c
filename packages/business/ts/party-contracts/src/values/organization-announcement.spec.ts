@@ -18,6 +18,7 @@ const ANNOUNCEMENT: OrganizationAnnouncement = {
   holdsStock: true,
   acceptsLink: true,
   whatsappNumber: '+50255551234',
+  sampleStore: true,
   fiscal: {
     taxId: '12345679',
     legalName: 'Demo Vendor, S.A.',
@@ -94,6 +95,13 @@ describe('readOrganizationAnnouncement', () => {
     expect(
       await Effect.runPromise(readOrganizationAnnouncement(withoutNumber)),
     ).toEqual({ ...ANNOUNCEMENT, whatsappNumber: '' });
+  });
+
+  it('reads an announcement that does not say it is a sample as a real store', async () => {
+    const { sampleStore: _none, ...unsaid } = ANNOUNCEMENT;
+    expect(
+      await Effect.runPromise(readOrganizationAnnouncement(unsaid)),
+    ).toEqual({ ...ANNOUNCEMENT, sampleStore: false });
   });
 
   it.each([null, 'text', 7])('rejects %s, which is not an object', value => {

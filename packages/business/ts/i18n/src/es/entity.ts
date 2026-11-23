@@ -270,6 +270,7 @@ export const entity = {
       establishmentCode: 'Código de establecimiento',
       acceptsPaymentLink: 'Acepta enlaces de pago',
       whatsappNumber: 'WhatsApp',
+      sampleStore: 'Tienda de muestra',
       updatedAt: 'Última actualización',
     },
     values: {
@@ -363,6 +364,7 @@ export const entity = {
       holdsStock: 'Maneja inventario',
       acceptsLink: 'Acepta links de pago',
       whatsappNumber: 'WhatsApp',
+      sampleStore: 'Tienda de muestra',
       taxId: 'NIT',
       legalName: 'Razón social',
       taxRegime: 'Régimen tributario',

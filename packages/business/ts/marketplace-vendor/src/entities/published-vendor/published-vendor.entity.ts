@@ -37,6 +37,7 @@ export class PublishedVendor implements Entity {
   #holdsStock = false;
   #acceptsLink = false;
   #whatsappNumber = '';
+  #sampleStore = false;
   #taxId = '';
   #legalName = '';
   #taxRegime = '';
@@ -188,6 +189,24 @@ export class PublishedVendor implements Entity {
   }
   set whatsappNumber(value: string) {
     this.#whatsappNumber = value;
+  }
+
+  /**
+   * Whether the seller is one of the lab's sample stores, whose prices are
+   * illustrative (#676). Announced by the seller's organization; the
+   * storefront says so beside the seller's products.
+   */
+  @accessor({
+    type: 'boolean',
+    labelKey: 'entity:published-vendor.fields.sampleStore',
+    filterable: false,
+    sortable: false,
+  })
+  get sampleStore(): boolean {
+    return this.#sampleStore;
+  }
+  set sampleStore(value: boolean) {
+    this.#sampleStore = value;
   }
   /**
    * The seller's NIT, as announced — what the checkout copies onto every order

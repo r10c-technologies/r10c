@@ -47,7 +47,7 @@ import {
   seedCatalog,
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
-import { DEMO_VENDOR, fleetToken } from '@r10c/utils-ts-fleet';
+import { fleetToken, HARDWARE_STORE } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
 /**
@@ -144,7 +144,7 @@ const MockAppLayer = (() => {
   );
 
   return Layer.provideMerge(
-    Layer.effectDiscard(seedCatalog('tenant_e2e-organization', DEMO_VENDOR)),
+    Layer.effectDiscard(seedCatalog('tenant_e2e-organization', HARDWARE_STORE)),
     stored,
   ).pipe(Layer.orDie);
 })();

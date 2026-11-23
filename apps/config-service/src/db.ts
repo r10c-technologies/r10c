@@ -1092,6 +1092,16 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'other',
     value: '{"name":"Other","hosts":[]}',
   },
+  // The sample stores' own provider (#676): a generic bank's link, served
+  // from a reserved `example.com` host so the host check has a provider that
+  // names its hosts to refuse a stranger's link against. Generic on purpose —
+  // still no real name in the repository.
+  {
+    service: 'order-service',
+    group_name: 'paymentLinkProvider',
+    key: 'bank-link',
+    value: '{"name":"Enlace de pago del banco","hosts":["pagos.example.com"]}',
+  },
   // The buyer's way back (ADR 0076 §6). A mailed access link is redeemable for
   // a day; a lookup ("find my order") mails one at most every five minutes per
   // group, the only rate limit on the one route a stranger can make send mail;
@@ -1433,6 +1443,16 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'courier',
     key: 'other',
     value: '{"name":"Other","trackingUrlTemplate":""}',
+  },
+  // The sample stores' courier (#676): a generic national parcel service
+  // whose tracking page is a reserved `example.com` address, so a guide shows
+  // a working-looking link without naming a real company.
+  {
+    service: 'fulfilment-service',
+    group_name: 'courier',
+    key: 'national',
+    value:
+      '{"name":"Mensajería nacional","trackingUrlTemplate":"https://rastreo.example.com/guia/{guide}"}',
   },
   {
     service: 'fulfilment-service',

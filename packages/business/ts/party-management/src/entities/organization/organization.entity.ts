@@ -48,6 +48,7 @@ export class Organization implements Entity {
   #establishmentCode = '';
   #acceptsPaymentLink = false;
   #whatsappNumber = '';
+  #sampleStore = false;
   #updatedAt?: Date;
   // #endregion
 
@@ -205,6 +206,30 @@ export class Organization implements Entity {
   }
   set whatsappNumber(value: string) {
     this.#whatsappNumber = value;
+  }
+
+  /**
+   * Whether this is one of the lab's sample stores, whose prices are
+   * illustrative (#676). Written by the seed when the organization is first
+   * created and never by a verb: no organization a person creates is a sample.
+   * Announced to the published vendor, so the storefront says so wherever it
+   * shows the store or its products.
+   *
+   * ⚠️ **Server-owned, and writable anyway**, for the reason `CLAUDE.md`
+   * records: `readonly` would drop it from serialization both ways, and so
+   * would `hidden`. No verb writes it, so no form offers it.
+   */
+  @accessor({
+    type: 'boolean',
+    labelKey: 'entity:organization.fields.sampleStore',
+    filterable: false,
+    sortable: false,
+  })
+  get sampleStore(): boolean {
+    return this.#sampleStore;
+  }
+  set sampleStore(value: boolean) {
+    this.#sampleStore = value;
   }
 
   /**

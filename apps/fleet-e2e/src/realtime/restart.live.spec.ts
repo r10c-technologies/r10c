@@ -1,11 +1,11 @@
 import {
   closeMongo,
-  DEMO,
   eventually,
   FLEET,
+  HARDWARE,
+  PHONE,
   PORTS,
   present,
-  SECOND,
   sellable,
   sleep,
   startCheckout,
@@ -39,11 +39,11 @@ afterAll(async () => {
 
 it(`drains ${String(STREAMS)} streams with jittered retries, and every one comes back`, async () => {
   const bearers = {
-    [DEMO.organizationId]: await vendorBearer(DEMO.organizationId),
-    [SECOND.organizationId]: await vendorBearer(SECOND.organizationId),
+    [HARDWARE.organizationId]: await vendorBearer(HARDWARE.organizationId),
+    [PHONE.organizationId]: await vendorBearer(PHONE.organizationId),
   };
   const orgOf = (n: number) =>
-    n % 2 === 0 ? DEMO.organizationId : SECOND.organizationId;
+    n % 2 === 0 ? HARDWARE.organizationId : PHONE.organizationId;
   const topics = ['entity:product-order', 'entity:stock-item'];
   const opened = await Promise.all(
     Array.from({ length: STREAMS }, (_, n) =>
@@ -72,10 +72,10 @@ it(`drains ${String(STREAMS)} streams with jittered retries, and every one comes
   );
 
   // A write that settles while nobody can hear it.
-  const offering = await sellable(DEMO.organizationId);
+  const offering = await sellable(HARDWARE.organizationId);
   const missed = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'card',
       lines: [
         {
@@ -109,7 +109,7 @@ it(`drains ${String(STREAMS)} streams with jittered retries, and every one comes
     async () => {
       const res = await fetch(
         `${FLEET.edge}/api/realtime/flow?ids=${missed.flowId}`,
-        { headers: { authorization: bearers[DEMO.organizationId] } },
+        { headers: { authorization: bearers[HARDWARE.organizationId] } },
       );
       if (res.status !== 200) return undefined;
       const { data } = (await res.json()) as {

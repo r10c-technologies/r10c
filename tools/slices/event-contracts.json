@@ -1822,7 +1822,7 @@
       "name": "organization.announced",
       "versioned": true,
       "audience": "none",
-      "fingerprint": "47c60a35089b89c0",
+      "fingerprint": "053b8f7c0c576ebb",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -1871,6 +1871,16 @@
               "anyOf": [
                 {
                   "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sampleStore": {
+              "anyOf": [
+                {
+                  "type": "boolean"
                 },
                 {
                   "type": "null"

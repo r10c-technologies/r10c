@@ -12,8 +12,9 @@ const { join } = require('node:path');
  **/
 /**
  * The hosts the image optimizer may fetch a vendor's picture from (#571):
- * `STOREFRONT_IMAGE_HOSTS`, comma-separated exact hostnames, the seed's one
- * host when unset. The shell's `media/image-hosts.ts` reads the same variable
+ * `STOREFRONT_IMAGE_HOSTS`, comma-separated exact hostnames, none when unset:
+ * the sample stores' pictures are served from this origin's `/samples/`
+ * (#676) and need no optimizer fetch. The shell's `media/image-hosts.ts` reads the same variable
  * with the same default and parsing, so a picture is only ever sent through
  * the optimizer to a host this list lets it fetch; `next.config.spec.ts`
  * holds the two to each other. Never `**`: every host here is a fetch the
@@ -21,7 +22,7 @@ const { join } = require('node:path');
  */
 const HOSTNAME =
   /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
-const imageHosts = (process.env.STOREFRONT_IMAGE_HOSTS ?? 'picsum.photos')
+const imageHosts = (process.env.STOREFRONT_IMAGE_HOSTS ?? '')
   .split(',')
   .map(entry => entry.trim().toLowerCase())
   .filter(entry => HOSTNAME.test(entry));

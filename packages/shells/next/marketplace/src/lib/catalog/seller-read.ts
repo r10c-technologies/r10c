@@ -10,6 +10,8 @@ export interface SellerFound {
   readonly vendorId: string;
   readonly name: string;
   readonly whatsappNumber?: string;
+  /** Whether it is a sample store with illustrative prices (#676). */
+  readonly sampleStore: boolean;
 }
 
 /**
@@ -29,5 +31,6 @@ export async function findSeller(
     vendorId: vendor.vendorId,
     name: vendor.displayName,
     ...(vendor.whatsappNumber ? { whatsappNumber: vendor.whatsappNumber } : {}),
+    sampleStore: vendor.sampleStore,
   };
 }

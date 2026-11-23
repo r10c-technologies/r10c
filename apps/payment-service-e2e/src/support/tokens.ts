@@ -56,11 +56,11 @@ const keyId = (): string => process.env['JWT_KEY_ID'] ?? E2E_KEY_ID;
  * platform plane, so nothing here is scoped by organization. It is kept because
  * a line has to name the vendor that owes it, which is what lets one checkout
  * across several vendors be a single receipt. `ORDER_ORGANIZATION_ID` is how a
- * live run names it; the local fleet seeds `demo-organization`.
+ * live run names it; the local fleet seeds `hardware-store`.
  */
 export const E2E_ORGANIZATION_ID =
   process.env['ORDER_ORGANIZATION_ID'] ??
-  (isMockProfile() ? 'e2e-organization' : 'demo-organization');
+  (isMockProfile() ? 'e2e-organization' : 'hardware-store');
 
 /**
  * The party a spec token *is* — what a scoped read matches an order's `buyerId`

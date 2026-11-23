@@ -15,37 +15,35 @@
  * services that otherwise have none.
  */
 
-import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
-import type { MovementReason } from '@r10c/business-ts-stock-management';
 import {
-  DEMO_VENDOR,
-  seededSaleTermsOf,
-  type SeededVendor,
-} from '@r10c/utils-ts-fleet';
+  oneWholeUnit,
+  type SaleUnit,
+} from '@r10c/business-ts-sales-vocabulary';
+import type { MovementReason } from '@r10c/business-ts-stock-management';
+import type { SampleProduct, SeededVendor } from '@r10c/utils-ts-fleet';
 
-/**
- * How many of a vendor's offerings carry stock at all: two thirds, so the
- * demo vendor's 60 stock 40.
- *
- * The catalog's count comes from the same {@link SeededVendor} the catalog seed
- * reads, which is what keeps this from naming offerings that do not exist —
- * the dangling id above turned from a tolerable gap into a screen full of them.
- *
- * The tail — `product-offering-41 … -60` — is seeded with **no `StockItem` row
- * whatsoever**, and that is the point of the number rather than an economy.
- * "No row" is a different code path from "zero on hand": `take-reservation.ts`
- * does not upsert, so a missing item is the first thing a reservation meets and
- * answers `409` from a branch nothing else reaches. A seed that gave every
- * offering a row would leave that branch unexercised on every machine.
- */
-const stockedOf = (vendor: Pick<SeededVendor, 'offerings'>): number =>
-  Math.floor((vendor.offerings * 2) / 3);
-
-/** The catalog seed's offering id at `index`, under the vendor's prefix. */
+/** The catalog seed's offering id at `index`, under the store's prefix. */
 const offeringId = (
   vendor: Pick<SeededVendor, 'idPrefix'>,
   index: number,
 ): string => `${vendor.idPrefix}product-offering-${index + 1}`;
+
+/**
+ * The products that carry stock, with their catalog position.
+ *
+ * A product whose stock is `'none'` is seeded with **no `StockItem` row
+ * whatsoever**, and that is the point rather than an economy. "No row" is a
+ * different code path from "zero on hand": `take-reservation.ts` does not
+ * upsert, so a missing item is the first thing a reservation meets and answers
+ * `409` from a branch nothing else reaches. A seed that gave every offering a
+ * row would leave that branch unexercised on every machine.
+ */
+const stockedOf = (
+  vendor: Pick<SeededVendor, 'products'>,
+): ReadonlyArray<{ readonly product: SampleProduct; readonly index: number }> =>
+  vendor.products.flatMap((product, index) =>
+    product.stock === 'none' ? [] : [{ product, index }],
+  );
 
 /** A movement as it is stored — the `StockMovement` wire shape. */
 export interface StockMovementRecord {
@@ -77,51 +75,53 @@ export interface StockItemRecord {
 }
 
 /**
- * The movements each seeded offering gets, keyed by its position.
+ * The movements each seeded offering gets, counted in its unit's scale — the
+ * way the goods are bought: 300 m of cable is `300000`, 12 000 screws `12000`.
  *
- * Four shapes, cycled, so every read path has a row that exercises it and no
- * machine has to be hand-edited first:
+ * Three shapes, cycled by catalog position, so every read path has a row that
+ * exercises it and no machine has to be hand-edited first:
  *
- * | Position | Movements                      | What it is for                       |
- * | -------- | ------------------------------ | ------------------------------------ |
- * | `0 mod 4`| one `receipt`                  | the ordinary case                    |
- * | `1 mod 4`| `receipt`, `sale`              | a fold of two, one of them negative  |
- * | `2 mod 4`| `receipt`, `sale`, `adjustment`| a fold of three, for reconciliation  |
- * | `3 mod 4`| `receipt`, then an equal `sale`| **zero on hand** — the sold-out path |
+ * | Position  | Movements                       | What it is for                      |
+ * | --------- | ------------------------------- | ----------------------------------- |
+ * | `0 mod 3` | one `receipt`                   | the ordinary case                   |
+ * | `1 mod 3` | `receipt`, `sale`               | a fold of two, one of them negative |
+ * | `2 mod 3` | `receipt`, `sale`, `adjustment` | a fold of three, for reconciliation |
  *
- * ⚠️ The `3 mod 4` case is why the quantities are written out rather than
- * generated from the index alone: zero on hand has to be *reachable through the
- * ledger*, since a `StockItem` at zero with no movements explaining it is
- * exactly the unreconcilable state the fold exists to prevent.
+ * The sale is put back on the receipt, so what a store's data says it holds is
+ * what the fold leaves on hand. A `'sold-out'` product gets a receipt and an
+ * equal sale: zero on hand has to be *reachable through the ledger*, since a
+ * `StockItem` at zero with no movements explaining it is exactly the
+ * unreconcilable state the fold exists to prevent.
  */
 const movementsFor = (
-  vendor: Pick<SeededVendor, 'measured'>,
+  product: SampleProduct,
   index: number,
 ): ReadonlyArray<{ quantity: number; reason: MovementReason }> => {
-  // Counted the way the goods are bought: 73 m is 73000, 67 hundreds 6700.
-  const received =
-    (10 + ((index * 7) % 90)) * seededSaleTermsOf(vendor, index).stockCount;
-  switch (index % 4) {
+  const whole = oneWholeUnit(product.unit);
+  if (product.stock === 'sold-out') {
+    return [
+      { quantity: 20 * whole, reason: 'receipt' },
+      { quantity: -20 * whole, reason: 'sale' },
+    ];
+  }
+  const onHand = Number(product.stock) * whole;
+  const sold = 2 * whole;
+  switch (index % 3) {
     case 0:
-      return [{ quantity: received, reason: 'receipt' }];
+      return [{ quantity: onHand, reason: 'receipt' }];
     case 1:
       return [
-        { quantity: received, reason: 'receipt' },
-        { quantity: -Math.ceil(received / 5), reason: 'sale' },
-      ];
-    case 2:
-      return [
-        { quantity: received, reason: 'receipt' },
-        { quantity: -Math.ceil(received / 4), reason: 'sale' },
-        // An `adjustment` may go either way (`movementDirection` answers
-        // `'either'` for it), so a negative one here is what proves the
-        // consistency check is not simply reading the sign of the reason.
-        { quantity: -1, reason: 'adjustment' },
+        { quantity: onHand + sold, reason: 'receipt' },
+        { quantity: -sold, reason: 'sale' },
       ];
     default:
       return [
-        { quantity: received, reason: 'receipt' },
-        { quantity: -received, reason: 'sale' },
+        { quantity: onHand + sold + whole, reason: 'receipt' },
+        { quantity: -sold, reason: 'sale' },
+        // An `adjustment` may go either way (`movementDirection` answers
+        // `'either'` for it), so a negative one here is what proves the
+        // consistency check is not simply reading the sign of the reason.
+        { quantity: -whole, reason: 'adjustment' },
       ];
   }
 };
@@ -135,29 +135,25 @@ const movementsFor = (
  * proves nothing.
  */
 export const stockMovementTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'products'>,
 ): readonly StockMovementRecord[] =>
-  Array.from({ length: stockedOf(vendor) }, (_, index) =>
-    movementsFor(vendor, index).map((movement, position) => {
+  stockedOf(vendor).flatMap(({ product, index }) =>
+    movementsFor(product, index).map((movement, position) => {
       const id = `${vendor.idPrefix}stock-movement-${index + 1}-${position + 1}`;
       return {
         id,
         offeringId: offeringId(vendor, index),
-        unit: seededSaleTermsOf(vendor, index).saleUnit,
+        unit: product.unit,
         ...movement,
         occurredAt: new Date(SEEDED_FROM + position * 60_000).toISOString(),
         causeType: 'manual' as const,
         causeId: id,
       };
     }),
-  ).flat();
-
-/** The demo vendor's ledger. */
-export const stockMovementTempData: readonly StockMovementRecord[] =
-  stockMovementTempDataFor(DEMO_VENDOR);
+  );
 
 /**
- * The fold of {@link stockMovementTempData}, computed rather than written.
+ * The fold of {@link stockMovementTempDataFor}, computed rather than written.
  *
  * ⚠️ **Never a hand-written total.** `onHand` is a fold of the ledger, so a
  * seeded figure that did not come from summing these movements would be a state
@@ -170,10 +166,10 @@ export const stockMovementTempData: readonly StockMovementRecord[] =
  * would then have to explain.
  */
 export const stockItemTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'products'>,
 ): readonly StockItemRecord[] =>
-  Array.from({ length: stockedOf(vendor) }, (_, index) => {
-    const onHand = movementsFor(vendor, index).reduce(
+  stockedOf(vendor).map(({ product, index }) => {
+    const onHand = movementsFor(product, index).reduce(
       (total, movement) => total + movement.quantity,
       0,
     );
@@ -181,13 +177,9 @@ export const stockItemTempDataFor = (
     return {
       id: `${vendor.idPrefix}stock-item-${index + 1}`,
       offeringId: offeringId(vendor, index),
-      unit: seededSaleTermsOf(vendor, index).saleUnit,
+      unit: product.unit,
       onHand,
       reserved: 0,
       available: onHand,
     };
   });
-
-/** The demo vendor's stock positions. */
-export const stockItemTempData: readonly StockItemRecord[] =
-  stockItemTempDataFor(DEMO_VENDOR);

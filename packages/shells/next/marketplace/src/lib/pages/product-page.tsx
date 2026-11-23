@@ -39,6 +39,7 @@ import { DeliveryFacts } from '../catalog/delivery-facts';
 import { loadCardNames, OfferingGrid } from '../catalog/offering-grid';
 import { priceBasisLabel, saleRuleLabel } from '../catalog/price-basis';
 import { readProduct } from '../catalog/product-read';
+import { SampleStoreNote } from '../catalog/sample-store-note';
 import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
 import { StoreLink } from '../routing/store-link';
@@ -157,7 +158,7 @@ async function ProductContent({
   const product = await readProduct(offeringId);
   // Unpublished between the check and this render: still a miss.
   if (!product) notFound();
-  const { offering, brandName, sellerName, ships } = product;
+  const { offering, brandName, sellerName, ships, sampleStore } = product;
 
   // The trail ends at the offering's own category, so it is also the
   // category line below: one vocabulary read, not two (ADR 0062).
@@ -226,6 +227,10 @@ async function ProductContent({
                 </Text>
               ) : null}
             </Stack>
+
+            {sampleStore ? (
+              <SampleStoreNote label={t('storefront.sampleStore.note')} />
+            ) : null}
 
             <Cluster gap="s" justify="between">
               <Text weight="semibold" step={1}>

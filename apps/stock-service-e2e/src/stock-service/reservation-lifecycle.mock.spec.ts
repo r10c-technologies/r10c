@@ -27,8 +27,11 @@ type Page = {
   data: { data: { items: Array<Record<string, unknown>>; total: number } };
 };
 
-/** Seeded with a lone receipt of 40 and no holds, and named by nothing else. */
-const OFFERING = 'product-offering-5';
+/**
+ * The hardware store's measuring tape (#676): a lone receipt of 30 and no
+ * holds, and named by nothing else.
+ */
+const OFFERING = 'product-offering-13';
 
 const crossing = (extra: Record<string, string> = {}) => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,

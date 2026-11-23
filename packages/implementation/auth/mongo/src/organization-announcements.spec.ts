@@ -82,8 +82,15 @@ describe('announcementOf', () => {
       holdsStock: false,
       acceptsLink: false,
       whatsappNumber: '',
+      sampleStore: false,
       fiscal: FISCAL,
     });
+  });
+
+  it('says the seller is a sample store when its organization was seeded as one', () => {
+    expect(
+      announcementOf({ ...SEED, sampleStore: true, updatedAt: FIRST }),
+    ).toMatchObject({ sampleStore: true });
   });
 
   it('carries the WhatsApp number its organization stated', () => {
