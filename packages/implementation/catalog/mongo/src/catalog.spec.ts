@@ -132,6 +132,10 @@ const publicationEvent = (at = '2026-10-25T10:00:00.000Z') =>
       publishedAt: at,
       specificationId: 'spec-1',
       specificationVersion: 1,
+      saleUnit: 'UN',
+      quantityStep: 1,
+      quantityMinimum: 1,
+      pricePer: 1,
     },
     'marketplace-admin',
   );

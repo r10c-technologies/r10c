@@ -998,9 +998,11 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 - `business-ts-sales-management` — `SalesChannel`.
   `business-ts-shipping-order-management` — `ShippingOrder`. **Tenant plane.**
 - `business-ts-configuration` — `Configuration`. **Control plane.**
-- The `-contracts` and `-vocabulary` packages (`catalog`, `order`, `party`,
-  `payment`, `flow`, `sales`), `tax-policy`, `authz-grants`, `common` and `i18n` are `business:policy`: the
-  shared vocabulary a domain expresses itself in, never a domain. `tax-policy`
+- The `-contracts` packages (`catalog`, `order`, `party`, `payment`, `flow`),
+  `tax-policy`, `authz-grants`, `common`, `object-storage` and `i18n` are `business:policy`: the
+  shared language a domain expresses itself in, never a domain.
+  `sales-vocabulary` is `business:vocabulary`, one rung below: units, scales,
+  tenders and `lineTotal`, which a contract may import too (ADR 0082). `tax-policy`
   holds the regimes, the buyer's id types and the one IVA function the checkout
   states every order's tax with (ADR 0078 §6).
 - `business-ts-authn` — `UserIdentity` (carrying the `role` aspect),

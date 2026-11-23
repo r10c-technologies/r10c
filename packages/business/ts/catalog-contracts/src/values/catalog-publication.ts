@@ -6,6 +6,11 @@ import {
   openStruct,
   registerEvent,
 } from '@entifix/core';
+import {
+  type SaleTerms,
+  SaleTermsFields,
+  saleTermsOf,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
 import { readDeviceModelIds } from './device-model-fit';
@@ -65,7 +70,7 @@ export type CatalogEventName = (typeof CATALOG_EVENTS)[number];
  * offering permanently unannounceable, and would turn every message already
  * sitting in the queue into poison the moment this shape widened.
  */
-export interface CatalogPublication {
+export interface CatalogPublication extends SaleTerms {
   /** The tenant-side `ProductOffering.id`. The projection's natural key. */
   readonly offeringId: string;
   /**
@@ -77,7 +82,12 @@ export interface CatalogPublication {
    */
   readonly vendorId: string;
   readonly name: string;
-  /** Minor units, matching `ProductOfferingPrice.amount`. */
+  /**
+   * Minor units, matching `ProductOfferingPrice.amount`: what `pricePer` whole
+   * `saleUnit`s cost. The sale terms are required, unlike the merchandising
+   * below: a price without them is read as a price for one unit, which
+   * charges a price per hundred a hundred times over (ADR 0082 §5).
+   */
   readonly amount: number;
   readonly currency: string;
   /**
@@ -235,6 +245,7 @@ export const CatalogPublicationSchema = openStruct({
   publishedAt: Schema.NonEmptyString,
   specificationId: Schema.NonEmptyString,
   specificationVersion: Schema.Finite,
+  ...SaleTermsFields,
 });
 
 for (const name of CATALOG_EVENTS)
@@ -242,6 +253,24 @@ for (const name of CATALOG_EVENTS)
     versioned: true,
     audience: 'required',
   });
+
+/**
+ * The terms a decoded payload states. The schema checked each member; whether
+ * the rule sells anything is checked here, so a rule no buyer could meet is
+ * as malformed as a missing member.
+ */
+const termsOf = (
+  raw: Readonly<Record<string, unknown>>,
+): Effect.Effect<SaleTerms, Invalid> => {
+  const terms = saleTermsOf(raw);
+  return terms === undefined
+    ? Effect.fail(
+        invalidPayload(
+          'catalog publication payload is malformed: its sale rule sells nothing',
+        ),
+      )
+    : Effect.succeed(terms);
+};
 
 const optionalString = (value: unknown): string | undefined =>
   typeof value === 'string' && value !== '' ? value : undefined;
@@ -254,31 +283,32 @@ const optionalString = (value: unknown): string | undefined =>
 export const readCatalogPublication = (
   data: unknown,
 ): Effect.Effect<CatalogPublication, Invalid> =>
-  Effect.map(
-    Schema.decodeUnknownEffect(CatalogPublicationSchema)(data, {
-      errors: 'all',
-    }).pipe(
-      Effect.mapError(error =>
-        invalidPayload(
-          `catalog publication payload is malformed: ${error.message}`,
-        ),
+  Schema.decodeUnknownEffect(CatalogPublicationSchema)(data, {
+    errors: 'all',
+  }).pipe(
+    Effect.mapError(error =>
+      invalidPayload(
+        `catalog publication payload is malformed: ${error.message}`,
       ),
     ),
-    raw => ({
-      offeringId: raw.offeringId,
-      vendorId: raw.vendorId,
-      name: raw.name,
-      amount: raw.amount,
-      currency: raw.currency,
-      availableHint: raw.availableHint,
-      publishedAt: raw.publishedAt,
-      specificationId: raw.specificationId,
-      specificationVersion: raw.specificationVersion,
-      code: optionalString(raw['code']),
-      description: optionalString(raw['description']),
-      brandId: optionalString(raw['brandId']),
-      categoryId: optionalString(raw['categoryId']),
-      media: readMedia(raw['media']),
-      fitsDeviceModelIds: readDeviceModelIds(raw['fitsDeviceModelIds']),
-    }),
+    Effect.flatMap(raw =>
+      Effect.map(termsOf(raw), terms => ({
+        offeringId: raw.offeringId,
+        vendorId: raw.vendorId,
+        name: raw.name,
+        amount: raw.amount,
+        currency: raw.currency,
+        availableHint: raw.availableHint,
+        publishedAt: raw.publishedAt,
+        specificationId: raw.specificationId,
+        specificationVersion: raw.specificationVersion,
+        code: optionalString(raw['code']),
+        description: optionalString(raw['description']),
+        brandId: optionalString(raw['brandId']),
+        categoryId: optionalString(raw['categoryId']),
+        media: readMedia(raw['media']),
+        fitsDeviceModelIds: readDeviceModelIds(raw['fitsDeviceModelIds']),
+        ...terms,
+      })),
+    ),
   );

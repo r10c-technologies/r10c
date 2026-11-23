@@ -32,7 +32,7 @@ const facets = (
 ) =>
   offeringFacets({
     path: '/es/search',
-    state: parseSearch(query),
+    state: parseSearch(query, 'es'),
     choices,
     labels,
   });
@@ -199,7 +199,7 @@ describe('offeringFacets with counts', () => {
   it('puts a count on every option of a counted facet, 0 where nothing holds it', () => {
     const panel = offeringFacets({
       path: '/es/search',
-      state: parseSearch({}),
+      state: parseSearch({}, 'es'),
       choices,
       labels,
       counts: { brand: [{ value: 'brand-a', count: 4 }] },

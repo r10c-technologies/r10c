@@ -4,7 +4,7 @@
       "name": "catalog.published",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "65a1153c6c077f27",
+      "fingerprint": "e9aa35f24db7467f",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -42,6 +42,41 @@
             },
             "specificationVersion": {
               "type": "number"
+            },
+            "saleUnit": {
+              "type": "string",
+              "enum": [
+                "UN",
+                "PAR",
+                "M",
+                "YD",
+                "FT",
+                "M2",
+                "FT2",
+                "DM2",
+                "KG",
+                "LB",
+                "L",
+                "GAL"
+              ]
+            },
+            "quantityStep": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "quantityMinimum": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "pricePer": {
+              "type": "number",
+              "enum": [
+                1,
+                100,
+                1000
+              ]
             }
           },
           "required": [
@@ -53,7 +88,11 @@
             "availableHint",
             "publishedAt",
             "specificationId",
-            "specificationVersion"
+            "specificationVersion",
+            "saleUnit",
+            "quantityStep",
+            "quantityMinimum",
+            "pricePer"
           ],
           "allOf": [
             {
@@ -69,7 +108,7 @@
       "name": "catalog.unpublished",
       "versioned": true,
       "audience": "required",
-      "fingerprint": "36f3a6ce9542933b",
+      "fingerprint": "82b0102845a8d2bf",
       "schema": {
         "dialect": "draft-2020-12",
         "schema": {
@@ -107,6 +146,41 @@
             },
             "specificationVersion": {
               "type": "number"
+            },
+            "saleUnit": {
+              "type": "string",
+              "enum": [
+                "UN",
+                "PAR",
+                "M",
+                "YD",
+                "FT",
+                "M2",
+                "FT2",
+                "DM2",
+                "KG",
+                "LB",
+                "L",
+                "GAL"
+              ]
+            },
+            "quantityStep": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "quantityMinimum": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "pricePer": {
+              "type": "number",
+              "enum": [
+                1,
+                100,
+                1000
+              ]
             }
           },
           "required": [
@@ -118,7 +192,11 @@
             "availableHint",
             "publishedAt",
             "specificationId",
-            "specificationVersion"
+            "specificationVersion",
+            "saleUnit",
+            "quantityStep",
+            "quantityMinimum",
+            "pricePer"
           ],
           "allOf": [
             {

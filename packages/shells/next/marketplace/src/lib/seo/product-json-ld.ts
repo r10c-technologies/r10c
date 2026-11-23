@@ -1,4 +1,8 @@
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import {
+  quotedQuantity,
+  UNECE_UNIT_CODES,
+} from '@r10c/business-ts-sales-vocabulary';
 
 export interface ProductJsonLdInput {
   readonly offering: PublishedOffering;
@@ -14,7 +18,9 @@ export interface ProductJsonLdInput {
  * Built only from what the snapshot carries, and every optional member stays
  * absent rather than empty, as on the page: a `brand` with no name is a claim
  * with nothing in it. The price is the published one in major units, which is
- * what `Offer.price` means. Availability is the projection's hint, the same
+ * what `Offer.price` means, and when it buys more than one piece — a metre, a
+ * hundred screws — a `UnitPriceSpecification` says how much, so a crawler
+ * reads Q7.50 the hundred as that and not as Q7.50 each (ADR 0082 §5). Availability is the projection's hint, the same
  * one the page shows (ADR 0010): a crawler is told no more than a buyer is.
  */
 export const productJsonLd = ({
@@ -22,29 +28,47 @@ export const productJsonLd = ({
   url,
   brandName,
   sellerName,
-}: ProductJsonLdInput): Record<string, unknown> => ({
-  '@context': 'https://schema.org',
-  '@type': 'Product',
-  name: offering.name,
-  ...(offering.description ? { description: offering.description } : {}),
-  ...(offering.code ? { sku: offering.code } : {}),
-  ...(offering.media && offering.media.length > 0
-    ? { image: offering.media.map(picture => picture.url) }
-    : {}),
-  ...(brandName ? { brand: { '@type': 'Brand', name: brandName } } : {}),
-  offers: {
-    '@type': 'Offer',
-    url,
-    price: (offering.amount / 100).toFixed(2),
-    priceCurrency: offering.currency,
-    availability: offering.availableHint
-      ? 'https://schema.org/InStock'
-      : 'https://schema.org/OutOfStock',
-    ...(sellerName
-      ? { seller: { '@type': 'Organization', name: sellerName } }
+}: ProductJsonLdInput): Record<string, unknown> => {
+  const price = (offering.amount / 100).toFixed(2);
+  const quoted = quotedQuantity(offering);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: offering.name,
+    ...(offering.description ? { description: offering.description } : {}),
+    ...(offering.code ? { sku: offering.code } : {}),
+    ...(offering.media && offering.media.length > 0
+      ? { image: offering.media.map(picture => picture.url) }
       : {}),
-  },
-});
+    ...(brandName ? { brand: { '@type': 'Brand', name: brandName } } : {}),
+    offers: {
+      '@type': 'Offer',
+      url,
+      price,
+      priceCurrency: offering.currency,
+      ...(quoted === undefined
+        ? {}
+        : {
+            priceSpecification: {
+              '@type': 'UnitPriceSpecification',
+              price,
+              priceCurrency: offering.currency,
+              referenceQuantity: {
+                '@type': 'QuantitativeValue',
+                value: offering.pricePer,
+                unitCode: UNECE_UNIT_CODES[quoted.saleUnit],
+              },
+            },
+          }),
+      availability: offering.availableHint
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      ...(sellerName
+        ? { seller: { '@type': 'Organization', name: sellerName } }
+        : {}),
+    },
+  };
+};
 
 /**
  * The JSON for an inline `<script type="application/ld+json">`.

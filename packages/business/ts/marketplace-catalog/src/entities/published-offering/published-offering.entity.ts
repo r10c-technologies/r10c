@@ -4,6 +4,17 @@ import {
   MediaReference,
   type MediaReferenceValue,
 } from '@r10c/business-ts-catalog-contracts';
+import {
+  DEFAULT_PRICE_PER,
+  DEFAULT_SALE_UNIT,
+  oneWholeUnit,
+  type PricePer,
+  SALE_UNIT_NAME_KEY,
+  SALE_UNIT_SCALES,
+  SALE_UNIT_SYMBOL_KEY,
+  type SaleUnit,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 
 /**
  * What the storefront queries: a **snapshot** of a vendor's offering, taken at
@@ -54,6 +65,11 @@ export class PublishedOffering implements Entity {
   #amount = 0;
   #currency = '';
   #availableHint = false;
+  #saleUnit: SaleUnit = DEFAULT_SALE_UNIT;
+  #quantityStep = oneWholeUnit(DEFAULT_SALE_UNIT);
+  #quantityMinimum = oneWholeUnit(DEFAULT_SALE_UNIT);
+  #pricePer: PricePer = DEFAULT_PRICE_PER;
+  #amountPerThousand = 0;
   // The epoch, so a record written before this member existed compares as
   // older than every real publication rather than as newer than all of them.
   #publishedAt = new Date(0);
@@ -134,14 +150,22 @@ export class PublishedOffering implements Entity {
     this.#name = value;
   }
 
-  /** Minor units, snapshotted at publication. See `ProductOfferingPrice`. */
+  /**
+   * Minor units, snapshotted at publication: what `pricePer` whole `saleUnit`s
+   * cost. See `ProductOfferingPrice`.
+   *
+   * ⚠️ **Neither sortable nor filterable.** Q7.50 the hundred is `750`, and
+   * ordering it beside Q7.50 each would rank it a hundred times too dear;
+   * {@link PublishedOffering.amountPerThousand} is what a list orders and
+   * filters prices by (ADR 0082 §5).
+   */
   @accessor({
     type: 'number',
     labelKey: 'entity:published-offering.fields.amount',
     money: { unit: 'minor', currencyMember: 'currency' },
     required: true,
-    sortable: true,
-    filterable: true,
+    sortable: false,
+    filterable: false,
   })
   get amount(): number {
     return this.#amount;
@@ -161,6 +185,98 @@ export class PublishedOffering implements Entity {
   }
   set currency(value: string) {
     this.#currency = value;
+  }
+
+  /**
+   * How many whole `saleUnit`s `amount` buys: `1`, `100` or `1000`, as the
+   * vendor quoted it.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:published-offering.fields.pricePer',
+    required: true,
+  })
+  get pricePer(): PricePer {
+    return this.#pricePer;
+  }
+  set pricePer(value: PricePer) {
+    this.#pricePer = value;
+  }
+
+  /**
+   * What a thousand whole units cost, in minor units: the one key prices
+   * quoted per one, per hundred and per thousand compare on (ADR 0082 §5).
+   * Derived at projection by `amountPerThousand`, never authored. Not
+   * `hidden`, which would drop it from the stored document the sort reads; a
+   * buyer still reads the price as the vendor quoted it, because no
+   * storefront surface renders this member.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:published-offering.fields.amountPerThousand',
+    required: true,
+    sortable: true,
+    filterable: true,
+  })
+  get amountPerThousand(): number {
+    return this.#amountPerThousand;
+  }
+  set amountPerThousand(value: number) {
+    this.#amountPerThousand = value;
+  }
+
+  /**
+   * What one of this offering is, and how a buyer may ask for it: in steps of
+   * `quantityStep`, from `quantityMinimum`, both in the unit's scale (ADR 0082
+   * §1, §3). Copied from the publication, so the storefront checks a quantity
+   * against the terms it shows.
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:published-offering.fields.saleUnit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+    required: true,
+  })
+  get saleUnit(): SaleUnit {
+    return this.#saleUnit;
+  }
+  set saleUnit(value: SaleUnit) {
+    this.#saleUnit = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:published-offering.fields.quantityStep',
+    required: true,
+    scaled: {
+      unitMember: 'saleUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
+  })
+  get quantityStep(): number {
+    return this.#quantityStep;
+  }
+  set quantityStep(value: number) {
+    this.#quantityStep = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:published-offering.fields.quantityMinimum',
+    required: true,
+    scaled: {
+      unitMember: 'saleUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
+  })
+  get quantityMinimum(): number {
+    return this.#quantityMinimum;
+  }
+  set quantityMinimum(value: number) {
+    this.#quantityMinimum = value;
   }
 
   /** A hint, not a promise. The checkout reservation is the truth. */

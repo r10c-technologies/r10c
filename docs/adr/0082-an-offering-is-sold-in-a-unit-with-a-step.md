@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-11-21
+- Revised: 2026-11-22 — §5 gains the key a list orders and filters prices by, `amountPerThousand`, since `amount` compared across `pricePer` ranks a price per hundred a hundred times too dear; and the units, scales and `lineTotal` move to a `business:vocabulary` rung below `business:policy`, so a contract names a unit as a domain does (#672).
 - Area: business
 - Read when: multiplying a price by a quantity, selling by the metre, yard or box, or pricing below a centavo — a quantity is a scaled integer, a line's total is computed once, and a sale never grows after it is placed
 
@@ -140,6 +141,22 @@ are integers.
 `ProductOfferingPrice` gains `pricePer`, one of `1`, `100` or `1000` whole
 units, default `1`. `amount` stays integer minor units. Q7.50 the hundred is
 `amount: 750, pricePer: 100`, shown as it is quoted.
+
+A list cannot order or filter by `amount` across offerings quoted on different
+bases: Q7.50 the hundred is cheaper than Q0.10 each. The projection derives
+`amountPerThousand = amount × 1000 / pricePer`, an integer because every
+`pricePer` divides a thousand, and sort, the price range and its facet read
+that key; `amount` is neither sortable nor filterable there. A buyer's price
+range is per one unit and compared as that price times a thousand. Wherever a
+price is shown, what it buys is said beside it when it is not one piece —
+"por m", "por 100 u." — and schema.org's `Offer` gains a
+`UnitPriceSpecification` naming the quantity in its UN/ECE code.
+
+`SaleUnit`, its scales, `pricePer`, `lineTotal` and the `SaleTerms` a
+publication carries live in `sales-vocabulary`, tagged `business:vocabulary`:
+a rung below `business:policy` that may depend on nothing in r10c, so the
+catalog, order and flow contracts can name a unit as a domain does rather than
+carrying it as an unchecked string.
 
 ### 6. A line's total is computed once, rounded half up, and copied
 

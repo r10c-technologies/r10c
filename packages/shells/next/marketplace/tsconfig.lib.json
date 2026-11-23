@@ -53,6 +53,9 @@
       "path": "../../../business/ts/tax-policy/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/order-contracts/tsconfig.lib.json"
     },
     {
@@ -66,6 +69,9 @@
     },
     {
       "path": "../../../business/ts/catalog-reference/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/i18n/tsconfig.lib.json"
     }
   ]
 }

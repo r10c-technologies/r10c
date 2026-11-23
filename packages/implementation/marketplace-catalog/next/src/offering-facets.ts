@@ -65,7 +65,8 @@ export const OFFERING_FACET_MEMBERS = {
   category: 'categoryId',
   brand: 'brandId',
   seller: 'vendorId',
-  price: 'amount',
+  // What one unit costs, compared on the per-thousand key (ADR 0082 §5).
+  price: 'amountPerThousand',
   available: 'availableHint',
 } as const satisfies Readonly<Record<string, keyof PublishedOffering>>;
 

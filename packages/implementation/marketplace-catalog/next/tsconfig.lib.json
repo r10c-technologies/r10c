@@ -22,6 +22,9 @@
     },
     {
       "path": "../../../business/ts/catalog-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/i18n/tsconfig.lib.json"
     }
   ],
   "exclude": [

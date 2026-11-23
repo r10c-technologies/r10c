@@ -56,6 +56,7 @@
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@r10c/business-ts-order-contracts": "workspace:*",
+    "@r10c/business-ts-sales-vocabulary": "workspace:*",
     "@r10c/business-ts-tax-policy": "workspace:*",
     "@r10c/implementation-catalog-reference-next": "workspace:*",
     "@r10c/implementation-marketplace-catalog-next": "workspace:*",
@@ -65,6 +66,7 @@
     "effect": "4.0.7"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "catalog:"
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/business-ts-i18n": "workspace:*"
   }
 }

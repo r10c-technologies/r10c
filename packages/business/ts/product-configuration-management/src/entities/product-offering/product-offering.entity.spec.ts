@@ -132,7 +132,7 @@ describe('ProductOffering', () => {
       expect(columns.find(column => column.name === name)?.scaled).toEqual({
         unitMember: 'saleUnit',
         units: expect.objectContaining({ UN: 0, M: 3 }),
-        unitLabelKey: 'entity:product-offering.values.unitSymbol',
+        unitLabelKey: 'entity:sale-unit.symbol',
       });
     }
   });

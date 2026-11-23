@@ -352,10 +352,35 @@ describe('what a transition announces', () => {
       publishedAt: AT.toISOString(),
       specificationId: 'spec-1',
       specificationVersion: 1,
+      saleUnit: 'UN',
+      quantityStep: 1,
+      quantityMinimum: 1,
+      pricePer: 1,
       code: 'product-013',
       description: 'Glazed by hand.',
       brandId: 'product-brand-3',
       categoryId: 'product-category-7',
+    });
+  });
+
+  it('copies what the price buys and how a buyer may ask for it', () => {
+    const measured = Object.assign(offering('1', 'draft'), {
+      saleUnit: 'M',
+      quantityStep: 500,
+      quantityMinimum: 1000,
+    });
+    const perHundred = Object.assign(price('1', 750), { pricePer: 100 });
+
+    const event = publicationOf(
+      run([measured], '1', 'publish', [perHundred]).exit,
+    );
+
+    expect(event.data).toMatchObject({
+      amount: 750,
+      saleUnit: 'M',
+      quantityStep: 500,
+      quantityMinimum: 1000,
+      pricePer: 100,
     });
   });
 

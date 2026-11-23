@@ -79,7 +79,7 @@ export type SliceStatus = 'active' | 'planned';
  * > **Corrected 2026-09-10.** This note used to cite `settlement-management`
  * > duplicating `SalesChannelType` as the precedent. That copy was deleted by
  * > #96: the set moved to `@r10c/business-ts-sales-vocabulary`, a
- * > `business:policy` package any domain may reach down to. The duplication here
+ * > `business:vocabulary` package any domain may reach down to. The duplication here
  * > remains and has no such escape — a build tool cannot import a workspace
  * > package at all.
  */

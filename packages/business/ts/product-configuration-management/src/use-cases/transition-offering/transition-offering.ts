@@ -379,6 +379,13 @@ export const transitionOffering = Effect.gen(function* () {
     // nothing while looking like it says something.
     availableHint: true,
     publishedAt: at.toISOString(),
+    // What the price buys and how a buyer may ask for it (ADR 0082). The save
+    // rules already refused a rule that sells nothing and a basis other than
+    // 1, 100 or 1000, so these are copied as stored.
+    saleUnit: offering.saleUnit,
+    quantityStep: offering.quantityStep,
+    quantityMinimum: offering.quantityMinimum,
+    pricePer: price.pricePer,
     ...pinOf(offering, specification),
     ...merchandisingOf(specification),
   };

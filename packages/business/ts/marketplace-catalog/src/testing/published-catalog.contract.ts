@@ -30,6 +30,10 @@ const publication = (
   publishedAt,
   specificationId: 'spec-1',
   specificationVersion: 1,
+  saleUnit: 'UN',
+  quantityStep: 1,
+  quantityMinimum: 1,
+  pricePer: 1,
 });
 
 /**

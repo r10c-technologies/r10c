@@ -1,4 +1,9 @@
-import type { EntityLoadRequest } from '@entifix/core';
+import {
+  type EntityLoadRequest,
+  type Locale,
+  parseScaled,
+  scaledToDecimal,
+} from '@entifix/core';
 import {
   anyOf,
   containing,
@@ -26,22 +31,37 @@ export interface SearchContext {
   readonly subtreeOf: (categoryId: string) => readonly string[];
 }
 
+/** Decimals a price is typed in: the currency's minor unit. */
+const PRICE_SCALE = 2;
+
 /**
- * A price as a buyer types it — whole or with two decimals, in the currency's
- * major unit — so `?min=100` is a hundred quetzales, not one.
+ * A price as a search carries it once read: major units, a point before at
+ * most two decimals and no grouping — so `?min=100` is a hundred quetzales,
+ * not one, and `?min=1000.5` is the same price however the buyer typed it.
  */
 const PRICE = /^\d+(\.\d{1,2})?$/;
 
-/** Major units in the URL, minor units in the projection (`amount`). */
-const toMinorUnits = (price: string): number => Math.round(Number(price) * 100);
+/** The minor units a carried price stands for. Never through a float. */
+const toMinorUnits = (price: string): number => {
+  const [whole = '0', fraction = ''] = price.split('.');
+  return Number(whole) * 100 + Number(fraction.padEnd(PRICE_SCALE, '0'));
+};
+
+/**
+ * A buyer's price for one unit, as the key it is compared on: what a thousand
+ * whole units cost at that price. A list's prices are quoted per one, per
+ * hundred or per thousand, and `amountPerThousand` puts them on one scale
+ * (ADR 0082 §5) — so `?max=1` keeps Q7.50 the hundred, which is Q0.075 each.
+ */
+const perThousand = (price: string): number => toMinorUnits(price) * 1000;
 
 /**
  * Every order a listing offers, and the member and direction it sorts by. The
  * value is what the URL carries (`?sort=price-asc`).
  */
 const SORTS = {
-  'price-asc': ['amount', 'asc'],
-  'price-desc': ['amount', 'desc'],
+  'price-asc': ['amountPerThousand', 'asc'],
+  'price-desc': ['amountPerThousand', 'desc'],
   newest: ['publishedAt', 'desc'],
   name: ['name', 'asc'],
 } as const satisfies Readonly<
@@ -117,17 +137,17 @@ export const searchQuery = defineUrlQuery<
     min: {
       single: true,
       condition: ([price]) => ({
-        property: 'amount',
+        property: 'amountPerThousand',
         operator: 'gte',
-        value: toMinorUnits(price as string),
+        value: perThousand(price as string),
       }),
     },
     max: {
       single: true,
       condition: ([price]) => ({
-        property: 'amount',
+        property: 'amountPerThousand',
         operator: 'lte',
-        value: toMinorUnits(price as string),
+        value: perThousand(price as string),
       }),
     },
     // A toggle: present means "in stock only", and there is no "out of stock
@@ -165,22 +185,30 @@ export type SearchParams =
 
 /**
  * `withParam` checks values against `allowed`, which a price cannot use, so a
- * price that is not a number is dropped here instead. A hand-edited `?min=abc`
+ * price that is not one is dropped here instead. A hand-edited `?min=abc`
  * then filters on nothing rather than on `NaN`.
- *
- * A comma decimal is read as a point first: the range field is text in the
- * buyer's own locale, and in `es` a price is typed `64,99`.
  */
 const validPrices = (prices: readonly string[]) =>
-  prices
-    .map(price => price.replace(',', '.'))
-    .filter(price => PRICE.test(price));
+  prices.filter(price => PRICE.test(price));
 
 const withValidPrices = (state: SearchState): SearchState => ({
   ...state,
   min: validPrices(state.min),
   max: validPrices(state.max),
 });
+
+/**
+ * The prices a submitted range form carries, read in the buyer's locale and
+ * written back as {@link PRICE}. The field is text, so `64,99`, `1,000` and
+ * `1.000,50` all arrive; `parseScaled` reads each as the locale means it and
+ * refuses one it could read two ways, which drops it rather than filtering
+ * on a guess (`1,000` is a thousand in `es-GT`, never one).
+ */
+const readPrices = (prices: readonly string[], locale: Locale) =>
+  prices.flatMap(price => {
+    const minor = parseScaled(price.trim(), PRICE_SCALE, locale);
+    return minor === undefined ? [] : [scaledToDecimal(minor, PRICE_SCALE)];
+  });
 
 const toSearchString = (params: SearchParams): string => {
   if (params instanceof URLSearchParams) return params.toString();
@@ -207,9 +235,21 @@ export const hiddenSearchFields = (
     .filter(([key]) => key !== 'page' && !omit.includes(key))
     .flatMap(([key, values]) => values.map(value => [key, value] as const));
 
-/** The search a page's `searchParams` ask for, with every value checked. */
-export const parseSearch = (params: SearchParams): SearchState =>
-  withValidPrices(searchQuery.parse(toSearchString(params)));
+/**
+ * The search a page's `searchParams` ask for, with every value checked and
+ * each price read in the page's `locale`.
+ */
+export const parseSearch = (
+  params: SearchParams,
+  locale: Locale,
+): SearchState => {
+  const state = searchQuery.parse(toSearchString(params));
+  return {
+    ...state,
+    min: readPrices(state.min, locale),
+    max: readPrices(state.max, locale),
+  };
+};
 
 /**
  * The address of `state` at `path`, with `change` applied first — one

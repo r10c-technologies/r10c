@@ -32,10 +32,8 @@ import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { DeliveryFacts } from '../catalog/delivery-facts';
-import {
-  loadCardNames,
-  OfferingGrid,
-} from '../catalog/offering-grid';
+import { loadCardNames, OfferingGrid } from '../catalog/offering-grid';
+import { priceBasisLabel } from '../catalog/price-basis';
 import { readProduct } from '../catalog/product-read';
 import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
@@ -166,6 +164,12 @@ async function ProductContent({
   );
   const category = trail.at(-1);
   const media = offering.media ?? [];
+  const priceBasis = priceBasisLabel(
+    // i18next 27's `TFunction` is not assignable to a plain translate
+    // signature, so the label gets the call it declares.
+    (key, values) => (values ? t(key, values) : t(key)),
+    locale,
+  )(offering);
   const hosts = imageHosts();
   const url = `${storefrontOrigin()}${localeHref(locale, storePaths.offering(offering.offeringId))}`;
 
@@ -227,6 +231,12 @@ async function ProductContent({
                   unit="minor"
                   locale={locale}
                 />
+                {/* What the price buys, read with it as one phrase. */}
+                {priceBasis === undefined ? null : (
+                  <Text as="span" muted weight="normal" className="ms-2xs">
+                    {priceBasis}
+                  </Text>
+                )}
               </Text>
               {offering.availableHint ? (
                 <StatusTag tone="success">

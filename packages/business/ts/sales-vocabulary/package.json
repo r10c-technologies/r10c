@@ -22,7 +22,7 @@
   "nx": {
     "tags": [
       "layer:business",
-      "business:policy",
+      "business:vocabulary",
       "scope:shared"
     ],
     "sourceRoot": "packages/business/ts/sales-vocabulary/src",

@@ -13,6 +13,7 @@ import {
   type CatalogPublication,
 } from '@r10c/business-ts-catalog-contracts';
 import {
+  projectPublication,
   PublishedCatalogTag,
   PublishedOffering,
 } from '@r10c/business-ts-marketplace-catalog';
@@ -33,33 +34,15 @@ const momentOf = (stamp: { publishedAt?: unknown } | null): number =>
   // would yield `NaN`, false in every direction, and freeze the offering.
   stamp?.publishedAt instanceof Date ? stamp.publishedAt.getTime() : 0;
 
-/** What the storefront reads: the snapshot, keyed on the offering. */
-const recordOf = (publication: CatalogPublication, at: Date) => {
-  const projected = new PublishedOffering(
-    publication.offeringId,
-    publication.vendorId,
-    publication.name,
-  );
-  projected.amount = publication.amount;
-  projected.currency = publication.currency;
-  projected.availableHint = publication.availableHint;
-  projected.publishedAt = at;
-  projected.specificationId = publication.specificationId;
-  projected.specificationVersion = publication.specificationVersion;
-  projected.code = publication.code;
-  projected.description = publication.description;
-  projected.brandId = publication.brandId;
-  projected.categoryId = publication.categoryId;
-  projected.media = publication.media;
-  projected.fitsDeviceModelIds = publication.fitsDeviceModelIds;
-  // The offering's own id, so republishing replaces rather than accumulates.
-  projected.id = publication.offeringId;
-  // `serializeEntity`, never a literal: it keys by `alias ?? name`, the keys
-  // the repository reads back, and omits `undefined` rather than storing
-  // `null`. It skips `hidden`/`readonly` accessors, which is why the spec
-  // asserts the document against the payload's own members.
-  return serializeEntity(PublishedOffering, projected);
-};
+/**
+ * What the storefront reads: the snapshot the domain projects, serialized.
+ * `serializeEntity`, never a literal: it keys by `alias ?? name`, the keys the
+ * repository reads back, and omits `undefined` rather than storing `null`. It
+ * skips `readonly` accessors, which is why the spec asserts the document
+ * against the payload's own members.
+ */
+const recordOf = (publication: CatalogPublication, at: Date) =>
+  serializeEntity(PublishedOffering, projectPublication(publication, at));
 
 /** The stamp's unique index: one ordering document per offering. */
 export const ensurePublishedCatalogIndexes = (db: Db) =>

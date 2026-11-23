@@ -4,6 +4,12 @@ import { publishedPriceOf } from './published-price.js';
 
 describe('publishedPriceOf', () => {
   const PIN = { specificationId: 's-1', specificationVersion: 2 };
+  const TERMS = {
+    saleUnit: 'M',
+    quantityStep: 500,
+    quantityMinimum: 1000,
+    pricePer: 100,
+  } as const;
 
   it('reads the vendor, the name, the unit price and the version off a published record', () => {
     expect(
@@ -12,17 +18,20 @@ describe('publishedPriceOf', () => {
         amount: 12,
         currency: 'GTQ',
         name: 'Lámpara Aurora',
+        ...TERMS,
         description: 'De bronce.',
         ...PIN,
       }),
     ).toEqual({
       offeringId: 'o-1',
       name: 'Lámpara Aurora',
+      ...TERMS,
       description: 'De bronce.',
       vendorId: 'v-1',
       amount: 12,
       currency: 'GTQ',
       ...PIN,
+      ...TERMS,
     });
   });
 
@@ -32,6 +41,7 @@ describe('publishedPriceOf', () => {
       amount: 12,
       currency: 'GTQ',
       name: 'Lámpara Aurora',
+      ...TERMS,
       ...PIN,
     };
 
@@ -47,6 +57,7 @@ describe('publishedPriceOf', () => {
       amount: 12,
       currency: 'GTQ',
       name: 'Lámpara Aurora',
+      ...TERMS,
     };
 
     expect(
@@ -57,6 +68,21 @@ describe('publishedPriceOf', () => {
     ).toBeUndefined();
     expect(
       publishedPriceOf('o-1', { ...record, ...PIN, specificationVersion: '1' }),
+    ).toBeUndefined();
+  });
+
+  it('answers nothing for a record without its sale terms, rather than pricing one unit', () => {
+    const record = {
+      vendorId: 'v-1',
+      amount: 12,
+      currency: 'GTQ',
+      name: 'Lámpara Aurora',
+      ...PIN,
+    };
+
+    expect(publishedPriceOf('o-1', record)).toBeUndefined();
+    expect(
+      publishedPriceOf('o-1', { ...record, ...TERMS, pricePer: 12 }),
     ).toBeUndefined();
   });
 

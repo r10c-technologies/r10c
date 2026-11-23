@@ -1,14 +1,19 @@
 import type { Overloaded, UpstreamUnavailable } from '@entifix/core';
+import {
+  type SaleTerms,
+  saleTermsOf,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Context, type Effect } from 'effect';
 
 /**
- * What a sale is priced from: the published offering's vendor, name, unit
- * price and the specification version it was published on, as the storefront
- * shows them. The name, description and version are copied onto the sale's
+ * What a sale is priced from: the published offering's vendor, name, price,
+ * the terms it is sold on and the specification version it was published on,
+ * as the storefront shows them. A quantity is checked against the terms and
+ * the line's total is `lineTotal` over them (ADR 0082 §3, §6). The name, description and version are copied onto the sale's
  * line, so the order keeps what was sold after a rename or a new version
  * (#582, ADR 0079 §3).
  */
-export interface PublishedPrice {
+export interface PublishedPrice extends SaleTerms {
   readonly offeringId: string;
   readonly name: string;
   readonly description?: string;
@@ -51,7 +56,8 @@ export class PublishedPriceReaderTag extends Context.Service<
 /**
  * The price a published-offering record carries, or `undefined` when the
  * record is missing or any member a sale needs is not there — the version it
- * was published on among them, since the line must say what was sold.
+ * was published on among them, since the line must say what was sold, and the
+ * sale terms, since a price read without them is a price for one unit.
  */
 export const publishedPriceOf = (
   offeringId: string,
@@ -64,7 +70,9 @@ export const publishedPriceOf = (
   const specificationId = record?.['specificationId'];
   const specificationVersion = record?.['specificationVersion'];
   const description = record?.['description'];
-  return typeof vendorId === 'string' &&
+  const terms = saleTermsOf(record);
+  return terms !== undefined &&
+    typeof vendorId === 'string' &&
     typeof name === 'string' &&
     name !== '' &&
     typeof amount === 'number' &&
@@ -80,6 +88,7 @@ export const publishedPriceOf = (
         currency,
         specificationId,
         specificationVersion,
+        ...terms,
         ...(typeof description === 'string' && description !== ''
           ? { description }
           : {}),

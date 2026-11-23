@@ -52,7 +52,7 @@ function Facets({ query }: { readonly query: string }) {
         label="Filtrar"
         facets={offeringFacets({
           path: '/es/search',
-          state: parseSearch(new URLSearchParams(query)),
+          state: parseSearch(new URLSearchParams(query), 'es'),
           choices,
           labels: {
             category: 'Categoría',

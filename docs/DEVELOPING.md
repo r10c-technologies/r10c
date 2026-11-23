@@ -728,7 +728,7 @@ The golden rule above is **enforced**, not just reviewed. Every project declares
 | ------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **layer**    | `layer:app` › `shell` › `implementation` › `business` › `utils`             | depend only on layers **below** (`shell`/`business` also allow ordered same-layer)                                                                                   |
 | **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}` | a domain may depend only on itself or `scope:shared` (the reusable core)                                                                                             |
-| **business** | `business:policy` ‹ `business:domain`                                       | a domain may use the shared vocabulary, never another domain                                                                                                         |
+| **business** | `business:vocabulary` ‹ `business:policy` ‹ `business:domain`               | a contract may use the vocabulary, a domain both, never another domain                                                                                               |
 | **shell**    | `shell:base` ‹ `shell:{domain, platform}`                                   | a slice's shell mounts onto the base, never onto another slice's shell                                                                                               |
 | **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp,workflow}` or a subpath                                                                         |
 | **tech**     | `tech:{react, next, http, mongo, redis, sql}`                               | a cell may not import what it would talk through — adapters, drivers, state libraries; an `http` cell nothing that serves (`effect/http*`, `@entifix/service-shell`) |
@@ -751,7 +751,12 @@ vocabulary (`Permission`, `Role`, `can`) that `business-ts-authn` needs in order
 to give `UserIdentity` a role. That is a same-layer edge, which the `layer:*`
 dimension alone would either forbid outright or open up completely — so the
 business layer got one ordered dimension, `policy` ‹ `domain`. A domain package reaches down
-to policy; it still cannot import a sibling domain.
+to policy; it still cannot import a sibling domain. `vocabulary` sits below
+both since ADR 0082: a sale unit, its scale and `lineTotal` are values a
+publication, an order line and a stock movement must all name, and a
+contract may not import another policy package — so the values no contract
+could otherwise reach moved one rung down, rather than every contract carrying
+its unit as an unchecked string.
 
 **Why `shell:*` exists.** Same story one layer up. `layer:shell` allows
 same-layer edges, and `shell:*` orders them. `shell:base` is

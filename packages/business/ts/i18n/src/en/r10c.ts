@@ -173,6 +173,12 @@ export const r10c: EsR10c = {
       empty: 'Nothing in this category yet.',
       children: 'Subcategories',
     },
+    // What a price buys, beside the price, when it is not one piece: a metre,
+    // or a hundred screws (ADR 0082 §5).
+    price: {
+      per: 'per {{symbol}}',
+      perQuantity: 'per {{quantity}} {{symbol}}',
+    },
     product: {
       buy: 'Buy',
       soldBy: 'Sold by {{seller}}',
@@ -664,6 +670,9 @@ export const r10c: EsR10c = {
      * region reads and writes through its own service.
      */
     offering: {
+      // Beside the price on the offering list, when it is not for one unit:
+      // the unit column says which (ADR 0082 §5).
+      pricePer: 'per {{quantity}}',
       saleUnit: {
         resets:
           'The step and the minimum go back to one whole unit of the new unit. Once the offering is published, its unit no longer changes.',

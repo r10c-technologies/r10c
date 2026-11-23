@@ -432,7 +432,7 @@ describe('ADR 0026 — declared use cases, their grants and their implementation
    * The action segment of every permission in the grant table.
    *
    * Read from source because the grants are the one place a verb is written as
-   * a literal: `business:policy` may depend only on `layer:entifix`/`layer:utils`,
+   * a literal: `business:policy` may depend only on `business:vocabulary`/`layer:utils`,
    * so `role-permissions.ts` cannot import the constant a use case derives.
    */
   // A verb is reached by a role's grant or, for the few a service makes on a

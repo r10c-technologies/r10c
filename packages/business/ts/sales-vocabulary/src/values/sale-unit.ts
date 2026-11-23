@@ -31,6 +31,14 @@ export type SaleUnit = keyof typeof SALE_UNIT_SCALES;
 
 export const SaleUnits = Object.keys(SALE_UNIT_SCALES) as readonly SaleUnit[];
 
+/**
+ * Where a unit's name and symbol are translated, by code: one namespace every
+ * entity that holds a quantity points its labels at, so a unit reads the same
+ * on the offering, the storefront, the stock ledger and the order.
+ */
+export const SALE_UNIT_NAME_KEY = 'entity:sale-unit.name';
+export const SALE_UNIT_SYMBOL_KEY = 'entity:sale-unit.symbol';
+
 /** What is sold one by one, with a scale of zero. */
 export const DEFAULT_SALE_UNIT: SaleUnit = 'UN';
 

@@ -1,3 +1,7 @@
+// r10c's languages, as every bundle that formats or reads a number loads
+// them: `es` reads numbers as Guatemala writes them.
+import '@r10c/business-ts-i18n/locales';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -14,17 +18,20 @@ const flat: SearchContext = { subtreeOf: id => [id] };
 
 describe('parseSearch', () => {
   it('reads every parameter from what Next hands a page', () => {
-    const state = parseSearch({
-      q: 'lamp',
-      brand: ['b-1', 'b-2'],
-      category: 'c-1',
-      seller: 'org-1',
-      min: '100',
-      max: '250.50',
-      available: '1',
-      sort: 'price-asc',
-      page: '3',
-    });
+    const state = parseSearch(
+      {
+        q: 'lamp',
+        brand: ['b-1', 'b-2'],
+        category: 'c-1',
+        seller: 'org-1',
+        min: '100',
+        max: '250.50',
+        available: '1',
+        sort: 'price-asc',
+        page: '3',
+      },
+      'es',
+    );
 
     expect(state).toEqual({
       q: ['lamp'],
@@ -33,7 +40,7 @@ describe('parseSearch', () => {
       seller: ['org-1'],
       model: [],
       min: ['100'],
-      max: ['250.50'],
+      max: ['250.5'],
       available: ['1'],
       sort: ['price-asc'],
       page: ['3'],
@@ -42,22 +49,25 @@ describe('parseSearch', () => {
 
   it('reads the query string itself the same way', () => {
     expect(
-      parseSearch(new URLSearchParams('brand=b-1&brand=b-2&q=lamp')),
-    ).toEqual(parseSearch({ brand: ['b-1', 'b-2'], q: 'lamp' }));
+      parseSearch(new URLSearchParams('brand=b-1&brand=b-2&q=lamp'), 'es'),
+    ).toEqual(parseSearch({ brand: ['b-1', 'b-2'], q: 'lamp' }, 'es'));
   });
 
   it('drops what no link of ours writes', () => {
-    const state = parseSearch({
-      q: ['first', 'second'],
-      category: ['c-1', 'c-2'],
-      min: 'abc',
-      max: '1.234',
-      available: 'yes',
-      sort: 'cheapest',
-      page: '0',
-      unknown: 'x',
-      skipped: undefined,
-    });
+    const state = parseSearch(
+      {
+        q: ['first', 'second'],
+        category: ['c-1', 'c-2'],
+        min: 'abc',
+        max: '1.234',
+        available: 'yes',
+        sort: 'cheapest',
+        page: '0',
+        unknown: 'x',
+        skipped: undefined,
+      },
+      'es',
+    );
 
     expect(state).toEqual({
       ...searchQuery.empty,
@@ -66,26 +76,44 @@ describe('parseSearch', () => {
     });
   });
 
-  it('reads a price typed with a comma decimal, as `es` types it', () => {
-    const state = parseSearch({ min: '64,99', max: '100' });
+  it('reads a price typed with either decimal separator', () => {
+    const state = parseSearch({ min: '64,99', max: '100' }, 'es');
 
     expect(state.min).toEqual(['64.99']);
     expect(state.max).toEqual(['100']);
   });
 
+  it.each([
+    ['es', '1,000', '1000'],
+    ['es', '1,000.50', '1000.5'],
+    ['en', '12,500', '12500'],
+    ['es', ' 45 ', '45'],
+  ] as const)(
+    'reads %s grouping as grouping: %s is %s',
+    (locale, typed, carried) => {
+      expect(parseSearch({ min: typed }, locale).min).toEqual([carried]);
+    },
+  );
+
+  it('drops a price it could read two ways rather than guessing', () => {
+    expect(parseSearch({ min: '1.234' }, 'es').min).toEqual([]);
+  });
+
   it('writes page 1 as no page at all', () => {
-    expect(parseSearch({ page: '1' }).page).toEqual([]);
+    expect(parseSearch({ page: '1' }, 'es').page).toEqual([]);
   });
 });
 
 describe('searchHref', () => {
-  const state = parseSearch({ q: 'lamp', brand: 'b-1', page: '4' });
+  const state = parseSearch({ q: 'lamp', brand: 'b-1', page: '4' }, 'es');
 
   it('round-trips a state through its own address', () => {
     const href = searchHref('/es/search', state);
 
     expect(href).toBe('/es/search?q=lamp&brand=b-1&page=4');
-    expect(parseSearch(new URLSearchParams(href.split('?')[1]))).toEqual(state);
+    expect(parseSearch(new URLSearchParams(href.split('?')[1]), 'es')).toEqual(
+      state,
+    );
   });
 
   it('is the bare path for an empty search', () => {
@@ -136,16 +164,19 @@ describe('searchRequest', () => {
 
   it('turns each parameter into one condition on the projection', () => {
     const request = searchRequest(
-      parseSearch({
-        q: 'lamp',
-        brand: ['b-1', 'b-2'],
-        category: 'c-1',
-        seller: 'org-1',
-        min: '100',
-        max: '250.5',
-        available: '1',
-        page: '2',
-      }),
+      parseSearch(
+        {
+          q: 'lamp',
+          brand: ['b-1', 'b-2'],
+          category: 'c-1',
+          seller: 'org-1',
+          min: '100',
+          max: '250.5',
+          available: '1',
+          page: '2',
+        },
+        'es',
+      ),
       { subtreeOf: id => [id, `${id}-child`] },
     );
 
@@ -162,21 +193,22 @@ describe('searchRequest', () => {
           values: ['c-1', 'c-1-child'],
         },
         { property: 'vendorId', operator: 'in', values: ['org-1'] },
-        // A price is typed in major units and stored in minor ones.
-        { property: 'amount', operator: 'gte', value: 10000 },
-        { property: 'amount', operator: 'lte', value: 25050 },
+        // A price for one unit is typed in major units and compared with
+        // what a thousand cost, in minor ones (ADR 0082 §5).
+        { property: 'amountPerThousand', operator: 'gte', value: 10_000_000 },
+        { property: 'amountPerThousand', operator: 'lte', value: 25_050_000 },
         { property: 'availableHint', operator: 'eq', value: true },
       ],
     });
   });
 
   it.each([
-    ['price-asc', 'amount', 'asc'],
-    ['price-desc', 'amount', 'desc'],
+    ['price-asc', 'amountPerThousand', 'asc'],
+    ['price-desc', 'amountPerThousand', 'desc'],
     ['newest', 'publishedAt', 'desc'],
     ['name', 'name', 'asc'],
   ])('sorts %s by %s %s', (sort, property, type) => {
-    expect(searchRequest(parseSearch({ sort }), flat).sorting).toEqual([
+    expect(searchRequest(parseSearch({ sort }, 'es'), flat).sorting).toEqual([
       { 0: { property, type } },
     ]);
   });
@@ -184,7 +216,7 @@ describe('searchRequest', () => {
 
 describe('the buyer’s phone (plan 1.17)', () => {
   it('asks for offerings made for it or for every phone', () => {
-    const state = parseSearch({ model: 'dm-1' });
+    const state = parseSearch({ model: 'dm-1' }, 'es');
 
     expect(searchRequest(state, flat).filtering).toEqual([
       {
@@ -196,7 +228,7 @@ describe('the buyer’s phone (plan 1.17)', () => {
   });
 
   it('keeps every other value in a form’s hidden fields, but no page', () => {
-    const state = parseSearch({ q: 'funda', model: 'dm-1', page: '3' });
+    const state = parseSearch({ q: 'funda', model: 'dm-1', page: '3' }, 'es');
 
     expect(hiddenSearchFields(state, ['model'])).toEqual([['q', 'funda']]);
   });

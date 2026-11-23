@@ -33,7 +33,7 @@ const ROWS = [
 
 const countsFor = (query: Record<string, string | string[]>) =>
   Effect.runPromise(
-    loadOfferingFacetCounts(parseSearch(query), context).pipe(
+    loadOfferingFacetCounts(parseSearch(query, 'es'), context).pipe(
       Effect.provideService(
         EntityFacetCounterTag,
         makeInMemoryFacetCounter(ROWS),
@@ -44,7 +44,7 @@ const countsFor = (query: Record<string, string | string[]>) =>
 describe('offeringFacetQueries', () => {
   it('counts each facet under the search without its own choice', () => {
     const queries = offeringFacetQueries(
-      parseSearch({ brand: 'brand-a', seller: 'v-1' }),
+      parseSearch({ brand: 'brand-a', seller: 'v-1' }, 'es'),
       context,
     );
 
@@ -62,9 +62,9 @@ describe('offeringFacetQueries', () => {
   });
 
   it('sends no filtering for a facet when nothing else is in force', () => {
-    expect(offeringFacetQueries(parseSearch({}), context, ['brand'])).toEqual([
-      { member: 'brandId' },
-    ]);
+    expect(
+      offeringFacetQueries(parseSearch({}, 'es'), context, ['brand']),
+    ).toEqual([{ member: 'brandId' }]);
   });
 });
 
@@ -85,7 +85,9 @@ describe('loadOfferingFacetCounts', () => {
 
   it('keys the counts by facet, and answers a facet nothing holds empty', async () => {
     const counts = await Effect.runPromise(
-      loadOfferingFacetCounts(parseSearch({}), context, ['category']).pipe(
+      loadOfferingFacetCounts(parseSearch({}, 'es'), context, [
+        'category',
+      ]).pipe(
         Effect.provideService(EntityFacetCounterTag, {
           count: () => Effect.succeed({}),
         }),

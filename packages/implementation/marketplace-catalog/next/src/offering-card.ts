@@ -7,6 +7,7 @@ export type OfferingCardRoles = Pick<
   ProductCardProps,
   | 'title'
   | 'price'
+  | 'unitPrice'
   | 'brand'
   | 'seller'
   | 'description'
@@ -29,6 +30,12 @@ export interface OfferingCardContext {
    * line is honest, a raw id is not.
    */
   readonly sellerName: (vendorId: string) => string | undefined;
+  /**
+   * What the price buys, already worded ("por 100 u."), or `undefined` for one
+   * piece. A price quoted per hundred read as a price each is a hundred times
+   * too cheap (ADR 0082 §5).
+   */
+  readonly priceBasis: (offering: PublishedOffering) => string | undefined;
   /** "Sold by {{seller}}", already translated. */
   readonly soldBy: (seller: string) => string;
   /** The availability copy, already translated. */
@@ -48,13 +55,21 @@ export interface OfferingCardContext {
  */
 export const offeringCard = (
   offering: PublishedOffering,
-  { locale, brandName, sellerName, soldBy, labels }: OfferingCardContext,
+  {
+    locale,
+    brandName,
+    sellerName,
+    priceBasis,
+    soldBy,
+    labels,
+  }: OfferingCardContext,
 ): OfferingCardRoles => {
   const seller = sellerName(offering.vendorId);
   return {
     title: offering.name,
     // Minor units, as the snapshot carries them; the card's `Money` formats it.
     price: { amount: offering.amount, currency: offering.currency, locale },
+    unitPrice: priceBasis(offering),
     brand:
       offering.brandId === undefined ? undefined : brandName(offering.brandId),
     seller: seller === undefined ? undefined : soldBy(seller),

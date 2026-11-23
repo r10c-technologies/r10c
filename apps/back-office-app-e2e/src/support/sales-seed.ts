@@ -38,6 +38,11 @@ export const publishedOfferingSeed = [
     name: 'Taza de cerámica',
     amount: 6499,
     currency: 'GTQ',
+    pricePer: 1,
+    amountPerThousand: 6_499_000,
+    saleUnit: 'UN',
+    quantityStep: 1,
+    quantityMinimum: 1,
     availableHint: true,
     // The version it was published on, which a counter sale copies onto its
     // line (ADR 0079 §3).

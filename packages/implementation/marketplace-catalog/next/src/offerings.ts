@@ -47,9 +47,10 @@ export interface OfferingQuery {
   readonly availableOnly?: boolean;
   /**
    * A `sortable` member of `PublishedOffering`. The home page's newest strip
-   * sorts on `publishedAt`, descending.
+   * sorts on `publishedAt`, descending; a price sorts on `amountPerThousand`,
+   * since `amount` is quoted per one, per hundred or per thousand.
    */
-  readonly sort?: 'name' | 'code' | 'amount' | 'publishedAt';
+  readonly sort?: 'name' | 'code' | 'amountPerThousand' | 'publishedAt';
   readonly direction?: 'asc' | 'desc';
   readonly page?: number;
   readonly pageSize?: number;

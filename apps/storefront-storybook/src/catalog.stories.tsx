@@ -41,6 +41,8 @@ function OfferingTile({ offering }: { readonly offering: PublishedOffering }) {
         locale: 'es',
         brandName: id => brandName.get(id),
         sellerName: id => sellerName.get(id),
+        priceBasis: one =>
+          one.pricePer === 1 ? undefined : `por ${String(one.pricePer)} u.`,
         soldBy: seller => `Vendido por ${seller}`,
         labels: { available: 'Disponible', unavailable: 'Agotado' },
       })}
