@@ -23,6 +23,14 @@ import {
 const channelOf = (id: string, status: string, type = 'counter') =>
   Object.assign(new SalesChannel(), { id, name: `Till ${id}`, type, status });
 
+/** Sold one piece at a time, priced for one (ADR 0082). */
+const ONE_PIECE = {
+  saleUnit: 'UN',
+  quantityStep: 1,
+  quantityMinimum: 1,
+  pricePer: 1,
+} as const;
+
 const prices: Record<string, PublishedPrice> = {
   mine: {
     offeringId: 'mine',
@@ -33,6 +41,7 @@ const prices: Record<string, PublishedPrice> = {
     currency: 'GTQ',
     specificationId: 'spec-mine',
     specificationVersion: 3,
+    ...ONE_PIECE,
   },
   plain: {
     offeringId: 'plain',
@@ -42,6 +51,7 @@ const prices: Record<string, PublishedPrice> = {
     currency: 'GTQ',
     specificationId: 'spec-plain',
     specificationVersion: 1,
+    ...ONE_PIECE,
   },
   theirs: {
     offeringId: 'theirs',
@@ -51,6 +61,7 @@ const prices: Record<string, PublishedPrice> = {
     currency: 'GTQ',
     specificationId: 'spec-theirs',
     specificationVersion: 1,
+    ...ONE_PIECE,
   },
 };
 
