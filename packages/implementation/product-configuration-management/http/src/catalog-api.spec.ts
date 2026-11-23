@@ -426,7 +426,7 @@ describe('a price', () => {
     const run = world();
 
     const saved = await run(
-      productOfferingPriceApi.options.prepare(price(100), updating),
+      productOfferingPriceApi.options.prepare(price(100)),
     );
 
     expect(saved).toMatchObject({ success: { pricePer: 100 } });
@@ -436,7 +436,7 @@ describe('a price', () => {
     const run = world();
 
     const refused = await run(
-      productOfferingPriceApi.options.prepare(price(12), updating),
+      productOfferingPriceApi.options.prepare(price(12)),
     );
 
     expect(refused).toMatchObject({ failure: { code: 'pricePerInvalid' } });
