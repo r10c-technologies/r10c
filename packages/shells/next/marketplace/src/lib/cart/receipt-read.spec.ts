@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { readBuyerReceipt, readBuyerReceiptAnswer } from './receipt-read';
+import { readBuyerReceiptAnswer } from './receipt-read';
 
 const answer = (response: Response) =>
   vi.stubGlobal(
@@ -18,12 +18,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('readBuyerReceipt', () => {
+describe('readBuyerReceiptAnswer', () => {
   it('reads the group back by its capability, never from a cache', async () => {
     answer(new Response(JSON.stringify({ group: { data: { id: 'g/1' } } })));
 
-    expect(await readBuyerReceipt('g/1', 'nonce')).toEqual({
-      group: { data: { id: 'g/1' } },
+    expect(await readBuyerReceiptAnswer('g/1', 'nonce')).toEqual({
+      kind: 'read',
+      body: { group: { data: { id: 'g/1' } } },
     });
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
     expect(url).toMatch(/\/checkout-group\/g%2F1\/buyer-receipt$/);
@@ -33,16 +34,6 @@ describe('readBuyerReceipt', () => {
     });
   });
 
-  it('answers nothing for a refusal or an unreachable service', async () => {
-    answer(new Response('{}', { status: 401 }));
-    expect(await readBuyerReceipt('g-1', 'nonce')).toBeUndefined();
-
-    unreachable();
-    expect(await readBuyerReceipt('g-1', 'nonce')).toBeUndefined();
-  });
-});
-
-describe('readBuyerReceiptAnswer', () => {
   it('tells a refused capability from a service that did not answer', async () => {
     answer(new Response('{}', { status: 401 }));
     expect(await readBuyerReceiptAnswer('g-1', 'nonce')).toEqual({

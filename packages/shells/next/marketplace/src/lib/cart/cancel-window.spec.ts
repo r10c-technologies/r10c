@@ -1,24 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { cancelWindowLabel } from './cancel-window';
-import type { Receipt } from './receipt-state';
+import type { ReceiptTicket } from './receipt-state';
 
 const NOW = new Date('2026-09-11T12:00:00.000Z');
 const OPEN = new Date('2026-09-11T12:30:00.000Z').toISOString();
 const CLOSED = new Date('2026-09-11T11:30:00.000Z').toISOString();
 
-const receipt = (extra: Partial<Receipt> = {}): Receipt => ({
+const receipt = (extra: Partial<ReceiptTicket> = {}): ReceiptTicket => ({
   groupId: 'group-1',
-  orders: [
-    {
-      orderId: 'order-1',
-      vendorId: 'v-1',
-      method: 'card',
-      lineCount: 1,
-      total: { currency: 'GTQ', amount: 1999 },
-    },
-  ],
-  totals: [{ currency: 'GTQ', amount: 1999 }],
   cancelNonce: 'a'.repeat(64),
   cancelWindowEndsAt: OPEN,
   ...extra,
@@ -27,17 +17,6 @@ const receipt = (extra: Partial<Receipt> = {}): Receipt => ({
 describe('cancelWindowLabel', () => {
   it('names the time the window closes', () => {
     expect(cancelWindowLabel('es', receipt(), NOW)).toMatch(/\d/);
-  });
-
-  /**
-   * ⚠️ A counter sale carries no nonce, because at a till there is no browser to
-   * hold one. Offering the button anyway would be discovering the answer from a
-   * `401`.
-   */
-  it('offers nothing without a nonce', () => {
-    expect(
-      cancelWindowLabel('es', receipt({ cancelNonce: undefined }), NOW),
-    ).toBeUndefined();
   });
 
   it('offers nothing without a window', () => {

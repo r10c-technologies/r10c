@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { storePaths } from '../routing/paths';
 import { redeemedGroup } from './access-redemption';
 import { orderServiceUrl } from './checkout-config';
-import { receiptFor, writeReceiptCookie } from './receipt-write';
+import { readReceipt, writeReceiptCookie } from './receipt-write';
 
 /**
  * Redeem a mailed one-time access link (ADR 0076 §6): mint a fresh nonce, as a
@@ -45,7 +45,7 @@ export async function redeemAccessLink(formData: FormData): Promise<void> {
   const groupId = redeemedGroup(body);
   if (groupId === undefined) redirect(refused);
 
-  const receipt = await receiptFor(groupId, nonce);
-  if (receipt !== undefined) await writeReceiptCookie(receipt);
+  const read = await readReceipt({ groupId, cancelNonce: nonce });
+  if (read.kind === 'read') await writeReceiptCookie(read.receipt);
   redirect(`/${locale}${storePaths.orderStatus(groupId)}`);
 }

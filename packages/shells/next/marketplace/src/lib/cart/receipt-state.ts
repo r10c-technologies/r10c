@@ -3,17 +3,35 @@ import { isSaleUnit, type SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
 
 /**
- * The buyer's receipt for one checkout, kept in an `httpOnly` cookie: the
- * checkout group, and one entry per vendor order in it (ADR 0069).
+ * The buyer's way back to one checkout, kept in an `httpOnly` cookie: the
+ * checkout group, its number, and the nonce that opens it (ADR 0053, ADR 0069).
  *
  * ⚠️ **It carries the cancel nonce**, the one credential that lets an
- * anonymous buyer cancel their own orders and read the group back, so it lives
- * where no script reaches it and expires when the group says the receipt does
- * — see {@link receiptCookieMaxAge}.
+ * anonymous buyer read the group back, cancel their own orders and attach a
+ * payment receipt, so it lives where no script reaches it and expires when the
+ * group says the receipt does — see {@link receiptCookieMaxAge}.
+ *
+ * ⚠️ **It carries nothing the read answers.** The orders, their lines, totals
+ * and whether one was cancelled are read from order-service on every render
+ * by that nonce. A cookie is 4 KB and a basket has no upper bound, so a cookie
+ * that held the receipt was a cookie a large basket lost without a word; this
+ * one is the same few hundred bytes whatever was bought.
  */
 export const RECEIPT_COOKIE = 'r10c_receipt';
 
 const SECOND = 1000;
+
+/** What the receipt cookie holds: the capability, and what to show without it. */
+export interface ReceiptTicket {
+  readonly groupId: string;
+  /** The purchase's number, `7KQ4-M2XD`: what the buyer quotes (ADR 0076 §5). */
+  readonly number?: string;
+  /** The nonce whose digest the group holds: the buyer's read, cancel and attach. */
+  readonly cancelNonce: string;
+  readonly cancelWindowEndsAt?: string;
+  /** Until when the nonce reads the receipt back; the cookie lives as long. */
+  readonly receiptEndsAt?: string;
+}
 
 /**
  * How long the receipt cookie may live, in seconds: until the group's own
@@ -22,55 +40,17 @@ const SECOND = 1000;
  * no copy of that number (ADR 0076 §6).
  *
  * ⚠️ **No stamp, an unparseable one or one already past is `0`**, which
- * deletes the cookie. Everything in a receipt is untrusted, and a cookie with
+ * deletes the cookie. Everything in a cookie is untrusted, and a cookie with
  * no end it can name would outlive the only thing that makes it useful.
  */
-export const receiptCookieMaxAge = (receipt: Receipt, now: Date): number => {
-  if (receipt.receiptEndsAt === undefined) return 0;
-  const endsAt = new Date(receipt.receiptEndsAt).getTime();
+export const receiptCookieMaxAge = (
+  ticket: ReceiptTicket,
+  now: Date,
+): number => {
+  if (ticket.receiptEndsAt === undefined) return 0;
+  const endsAt = new Date(ticket.receiptEndsAt).getTime();
   if (Number.isNaN(endsAt)) return 0;
   return Math.max(0, Math.floor((endsAt - now.getTime()) / SECOND));
-};
-
-/**
- * The most the receipt's cookie may hold, as the browser counts it: its value
- * percent-encoded, as Next writes it, beside its name. A browser drops a
- * cookie past 4,096 bytes **silently**, so a receipt over it is not a terse
- * receipt but none — no way back to the order and no cancel. The margin
- * covers the name, the attributes and a later `cancelled` mark.
- */
-export const RECEIPT_COOKIE_BUDGET = 3_800;
-
-/** How many bytes a receipt's cookie takes, as {@link RECEIPT_COOKIE_BUDGET} counts. */
-export const receiptCookieBytes = (receipt: Receipt): number =>
-  encodeURIComponent(serializeReceipt(receipt)).length;
-
-/**
- * The receipt cut to its cookie: while it is over
- * {@link RECEIPT_COOKIE_BUDGET}, the order with the most lines keeps only
- * their count and its total. A budget rather than a per-order cap, because
- * what overflows is the whole basket: a line carries its unit and its total
- * (ADR 0082), and two sellers of a dozen lines each were already past it.
- */
-export const fittedReceipt = (receipt: Receipt): Receipt => {
-  let fitted = receipt;
-  while (receiptCookieBytes(fitted) > RECEIPT_COOKIE_BUDGET) {
-    const widest = fitted.orders.reduce<ReceiptOrder | undefined>(
-      (most, order) =>
-        (order.lines?.length ?? 0) > (most?.lines?.length ?? 0) ? order : most,
-      undefined,
-    );
-    if (widest === undefined) return fitted;
-    fitted = {
-      ...fitted,
-      orders: fitted.orders.map(order => {
-        if (order !== widest) return order;
-        const { lines: _dropped, ...summary } = order;
-        return summary;
-      }),
-    };
-  }
-  return fitted;
 };
 
 /** One line of a vendor order, as the receipt shows it. */
@@ -94,28 +74,19 @@ export interface ReceiptOrder {
   readonly vendorId: string;
   /** The seller's display name, absent when the projection has none yet. */
   readonly vendorName?: string;
-  /** How the buyer pays this seller: `card` or `cod`. */
+  /** How the buyer pays this seller: `card`, `cod` or `link`. */
   readonly method: string;
-  /** Absent when {@link fittedReceipt} cut it; {@link lineCount} still says how many. */
-  readonly lines?: readonly ReceiptLine[];
-  readonly lineCount: number;
+  readonly lines: readonly ReceiptLine[];
   readonly total: ReceiptTotal;
-  /** Present only once the buyer cancelled it from this receipt. */
+  /** Present only when order-service says the order is cancelled. */
   readonly cancelled?: true;
 }
 
-export interface Receipt {
-  readonly groupId: string;
-  /** The purchase's number, `7KQ4-M2XD`: what the buyer quotes (ADR 0076 §5). */
-  readonly number?: string;
+/** The receipt as a render reads it back: the ticket, and what the group answers. */
+export interface Receipt extends ReceiptTicket {
   readonly placedAt?: string;
   readonly orders: readonly ReceiptOrder[];
   readonly totals: readonly ReceiptTotal[];
-  /** The nonce whose digest the group holds: the buyer's cancel and read. */
-  readonly cancelNonce?: string;
-  readonly cancelWindowEndsAt?: string;
-  /** Until when the nonce reads the receipt back; the cookie lives as long. */
-  readonly receiptEndsAt?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -126,74 +97,46 @@ const filled = (value: unknown): value is string =>
 
 const readLine = (value: unknown): ReceiptLine | undefined => {
   if (!isRecord(value)) return undefined;
-  const { offeringId, saleUnit, unit, quantity, lineTotal, currency } = value;
-  // An order line names its unit `saleUnit`; the cookie writes it `unit`.
-  const stated = saleUnit ?? unit;
+  const { offeringId, saleUnit, quantity, lineTotal, currency } = value;
   return filled(offeringId) &&
-    isSaleUnit(stated) &&
+    isSaleUnit(saleUnit) &&
     typeof quantity === 'number' &&
     typeof lineTotal === 'number' &&
     filled(currency)
-    ? { offeringId, unit: stated, quantity, lineTotal, currency }
+    ? { offeringId, unit: saleUnit, quantity, lineTotal, currency }
     : undefined;
 };
 
-const readTotal = (value: unknown): ReceiptTotal | undefined => {
-  if (!isRecord(value)) return undefined;
-  const { currency, amount } = value;
-  return filled(currency) && typeof amount === 'number'
-    ? { currency, amount }
-    : undefined;
-};
-
-const linesOf = (value: unknown): ReceiptLine[] | undefined =>
+const linesOf = (value: unknown): ReceiptLine[] =>
   Array.isArray(value)
     ? value
         .map(readLine)
         .filter((line): line is ReceiptLine => line !== undefined)
-    : undefined;
+    : [];
 
-const readOrder = (value: unknown): ReceiptOrder | undefined => {
-  if (!isRecord(value)) return undefined;
-  const {
-    orderId,
-    number,
-    vendorId,
-    vendorName,
-    method,
-    lines,
-    lineCount,
-    total,
-  } = value;
-  const readAt = readTotal(total);
-  if (!filled(orderId) || !filled(vendorId) || !filled(method))
-    return undefined;
-  if (typeof lineCount !== 'number' || readAt === undefined) return undefined;
-  const readLines = linesOf(lines);
-  return {
-    orderId,
-    ...(filled(number) ? { number } : {}),
-    vendorId,
-    ...(filled(vendorName) ? { vendorName } : {}),
-    method,
-    ...(readLines === undefined ? {} : { lines: readLines }),
-    lineCount,
-    total: readAt,
-    // `true` only, so a forged `cancelled: 'yes'` claims nothing.
-    ...(value['cancelled'] === true ? { cancelled: true as const } : {}),
-  };
-};
+/** The ticket a receipt is kept by: its capability and nothing it read. */
+export const ticketOf = (receipt: ReceiptTicket): ReceiptTicket => ({
+  groupId: receipt.groupId,
+  ...(receipt.number === undefined ? {} : { number: receipt.number }),
+  cancelNonce: receipt.cancelNonce,
+  ...(receipt.cancelWindowEndsAt === undefined
+    ? {}
+    : { cancelWindowEndsAt: receipt.cancelWindowEndsAt }),
+  ...(receipt.receiptEndsAt === undefined
+    ? {}
+    : { receiptEndsAt: receipt.receiptEndsAt }),
+});
 
-export const serializeReceipt = (receipt: Receipt): string =>
-  JSON.stringify(receipt);
+export const serializeTicket = (ticket: ReceiptTicket): string =>
+  JSON.stringify(ticketOf(ticket));
 
 /**
- * A receipt read back strictly: everything in the cookie is untrusted, so a
- * receipt that cannot name its group, its orders or what it came to is none.
+ * A ticket read back strictly: everything in the cookie is untrusted, so one
+ * that cannot name its group and the nonce that opens it is none.
  */
-export const parseReceipt = (
+export const parseTicket = (
   value: string | undefined,
-): Receipt | undefined => {
+): ReceiptTicket | undefined => {
   if (!value) return undefined;
   let parsed: unknown;
   try {
@@ -202,37 +145,13 @@ export const parseReceipt = (
     return undefined;
   }
   if (!isRecord(parsed)) return undefined;
-  const {
-    groupId,
-    number,
-    placedAt,
-    orders,
-    totals,
-    cancelNonce,
-    cancelWindowEndsAt,
-    receiptEndsAt,
-  } = parsed;
-  if (!filled(groupId) || !Array.isArray(orders) || !Array.isArray(totals)) {
-    return undefined;
-  }
-  const readOrders = orders.map(readOrder);
-  if (
-    readOrders.length === 0 ||
-    readOrders.some(order => order === undefined)
-  ) {
-    return undefined;
-  }
-  const readTotals = totals
-    .map(readTotal)
-    .filter((total): total is ReceiptTotal => total !== undefined);
-  if (readTotals.length === 0) return undefined;
+  const { groupId, number, cancelNonce, cancelWindowEndsAt, receiptEndsAt } =
+    parsed;
+  if (!filled(groupId) || !filled(cancelNonce)) return undefined;
   return {
     groupId,
     ...(filled(number) ? { number } : {}),
-    ...(filled(placedAt) ? { placedAt } : {}),
-    orders: readOrders as ReceiptOrder[],
-    totals: readTotals,
-    ...(filled(cancelNonce) ? { cancelNonce } : {}),
+    cancelNonce,
     ...(filled(cancelWindowEndsAt) ? { cancelWindowEndsAt } : {}),
     ...(filled(receiptEndsAt) ? { receiptEndsAt } : {}),
   };
@@ -245,9 +164,9 @@ const readBackOrder = (
 ): ReceiptOrder | undefined => {
   const data = isRecord(envelope) ? envelope['data'] : undefined;
   if (!isRecord(data)) return undefined;
-  const { id, number, vendorId, paymentMethod, items } = data;
+  const { id, number, vendorId, paymentMethod, items, status } = data;
   if (!filled(id) || !filled(vendorId)) return undefined;
-  const lines = linesOf(items) ?? [];
+  const lines = linesOf(items);
   const [total] = totalsByCurrency(lines);
   if (total === undefined) return undefined;
   const name = vendorNames.get(vendorId);
@@ -258,19 +177,20 @@ const readBackOrder = (
     ...(name === undefined ? {} : { vendorName: name }),
     method: filled(paymentMethod) ? paymentMethod : 'card',
     lines,
-    lineCount: lines.length,
     total,
+    ...(status === 'cancelled' ? { cancelled: true as const } : {}),
   };
 };
 
 /**
- * The receipt a settled checkout writes, built from the group read back by its
- * capability (`GET /api/checkout-group/:id/buyer-receipt`) — `undefined` when
- * the answer is not one, so a malformed read never becomes a cookie.
+ * The receipt the group read back by its capability answers
+ * (`GET /api/checkout-group/:id/buyer-receipt`), for the ticket that opened it
+ * — `undefined` when the answer is not one, or is another group's, so a
+ * malformed read never becomes a receipt or a cookie.
  */
 export const receiptFromReadBack = (
   payload: unknown,
-  cancelNonce: string,
+  ticket: Pick<ReceiptTicket, 'groupId' | 'cancelNonce'>,
   vendorNames: ReadonlyMap<string, string>,
 ): Receipt | undefined => {
   if (!isRecord(payload)) return undefined;
@@ -278,7 +198,11 @@ export const receiptFromReadBack = (
     ? payload['group']['data']
     : undefined;
   const orders = payload['orders'];
-  if (!isRecord(group) || !filled(group['id']) || !Array.isArray(orders)) {
+  if (
+    !isRecord(group) ||
+    group['id'] !== ticket.groupId ||
+    !Array.isArray(orders)
+  ) {
     return undefined;
   }
   const read = orders.map(order => readBackOrder(order, vendorNames));
@@ -287,8 +211,8 @@ export const receiptFromReadBack = (
   }
   const readOrders = read as ReceiptOrder[];
   const { number, placedAt, cancelWindowEndsAt, receiptEndsAt } = group;
-  return fittedReceipt({
-    groupId: group['id'],
+  return {
+    groupId: ticket.groupId,
     ...(filled(number) ? { number } : {}),
     ...(filled(placedAt) ? { placedAt } : {}),
     orders: readOrders,
@@ -298,10 +222,10 @@ export const receiptFromReadBack = (
         currency: order.total.currency,
       })),
     ),
-    cancelNonce,
+    cancelNonce: ticket.cancelNonce,
     ...(filled(cancelWindowEndsAt) ? { cancelWindowEndsAt } : {}),
     ...(filled(receiptEndsAt) ? { receiptEndsAt } : {}),
-  });
+  };
 };
 
 /** Where the parcels go and who receives them, as the receipt shows it. */
@@ -664,11 +588,3 @@ export const receiptDetailsOf = (
     ...(billedTo === undefined ? {} : { billedTo }),
   };
 };
-
-/** The receipt once the buyer cancelled one of its orders. */
-export const withCancelled = (receipt: Receipt, orderId: string): Receipt => ({
-  ...receipt,
-  orders: receipt.orders.map(order =>
-    order.orderId === orderId ? { ...order, cancelled: true } : order,
-  ),
-});
