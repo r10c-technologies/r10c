@@ -15,12 +15,13 @@
  * services that otherwise have none.
  */
 
-import {
-  DEFAULT_SALE_UNIT,
-  type SaleUnit,
-} from '@r10c/business-ts-sales-vocabulary';
+import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import type { MovementReason } from '@r10c/business-ts-stock-management';
-import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
+import {
+  DEMO_VENDOR,
+  seededSaleTermsOf,
+  type SeededVendor,
+} from '@r10c/utils-ts-fleet';
 
 /**
  * How many of a vendor's offerings carry stock at all: two thirds, so the
@@ -50,7 +51,7 @@ const offeringId = (
 export interface StockMovementRecord {
   id: string;
   offeringId: string;
-  /** Every seeded offering is sold one by one (ADR 0082 §4). */
+  /** The unit the offering is sold in, its ledger's unit (ADR 0082 §4). */
   unit: SaleUnit;
   /** Signed: positive is `in`, negative is `out`. */
   quantity: number;
@@ -96,7 +97,9 @@ export interface StockItemRecord {
 const movementsFor = (
   index: number,
 ): ReadonlyArray<{ quantity: number; reason: MovementReason }> => {
-  const received = 10 + ((index * 7) % 90);
+  // Whole units, written in the offering's scale: 17 m is 17000.
+  const received =
+    (10 + ((index * 7) % 90)) * seededSaleTermsOf(index).wholeUnit;
   switch (index % 4) {
     case 0:
       return [{ quantity: received, reason: 'receipt' }];
@@ -139,7 +142,7 @@ export const stockMovementTempDataFor = (
       return {
         id,
         offeringId: offeringId(vendor, index),
-        unit: DEFAULT_SALE_UNIT,
+        unit: seededSaleTermsOf(index).saleUnit,
         ...movement,
         occurredAt: new Date(SEEDED_FROM + position * 60_000).toISOString(),
         causeType: 'manual' as const,
@@ -177,7 +180,7 @@ export const stockItemTempDataFor = (
     return {
       id: `${vendor.idPrefix}stock-item-${index + 1}`,
       offeringId: offeringId(vendor, index),
-      unit: DEFAULT_SALE_UNIT,
+      unit: seededSaleTermsOf(index).saleUnit,
       onHand,
       reserved: 0,
       available: onHand,

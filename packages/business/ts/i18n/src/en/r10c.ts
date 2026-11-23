@@ -178,6 +178,10 @@ export const r10c: EsR10c = {
     price: {
       per: 'per {{symbol}}',
       perQuantity: 'per {{quantity}} {{symbol}}',
+      // A quantity with its unit: "3.5 m", "2 pcs".
+      quantity: '{{quantity}} {{symbol}}',
+      // How something not sold one at a time is sold.
+      sold: 'From {{minimum}}, in steps of {{step}}',
     },
     product: {
       buy: 'Buy',
@@ -270,6 +274,10 @@ export const r10c: EsR10c = {
       undo: 'Undo',
       quantity: 'Quantity',
       quantityOf: 'Quantity of {{name}}',
+      // A quantity refused, never rounded (ADR 0082 §3): the reason is the
+      // `errors` catalog's.
+      refused: '{{name}} was not changed in the cart.',
+      blocked: 'Change the quantities marked to review the order.',
       update: 'Update',
       total: 'Total',
       keepShopping: 'Keep shopping',
@@ -345,6 +353,8 @@ export const r10c: EsR10c = {
     checkout: {
       empty: 'Nothing here is still on sale.',
       failed: 'Checkout could not be started. Please try again.',
+      quantity:
+        'A quantity in your cart is no longer sold that way. Change it to continue.',
       doesNotShip:
         '{{seller}} does not ship, so it cannot be bought from in the store. Remove its products from the cart to continue.',
       thisSeller: 'One of the sellers',
@@ -413,7 +423,7 @@ export const r10c: EsR10c = {
         phone: 'Phone: •••• {{ending}}',
         zona: 'Zone {{zona}}',
       },
-      units: 'Qty {{count}}',
+      units: 'Qty {{quantity}}',
       total: 'Total',
       tooManyLines:
         'This order has {{count}} items, too many to list here. The order number above identifies all of them.',

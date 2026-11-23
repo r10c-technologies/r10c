@@ -2,14 +2,15 @@
 
 import type { EntityCrudListView } from '@entifix/next-shell';
 import { Money, useLocale, useTranslateKey } from '@entifix/react-controls';
+import { departamentoOf, municipioOf } from '@r10c/business-ts-order-contracts';
 import {
-  departamentoOf,
-  municipioOf,
-} from '@r10c/business-ts-order-contracts';
+  formatQuantity,
+  SALE_UNIT_SYMBOL_KEY,
+} from '@r10c/business-ts-sales-vocabulary';
 import type { ShippingOrder } from '@r10c/business-ts-shipping-order-management';
 
 /**
- * What goes in the parcel — "2 × Cog, 1 × Flange" — by the names the lines
+ * What goes in the parcel — "2 u. × Cog, 3.5 m × Cable" — by the names the lines
  * were sold under (#557). Packing the wrong parcel is the costliest mistake in
  * the back office's daily loop, and a row that says what is in it is how a
  * vendor avoids opening every record to find out.
@@ -20,12 +21,21 @@ export function ShipmentContentsCell({
   shipment: ShippingOrder;
 }) {
   const translateKey = useTranslateKey();
+  const locale = useLocale();
   return (
     <>
       {shipment.lines
         .map(line =>
           translateKey('r10c:fulfilment.list.line', {
-            quantity: line.quantity,
+            // With its unit, so a packer reads 3.5 m and never 3500
+            // (ADR 0082 §2). A line states its unit; one that does not is
+            // shown as the number it is rather than given a unit it lacks.
+            quantity:
+              line.unit === undefined
+                ? String(line.quantity)
+                : `${formatQuantity(line.quantity, line.unit, locale)} ${translateKey(
+                    `${SALE_UNIT_SYMBOL_KEY}.${line.unit}`,
+                  )}`,
             name: line.name,
           }),
         )

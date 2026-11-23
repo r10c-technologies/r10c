@@ -21,19 +21,23 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import {
+  quantityMaximum,
+  SALE_UNIT_SYMBOL_KEY,
+  saleUnitScale,
+} from '@r10c/business-ts-sales-vocabulary';
 import { loadCategoryTrail } from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { addToCart } from '../cart/cart-actions';
-import { MAX_QUANTITY } from '../cart/cart-state';
 import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { DeliveryFacts } from '../catalog/delivery-facts';
 import { loadCardNames, OfferingGrid } from '../catalog/offering-grid';
-import { priceBasisLabel } from '../catalog/price-basis';
+import { priceBasisLabel, saleRuleLabel } from '../catalog/price-basis';
 import { readProduct } from '../catalog/product-read';
 import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
@@ -164,12 +168,12 @@ async function ProductContent({
   );
   const category = trail.at(-1);
   const media = offering.media ?? [];
-  const priceBasis = priceBasisLabel(
-    // i18next 27's `TFunction` is not assignable to a plain translate
-    // signature, so the label gets the call it declares.
-    (key, values) => (values ? t(key, values) : t(key)),
-    locale,
-  )(offering);
+  // i18next 27's `TFunction` is not assignable to a plain translate
+  // signature, so the labels get the call they declare.
+  const translate = (key: string, values?: Readonly<Record<string, string>>) =>
+    values ? t(key, values) : t(key);
+  const priceBasis = priceBasisLabel(translate, locale)(offering);
+  const saleRule = saleRuleLabel(translate, locale)(offering);
   const hosts = imageHosts();
   const url = `${storefrontOrigin()}${localeHref(locale, storePaths.offering(offering.offeringId))}`;
 
@@ -269,14 +273,32 @@ async function ProductContent({
                   value={offering.offeringId}
                 />
                 <input type="hidden" name="locale" value={locale} />
-                <QuantityInput
-                  label={t('storefront.cart.quantity')}
-                  name="quantity"
-                  defaultValue={1}
-                  min={1}
-                  max={MAX_QUANTITY}
-                  className="touch-target"
-                />
+                {/* In the offering's unit and scale, from its minimum by its
+                    step (ADR 0082 §2): a quantity it does not sell is marked
+                    here and refused by the action, never rounded. */}
+                <Stack gap="3xs">
+                  <QuantityInput
+                    label={t('storefront.cart.quantity')}
+                    name="quantity"
+                    scale={saleUnitScale(offering.saleUnit)}
+                    unit={translate(
+                      `${SALE_UNIT_SYMBOL_KEY}.${offering.saleUnit}`,
+                    )}
+                    defaultValue={offering.quantityMinimum}
+                    min={offering.quantityMinimum}
+                    step={offering.quantityStep}
+                    max={quantityMaximum(offering)}
+                    {...(saleRule === undefined
+                      ? {}
+                      : { 'aria-describedby': 'buy-sale-rule' })}
+                    className="touch-target"
+                  />
+                  {saleRule === undefined ? null : (
+                    <Text id="buy-sale-rule" step={-1} muted>
+                      {saleRule}
+                    </Text>
+                  )}
+                </Stack>
                 <SubmitButton
                   variant="primary"
                   size="lg"

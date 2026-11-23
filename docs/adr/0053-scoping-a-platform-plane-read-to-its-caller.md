@@ -9,6 +9,7 @@
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the receipt is the checkout group, and a flow capability is a third nonce credential
 - Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — a vendor's predicate is the order's top-level `vendorId`, and a storefront that waited on a flow reads the group back once by its cancel capability, since flow-status carries no order
 - Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — the receipt cookie and the read-back outlive the cancel window: both end at the group's `receiptEndsAt` (#579)
+- Revised: 2026-11-23 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — the receipt is cut to a byte budget rather than a per-order line cap, since two sellers of a dozen lines each already overflowed 4 KB (#672)
 
 ## Context
 
@@ -199,10 +200,16 @@ author a receipt they invented.
 > compare exactly as a forged receipt fails to describe a real order. The cookie
 > is a carrier, never an authority.
 
-**A cookie is 4KB and a basket has no upper bound**, so past a line cap the
-receipt keeps the order id, the totals and the line count and drops the lines,
-and the page says how many there were. A truncated list rendered as the whole
-order would be a receipt that lies.
+**A cookie is 4KB and a basket has no upper bound**, so a receipt over a byte
+budget (`RECEIPT_COOKIE_BUDGET`, counted percent-encoded as the browser counts
+it) drops the lines of its widest order, then the next, until it fits — each
+such order keeping its id, its total and its line count, and the page saying
+how many there were. A truncated list rendered as the whole order would be a
+receipt that lies. A budget and not a per-order cap, because what overflows is
+the basket: two sellers of twelve lines each were past 4 KB, and a browser
+drops an oversized cookie without a word. Eight sellers at their widest still
+fit as summaries; past that the cookie is lost, and nothing caps the sellers
+in a basket.
 
 ⚠️ **The receipt totals per currency, not once.** Found on the live fleet, whose
 seed prices in two: a marketplace's vendors price independently, one basket held

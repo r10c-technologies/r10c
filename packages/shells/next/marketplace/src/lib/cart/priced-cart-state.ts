@@ -2,6 +2,7 @@ import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
+import { type CartRefusal, heldLineRefusal } from './cart-quantity';
 import type { CartLine } from './cart-state';
 import {
   type PricedLine,
@@ -24,6 +25,13 @@ export interface PricedCart {
   readonly totals: readonly MoneyTotal[];
   /** Lines in the cart whose offering is no longer published. */
   readonly unavailable: number;
+  /**
+   * The lines whose quantity the published terms no longer sell — a step or
+   * a minimum the seller changed since the add — by offering id, with why.
+   * The cart says so beside each, and no checkout starts while any is left
+   * (ADR 0082 §3).
+   */
+  readonly refusals: ReadonlyMap<string, CartRefusal>;
 }
 
 /**
@@ -78,6 +86,12 @@ export function pricedCartOf(
     parts: sellerParts(priced),
     totals: totalsByCurrency(priced),
     unavailable: items.length - present.length,
+    refusals: new Map(
+      present.flatMap(({ line, offering }) => {
+        const refusal = heldLineRefusal(offering, line.quantity);
+        return refusal === undefined ? [] : [[line.offeringId, refusal]];
+      }),
+    ),
   };
 }
 

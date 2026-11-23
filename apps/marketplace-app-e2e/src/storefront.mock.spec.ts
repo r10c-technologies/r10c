@@ -376,7 +376,7 @@ test.describe('browsing the catalog', () => {
 
     await page.getByRole('link', { name: 'Quitar' }).click();
     await page.waitForURL(url => !url.search.includes('model='));
-    await expect(page.getByText('39 productos')).toBeVisible();
+    await expect(page.getByText('40 productos')).toBeVisible();
   });
 
   test('a card whose seller cannot be read still renders, without a seller line', async ({
@@ -474,7 +474,7 @@ test.describe('browsing the catalog', () => {
   test('search pages through the whole catalog', async ({ page }) => {
     await page.goto('/es/search');
     // The 36 shared fixtures and the three this suite's mock adds (#567).
-    await expect(page.getByText('39 productos')).toBeVisible();
+    await expect(page.getByText('40 productos')).toBeVisible();
     await expect(page.getByText('Solano Reading Light')).toHaveCount(0);
 
     await page
@@ -569,7 +569,7 @@ test.describe('browsing the catalog', () => {
 
   test('the in-stock toggle leaves out what is sold out', async ({ page }) => {
     await page.goto('/es/search');
-    await expect(page.getByText('39 productos')).toBeVisible();
+    await expect(page.getByText('40 productos')).toBeVisible();
 
     await page
       .getByRole('complementary', { name: 'Filtrar' })
@@ -1123,8 +1123,10 @@ test.describe('copy that counts', () => {
   test('the cart badge counts its items in words, in both locales', async ({
     page,
   }) => {
-    const add = async () => {
-      await page.goto('/es/p/offering-terra-ceramic-mug');
+    // Two products: the badge counts lines, so a second mug would still be
+    // one item (ADR 0082 §3).
+    const add = async (offeringId = 'offering-terra-ceramic-mug') => {
+      await page.goto(`/es/p/${offeringId}`);
       await page
         .getByRole('form', { name: 'Comprar' })
         .getByRole('button', { name: 'Añadir al carrito' })
@@ -1142,7 +1144,7 @@ test.describe('copy that counts', () => {
       page.getByRole('link', { name: 'Cart (1 item)' }),
     ).toBeVisible();
 
-    await add();
+    await add('offering-aurora-desk-lamp');
     await page.goto('/es');
     await expect(
       page.getByRole('link', { name: 'Carrito (2 artículos)' }),

@@ -4720,6 +4720,9 @@ importers:
       '@r10c/business-ts-order-contracts':
         specifier: workspace:*
         version: link:../../../business/ts/order-contracts
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/business-ts-shipping-order-management':
         specifier: workspace:*
         version: link:../../../business/ts/shipping-order-management

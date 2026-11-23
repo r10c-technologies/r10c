@@ -44,4 +44,27 @@ describe('offeringTempData', () => {
         .every(offering => priced.has(offering.id)),
     ).toBe(true);
   });
+
+  // One sold by the metre and one priced per hundred reach the storefront, so
+  // a reset lab shows both cases ADR 0082 adds without anybody editing a row.
+  it('publishes one offering by the half metre and one priced per hundred', () => {
+    const metre = offeringTempData.find(
+      offering => offering.id === 'product-offering-2',
+    );
+    const perHundred = offeringPriceTempData.find(
+      price => price.offeringId === 'product-offering-6',
+    );
+
+    expect(metre).toMatchObject({
+      status: 'published',
+      saleUnit: 'M',
+      quantityStep: 500,
+      quantityMinimum: 1000,
+    });
+    expect(perHundred?.pricePer).toBe(100);
+    expect(
+      offeringTempData.find(offering => offering.id === 'product-offering-6')
+        ?.status,
+    ).toBe('published');
+  });
 });

@@ -46,8 +46,11 @@ const pageOf = (res: Page) => res.data.data;
 const SEEDED = {
   /** One receipt, nothing else: the ordinary case. */
   simple: { offeringId: 'product-offering-1', onHand: 10, movements: 1 },
-  /** A receipt and a sale — a fold of two, one of them negative. */
-  sold: { offeringId: 'product-offering-2', onHand: 13, movements: 2 },
+  /**
+   * A receipt and a sale — a fold of two, one of them negative. Sold by the
+   * metre, so counted in its scale: 17 m in, 3.4 m out (ADR 0082 §4).
+   */
+  sold: { offeringId: 'product-offering-2', onHand: 13_600, movements: 2 },
   /** Receipt, sale and a negative `adjustment` — a fold of three. */
   adjusted: { offeringId: 'product-offering-3', onHand: 17, movements: 3 },
   /** A receipt cancelled by an equal sale: zero on hand, *through the ledger*. */

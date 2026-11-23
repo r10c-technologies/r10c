@@ -27,6 +27,7 @@ import { readPricedCart } from '../cart/priced-cart';
 import { reviewedTotalsOf } from '../cart/priced-cart-state';
 import { runRead } from '../catalog/catalog-reads';
 import { totalsByCurrency } from '../catalog/money';
+import { quantityLabel } from '../catalog/price-basis';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -71,10 +72,21 @@ export async function CheckoutReviewPage({
 }) {
   const t = getServerTFor(locale, 'r10c');
   const tErrors = getServerTFor(locale, 'errors');
-  const { parts, offerings, totals, unavailable } = await readPricedCart();
+  // A line's quantity with its unit, "3.5 m" (ADR 0082 §2).
+  const quantityOf = quantityLabel(
+    (key, values) => (values ? t(key, values) : t(key)),
+    locale,
+  );
+  const { parts, offerings, totals, unavailable, refusals } =
+    await readPricedCart();
   // Nothing to agree to: the cart says why, and offers the way back.
   if (parts.length === 0) {
     redirect(localeHref(locale, `${storePaths.cart()}?checkout=empty`));
+  }
+  // A quantity the published terms no longer sell is not one to agree to:
+  // the cart names the line (ADR 0082 §3).
+  if (refusals.size > 0) {
+    redirect(localeHref(locale, `${storePaths.cart()}?checkout=quantity`));
   }
   const vendors = new Map(
     (
@@ -126,7 +138,10 @@ export async function CheckoutReviewPage({
                               {name}
                               {' · '}
                               {t('storefront.order.units', {
-                                count: line.quantity,
+                                quantity: quantityOf(
+                                  line.quantity,
+                                  line.saleUnit,
+                                ),
                               })}
                             </Text>
                             <Text>

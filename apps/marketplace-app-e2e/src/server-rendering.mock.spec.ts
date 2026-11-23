@@ -137,6 +137,7 @@ test.describe('server rendering', () => {
       },
     ]);
     await page.goto('/es');
-    await expect(page.getByTestId('cart-count')).toHaveText('3');
+    // One line of three: the badge counts what is in the cart, not how much.
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
   });
 });

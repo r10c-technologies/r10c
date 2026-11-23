@@ -22,8 +22,17 @@ export const CART_COOKIE = 'r10c_cart';
 
 export interface CartLine {
   readonly offeringId: string;
+  /**
+   * A whole number in the scale of the offering's unit: `3500` is 3.5 m
+   * (ADR 0082 §2). What it means is the published offering's to say, so this
+   * module never reads it as a count of anything.
+   */
   readonly quantity: number;
 }
+
+/** A quantity this format can hold: a positive whole number, never a fraction. */
+const isHeld = (quantity: number) =>
+  Number.isSafeInteger(quantity) && quantity >= 1;
 
 export function parseCart(value: string | undefined): CartLine[] {
   if (!value) return [];
@@ -31,8 +40,11 @@ export function parseCart(value: string | undefined): CartLine[] {
   return value.split(',').flatMap(entry => {
     const [offeringId, quantity] = entry.split(':');
     const parsed = Number(quantity);
-    if (!offeringId || !Number.isFinite(parsed) || parsed < 1) return [];
-    return [{ offeringId, quantity: Math.floor(parsed) }];
+    // A fraction is dropped rather than floored: in the scale it is stored in
+    // it is no quantity at all, and flooring would sell something nobody asked
+    // for (ADR 0082 §3).
+    if (!offeringId || !isHeld(parsed)) return [];
+    return [{ offeringId, quantity: parsed }];
   });
 }
 
@@ -40,55 +52,46 @@ export function serializeCart(lines: readonly CartLine[]): string {
   return lines.map(line => `${line.offeringId}:${line.quantity}`).join(',');
 }
 
+/**
+ * How many lines the cart holds — what the header badge counts. Never the sum
+ * of the quantities: 3.5 m of cable and two lamps are two things, not 3,502.
+ */
 export function cartCount(lines: readonly CartLine[]): number {
-  return lines.reduce((total, line) => total + line.quantity, 0);
+  return lines.length;
 }
 
 /**
- * The most units one line may hold. The cookie is visitor-writable and the
- * quantity box is a plain number field, so a figure past this is clamped
- * rather than trusted: no buyer means 10⁹ lamps, and stock would refuse it
- * at checkout anyway.
+ * The cart with `offeringId`'s line at `quantity`, appended when the cart has
+ * none. A quantity that is not a positive whole number leaves the cart as it
+ * was; one the offering does not sell is the cart action's to refuse before
+ * this.
  */
-export const MAX_QUANTITY = 99;
-
-/**
- * `count` more units of `offeringId` (one by default), as a new line when the
- * cart has none. The count goes through {@link withQuantity}'s rules, so the
- * line is clamped and a count that is not a positive number adds nothing.
- */
-export function withAdded(
+export function withLine(
   lines: readonly CartLine[],
   offeringId: string,
-  count = 1,
+  quantity: number,
 ): CartLine[] {
-  if (!Number.isFinite(count) || count < 1) return [...lines];
-  const existing = lines.find(line => line.offeringId === offeringId);
-  return existing
-    ? withQuantity(lines, offeringId, existing.quantity + Math.floor(count))
-    : withQuantity(
-        [...lines, { offeringId, quantity: 1 }],
-        offeringId,
-        Math.floor(count),
-      );
+  if (!isHeld(quantity)) return [...lines];
+  return lines.some(line => line.offeringId === offeringId)
+    ? withQuantity(lines, offeringId, quantity)
+    : [...lines, { offeringId, quantity }];
 }
 
 /**
- * The cart with `offeringId`'s line set to `quantity`: floored, clamped to
- * {@link MAX_QUANTITY}, and removed at zero or below. A quantity that is not
- * a number leaves the cart as it was, because a form that sent garbage did
- * not ask for anything.
+ * The cart with `offeringId`'s line set to `quantity`, and removed at zero.
+ * Anything else that is not a positive whole number leaves the cart as it
+ * was: a form that sent garbage did not ask for anything. Nothing is floored
+ * or clamped — the action refuses what the offering does not sell.
  */
 export function withQuantity(
   lines: readonly CartLine[],
   offeringId: string,
   quantity: number,
 ): CartLine[] {
-  if (!Number.isFinite(quantity)) return [...lines];
-  const next = Math.min(Math.floor(quantity), MAX_QUANTITY);
-  return next < 1
-    ? lines.filter(line => line.offeringId !== offeringId)
-    : lines.map(line =>
-        line.offeringId === offeringId ? { ...line, quantity: next } : line,
-      );
+  if (quantity === 0)
+    return lines.filter(line => line.offeringId !== offeringId);
+  if (!isHeld(quantity)) return [...lines];
+  return lines.map(line =>
+    line.offeringId === offeringId ? { ...line, quantity } : line,
+  );
 }

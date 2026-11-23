@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  fittedReceipt,
   lineNameKey,
   parseReceipt,
   type Receipt,
-  RECEIPT_LINE_CAP,
+  RECEIPT_COOKIE_BUDGET,
+  receiptCookieBytes,
   receiptCookieMaxAge,
   receiptDetailsOf,
   receiptFromReadBack,
@@ -150,7 +152,8 @@ describe('receiptFromReadBack', () => {
         envelope({
           id: 'o-b',
           vendorId: 'v-2',
-          items: Array.from({ length: RECEIPT_LINE_CAP + 1 }, () => line()),
+          // More lines than the cookie holds beside the first order's.
+          items: Array.from({ length: 60 }, () => line()),
         }),
       ]),
       'nonce',
@@ -163,14 +166,14 @@ describe('receiptFromReadBack', () => {
       cancelNonce: 'nonce',
       cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
       receiptEndsAt: '2026-12-03T10:00:00.000Z',
-      totals: [{ currency: 'GTQ', amount: 2800 }],
+      totals: [{ currency: 'GTQ', amount: 12_200 }],
     });
     expect(built?.orders[0]).toMatchObject({
       vendorName: 'Tienda Uno',
       method: 'cod',
       lineCount: 1,
     });
-    expect(built?.orders[1]).toMatchObject({ method: 'card', lineCount: 13 });
+    expect(built?.orders[1]).toMatchObject({ method: 'card', lineCount: 60 });
     expect(built?.orders[1]?.lines).toBeUndefined();
     expect(built?.orders[1]?.vendorName).toBeUndefined();
   });
@@ -645,5 +648,90 @@ describe('trackerSteps', () => {
   it('draws nothing for an order that left the way to the door', () => {
     expect(trackerSteps('cancelled', 'card')).toEqual([]);
     expect(trackerSteps('cancelling', 'card')).toEqual([]);
+  });
+});
+
+/**
+ * The receipt at its widest, as a browser would be handed it: every id a
+ * UUID, every figure at its most digits, every line in the widest unit code.
+ * A cookie past 4 KB is dropped without a word, which loses the buyer's way
+ * back to the order and their cancel (ADR 0076 §6).
+ */
+describe('the receipt cookie', () => {
+  const uuid = '0f8fad5b-d9cb-469f-a165-70867728950e';
+  const widestOrder = (lines: number) => ({
+    orderId: uuid,
+    number: '7KQ4-M2XD',
+    vendorId: uuid,
+    vendorName: 'N'.repeat(60),
+    method: 'link',
+    lines: Array.from({ length: lines }, () => ({
+      offeringId: uuid,
+      unit: 'FT2' as const,
+      quantity: 99_990_000,
+      lineTotal: 9_999_999_999,
+      currency: 'GTQ',
+    })),
+    lineCount: lines,
+    total: { currency: 'GTQ', amount: 99_999_999_999 },
+  });
+  const widest = (orders: number, lines: number): Receipt => ({
+    groupId: uuid,
+    number: '7KQ4-M2XD',
+    placedAt: '2026-11-03T10:00:00.000Z',
+    orders: Array.from({ length: orders }, () => widestOrder(lines)),
+    totals: [{ currency: 'GTQ', amount: 99_999_999_999 }],
+    cancelNonce: 'x'.repeat(43),
+    cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
+    receiptEndsAt: '2026-12-03T10:00:00.000Z',
+  });
+
+  it('keeps a receipt that fits as it is', () => {
+    expect(fittedReceipt(receipt)).toBe(receipt);
+  });
+
+  it('fits a seller’s dozen widest lines whole', () => {
+    const fitted = fittedReceipt(widest(1, 12));
+    expect(fitted.orders[0]?.lines).toHaveLength(12);
+    expect(receiptCookieBytes(fitted)).toBeLessThanOrEqual(
+      RECEIPT_COOKIE_BUDGET,
+    );
+  });
+
+  it('cuts the widest orders to their count and total until it fits', () => {
+    const wide = widest(2, 12);
+    expect(receiptCookieBytes(wide)).toBeGreaterThan(4096);
+
+    const fitted = fittedReceipt(wide);
+
+    expect(receiptCookieBytes(fitted)).toBeLessThanOrEqual(
+      RECEIPT_COOKIE_BUDGET,
+    );
+    // One order cut is enough here; the other keeps its lines.
+    expect(fitted.orders.map(order => order.lines?.length)).toEqual([
+      undefined,
+      12,
+    ]);
+    expect(fitted.orders.map(order => order.lineCount)).toEqual([12, 12]);
+    expect(fitted.orders.map(order => order.total)).toEqual(
+      wide.orders.map(order => order.total),
+    );
+  });
+
+  // Past the capacity below, every order is down to its count and total and
+  // there is nothing left to cut.
+  it('stops once every order is a summary', () => {
+    const fitted = fittedReceipt(widest(10, 12));
+    expect(fitted.orders.every(order => order.lines === undefined)).toBe(true);
+    expect(fitted.orders).toHaveLength(10);
+  });
+
+  // The capacity, pinned: eight sellers at their widest, cancelled mark
+  // included, still reach the browser.
+  it('holds eight sellers at their widest within what a browser keeps', () => {
+    const fitted = withCancelled(fittedReceipt(widest(8, 12)), uuid);
+    expect(receiptCookieBytes(fitted)).toBeLessThan(
+      4096 - 'r10c_receipt='.length,
+    );
   });
 });

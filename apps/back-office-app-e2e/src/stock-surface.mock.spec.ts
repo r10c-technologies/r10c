@@ -94,7 +94,8 @@ test('offers no way to edit a quantity, because the service says so', async ({
   // nothing left to show. They are *values*, though, not inputs.
   // Inside the record's own values: the breadcrumb names it too since 0.20.0.
   await expect(page.locator('dl').getByText('Taza de cerámica')).toBeVisible();
-  await expect(page.getByText('10', { exact: true }).first()).toBeVisible();
+  // With its unit (ADR 0082 §2): a scaled quantity alone says nothing.
+  await expect(page.getByText('10 u.', { exact: true }).first()).toBeVisible();
 
   // ⚠️ **The assertion this surface exists to hold.** `onHand` and `reserved`
   // are `type: 'number'` accessors, which is exactly what the generator turns

@@ -544,6 +544,12 @@ Two rules follow, and they hold regardless of how many services are deployed:
    which is itself the concurrency control: zero rows matched means out of stock,
    answered immediately. The reservation carries a TTL; payment success converts
    it to a sale movement, failure or expiry releases it.
+3. **A quantity is an integer in its unit's scale, and the ledger states the
+   unit.** `3500` is 3.5 m on an item counted in `M`, and the same conditional
+   write also matches the unit, so a hold or a movement in another one is
+   refused `unitMismatch` instead of added to a total that would mean nothing
+   ([ADR 0082](adr/0082-an-offering-is-sold-in-a-unit-with-a-step.md) §4). The
+   first movement fixes an item's unit; nothing defaults it.
 
 The vendor's `+50 onHand` and the buyer's guarded `+1 reserved` touch different
 fields, are both atomic, and are order-independent. There is no race to resolve

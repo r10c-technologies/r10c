@@ -15,7 +15,12 @@ import {
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
-import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
+import {
+  lineTotal,
+  quantityMaximum,
+  SALE_UNIT_SYMBOL_KEY,
+  saleUnitScale,
+} from '@r10c/business-ts-sales-vocabulary';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 import {
   getVendor,
@@ -28,10 +33,10 @@ import {
   setQuantity,
 } from '../cart/cart-actions';
 import type { CartNotice } from '../cart/cart-notice';
-import { MAX_QUANTITY } from '../cart/cart-state';
 import type { CheckoutOutcome } from '../cart/checkout-action';
 import { readPricedCart } from '../cart/priced-cart';
 import { runRead } from '../catalog/catalog-reads';
+import { saleRuleLabel } from '../catalog/price-basis';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -61,7 +66,14 @@ export async function CartPage({
   readonly notice?: CartNotice;
 }) {
   const t = getServerTFor(locale, 'r10c');
-  const { present, parts, offerings, totals } = await readPricedCart();
+  const tErrors = getServerTFor(locale, 'errors');
+  // i18next 27's `TFunction` is not assignable to a plain translate
+  // signature, so the labels get the call they declare.
+  const translate = (key: string, values?: Readonly<Record<string, string>>) =>
+    values ? t(key, values) : t(key);
+  const ruleOf = saleRuleLabel(translate, locale);
+  const { present, parts, offerings, totals, refusals } =
+    await readPricedCart();
   const vendors = new Map(
     (
       await runRead(
@@ -102,7 +114,11 @@ export async function CartPage({
             never here. */}
         {outcome !== undefined && (
           <Alert
-            tone={outcome === 'empty' ? 'warning' : 'danger'}
+            tone={
+              outcome === 'empty' || outcome === 'quantity'
+                ? 'warning'
+                : 'danger'
+            }
             data-testid={`checkout-${outcome}`}
           >
             {outcome === 'doesNotShip'
@@ -124,6 +140,13 @@ export async function CartPage({
           notice.kind === 'added' ? (
             <Alert tone="success" data-testid="cart-added">
               {t('storefront.cart.added', { name: noticed.name })}
+            </Alert>
+          ) : notice.kind === 'refused' ? (
+            // Refused, never rounded (ADR 0082 §3): what the rule is, and
+            // that nothing changed — the cart below is as it was.
+            <Alert tone="warning" data-testid="cart-refused">
+              {t('storefront.cart.refused', { name: noticed.name })}{' '}
+              {tErrors(notice.refusal)} {ruleOf(noticed)}
             </Alert>
           ) : (
             <Alert
@@ -178,6 +201,9 @@ export async function CartPage({
                   const offering = offerings.get(
                     line.offeringId,
                   ) as PublishedOffering;
+                  const refusal = refusals.get(line.offeringId);
+                  const rule = ruleOf(offering);
+                  const describedBy = `cart-rule-${line.offeringId}`;
                   return (
                     <Card key={line.offeringId}>
                       <Cluster justify="between" gap="s">
@@ -194,20 +220,55 @@ export async function CartPage({
                               name="offeringId"
                               value={line.offeringId}
                             />
+                            <input type="hidden" name="locale" value={locale} />
+                            {/* In the offering's unit and scale; zero
+                                removes the line, and anything else it does
+                                not sell is refused (ADR 0082 §3). */}
                             <QuantityInput
                               label={t('storefront.cart.quantityOf', {
                                 name: offering.name,
                               })}
                               name="quantity"
+                              scale={saleUnitScale(offering.saleUnit)}
+                              unit={translate(
+                                `${SALE_UNIT_SYMBOL_KEY}.${offering.saleUnit}`,
+                              )}
                               defaultValue={line.quantity}
                               min={0}
-                              max={MAX_QUANTITY}
+                              step={offering.quantityStep}
+                              max={quantityMaximum(offering)}
+                              invalid={refusal !== undefined}
+                              {...(refusal === undefined && rule === undefined
+                                ? {}
+                                : { 'aria-describedby': describedBy })}
                               className="touch-target"
                             />
                             <SubmitButton variant="secondary" size="sm">
                               {t('storefront.cart.update')}
                             </SubmitButton>
                           </form>
+                          {/* A line the seller's terms no longer sell — a
+                              step changed since the add — says why here, and
+                              the review stays shut until it is changed. */}
+                          {refusal === undefined &&
+                          rule === undefined ? null : (
+                            <Text
+                              id={describedBy}
+                              step={-1}
+                              tone={refusal === undefined ? 'muted' : 'default'}
+                              data-testid={
+                                refusal === undefined
+                                  ? undefined
+                                  : 'cart-line-refused'
+                              }
+                            >
+                              {refusal === undefined
+                                ? rule
+                                : [tErrors(refusal), rule]
+                                    .filter(Boolean)
+                                    .join(' ')}
+                            </Text>
+                          )}
                         </Stack>
 
                         <Text data-testid="cart-line-price">
@@ -278,14 +339,20 @@ export async function CartPage({
                     seller's lines and the total, and chooses how to pay each,
                     before anything starts — and so it needs no script (#534,
                     ADR 0076 §7). */}
-                <form
-                  action={localeHref(locale, storePaths.checkoutReview())}
-                  method="get"
-                >
-                  <SubmitButton data-testid="review" className="touch-target">
-                    {t('storefront.cart.review')}
-                  </SubmitButton>
-                </form>
+                {refusals.size > 0 ? (
+                  <Alert tone="warning" data-testid="cart-blocked">
+                    {t('storefront.cart.blocked')}
+                  </Alert>
+                ) : (
+                  <form
+                    action={localeHref(locale, storePaths.checkoutReview())}
+                    method="get"
+                  >
+                    <SubmitButton data-testid="review" className="touch-target">
+                      {t('storefront.cart.review')}
+                    </SubmitButton>
+                  </form>
+                )}
               </Cluster>
             </Cluster>
           </Stack>

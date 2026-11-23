@@ -5,6 +5,7 @@ import {
   assertWizardDefinition,
   emptyWizardState,
   type EntityRowDraft,
+  type Locale,
   newRowKey,
   readStepDraft,
   readStepIds,
@@ -39,7 +40,14 @@ import {
 } from '@entifix/react-integration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
-import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
+import {
+  formatQuantity,
+  lineTotal,
+  quantityMaximum,
+  SALE_UNIT_SYMBOL_KEY,
+  saleLineRefusal,
+  saleUnitScale,
+} from '@r10c/business-ts-sales-vocabulary';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COUNTER_SALE_SURFACE } from '../sales-surfaces';
@@ -187,6 +195,27 @@ export const previewOf = (
       });
 };
 
+/**
+ * A line's quantity with its unit, by its offering's live terms: "3.5 m". A
+ * line whose offering is no longer listed shows its bare number — it cannot be
+ * sold, and the draft's own word for its unit is not trusted (ADR 0032).
+ */
+export const quantityTextOf = (
+  line: Line,
+  offerings: readonly PublishedOffering[],
+  locale: Locale,
+  translateKey: (key: string) => string,
+): string => {
+  const offering = offerings.find(
+    candidate => candidate.offeringId === line.offeringId,
+  );
+  return offering === undefined
+    ? String(line.quantity)
+    : `${formatQuantity(line.quantity, offering.saleUnit, locale)} ${translateKey(
+        `${SALE_UNIT_SYMBOL_KEY}.${offering.saleUnit}`,
+      )}`;
+};
+
 const totalOf = (
   lines: readonly Line[],
   offerings: readonly PublishedOffering[],
@@ -315,7 +344,26 @@ export function CounterSaleWizard({
   const identified = taxIdType !== 'cf';
 
   const [pendingOffering, setPendingOffering] = useState('');
-  const [pendingQuantity, setPendingQuantity] = useState(1);
+  // In the picked offering's scale; `NaN` while the field holds no number.
+  const [pendingQuantity, setPendingQuantity] = useState(Number.NaN);
+  const picked = offerings.items.find(
+    candidate => candidate.offeringId === pendingOffering,
+  );
+  // Decided against the published terms as typed, and refused rather than
+  // rounded (ADR 0082 §3); sales-service checks again, and its answer stands.
+  const pendingRefusal =
+    picked === undefined
+      ? undefined
+      : saleLineRefusal(picked.offeringId, pendingQuantity, picked, picked);
+  const pick = (offeringId: string) => {
+    setPendingOffering(offeringId);
+    const offering = offerings.items.find(
+      candidate => candidate.offeringId === offeringId,
+    );
+    setPendingQuantity(offering?.quantityMinimum ?? Number.NaN);
+  };
+  const quantityText = (line: Line) =>
+    quantityTextOf(line, offerings.items, locale, translateKey);
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
   const [charging, setCharging] = useState(false);
   const [failure, setFailure] = useState<string | undefined>(undefined);
@@ -421,12 +469,10 @@ export function CounterSaleWizard({
     });
 
   const addLine = () => {
-    const offering = offerings.items.find(
-      candidate => candidate.offeringId === pendingOffering,
-    );
-    // The count is a whole unit of at least one by construction:
-    // `QuantityInput` clamps what is typed before it reaches this state.
-    if (offering === undefined) return;
+    // Nothing picked, or a quantity the offering does not sell: the field
+    // already says why, and nothing is added.
+    if (picked === undefined || pendingRefusal !== undefined) return;
+    const offering = picked;
     const quantity = pendingQuantity;
     setLines([
       ...lines,
@@ -440,7 +486,7 @@ export function CounterSaleWizard({
       },
     ]);
     setPendingOffering('');
-    setPendingQuantity(1);
+    setPendingQuantity(Number.NaN);
   };
 
   // One key per sale, kept across a charge that never reached the service so
@@ -606,7 +652,7 @@ export function CounterSaleWizard({
             <Select
               id="counter-sale-offering"
               value={pendingOffering}
-              onChange={event => setPendingOffering(event.target.value)}
+              onChange={event => pick(event.target.value)}
               disabled={offerings.isLoading}
             >
               <option value="">—</option>
@@ -616,22 +662,52 @@ export function CounterSaleWizard({
                 </option>
               ))}
             </Select>
-            <QuantityInput
-              id="counter-sale-quantity"
-              label={translateKey('r10c:sales.counterSale.quantity')}
-              value={pendingQuantity}
-              min={1}
-              onChange={setPendingQuantity}
-            />
+            {picked === undefined ? (
+              <QuantityInput
+                id="counter-sale-quantity"
+                label={translateKey('r10c:sales.counterSale.quantity')}
+                value={1}
+                min={1}
+                disabled
+                onChange={setPendingQuantity}
+              />
+            ) : (
+              // In the offering's unit and scale (ADR 0082 §2): 3.5 typed for
+              // cable is 3500 here, and a quantity it does not sell is marked,
+              // never clamped.
+              <QuantityInput
+                key={picked.offeringId}
+                id="counter-sale-quantity"
+                label={translateKey('r10c:sales.counterSale.quantity')}
+                value={pendingQuantity}
+                scale={saleUnitScale(picked.saleUnit)}
+                unit={translateKey(
+                  `${SALE_UNIT_SYMBOL_KEY}.${picked.saleUnit}`,
+                )}
+                min={picked.quantityMinimum}
+                step={picked.quantityStep}
+                max={quantityMaximum(picked)}
+                invalid={pendingRefusal !== undefined}
+                {...(pendingRefusal === undefined
+                  ? {}
+                  : { 'aria-describedby': 'counter-sale-quantity-refused' })}
+                onChange={setPendingQuantity}
+              />
+            )}
             <Button onClick={addLine}>
               {translateKey('r10c:sales.counterSale.addLine')}
             </Button>
           </Cluster>
+          {pendingRefusal === undefined ? null : (
+            <Alert id="counter-sale-quantity-refused" tone="warning">
+              {translateKey(`errors:${pendingRefusal.code}`)}
+            </Alert>
+          )}
           <Stack>
             {lines.map(line => (
               <Cluster key={line.key}>
                 <Text>
-                  {line.quantity} × {line.name}
+                  {quantityText(line)} × {line.name}
                 </Text>
                 <Button
                   variant="ghost"
@@ -720,7 +796,7 @@ export function CounterSaleWizard({
           </Text>
           {lines.map(line => (
             <Text key={line.key}>
-              {line.quantity} × {line.name} —{' '}
+              {quantityText(line)} × {line.name} —{' '}
               <Money
                 amount={previewOf(line, offerings.items)}
                 currency={line.currency}

@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: 2026-11-21
 - Revised: 2026-11-22 — §5 gains the key a list orders and filters prices by, `amountPerThousand`, since `amount` compared across `pricePer` ranks a price per hundred a hundred times too dear; and the units, scales and `lineTotal` move to a `business:vocabulary` rung below `business:policy`, so a contract names a unit as a domain does (#672).
+- Revised: 2026-11-23 — §2: only the offering defaults to `UN`; a stock record, an order line and a shipping line state their unit and a body naming none is refused. §3: the cart refuses rather than rounds and a line made invalid blocks the review and the checkout. §4: the ledger tells `unitMismatch` from a first-movement race and from too little stock. §6: the coordinator also overwrites the group's totals, and the order write refuses a line whose `lineTotal` disagrees with its terms. Consequences: what was built, and the check that fails a new multiplication (#672).
 - Area: business
 - Read when: multiplying a price by a quantity, selling by the metre, yard or box, or pricing below a centavo — a quantity is a scaled integer, a line's total is computed once, and a sale never grows after it is placed
 
@@ -87,8 +88,11 @@ decimal exists only where a person types or reads one, and one pair of
 functions in the vocabulary converts it, from and to a **string** and never
 through a float.
 
-The default unit is `UN`, whose scale is 0, so a counted product's quantities
-mean what they mean today.
+An offering's unit defaults to `UN`, whose scale is 0, so a counted product's
+quantities mean what they mean today. Nothing after the offering defaults: a
+stock record, an order line and a shipping line state their unit, and a body
+that names none is refused `invalidBody` rather than read as pieces, because a
+unit lost in transit and read as `UN` charges a metre as a piece.
 
 ### 3. An offering states unit, step and minimum, and nothing adjusts a quantity
 
@@ -115,13 +119,26 @@ optional-member rule does not reach them.
   set by `set-sale-unit` until the first publication and never afterwards:
   selling in another unit is another offering.
 - The cart's badge counts lines. A sum of metres and pieces means nothing.
+- The cart holds what was asked and checks it against the published terms on
+  every add and change. A refusal writes nothing and the cart says which line
+  and which rule, with or without script. A line the seller's terms no longer
+  sell, because a step or a minimum changed since it was added, is marked in
+  the cart, and neither the review nor the checkout starts while one is left.
 
 ### 4. The ledger states its own unit
 
 `StockItem`, `StockMovement` and `Reservation` carry `unit`. The first movement
 fixes the item's, and the conditional write that moves a counter also matches
 on it, so a movement or a hold in another unit is refused `unitMismatch` rather
-than added to the total.
+than added to the total. When a conditional write fails, the ledger reads why:
+a unit that differs is `unitMismatch`, an item that is not there yet is the
+first-movement race, and one with too little free is `insufficientStock`, so
+none of the three answers as another.
+
+`onHand`, `reserved` and a movement's `quantity` are neither sortable nor
+filterable: across items in different units their order means nothing.
+`available` stays both, because the zero the out-of-stock tile filters on is
+zero in every unit.
 
 An offering whose unit was changed after stock was received keeps that stock in
 the old unit, and its first hold is refused `unitMismatch`: the catalog cannot
@@ -166,8 +183,10 @@ lineTotal = roundHalfUp(amount × quantity / (pricePer × 10^scale))
 
 - One pure function in the vocabulary, in `bigint`, with the same half-up rule
   the tax policy uses.
-- The coordinator computes it at placement. The line stores `unit`, `quantity`,
-  `amount`, `pricePer` and `lineTotal`, and
+- The coordinator computes it at placement, and the group's totals from it,
+  overwriting whatever totals the caller stated. The line stores `unit`,
+  `quantity`, `amount`, `pricePer` and `lineTotal`; the order write refuses a
+  line whose `lineTotal` is not what its own terms make, and
   [ADR 0079](0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md)
   §3 holds: nothing on the line is resolved again.
 - **Every reader sums `lineTotal`, and none multiplies.** Order total, capture,
@@ -249,12 +268,17 @@ another vocabulary and is out until a vertical needs it.
    there is no dual read.
 3. Every `amount * quantity` is replaced, and a convention check fails a new
    one. This is the dangerous part: one missed site charges a measured line a
-   thousand times over.
+   thousand times over. The check reads the syntax tree of every package and
+   service (`tools/conventions/src/quantity-multiplication.spec.ts`), so a
+   quantity read through a key, a conversion or a renamed destructuring is
+   caught as a plain one is, and `lineTotal` is the one place allowed.
 4. A quantity field and cell that know the scale, on the storefront, the till
    and stock's screens. entifix formats money from metadata and has no
    equivalent for a scaled quantity, so a generic table would print `3500` for
-   3.5 m. That gap is filed in entifix or closed by a cell before the screens
-   ship.
+   3.5 m. entifix 0.23.8 closed it: a number member declares `scaled`, by a
+   fixed scale or by the unit member beside it, and its table cell, detail
+   grid, generated form field and `QuantityInput` read and write the scaled
+   integer without a float.
 5. The capability register loses `set-device-fit`, and `set-sale-unit` becomes
    `implemented`.
 

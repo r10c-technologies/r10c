@@ -84,4 +84,22 @@ describe('saleLineRefusal', () => {
     expect(refused).toMatchObject({ code: 'lineBelowOneMinorUnit', ...named });
     expect(refused?.message).toContain('cable');
   });
+
+  // A published offering is an entity: its price is read through accessors,
+  // which a spread would drop.
+  it('reads a price held behind accessors', () => {
+    class Held {
+      readonly #amount = 1;
+      readonly #pricePer = 1000 as const;
+      get amount() {
+        return this.#amount;
+      }
+      get pricePer() {
+        return this.#pricePer;
+      }
+    }
+    expect(
+      saleLineRefusal('cable', 1400, byTheMetre, new Held()),
+    ).toMatchObject({ code: 'lineBelowOneMinorUnit' });
+  });
 });

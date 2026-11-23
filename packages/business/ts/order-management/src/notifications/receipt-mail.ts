@@ -56,8 +56,8 @@ const money = (locale: string, amount: number, currency: string): string => {
 /**
  * How much of a line was sold, as the buyer's locale writes it, with its
  * unit's symbol: `3.5 m`, `2 u.` (ADR 0082 §2). The order write refuses a line
- * with no unit, so a stored one always has it; the bare number is what a line
- * from before units would have read as.
+ * with no unit, so a placed one always has it; the bare number is only the
+ * member's type's other case, never a unit guessed for it.
  */
 const soldQuantity = (
   language: string | undefined,

@@ -12,6 +12,12 @@ const offering = (
   Object.assign(new PublishedOffering(offeringId, vendorId, offeringId), {
     amount,
     currency,
+    // One piece at a time, priced for one (ADR 0082): a projection row
+    // always states its terms.
+    saleUnit: 'UN',
+    quantityStep: 1,
+    quantityMinimum: 1,
+    pricePer: 1,
   });
 
 describe('pricedCartOf', () => {
@@ -83,6 +89,25 @@ describe('pricedCartOf', () => {
     expect(cart.present.map(({ line }) => line.offeringId)).toEqual(['o-1']);
     expect(cart.totals).toEqual([{ currency: 'GTQ', amount: 500 }]);
     expect(cart.unavailable).toBe(1);
+  });
+
+  it('names a line its offering’s terms no longer sell, and passes the rest', () => {
+    // Sold by the metre now: the 1.5 m added under a half-metre step is off it.
+    const cable = Object.assign(offering('cable', 'v-1', 4500), {
+      saleUnit: 'M',
+      quantityStep: 1000,
+      quantityMinimum: 1000,
+    });
+
+    const cart = pricedCartOf([
+      { line: { offeringId: 'cable', quantity: 1500 }, offering: cable },
+      {
+        line: { offeringId: 'o-1', quantity: 2 },
+        offering: offering('o-1', 'v-1', 500),
+      },
+    ]);
+
+    expect([...cart.refusals]).toEqual([['cable', 'quantityOffStep']]);
   });
 });
 

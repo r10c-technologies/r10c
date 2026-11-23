@@ -36,12 +36,14 @@ describe('CartBadge', () => {
     expect(screen.queryByTestId('cart-count')).not.toBeInTheDocument();
   });
 
-  it('totals the units in the cookie', () => {
-    setCartCookie('AUR-LAMP-01:2,TER-MUG-01:1');
+  // A line's quantity is in its unit's scale — 3500 is 3.5 m — so the badge
+  // counts the things in the cart, never the sum of their quantities.
+  it('counts the lines in the cookie', () => {
+    setCartCookie('AUR-LAMP-01:2,CABLE-01:3500');
 
     render(<CartBadge {...BADGE} />);
 
-    expect(screen.getByTestId('cart-count')).toHaveTextContent('3');
+    expect(screen.getByTestId('cart-count')).toHaveTextContent(/^2$/);
   });
 
   /**
@@ -52,11 +54,11 @@ describe('CartBadge', () => {
    * the symptom is a badge that silently stays at zero.
    */
   it('decodes the cookie before parsing it', () => {
-    document.cookie = `r10c_cart=${encodeURIComponent('AUR-LAMP-01:2')}; path=/`;
+    document.cookie = `r10c_cart=${encodeURIComponent('AUR-LAMP-01:2,TER-MUG-01:1')}; path=/`;
 
     render(<CartBadge {...BADGE} />);
 
-    expect(screen.getByTestId('cart-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('cart-count')).toHaveTextContent(/^2$/);
   });
 
   it('ignores an unrelated cookie', () => {

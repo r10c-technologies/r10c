@@ -31,6 +31,28 @@ describe('ShipmentContentsCell', () => {
 
     expect(screen.getByText('2 × Engranaje, 1 × Brida')).toBeInTheDocument();
   });
+
+  // A packer reads 3.5 m, never 3500 (ADR 0082 §2).
+  it('states each quantity in the unit its line was sold in', () => {
+    render(
+      <ShipmentContentsCell
+        shipment={shipmentWith({
+          lines: [
+            Object.assign(new ShippingLine('cable', 'Cable', 3500), {
+              unit: 'M' as const,
+            }),
+            Object.assign(new ShippingLine('gear', 'Engranaje', 2), {
+              unit: 'UN' as const,
+            }),
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText('3.5 m × Cable, 2 u. × Engranaje'),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('ShipmentDestinationCell', () => {

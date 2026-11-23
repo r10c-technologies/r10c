@@ -33,11 +33,45 @@ export const receiptCookieMaxAge = (receipt: Receipt, now: Date): number => {
 };
 
 /**
- * Past this many lines in one order its lines are left out and only its count
- * and total kept: a cookie is capped at about 4 KB, and a receipt that cannot be
- * written is worse than a terse one.
+ * The most the receipt's cookie may hold, as the browser counts it: its value
+ * percent-encoded, as Next writes it, beside its name. A browser drops a
+ * cookie past 4,096 bytes **silently**, so a receipt over it is not a terse
+ * receipt but none — no way back to the order and no cancel. The margin
+ * covers the name, the attributes and a later `cancelled` mark.
  */
-export const RECEIPT_LINE_CAP = 12;
+export const RECEIPT_COOKIE_BUDGET = 3_800;
+
+/** How many bytes a receipt's cookie takes, as {@link RECEIPT_COOKIE_BUDGET} counts. */
+export const receiptCookieBytes = (receipt: Receipt): number =>
+  encodeURIComponent(serializeReceipt(receipt)).length;
+
+/**
+ * The receipt cut to its cookie: while it is over
+ * {@link RECEIPT_COOKIE_BUDGET}, the order with the most lines keeps only
+ * their count and its total. A budget rather than a per-order cap, because
+ * what overflows is the whole basket: a line carries its unit and its total
+ * (ADR 0082), and two sellers of a dozen lines each were already past it.
+ */
+export const fittedReceipt = (receipt: Receipt): Receipt => {
+  let fitted = receipt;
+  while (receiptCookieBytes(fitted) > RECEIPT_COOKIE_BUDGET) {
+    const widest = fitted.orders.reduce<ReceiptOrder | undefined>(
+      (most, order) =>
+        (order.lines?.length ?? 0) > (most?.lines?.length ?? 0) ? order : most,
+      undefined,
+    );
+    if (widest === undefined) return fitted;
+    fitted = {
+      ...fitted,
+      orders: fitted.orders.map(order => {
+        if (order !== widest) return order;
+        const { lines: _dropped, ...summary } = order;
+        return summary;
+      }),
+    };
+  }
+  return fitted;
+};
 
 /** One line of a vendor order, as the receipt shows it. */
 export interface ReceiptLine {
@@ -62,7 +96,7 @@ export interface ReceiptOrder {
   readonly vendorName?: string;
   /** How the buyer pays this seller: `card` or `cod`. */
   readonly method: string;
-  /** Absent past {@link RECEIPT_LINE_CAP}; {@link lineCount} still says how many. */
+  /** Absent when {@link fittedReceipt} cut it; {@link lineCount} still says how many. */
   readonly lines?: readonly ReceiptLine[];
   readonly lineCount: number;
   readonly total: ReceiptTotal;
@@ -223,7 +257,7 @@ const readBackOrder = (
     vendorId,
     ...(name === undefined ? {} : { vendorName: name }),
     method: filled(paymentMethod) ? paymentMethod : 'card',
-    ...(lines.length > RECEIPT_LINE_CAP ? {} : { lines }),
+    lines,
     lineCount: lines.length,
     total,
   };
@@ -253,7 +287,7 @@ export const receiptFromReadBack = (
   }
   const readOrders = read as ReceiptOrder[];
   const { number, placedAt, cancelWindowEndsAt, receiptEndsAt } = group;
-  return {
+  return fittedReceipt({
     groupId: group['id'],
     ...(filled(number) ? { number } : {}),
     ...(filled(placedAt) ? { placedAt } : {}),
@@ -267,7 +301,7 @@ export const receiptFromReadBack = (
     cancelNonce,
     ...(filled(cancelWindowEndsAt) ? { cancelWindowEndsAt } : {}),
     ...(filled(receiptEndsAt) ? { receiptEndsAt } : {}),
-  };
+  });
 };
 
 /** Where the parcels go and who receives them, as the receipt shows it. */
