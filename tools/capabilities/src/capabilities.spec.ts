@@ -1,6 +1,7 @@
 import {
   barrelReaches,
   declaredEntityResources,
+  declaredFilterableMembers,
   declaredUseCases,
   expandApis,
   SLICES,
@@ -15,6 +16,7 @@ import { realWorld } from './world.js';
 
 const world = realWorld({
   resources: declaredEntityResources(),
+  filterable: declaredFilterableMembers(),
   useCases: declaredUseCases().map(u => ({
     ...u,
     reachable: barrelReaches(u.packageName, u.file),
@@ -44,15 +46,26 @@ describe('The capability register matches the source tree (ADR 0080)', () => {
     expect(world.crossing.size).toBeGreaterThanOrEqual(10);
   });
 
-  // `planned` is not required here: it is the status of what a milestone
-  // committed to and nobody built yet, so a register where every commitment
-  // is built is a true one. The check a `planned` entry meets is pinned by the
-  // fixtures below ("refuses a planned entry whose id resolves to code"),
-  // which do not depend on the register's contents.
-  it('holds an implemented and an in-design entry, so each check has something to say', () => {
-    for (const status of ['implemented', 'in-design']) {
-      expect(CAPABILITIES.some(c => c.status === status)).toBe(true);
-    }
+  // Only `implemented` is required. `planned` and `in-design` are the status
+  // of what is committed or being designed and not built yet, so a register
+  // where everything is built is a true one; the checks those entries meet are
+  // pinned by the fixtures below ("refuses a planned entry whose id resolves to
+  // code", "refuses an in-design filter …"), which do not depend on the
+  // register's contents.
+  it('holds an implemented entry, so each check has something to say', () => {
+    expect(CAPABILITIES.some(c => c.status === 'implemented')).toBe(true);
+  });
+
+  it('reads the filterable members off the entities', () => {
+    expect(
+      world.filterable(
+        'marketplace-catalog:published-offering',
+        'fitsDeviceModelIds',
+      ),
+    ).toBe(true);
+    expect(
+      world.filterable('marketplace-catalog:published-offering', 'media'),
+    ).toBe(false);
   });
 
   it('agrees with the source on every entry', () => {
@@ -196,6 +209,43 @@ describe('Each check can fail (planted)', () => {
     expect(coverageProblems(neither, world).join()).toContain(
       "flow recipe 'checkout'",
     );
+  });
+
+  describe('a filter', () => {
+    const byDevice = real(
+      'marketplace-catalog:published-offering:filter-by-device',
+    );
+
+    it('resolves on a filterable member of a served read', () => {
+      expect(problemsOf(byDevice)).toBe('');
+      const unserved: World = { ...world, serves: () => false };
+      expect(problemsOf(byDevice, unserved)).toContain(
+        'filterable member',
+      );
+    });
+
+    it('refuses an unknown member, one not filterable, and none', () => {
+      expect(problemsOf({ ...byDevice, member: 'ghost' })).toContain(
+        'filterable member',
+      );
+      expect(problemsOf({ ...byDevice, member: 'media' })).toContain(
+        'filterable member',
+      );
+      const { member: _dropped, ...unnamed } = byDevice;
+      expect(problemsOf(unnamed)).toContain('filterable member');
+    });
+
+    it('refuses an in-design filter that resolves', () => {
+      expect(problemsOf({ ...byDevice, status: 'in-design' })).toContain(
+        'not promoted',
+      );
+    });
+
+    it('refuses a member on an action that is no filter', () => {
+      expect(problemsOf(withEntry({ member: 'fitsDeviceModelIds' }))).toContain(
+        'is no filter-by- action',
+      );
+    });
   });
 
   it('resolves CRUD only when a slice serves the entity', () => {

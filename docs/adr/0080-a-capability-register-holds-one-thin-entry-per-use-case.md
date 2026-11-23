@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: 2026-11-16
 - Area: platform
+- Revised: 2026-11-23 — a fourth kind of code, a filter: a `filter-by-…` entry names the filterable `member` its read narrows on (#640)
 - Read when: adding a use case or publishing to the docs site — the id is a permission shape, and `implemented` must resolve to code
 
 ## Context
@@ -122,11 +123,20 @@ none of it reads the Nx cache
 
 **An `implemented` entry must resolve on every field:**
 
-- **The id resolves to exactly one of three kinds of code.** For a **verb**, a
+- **The id resolves to exactly one of three kinds of code** (four since 2026-11-23, below). For a **verb**, a
   `@useCase()` on that entity with that `key`, reachable from its package's
   barrel (`barrelReaches`). For **CRUD**, the entity exists, its slice's
   `exposedAPIs` serves its base path, and the action is `read`, `write` or
   `delete`. For a **recipe**, a key of `FLOW_RECIPES` equal to the action.
+
+  > **2026-11-23 — and a fourth: a filter.** A storefront filter is neither a
+  > verb nor a CRUD word, so `filter-by-device`, which shipped in #641, could
+  > never be promoted and stayed `in-design`. An entry whose action starts
+  > `filter-by-` names the `member` it narrows on, and resolves when its
+  > subject's read is served and that member is declared `filterable: true` —
+  > the server's own allowlist for the query, read from source like the
+  > entities (`declaredFilterableMembers()`). A `member` on any other action
+  > fails the build.
 - **Every `entities` member** is a declared `@entity()`
   (`declaredEntityResources()`).
 - **Every `permissions` member** is granted to some role through `can` over

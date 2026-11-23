@@ -43,6 +43,8 @@ const withoutId = (address: string) => address.split(':').slice(0, 2).join(':');
  */
 export interface SliceFacts {
   readonly resources: ReadonlyMap<string, string>;
+  /** `filterable: true` members, by `<domain>:<entityKey>`. */
+  readonly filterable: ReadonlyMap<string, ReadonlySet<string>>;
   readonly useCases: readonly {
     readonly entity: string;
     readonly key: string;
@@ -58,6 +60,7 @@ export interface SliceFacts {
 
 export const realWorld = ({
   resources,
+  filterable,
   useCases,
   slices,
 }: SliceFacts): World => {
@@ -83,6 +86,8 @@ export const realWorld = ({
           slice.endpoints.includes(`${method} /api/${entityKey}`),
       ),
     recipes: new Set(Object.keys(FLOW_RECIPES)),
+    filterable: (resource, member) =>
+      filterable.get(resource)?.has(member) ?? false,
     granted: permission =>
       held.some(grant => permissionMatches(grant, permission as Permission)),
     crossing: new Set<string>(SERVICE_CROSSING_PERMISSIONS),
