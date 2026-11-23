@@ -48,17 +48,18 @@
   },
   "dependencies": {
     "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/next-shell": "catalog:",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/react-integration": "catalog:",
+    "@entifix/rest": "catalog:",
+    "@entifix/transactions": "catalog:",
     "@r10c/business-ts-catalog-contracts": "workspace:*",
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@r10c/business-ts-product-configuration-management": "workspace:*",
-    "@entifix/react-controls": "catalog:",
-    "@entifix/react-integration": "catalog:",
-    "@entifix/transactions": "catalog:",
-    "@entifix/business": "catalog:",
-    "@entifix/core": "catalog:",
-    "@entifix/rest": "catalog:",
-    "@entifix/next-shell": "catalog:",
+    "@r10c/business-ts-sales-vocabulary": "workspace:*",
     "effect": "4.0.7"
   }
 }

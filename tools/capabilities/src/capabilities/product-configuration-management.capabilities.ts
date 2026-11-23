@@ -88,7 +88,7 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
       status: 'implemented',
       verticals: 'all',
     },
-    // In design (plan 1.21, ADR 0082): an offering is sold in a unit with a step.
+    // ADR 0082 §3: what one of an offering is, until its first publication.
     {
       id: 'product-configuration-management:product-offering:set-sale-unit',
       oda: 'TMFC001',
@@ -97,22 +97,7 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
         'product-configuration-management:product-offering:set-sale-unit',
       ],
       screens: ['master:product-offering'],
-      status: 'in-design',
+      status: 'implemented',
       verticals: ['hardware', 'shoemaking-supplies'],
-    },
-    // In design (plan 1.17): a product names the device models it fits.
-    {
-      id: 'product-configuration-management:product-offering:set-device-fit',
-      oda: 'TMFC001',
-      entities: [
-        'product-configuration-management:product-offering',
-        'catalog-reference:device-model',
-      ],
-      permissions: [
-        'product-configuration-management:product-offering:set-device-fit',
-      ],
-      screens: ['master:product-offering'],
-      status: 'in-design',
-      verticals: ['phone-accessories'],
     },
   ];

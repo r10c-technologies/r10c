@@ -34,11 +34,14 @@ import {
   PublishProductOfferingUC,
   refuseSpecificationFits,
   refuseSpecificationMedia,
+  refuseUnknownPricePer,
   ReleaseProductSpecificationUC,
   removeSpecificationFor,
   RetireProductSpecificationUC,
   ReviseProductSpecificationUC,
   reviseSpecificationFor,
+  type SaleUnitPayload,
+  SetSaleUnitUC,
   SpecificationCommandsTag,
   type SpecificationMove,
   SpecificationReleased,
@@ -251,6 +254,27 @@ const publish = verbEndpoint(PublishProductOfferingUC, {
   bulk: transitionSelected('publish'),
 });
 
+/**
+ * `POST /api/product-offering/:id/set-sale-unit` — the vendor says what one of
+ * the offering is, while it was never published (ADR 0082 §3). Answered with
+ * the record at its new revision, step and minimum reset to one whole unit.
+ */
+const setSaleUnit = verbEndpoint(SetSaleUnitUC, {
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const offering = yield* SetSaleUnitUC.run({
+        organizationId: organizationOf(context),
+        id: request.params?.id as string,
+        payload: request.payload as SaleUnitPayload,
+      });
+      return makeEntityEnvelope(
+        ProductOffering,
+        offering,
+        context.links.record(offering.id),
+      );
+    }),
+});
+
 const unpublish = verbEndpoint(UnpublishProductOfferingUC, {
   handler: transitionOne('unpublish'),
   bulk: transitionSelected('unpublish'),
@@ -270,15 +294,20 @@ export const productOfferingApi = defineEntityApi(
     guard: { kind: 'organization' },
     prepare: (offering, context) =>
       preserveOfferingLifecycle(offering, organizationOf(context)),
-    useCases: [publish, unpublish],
+    useCases: [publish, unpublish, setSaleUnit],
   },
 );
 
+/**
+ * A vendor's prices. A price is for one, a hundred or a thousand units
+ * (ADR 0082 §5); a save naming another quantity is refused `pricePerInvalid`.
+ */
 export const productOfferingPriceApi = defineEntityApi(
   ProductOfferingPrice,
   entityKey(ProductOfferingPrice, 'product-offering-price'),
   {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },
+    prepare: price => refuseUnknownPricePer(price),
   },
 );

@@ -1,5 +1,9 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import {
+  DEFAULT_PRICE_PER,
+  type PricePer,
+} from '@r10c/business-ts-sales-vocabulary';
 
 /**
  * A price attached to an offering.
@@ -37,6 +41,7 @@ export class ProductOfferingPrice implements Entity {
   #offeringId: string;
   #amount: number;
   #currency: string;
+  #pricePer: PricePer = DEFAULT_PRICE_PER;
   #revision?: number;
   // #endregion
 
@@ -113,6 +118,26 @@ export class ProductOfferingPrice implements Entity {
   }
   set currency(value: string) {
     this.#currency = value;
+  }
+
+  /**
+   * How many whole units `amount` buys: `1`, `100` or `1000` (ADR 0082 §5).
+   * Q7.50 the hundred is `amount: 750, pricePer: 100`, shown as it is quoted,
+   * because a price below a centavo each cannot be written in minor units.
+   *
+   * A number rather than an `enum`, which entifix keeps to strings; a save
+   * that names any other value is refused `pricePerInvalid`.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-offering-price.fields.pricePer',
+    required: true,
+  })
+  get pricePer(): PricePer {
+    return this.#pricePer;
+  }
+  set pricePer(value: PricePer) {
+    this.#pricePer = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

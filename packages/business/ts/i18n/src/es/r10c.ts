@@ -716,6 +716,10 @@ export const r10c = {
      * cada región lee y escribe en su propio servicio.
      */
     offering: {
+      saleUnit: {
+        resets:
+          'El paso y la cantidad mínima vuelven a una unidad completa de la unidad nueva. Después de publicar la oferta, la unidad ya no cambia.',
+      },
       regions: {
         images: 'Imágenes',
         prices: 'Precios',

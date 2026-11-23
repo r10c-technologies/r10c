@@ -664,6 +664,10 @@ export const r10c: EsR10c = {
      * region reads and writes through its own service.
      */
     offering: {
+      saleUnit: {
+        resets:
+          'The step and the minimum go back to one whole unit of the new unit. Once the offering is published, its unit no longer changes.',
+      },
       regions: {
         images: 'Images',
         prices: 'Prices',

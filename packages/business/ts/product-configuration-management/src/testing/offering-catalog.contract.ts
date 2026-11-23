@@ -143,6 +143,49 @@ export const describeOfferingCatalogContract = (
       ).toBe('changed');
     });
 
+    it('sets the unit of an offering never published, at the revision it was read at', async () => {
+      const catalog = await make();
+      const read = Object.assign(moved('draft'), { saleUnit: 'M' as const });
+
+      expect(await run(catalog.setSaleUnit('acme', read))).toBe('committed');
+      // The write moved the revision: the same read cannot write twice.
+      expect(await run(catalog.setSaleUnit('acme', read))).toBe('changed');
+    });
+
+    it('refuses a unit for an offering published since it was read', async () => {
+      const catalog = await make();
+      await run(
+        catalog.commitTransition(
+          'acme',
+          moved('published'),
+          'draft',
+          announcement('2026-10-25T10:00:00.000Z'),
+        ),
+      );
+
+      expect(await run(catalog.setSaleUnit('acme', moved('draft', 2)))).toBe(
+        'changed',
+      );
+    });
+
+    it('sets the unit of a seeded offering, which has no revision yet', async () => {
+      const catalog = await make();
+      const seeded = Object.assign(new ProductOffering('A mug', 'spec-1'), {
+        id: 'o-seeded',
+        status: 'draft' as const,
+      });
+
+      expect(await run(catalog.setSaleUnit('acme', seeded))).toBe('committed');
+    });
+
+    it('answers changed for a unit on an offering the organization does not hold', async () => {
+      const catalog = await make();
+
+      expect(await run(catalog.setSaleUnit('other', moved('draft')))).toBe(
+        'changed',
+      );
+    });
+
     it('enqueues a re-stated announcement once', async () => {
       const catalog = await make();
       const event = announcement('2026-10-25T10:00:00.000Z');

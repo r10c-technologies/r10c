@@ -19,8 +19,9 @@
     }
   },
   "devDependencies": {
-    "@r10c/business-ts-product-configuration-management": "workspace:*",
-    "@entifix/testing-e2e": "catalog:"
+    "@entifix/testing-e2e": "catalog:",
+    "@r10c/business-ts-common": "workspace:*",
+    "@r10c/business-ts-product-configuration-management": "workspace:*"
   },
   "dependencies": {
     "@r10c/business-ts-authn": "workspace:*",

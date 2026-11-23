@@ -116,7 +116,7 @@ const world = () => {
     );
 };
 
-const [publish, unpublish] = productOfferingApi.options.useCases;
+const [publish, unpublish, setSaleUnit] = productOfferingApi.options.useCases;
 const [release, revise, retire, obsolete] =
   productSpecificationApi.options.useCases;
 const updating = { ...context, verb: 'update' as const };
@@ -391,5 +391,54 @@ describe('an offering', () => {
     );
 
     expect(saved).toMatchObject({ success: { status: 'draft' } });
+  });
+
+  it('sets its unit while never published, and answers the record reset to one of it', async () => {
+    const run = world();
+
+    const set = await run(
+      setSaleUnit.handler(
+        { params: { id: 'priced' }, payload: { saleUnit: 'M' } },
+        context,
+      ),
+    );
+
+    expect(set).toMatchObject({
+      success: {
+        data: {
+          id: 'priced',
+          saleUnit: 'M',
+          quantityStep: 1000,
+          quantityMinimum: 1000,
+        },
+      },
+    });
+  });
+});
+
+describe('a price', () => {
+  const price = (pricePer: number) =>
+    Object.assign(new ProductOfferingPrice('priced', 750, 'GTQ'), {
+      pricePer,
+    }) as ProductOfferingPrice;
+
+  it('is stored for one, a hundred or a thousand units', async () => {
+    const run = world();
+
+    const saved = await run(
+      productOfferingPriceApi.options.prepare(price(100)),
+    );
+
+    expect(saved).toMatchObject({ success: { pricePer: 100 } });
+  });
+
+  it('is refused for any other quantity', async () => {
+    const run = world();
+
+    const refused = await run(
+      productOfferingPriceApi.options.prepare(price(12)),
+    );
+
+    expect(refused).toMatchObject({ failure: { code: 'pricePerInvalid' } });
   });
 });

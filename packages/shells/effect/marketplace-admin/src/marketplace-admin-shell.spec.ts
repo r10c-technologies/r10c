@@ -93,6 +93,7 @@ const walkWith = async (
           repositories,
           Layer.succeed(OfferingCatalogTag, {
             commitTransition: () => Effect.die('unused'),
+            setSaleUnit: () => Effect.die('unused'),
             reannounce: () => Effect.die('unused'),
           } as never),
         ),

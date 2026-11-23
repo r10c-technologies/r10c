@@ -15,11 +15,13 @@ import {
   type OfferingCatalog,
   OfferingCatalogTag,
 } from '../../ports/offering-catalog.js';
+import { SetSaleUnitUC } from '../set-sale-unit/set-sale-unit.uc.js';
 import {
   OFFERING_CHANGED,
   preserveOfferingLifecycle,
   rebuildEveryPublication,
   rebuildPublications,
+  refuseUnknownPricePer,
   transitionOfferingFor,
   transitionOfferingSelection,
 } from './offering-flows.js';
@@ -59,6 +61,7 @@ interface Stores {
   readonly priced?: string[];
   readonly specifications?: ProductSpecification[];
   readonly commit?: 'committed' | 'changed';
+  readonly unitWrite?: 'committed' | 'changed';
   readonly reannounce?: 'announced' | 'revived' | 'alreadyAnnounced';
   readonly offeringsDown?: boolean;
   readonly organizations?: string[];
@@ -66,6 +69,7 @@ interface Stores {
 
 const world = (stores: Stores = {}) => {
   const committed: { organizationId: string; from: string }[] = [];
+  const unitWrites: { revision: number | undefined; saleUnit: string }[] = [];
   const announced: CatalogEvent[] = [];
   const offerings = makeInMemoryEntityRepository(stores.offerings ?? []);
   const prices = makeInMemoryEntityRepository(
@@ -81,6 +85,14 @@ const world = (stores: Stores = {}) => {
       Effect.sync(() => {
         committed.push({ organizationId, from });
         return stores.commit ?? 'committed';
+      }) as Effect.Effect<'committed' | 'changed'>,
+    setSaleUnit: (_organizationId, written) =>
+      Effect.sync(() => {
+        unitWrites.push({
+          revision: written.revision,
+          saleUnit: written.saleUnit,
+        });
+        return stores.unitWrite ?? 'committed';
       }) as Effect.Effect<'committed' | 'changed'>,
     reannounce: (_organizationId, event) =>
       Effect.sync(() => {
@@ -119,7 +131,7 @@ const world = (stores: Stores = {}) => {
       EntityRepositoryFactoryTag | OfferingCatalogTag | TenantDirectoryTag
     >,
   ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
-  return { run, committed, announced, offerings };
+  return { run, committed, announced, offerings, unitWrites };
 };
 
 const SOURCE = 'marketplace-admin';
@@ -139,6 +151,21 @@ describe('transitionOfferingFor', () => {
 
     expect(published.status).toBe('published');
     expect(w.committed).toEqual([{ organizationId: 'acme', from: 'draft' }]);
+  });
+
+  it('answers the revision the write moved to, so a reload saves against it', async () => {
+    const w = world({ offerings: [offering('o-1', 'draft', { revision: 4 })] });
+
+    const published = await w.run(
+      transitionOfferingFor({
+        organizationId: 'acme',
+        id: 'o-1',
+        transition: 'publish',
+        source: SOURCE,
+      }),
+    );
+
+    expect(published.revision).toBe(5);
   });
 
   it('answers a transition another one beat to the store as changed', async () => {
@@ -281,6 +308,134 @@ describe('preserveOfferingLifecycle', () => {
 
     expect(kept.status).toBe('draft');
   });
+
+  it('sells a new offering one by one, whatever unit the body named', async () => {
+    const created = Object.assign(new ProductOffering('Cable', 'spec-1'), {
+      saleUnit: 'M' as const,
+    });
+
+    const kept = await world().run(preserveOfferingLifecycle(created, 'acme'));
+
+    expect(kept.saleUnit).toBe('UN');
+  });
+
+  it('keeps the stored unit on an update, and the step it was given', async () => {
+    const w = world({
+      offerings: [offering('o-1', 'draft', { saleUnit: 'M' })],
+    });
+    const claimed = offering('o-1', 'draft', {
+      saleUnit: 'UN',
+      quantityStep: 500,
+      quantityMinimum: 1000,
+    });
+
+    const kept = await w.run(preserveOfferingLifecycle(claimed, 'acme'));
+
+    expect([kept.saleUnit, kept.quantityStep, kept.quantityMinimum]).toEqual([
+      'M',
+      500,
+      1000,
+    ]);
+  });
+
+  it('refuses a step and minimum that sell nothing', async () => {
+    const claimed = offering('o-9', 'draft', {
+      quantityStep: 2,
+      quantityMinimum: 3,
+    });
+
+    const error = await world().run(
+      Effect.flip(preserveOfferingLifecycle(claimed, 'acme')),
+    );
+
+    expect(error).toMatchObject({
+      code: 'saleRuleInvalid',
+      saleUnit: 'UN',
+      quantityStep: 2,
+      quantityMinimum: 3,
+    });
+    expect(error.message).toContain('a step of 2 from 3');
+  });
+});
+
+describe('refuseUnknownPricePer', () => {
+  it.each([1, 100, 1000] as const)('keeps a price for %i', async pricePer => {
+    const price = Object.assign(priceFor('o-1'), { pricePer });
+
+    expect(await Effect.runPromise(refuseUnknownPricePer(price))).toBe(price);
+  });
+
+  it('refuses a price for any other quantity', async () => {
+    const price = Object.assign(priceFor('o-1'), { pricePer: 12 });
+
+    const error = await Effect.runPromise(
+      Effect.flip(refuseUnknownPricePer(price as ProductOfferingPrice)),
+    );
+
+    expect(error).toMatchObject({ code: 'pricePerInvalid', pricePer: 12 });
+    expect(error.message).toContain('not 12');
+  });
+});
+
+describe('SetSaleUnitUC', () => {
+  const setUnit = (revision?: number) =>
+    SetSaleUnitUC.run({
+      organizationId: 'acme',
+      id: 'o-1',
+      payload: { saleUnit: 'M', revision },
+    });
+
+  it('sets the unit, resets step and minimum to one of it, and answers the new revision', async () => {
+    const w = world({ offerings: [offering('o-1', 'draft', { revision: 3 })] });
+
+    const set = await w.run(setUnit(3));
+
+    expect([set.saleUnit, set.quantityStep, set.quantityMinimum]).toEqual([
+      'M',
+      1000,
+      1000,
+    ]);
+    expect(set.revision).toBe(4);
+    expect(w.unitWrites).toEqual([{ revision: 3, saleUnit: 'M' }]);
+  });
+
+  it('writes against the stored revision when the caller named none', async () => {
+    const w = world({ offerings: [offering('o-1', 'draft', { revision: 3 })] });
+
+    await w.run(setUnit());
+
+    expect(w.unitWrites.map(one => one.revision)).toEqual([3]);
+  });
+
+  it('starts a seeded offering, which has no revision, at revision 1', async () => {
+    const w = world({ offerings: [offering('o-1', 'pending-review')] });
+
+    expect((await w.run(setUnit())).revision).toBe(1);
+  });
+
+  it.each(['published', 'unpublished'] as const)(
+    'refuses an offering that is %s: its unit is fixed',
+    async status => {
+      const w = world({ offerings: [offering('o-1', status)] });
+
+      const error = await w.run(Effect.flip(setUnit()));
+
+      expect(error).toMatchObject({ code: 'saleUnitFixed', id: 'o-1' });
+      expect(error.message).toContain('create another offering');
+      expect(w.unitWrites).toEqual([]);
+    },
+  );
+
+  it('answers a write that lost to a save or a publish as changed', async () => {
+    const w = world({
+      offerings: [offering('o-1', 'draft', { revision: 3 })],
+      unitWrite: 'changed',
+    });
+
+    const error = await w.run(Effect.flip(setUnit(2)));
+
+    expect((error as { code?: string }).code).toBe(OFFERING_CHANGED);
+  });
 });
 
 describe('rebuildPublications', () => {
@@ -402,6 +557,7 @@ describe('rebuildEveryPublication', () => {
               }),
               Layer.succeed(OfferingCatalogTag, {
                 commitTransition: () => Effect.die('unused'),
+                setSaleUnit: () => Effect.die('unused'),
                 reannounce: () => Effect.die('unused'),
               }),
             ),

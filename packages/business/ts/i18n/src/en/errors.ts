@@ -182,4 +182,9 @@ export const errors: EsErrors = {
   quantityAboveMaximum: 'That is more than one line of an order can hold.',
   lineBelowOneMinorUnit:
     'That quantity costs less than one cent. Ask for a larger quantity.',
+  saleRuleInvalid:
+    'The step and the minimum must be whole numbers of the unit, and the minimum a multiple of the step.',
+  pricePerInvalid: 'A price is for 1, 100 or 1000 units.',
+  saleUnitFixed:
+    'This offering was already published, so its unit cannot change. Create another offering to sell it in another unit.',
 };

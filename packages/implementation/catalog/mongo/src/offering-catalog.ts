@@ -18,6 +18,7 @@ import {
 } from '@entifix/mongo/transactions';
 import { EventBusTag, OutboxMaxAttempts } from '@entifix/transactions';
 import {
+  NeverPublishedStatuses,
   OfferingCatalogTag,
   ProductOffering,
 } from '@r10c/business-ts-product-configuration-management';
@@ -115,6 +116,36 @@ export const MongoOfferingCatalogLayer = Layer.effect(
           return outcome._tag === 'committed'
             ? ('committed' as const)
             : ('changed' as const);
+        }),
+
+      setSaleUnit: (organizationId, offering) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          // One conditional write: never published, at the revision read
+          // (ADR 0082 §3, ADR 0079 §4). The unit, step and minimum move
+          // together, so no reader sees a step in the old unit's scale.
+          const written = yield* Effect.tryPromise({
+            try: () =>
+              db.collection(OFFERING_COLLECTION).updateOne(
+                {
+                  id: offering.id,
+                  status: { $in: [...NeverPublishedStatuses] },
+                  ...atRevision(offering.revision),
+                },
+                {
+                  $set: {
+                    saleUnit: offering.saleUnit,
+                    quantityStep: offering.quantityStep,
+                    quantityMinimum: offering.quantityMinimum,
+                  },
+                  ...bumpRevision.mongo,
+                },
+              ),
+            catch: mongoUnitFault,
+          });
+          return written.matchedCount === 0
+            ? ('changed' as const)
+            : ('committed' as const);
         }),
 
       reannounce: (organizationId, event) =>

@@ -18,6 +18,18 @@ describe('ProductOfferingPrice', () => {
       offeringId: 'off-1',
       amount: 1050,
       currency: 'EUR',
+      pricePer: 1,
+    });
+  });
+
+  it('can price a hundred or a thousand units at once (ADR 0082 §5)', () => {
+    const price = Object.assign(new ProductOfferingPrice('off-1', 750, 'GTQ'), {
+      pricePer: 100 as const,
+    });
+
+    expect(serializeEntity(ProductOfferingPrice, price)).toMatchObject({
+      amount: 750,
+      pricePer: 100,
     });
   });
 

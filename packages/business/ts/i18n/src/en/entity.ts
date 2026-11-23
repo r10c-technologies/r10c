@@ -707,8 +707,39 @@ export const entity: EsEntity = {
       specificationId: 'Specification',
       status: 'Status',
       statusChangedAt: 'Last status change',
+      saleUnit: 'Sale unit',
+      quantityStep: 'Sold in steps of',
+      quantityMinimum: 'Minimum quantity',
     },
     values: {
+      saleUnit: {
+        UN: 'Unit',
+        PAR: 'Pair',
+        M: 'Metre',
+        YD: 'Yard',
+        FT: 'Foot',
+        M2: 'Square metre',
+        FT2: 'Square foot',
+        DM2: 'Square decimetre',
+        KG: 'Kilogram',
+        LB: 'Pound',
+        L: 'Litre',
+        GAL: 'Gallon',
+      },
+      unitSymbol: {
+        UN: 'pcs',
+        PAR: 'pr',
+        M: 'm',
+        YD: 'yd',
+        FT: 'ft',
+        M2: 'm²',
+        FT2: 'ft²',
+        DM2: 'dm²',
+        KG: 'kg',
+        LB: 'lb',
+        L: 'L',
+        GAL: 'gal',
+      },
       status: {
         draft: 'Draft',
         'pending-review': 'Pending review',
@@ -718,9 +749,7 @@ export const entity: EsEntity = {
     },
     useCases: {
       publish: 'Publish',
-      // In design (ADR 0082): the capability register already names them.
       setSaleUnit: 'Set the sale unit',
-      setDeviceFit: 'State which devices it fits',
       publishConfirm:
         'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',
       unpublish: 'Unpublish',
@@ -745,6 +774,7 @@ export const entity: EsEntity = {
       offeringId: 'Product',
       amount: 'Amount',
       currency: 'Currency',
+      pricePer: 'Price per',
     },
   },
   'entity-specification': {

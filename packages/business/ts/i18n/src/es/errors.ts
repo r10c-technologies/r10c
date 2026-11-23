@@ -213,4 +213,9 @@ export const errors = {
   quantityAboveMaximum: 'Es más de lo que cabe en una línea del pedido.',
   lineBelowOneMinorUnit:
     'Esa cantidad cuesta menos de un centavo. Pide una cantidad mayor.',
+  saleRuleInvalid:
+    'El paso y el mínimo deben ser cantidades de la unidad, y el mínimo un múltiplo del paso.',
+  pricePerInvalid: 'Un precio es por 1, 100 o 1000 unidades.',
+  saleUnitFixed:
+    'Esta oferta ya se publicó, así que su unidad no puede cambiar. Crea otra oferta para venderla en otra unidad.',
 };
