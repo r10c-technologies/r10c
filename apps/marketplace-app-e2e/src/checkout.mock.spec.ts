@@ -504,9 +504,35 @@ test.describe('the receipt', () => {
     expect(receipt?.expires ?? 0).toBeGreaterThan(
       Date.now() / 1000 + 365 * 24 * 60 * 60,
     );
+    // The cookie keeps the capability and nothing the read answers, so a
+    // basket of any size fits it (ADR 0053).
+    expect(receipt?.value.length ?? Infinity).toBeLessThan(400);
+    expect(decodeURIComponent(receipt?.value ?? '')).not.toContain('orders');
 
     await page.reload();
     await expect(order).toContainText('Demo Vendor');
+  });
+
+  /**
+   * The receipt is read back on every render (ADR 0053): when order-service
+   * does not answer, the page still names the purchase and says it could not
+   * load it, rather than render a receipt with nothing in it (ADR 0051).
+   */
+  test('says it could not load the order when the read fails', async ({
+    page,
+    network,
+  }) => {
+    const script = scriptStream(network);
+    await addToCart(page, 'offering-lino-napkins-solano');
+    await startCheckout(page);
+    script.outcome = 'flow.completed';
+
+    await expect(page.getByTestId('receipt-unavailable')).toBeVisible();
+    await expect(page.getByTestId('order-id')).toContainText('7KQ4-');
+    await expect(
+      page.getByRole('link', { name: 'Intentar de nuevo' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('order-total')).toHaveCount(0);
   });
 
   test('is not shown for a flow this browser never started', async ({

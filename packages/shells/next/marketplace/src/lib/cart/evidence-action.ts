@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { storePaths } from '../routing/paths';
 import { orderServiceUrl } from './checkout-config';
 import { declaredTypeOf, evidenceOutcomeOf } from './evidence-outcome';
-import { readReceipt } from './receipt-cookie';
+import { readReceiptTicket } from './receipt-cookie';
 
 /**
  * The buyer attaches a payment receipt to one vendor order, by the receipt's
@@ -16,14 +16,15 @@ export async function attachPaymentReceipt(formData: FormData): Promise<void> {
   const locale = String(formData.get('locale') ?? '');
   const orderId = String(formData.get('orderId') ?? '');
   const file = formData.get('receipt');
-  const receipt = await readReceipt();
+  const receipt = await readReceiptTicket();
   const back = (outcome: string) =>
     `/${locale}${storePaths.orderStatus(receipt?.groupId ?? '')}?receipt=${outcome}`;
 
-  const order = receipt?.orders.find(entry => entry.orderId === orderId);
+  // Whether the order is this group's is order-service's to decide: it
+  // compares the nonce with the digest the group holds.
   if (
-    !receipt?.cancelNonce ||
-    order === undefined ||
+    receipt === undefined ||
+    orderId === '' ||
     !(file instanceof Blob) ||
     file.size === 0
   ) {

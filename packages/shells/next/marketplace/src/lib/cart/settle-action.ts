@@ -8,16 +8,16 @@ import { CART_COOKIE } from './cart-state';
 import { realtimeServiceUrl } from './checkout-config';
 import { FLOW_COOKIE } from './flow-ticket';
 import { readFlowTicket } from './flow-ticket-cookie';
-import { readReceipt } from './receipt-cookie';
-import { receiptFor, writeReceiptCookie } from './receipt-write';
+import { readReceiptTicket } from './receipt-cookie';
+import { readReceipt, writeReceiptCookie } from './receipt-write';
 import { settleDecision } from './settle-decision';
 
 /**
  * Settle a checkout the order-status page heard confirmed: verify, server
  * side, that the flow really completed — by its capability against
  * realtime-service's flow-status, never by trusting the browser — then read the
- * checkout group back by its cancel nonce, write the group receipt, and clear
- * the cart. Idempotent: a receipt already written for this group is the answer
+ * checkout group back by its cancel nonce, write the receipt's ticket, and
+ * clear the cart. Idempotent: a receipt already written for this group is the answer
  * (ADR 0073).
  *
  * The group's id is the flow's, so the flow id is all it needs to find it.
@@ -25,7 +25,7 @@ import { settleDecision } from './settle-decision';
 export async function settleCheckout(
   flowId: string,
 ): Promise<'settled' | 'pending' | 'failed'> {
-  if ((await readReceipt())?.groupId === flowId) return 'settled';
+  if ((await readReceiptTicket())?.groupId === flowId) return 'settled';
   const ticket = await readFlowTicket();
   if (ticket?.flowId !== flowId) return 'failed';
 
@@ -42,10 +42,13 @@ export async function settleCheckout(
   const decided = settleDecision(status);
   if (decided !== 'completed') return decided;
 
-  const receipt = await receiptFor(flowId, ticket.cancelNonce);
-  if (receipt === undefined) return 'pending';
+  const read = await readReceipt({
+    groupId: flowId,
+    cancelNonce: ticket.cancelNonce,
+  });
+  if (read.kind !== 'read') return 'pending';
 
-  await writeReceiptCookie(receipt);
+  await writeReceiptCookie(read.receipt);
   const jar = await cookies();
   jar.set(CART_COOKIE, '', { path: '/', maxAge: 0 });
   jar.set(FLOW_COOKIE, '', { path: '/', maxAge: 0 });

@@ -5,8 +5,13 @@ import { makeEntityCrud } from '@entifix/next-shell';
 import {
   EntityColumn,
   StatusTag,
+  useLocale,
   useTranslateKey,
 } from '@entifix/react-controls';
+import {
+  formatQuantity,
+  SALE_UNIT_SYMBOL_KEY,
+} from '@r10c/business-ts-sales-vocabulary';
 import {
   Reservation,
   StockItem,
@@ -52,17 +57,27 @@ import { useStockAdapters } from './stock-context';
  * A vendor reads this list to answer "what am I out of?" (b0-14). A zero
  * row looking like every other row hides the answer, so `available <= 0`
  * renders as a danger tag **with words**, never colour alone (ADR 0075). A
- * number member takes no `enumTones`, so the column is overridden here.
+ * number member takes no `enumTones`, so the column is overridden here — and
+ * an override draws its own value, so it states the quantity in the item's
+ * unit as the generated cells beside it do: 40.9 m, never 40900 (ADR 0082 §2).
+ * An item with no unit yet is shown as the number it is rather than given a
+ * unit it lacks.
  */
 export function AvailableCell({ item }: { item: StockItem }) {
   const translateKey = useTranslateKey();
-  return item.available <= 0 ? (
-    <StatusTag tone="danger">
-      {translateKey('r10c:stock.item.outOfStock')}
-    </StatusTag>
-  ) : (
-    <>{item.available}</>
-  );
+  const locale = useLocale();
+  if (item.available <= 0) {
+    return (
+      <StatusTag tone="danger">
+        {translateKey('r10c:stock.item.outOfStock')}
+      </StatusTag>
+    );
+  }
+  return item.unit === undefined
+    ? String(item.available)
+    : `${formatQuantity(item.available, item.unit, locale)} ${translateKey(
+        `${SALE_UNIT_SYMBOL_KEY}.${item.unit}`,
+      )}`;
 }
 
 export const stockItemCrud: EntityCrud<StockItem> = makeEntityCrud(StockItem, {

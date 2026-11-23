@@ -14,6 +14,17 @@ describe('AvailableCell', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
   });
 
+  // ADR 0082 §2: in the item's unit, as the generated cells beside it read.
+  it('states what is left in the item’s unit, never the scaled integer', () => {
+    render(
+      <AvailableCell
+        item={Object.assign(itemWith(40_900), { unit: 'M' as const })}
+      />,
+    );
+
+    expect(screen.getByText('40.9 m')).toBeInTheDocument();
+  });
+
   it('makes nothing to sell stand out, in words and not colour alone', () => {
     render(<AvailableCell item={itemWith(0)} />);
 

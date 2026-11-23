@@ -100,4 +100,28 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
       status: 'implemented',
       verticals: ['hardware', 'shoemaking-supplies'],
     },
+    // ADR 0082 §7 (#673): a box or a roll is an offering of its own that draws
+    // on its base offering's stock through a factor.
+    {
+      id: 'product-configuration-management:product-offering:draw-on-stock',
+      oda: 'TMFC001',
+      entities: [
+        'product-configuration-management:product-offering',
+        'stock-management:stock-item',
+      ],
+      permissions: [],
+      screens: ['master:product-offering'],
+      status: 'planned',
+      verticals: ['hardware', 'shoemaking-supplies'],
+    },
+    // ADR 0082 §8 (#674): a price steps down by quantity, for the whole line.
+    {
+      id: 'product-configuration-management:product-offering:price-by-tier',
+      oda: 'TMFC001',
+      entities: ['product-configuration-management:product-offering'],
+      permissions: [],
+      screens: ['master:product-offering'],
+      status: 'planned',
+      verticals: 'all',
+    },
   ];

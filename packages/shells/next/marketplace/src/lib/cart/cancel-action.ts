@@ -20,9 +20,7 @@ import {
   serializeCancelTicket,
 } from './cancel-ticket';
 import { orderServiceUrl } from './checkout-config';
-import { readReceipt } from './receipt-cookie';
-import { withCancelled } from './receipt-state';
-import { writeReceiptCookie } from './receipt-write';
+import { readReceiptTicket } from './receipt-cookie';
 
 /**
  * The buyer cancelling **one vendor order** from their receipt, with the
@@ -32,8 +30,8 @@ import { writeReceiptCookie } from './receipt-write';
  *
  * A cancellation is a flow (ADR 0066): order-service answers `202` and the
  * receipt follows it to its end, by a flow capability this action mints and
- * keeps in an `httpOnly` ticket. The receipt marks the order cancelled only
- * once the flow completed.
+ * keeps in an `httpOnly` ticket. The receipt shows the order cancelled when
+ * order-service says it is, which it reads back on every render.
  *
  * ⚠️ It acts only on a confirmed post (`whenConfirmed`). Cancelling refunds,
  * and a refund is not undone, so a post that skipped the confirmation — a
@@ -50,24 +48,24 @@ export async function cancelOrder(
 async function cancelConfirmed(formData: FormData) {
   const locale = String(formData.get('locale') ?? '');
   const orderId = String(formData.get('orderId') ?? '');
-  const receipt = await readReceipt();
+  const receipt = await readReceiptTicket();
   const back = (outcome?: string) =>
     `/${locale}${storePaths.orderStatus(receipt?.groupId ?? '')}${
       outcome === undefined ? '' : `?cancel=${outcome}`
     }`;
 
-  const order = receipt?.orders.find(entry => entry.orderId === orderId);
-  if (!receipt?.cancelNonce || order === undefined) {
-    // No capability to present, or an order this receipt does not name. The
-    // page renders no button in either state, so arriving here means the
-    // receipt lapsed between the render and the submit.
+  if (receipt === undefined || orderId === '') {
+    // No capability to present: the page renders no button without one, so
+    // arriving here means the receipt lapsed between the render and the
+    // submit. Whether the order is this group's is order-service's to decide:
+    // it compares the nonce with the digest the group holds.
     redirect(back('failed'));
   }
 
   const capability = await Effect.runPromise(makeFlowCapability());
   const response = await fetch(
     `${orderServiceUrl()}/product-order/${encodeURIComponent(
-      order.orderId,
+      orderId,
     )}/buyer-cancellation`,
     {
       method: 'POST',
@@ -109,11 +107,8 @@ async function cancelConfirmed(formData: FormData) {
     );
   }
 
-  // Withdrawn already: the receipt says so now, with nothing to wait on.
-  if (start.kind === 'withdrawn') {
-    await writeReceiptCookie(withCancelled(receipt, orderId));
-    redirect(back('cancelled'));
-  }
+  // Withdrawn already: nothing to wait on, and the read says it is cancelled.
+  if (start.kind === 'withdrawn') redirect(back('cancelled'));
 
   // `redirect` throws to unwind the action, so it comes last on every path.
   redirect(back(start.kind === 'started' ? undefined : start.kind));

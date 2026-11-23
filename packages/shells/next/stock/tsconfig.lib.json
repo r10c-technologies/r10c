@@ -30,6 +30,9 @@
       "path": "../../../business/ts/stock-management/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
     },
     {

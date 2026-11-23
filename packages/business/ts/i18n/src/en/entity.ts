@@ -764,6 +764,8 @@ export const entity: EsEntity = {
     useCases: {
       publish: 'Publish',
       setSaleUnit: 'Set the sale unit',
+      drawOnStock: 'Sell a presentation from the same stock',
+      priceByTier: 'Price by quantity tier',
       publishConfirm:
         'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',
       unpublish: 'Unpublish',

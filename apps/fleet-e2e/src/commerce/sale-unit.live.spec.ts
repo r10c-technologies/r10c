@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
 
@@ -20,12 +20,14 @@ import {
  * Selling in a unit that is not a piece, on the real fleet (ADR 0082): the
  * seed's cable sold by the half metre from a metre, and its part priced per
  * hundred. Every figure after placement is the line's `lineTotal`, computed
- * once — the order, the capture, the commission and the receipt mail agree to
- * the centavo — and stock moves in the item's own unit, back as well as out.
+ * once — the order, the capture, the commission, the certified order and the
+ * receipt mail agree to the centavo — and stock moves in the item's own unit,
+ * back as well as out.
  *
  * Then the races only a burst shows: holds on the last metres leave exactly
- * the metres there were, and two first movements in different units leave one
- * unit on the item.
+ * the metres there were, two first movements in different units leave one
+ * unit on the item, and a publication never writes over an edit or a unit set
+ * beside it.
  */
 afterAll(closeMongo);
 
@@ -59,6 +61,37 @@ const stockOf = async (offeringId: string) => {
 };
 
 const key = () => `"${randomBytes(16).toString('hex')}"`;
+
+/** Mailpit's API, where every mail the lab sends lands. */
+const MAILPIT = process.env['MAILPIT_API_URL'] ?? 'http://localhost:30826';
+
+/** The demo vendor's catalog, as the back office calls it. */
+const admin = async (
+  method: 'GET' | 'POST' | 'PUT',
+  path: string,
+  body?: unknown,
+) => {
+  const res = await fetch(`${FLEET.marketplaceAdmin}/api/${path}`, {
+    method,
+    headers: {
+      authorization: await vendorBearer(DEMO.organizationId),
+      'content-type': 'application/json',
+      'idempotency-key': `"${randomUUID()}"`,
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const text = await res.text();
+  return {
+    status: res.status,
+    body: (text === '' ? {} : JSON.parse(text)) as Record<string, any>,
+  };
+};
+
+const offering = async (id: string) =>
+  (await admin('GET', `product-offering/${id}`)).body['data'] as Record<
+    string,
+    any
+  >;
 
 it('sells 3.5 m by card at its line total, end to end', async () => {
   const cable = await published(METRE);
@@ -135,6 +168,55 @@ it('sells 3.5 m by card at its line total, end to end', async () => {
     saleAmount: expected,
     commissionAmount: Math.round((expected * AGREEMENT_BASIS_POINTS) / 10_000),
   });
+
+  // The FEL sweep certifies the order as placed. The simulated certifier
+  // signs no amounts, so what is checked is that the document is issued for
+  // an order whose total and IVA come from the line total (ADR 0078 §6).
+  const certified = await eventually(
+    async () =>
+      (await mongo('order'))
+        .collection('product-order')
+        .findOne({ id: orderId }),
+    row => typeof row?.['fiscalAuthorization'] === 'string',
+    { timeoutMs: 90_000, what: 'the measured order’s FEL document' },
+  );
+  expect(certified?.['totalAmount']).toBe(expected);
+  expect(certified?.['taxAmount']).toBe(
+    expected - Math.round((expected * 10_000) / 11_200),
+  );
+
+  // The receipt mail states the metres and the line's total, never 3500.
+  const group = await (
+    await mongo('order')
+  )
+    .collection('checkout-group')
+    .findOne({ id: checkout.flowId });
+  const number = String(group?.['number']);
+  const mail = await eventually(
+    async () => {
+      const found = (await (
+        await fetch(
+          `${MAILPIT}/api/v1/search?query=${encodeURIComponent(number)}`,
+        )
+      ).json()) as { messages?: { ID: string }[] };
+      const [first] = found.messages ?? [];
+      return first === undefined
+        ? undefined
+        : ((await (
+            await fetch(`${MAILPIT}/api/v1/message/${first.ID}`)
+          ).json()) as { Text?: string });
+    },
+    message => message !== undefined,
+    { timeoutMs: 60_000, what: `the receipt mail for ${number}` },
+  );
+  expect(mail?.Text).toContain('3.5 m');
+  expect(mail?.Text).not.toContain('3500');
+  expect(mail?.Text).toContain(
+    new Intl.NumberFormat('es-GT', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(expected / 100),
+  );
 });
 
 it('charges a part priced per hundred by the hundred', async () => {
@@ -336,4 +418,70 @@ it('fixes a new item’s unit by whichever first movement wins', async () => {
     else expect(answer.body.code).toBe('unitMismatch');
   }
   expect(item['onHand']).toBe(4 * 5000);
+});
+
+/**
+ * A publication once wrote the whole record back, filtered on its status and
+ * not its revision, so an edit landing between its read and its write was
+ * lost without a word (#750). Each round races the two on one published
+ * offering; whichever answers, an edit that was answered `200` is still there.
+ */
+it('never loses an edit a publication raced', async () => {
+  const id = 'product-offering-50';
+  for (let round = 0; round < 6; round += 1) {
+    const before = await offering(id);
+    expect(before['status']).toBe('published');
+    const name = `Edición ${String(round)} ${randomBytes(3).toString('hex')}`;
+    const [edited, publishedAnswer] = await Promise.all([
+      admin('PUT', `product-offering/${id}`, {
+        meta: { type: 'entity', entity: 'product-offering' },
+        data: { ...before, name },
+      }),
+      admin('POST', `product-offering/${id}/publish`, {}),
+    ]);
+    // Every answer is a decision, never a lost write.
+    expect([200, 409]).toContain(edited.status);
+    expect([200, 409]).toContain(publishedAnswer.status);
+    if (publishedAnswer.status === 409) {
+      expect(publishedAnswer.body['code']).toBe('offeringChanged');
+    }
+    const after = await offering(id);
+    if (edited.status === 200) expect(after['name']).toBe(name);
+    else expect(after['name']).toBe(before['name']);
+  }
+});
+
+/**
+ * The same race between a publication and `set-sale-unit`, which is legal
+ * only until an offering's first publication (ADR 0082 §3). Whatever order
+ * they land in, a unit that was answered `200` is the record's, and a
+ * publication carries the unit the record held when it committed.
+ */
+it('never loses a sale unit a publication raced', async () => {
+  for (const id of [
+    'product-offering-29',
+    'product-offering-33',
+    'product-offering-37',
+    'product-offering-41',
+  ]) {
+    const before = await offering(id);
+    expect(before['status']).toBe('draft');
+    const [unitSet, publishedAnswer] = await Promise.all([
+      admin('POST', `product-offering/${id}/set-sale-unit`, { saleUnit: 'M' }),
+      admin('POST', `product-offering/${id}/publish`, {}),
+    ]);
+    expect(unitSet.status).toBeLessThan(500);
+    expect(publishedAnswer.status).toBeLessThan(500);
+    const after = await offering(id);
+    if (unitSet.status === 200) expect(after['saleUnit']).toBe('M');
+    else expect(after['saleUnit']).toBe(before['saleUnit']);
+    if (publishedAnswer.status === 200) {
+      const projected = await eventually(
+        () => published(id),
+        row => row['saleUnit'] !== undefined,
+        { timeoutMs: 30_000, what: `${id}'s publication` },
+      );
+      expect(projected['saleUnit']).toBe(after['saleUnit']);
+    }
+  }
 });

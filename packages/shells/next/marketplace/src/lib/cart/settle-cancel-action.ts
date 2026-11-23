@@ -5,21 +5,15 @@ import { cookies } from 'next/headers';
 import { CANCEL_COOKIE } from './cancel-ticket';
 import { readCancelTicket } from './cancel-ticket-cookie';
 import { realtimeServiceUrl } from './checkout-config';
-import { readReceipt } from './receipt-cookie';
-import {
-  RECEIPT_COOKIE,
-  receiptCookieMaxAge,
-  serializeReceipt,
-  withCancelled,
-} from './receipt-state';
 import { settleDecision } from './settle-decision';
 
 /**
  * Settle a cancellation the receipt heard end: verify, server side, how the
  * flow really ended — by its capability against realtime-service's
- * flow-status, never by trusting the browser — then mark that vendor order
- * cancelled on the receipt, or drop the ticket so the buyer can ask again.
- * Idempotent: a ticket already settled is gone.
+ * flow-status, never by trusting the browser — then drop the ticket. The
+ * receipt shows the order cancelled because order-service says so on its next
+ * read; a failed flow lets the buyer ask again. Idempotent: a ticket already
+ * settled is gone.
  */
 export async function settleCancellation(
   flowId: string,
@@ -42,18 +36,5 @@ export async function settleCancellation(
 
   const jar = await cookies();
   jar.set(CANCEL_COOKIE, '', { path: '/', maxAge: 0 });
-  if (decided === 'failed') return 'failed';
-
-  const receipt = await readReceipt();
-  if (receipt !== undefined) {
-    const cancelled = withCancelled(receipt, ticket.orderId);
-    jar.set(RECEIPT_COOKIE, serializeReceipt(cancelled), {
-      path: '/',
-      sameSite: 'lax',
-      httpOnly: true,
-      // Rewriting the cookie must not extend it: it still ends with the group.
-      maxAge: receiptCookieMaxAge(cancelled, new Date()),
-    });
-  }
-  return 'settled';
+  return decided === 'failed' ? 'failed' : 'settled';
 }

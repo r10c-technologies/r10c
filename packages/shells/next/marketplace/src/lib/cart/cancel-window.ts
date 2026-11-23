@@ -1,18 +1,18 @@
 import { formattingLocale, type Locale } from '@entifix/core';
 
-import type { Receipt } from './receipt-state';
+import type { ReceiptTicket } from './receipt-state';
 
 /**
  * The time the cancel window closes, formatted for the buyer — or `undefined`
  * when there is no window to offer.
  *
- * ⚠️ **Three conditions and a clock, all checked before anything is drawn.**
- * `receipt-state.ts` states the rule this implements: a page offers the cancel
- * only when the capability is present and the window is open, rather than
- * rendering a button and discovering the answer from a `401`. The nonce is
- * absent on a counter sale and on any checkout predating the capability; the
- * window is absent with it; and an order already cancelled from this browser
- * has nothing left to offer
+ * ⚠️ **A stamp and a clock, both checked before anything is drawn.** A page
+ * offers the cancel only while the window is open, rather than rendering a
+ * button and discovering the answer from a `401`. The capability is always
+ * there — a ticket without its nonce is no ticket — so what is left is the
+ * window: absent when the group stamps none, and closed once it passed. An
+ * order already cancelled has nothing to offer, which the page decides from
+ * the read
  * ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md) §5).
  *
  * It lives here rather than in the page for two reasons that agree: everything
@@ -26,10 +26,9 @@ import type { Receipt } from './receipt-state';
  */
 export const cancelWindowLabel = (
   locale: Locale,
-  receipt: Receipt,
+  receipt: Pick<ReceiptTicket, 'cancelWindowEndsAt'>,
   now: Date,
 ): string | undefined => {
-  if (!receipt.cancelNonce) return undefined;
   if (receipt.cancelWindowEndsAt === undefined) return undefined;
 
   const endsAt = new Date(receipt.cancelWindowEndsAt);

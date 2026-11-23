@@ -36,6 +36,8 @@ export interface Capability {
   /** A workspace address without an id, or `storefront:<storePathsKey>`. */
   readonly screens: readonly string[];
   readonly status: CapabilityStatus;
+  /** For a `filter-by-…` action only: the subject's member the filter narrows on. */
+  readonly member?: string;
   /** Which vertical guides may cite it; `all` means a guide for any vertical may. */
   readonly verticals: 'all' | readonly Vertical[];
 }

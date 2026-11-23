@@ -1,5 +1,5 @@
 import { orderServiceUrl } from './checkout-config';
-import { readReceipt } from './receipt-cookie';
+import { readReceiptTicket } from './receipt-cookie';
 
 /** The headers a receipt file is passed on with: the service's, no others. */
 const PASSED = [
@@ -26,12 +26,10 @@ export async function receiptEvidenceResponse(
       status: 404,
       headers: { 'cache-control': 'no-store' },
     });
-  const receipt = await readReceipt();
-  if (
-    !receipt?.cancelNonce ||
-    !receipt.orders.some(entry => entry.orderId === orderId)
-  )
-    return notFound();
+  // An order the nonce does not open is refused by order-service, which
+  // compares it with the digest the group holds, and answers the same 404.
+  const receipt = await readReceiptTicket();
+  if (receipt === undefined) return notFound();
 
   const upstream = await fetch(
     `${orderServiceUrl()}/product-order/${encodeURIComponent(

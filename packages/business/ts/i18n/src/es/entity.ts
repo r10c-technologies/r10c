@@ -810,6 +810,8 @@ export const entity = {
     useCases: {
       publish: 'Publicar',
       setSaleUnit: 'Definir unidad de venta',
+      drawOnStock: 'Vender una presentación del mismo inventario',
+      priceByTier: 'Precio por tramos de cantidad',
       publishConfirm:
         'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',
       unpublish: 'Retirar',

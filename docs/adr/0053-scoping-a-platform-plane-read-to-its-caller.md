@@ -3,13 +3,14 @@
 - Status: Accepted
 - Date: 2026-09-09
 - Area: auth
-- Read when: a read has to be narrowed to whoever is asking, or an anonymous buyer has to be shown something that is theirs — the scope is conjoined onto the load request and never expressed as a query, and a receipt is carried rather than read back
+- Read when: a read has to be narrowed to whoever is asking, or an anonymous buyer has to be shown something that is theirs — the scope is conjoined onto the load request and never expressed as a query, and a receipt's cookie carries only the capability that reads it back
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the receipt gains a capability, and the rejected "receipt token on the order" is corrected as being about a read
 - Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — the scope is a resolver narrowing over the verified context, and the by-id read is a narrowed load rather than an in-memory `includes`
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the receipt is the checkout group, and a flow capability is a third nonce credential
 - Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — a vendor's predicate is the order's top-level `vendorId`, and a storefront that waited on a flow reads the group back once by its cancel capability, since flow-status carries no order
 - Revised: 2026-11-18 by [ADR 0076](0076-delivery-destination-buyer-contact-and-the-way-back.md) — the receipt cookie and the read-back outlive the cancel window: both end at the group's `receiptEndsAt` (#579)
 - Revised: 2026-11-23 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — the receipt is cut to a byte budget rather than a per-order line cap, since two sellers of a dozen lines each already overflowed 4 KB (#672)
+- Revised: 2026-11-23 — the cookie carries the capability alone and the receipt is read back on every render, so a basket of any size keeps its way back; the byte budget is gone (#672)
 
 ## Context
 
@@ -147,6 +148,18 @@ tenant store cannot.
 
 ### The receipt is carried in a cookie, not read back
 
+> **2026-11-23 — the cookie now carries the capability, and the receipt is read
+> back.** What is below rejected a read back with the id in the URL or with a
+> crossing token. ADR 0058's nonce made a third way that has neither: the
+> receipt page already read the group by that nonce on every render, for the
+> delivery and the names each line was sold under (ADR 0076 §1). So the cookie
+> keeps the group, its number, the nonce and its two stamps, and nothing the
+> read answers. The orders, their lines and totals, and whether one was
+> cancelled, come from order-service. That makes the cookie a few hundred bytes
+> whatever was bought, and makes "cancelled" order-service's word rather than a
+> mark this browser wrote. A read that fails still renders the number and says
+> the order could not be loaded (ADR 0051).
+
 A successful checkout writes an `httpOnly` `r10c_receipt` cookie from the order
 the saga already returned, and redirects to `/{locale}/order/confirmation`.
 
@@ -200,16 +213,11 @@ author a receipt they invented.
 > compare exactly as a forged receipt fails to describe a real order. The cookie
 > is a carrier, never an authority.
 
-**A cookie is 4KB and a basket has no upper bound**, so a receipt over a byte
-budget (`RECEIPT_COOKIE_BUDGET`, counted percent-encoded as the browser counts
-it) drops the lines of its widest order, then the next, until it fits — each
-such order keeping its id, its total and its line count, and the page saying
-how many there were. A truncated list rendered as the whole order would be a
-receipt that lies. A budget and not a per-order cap, because what overflows is
-the basket: two sellers of twelve lines each were past 4 KB, and a browser
-drops an oversized cookie without a word. Eight sellers at their widest still
-fit as summaries; past that the cookie is lost, and nothing caps the sellers
-in a basket.
+**A cookie is 4KB and a basket has no upper bound**, which is why the cookie
+holds no receipt (the correction above). It once carried every order and line,
+then a per-order line cap, then a byte budget that cut the widest order to its
+count and total; each was a receipt a large enough basket lost without a word,
+because a browser drops an oversized cookie silently.
 
 ⚠️ **The receipt totals per currency, not once.** Found on the live fleet, whose
 seed prices in two: a marketplace's vendors price independently, one basket held

@@ -100,6 +100,39 @@ export const declaredEntityResources = (): Map<string, string> => {
   return found;
 };
 
+/**
+ * The members each `@entity()` declares `filterable: true`, by its
+ * `<domain>:<key>` — the server's allowlist for a query, and what a register
+ * entry that filters a read must name (ADR 0080 §2).
+ *
+ * A member belongs to the last `@entity()` above it in its file. The accessor's
+ * options are matched up to one level of nested braces, which is as deep as
+ * any `@accessor({ … })` in the business layer goes.
+ */
+export const declaredFilterableMembers = (): Map<string, Set<string>> => {
+  const found = new Map<string, Set<string>>();
+  for (const file of sourceFiles(BUSINESS_ROOT)) {
+    const text = readFileSync(file, 'utf8');
+    const entities = [
+      ...text.matchAll(
+        /@entity\(\{[^)]*?domain:\s*'([^']+)'[^)]*?key:\s*'([^']+)'/gs,
+      ),
+    ].map(match => ({ at: match.index, resource: `${match[1]}:${match[2]}` }));
+    if (entities.length === 0) continue;
+    for (const match of text.matchAll(
+      /@accessor\(\{((?:[^{}]|\{[^{}]*\})*)\}\)\s*get\s+(\w+)\(/gs,
+    )) {
+      if (!/filterable:\s*true/.test(match[1])) continue;
+      const owner = entities.filter(entity => entity.at < match.index).at(-1);
+      if (owner === undefined) continue;
+      const members = found.get(owner.resource) ?? new Set<string>();
+      members.add(match[2]);
+      found.set(owner.resource, members);
+    }
+  }
+  return found;
+};
+
 /** A `@useCase()` declaration, as it appears in source. */
 export interface UseCaseDeclaration {
   /** The decorated class's name. */

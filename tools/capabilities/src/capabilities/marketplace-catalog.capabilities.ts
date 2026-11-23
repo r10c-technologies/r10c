@@ -1,6 +1,6 @@
 import type { Capability } from '../types.js';
 
-// In design (plan 1.17): the storefront filters by the buyer's phone.
+// The storefront filters by the buyer's phone (plan 1.17, #641).
 export const marketplaceCatalogCapabilities: readonly Capability[] = [
   {
     id: 'marketplace-catalog:published-offering:filter-by-device',
@@ -11,7 +11,8 @@ export const marketplaceCatalogCapabilities: readonly Capability[] = [
     ],
     permissions: [],
     screens: ['storefront:category', 'storefront:search'],
-    status: 'in-design',
+    status: 'implemented',
+    member: 'fitsDeviceModelIds',
     verticals: ['phone-accessories'],
   },
 ];

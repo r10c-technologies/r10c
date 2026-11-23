@@ -30,9 +30,14 @@ export interface World {
   readonly crossing: ReadonlySet<string>;
   /** Back-office workspace addresses without an id, plus `storefront:<key>`. */
   readonly screens: ReadonlySet<string>;
+  /** Is `member` declared `filterable: true` on the `<domain>:<entityKey>` entity? */
+  readonly filterable: (resource: string, member: string) => boolean;
 }
 
-export type CodeKind = 'verb' | 'crud' | 'recipe';
+export type CodeKind = 'verb' | 'crud' | 'recipe' | 'filter';
+
+/** The action prefix of a filter entry: `filter-by-device` narrows a read. */
+const FILTER_ACTION = /^filter-by-/;
 
 const CRUD_METHODS: Record<string, readonly string[]> = {
   read: ['GET'],
@@ -47,8 +52,17 @@ export const parseId = (id: string) => {
     : undefined;
 };
 
-/** What kind of code, if any, an id resolves to. A recipe wins over CRUD, and a verb over both. */
-export const resolveKind = (id: string, world: World): CodeKind | undefined => {
+/**
+ * What kind of code, if any, an id resolves to. A recipe wins over CRUD, and a
+ * verb over both. A `filter-by-…` action is a filter: the entity's read is
+ * served and the `member` it narrows on is declared filterable, which is the
+ * server's own allowlist for that query.
+ */
+export const resolveKind = (
+  id: string,
+  world: World,
+  member?: string,
+): CodeKind | undefined => {
   const parsed = parseId(id);
   if (parsed === undefined) return undefined;
   const { domain, entityKey, action, resource } = parsed;
@@ -61,6 +75,13 @@ export const resolveKind = (id: string, world: World): CodeKind | undefined => {
   }
   if (!world.entities.has(resource)) return undefined;
   if (world.recipes.has(action)) return 'recipe';
+  if (FILTER_ACTION.test(action)) {
+    return member !== undefined &&
+      world.serves(domain, entityKey, 'GET') &&
+      world.filterable(resource, member)
+      ? 'filter'
+      : undefined;
+  }
   const methods = CRUD_METHODS[action];
   if (methods?.some(method => world.serves(domain, entityKey, method))) {
     return 'crud';
@@ -111,7 +132,7 @@ export const registerProblems = (
       );
     }
 
-    const kind = resolveKind(entry.id, world);
+    const kind = resolveKind(entry.id, world, entry.member);
 
     if (entry.status !== 'implemented') {
       if (kind !== undefined) {
@@ -124,7 +145,12 @@ export const registerProblems = (
 
     if (kind === undefined) {
       problems.push(
-        `${at} is implemented but resolves to no @useCase, served entity action or flow recipe`,
+        `${at} is implemented but resolves to no @useCase, served entity action, flow recipe or filterable member`,
+      );
+    }
+    if (entry.member !== undefined && !FILTER_ACTION.test(parsed.action)) {
+      problems.push(
+        `${at} names the member '${entry.member}' but is no filter-by- action`,
       );
     }
     if (entry.entities[0] !== parsed.resource) {

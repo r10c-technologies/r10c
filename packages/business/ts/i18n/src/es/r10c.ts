@@ -422,8 +422,8 @@ export const r10c = {
       },
       units: 'Cant. {{quantity}}',
       total: 'Total',
-      tooManyLines:
-        'Este pedido tiene {{count}} artículos, demasiados para mostrarlos aquí. El número de pedido de arriba los identifica a todos.',
+      unavailable:
+        'No pudimos cargar tu pedido en este momento. Tu compra está registrada con el número de arriba; inténtalo de nuevo en un momento.',
       keepShopping: 'Seguir comprando',
       expiredHeading: 'No hay ningún pedido que mostrar',
       expired:

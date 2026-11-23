@@ -1,22 +1,29 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  fittedReceipt,
   lineNameKey,
-  parseReceipt,
-  type Receipt,
-  RECEIPT_COOKIE_BUDGET,
-  receiptCookieBytes,
+  parseTicket,
+  RECEIPT_COOKIE,
   receiptCookieMaxAge,
   receiptDetailsOf,
   receiptFromReadBack,
-  serializeReceipt,
+  type ReceiptTicket,
+  serializeTicket,
+  ticketOf,
   trackerSteps,
-  withCancelled,
 } from './receipt-state.js';
 
-/** A line as the receipt keeps it: its unit, how many, and what it cost. */
-const line = (offeringId = 'o-1', quantity = 2, lineTotal = 200) => ({
+/** An order line as order-service answers it: its unit, how many, what it cost. */
+const item = (offeringId = 'o-1', quantity = 2, lineTotal = 200) => ({
+  offeringId,
+  saleUnit: 'UN' as const,
+  quantity,
+  lineTotal,
+  currency: 'GTQ',
+});
+
+/** The same line as the receipt shows it. */
+const shown = (offeringId = 'o-1', quantity = 2, lineTotal = 200) => ({
   offeringId,
   unit: 'UN' as const,
   quantity,
@@ -24,106 +31,81 @@ const line = (offeringId = 'o-1', quantity = 2, lineTotal = 200) => ({
   currency: 'GTQ',
 });
 
-const receipt: Receipt = {
-  number: '7KQ4-M2XD',
+const ticket: ReceiptTicket = {
   groupId: 'g-1',
-  placedAt: '2026-11-03T10:00:00.000Z',
-  orders: [
-    {
-      orderId: 'o-a',
-      vendorId: 'v-1',
-      vendorName: 'Tienda Uno',
-      method: 'card',
-      lines: [line()],
-      lineCount: 1,
-      total: { currency: 'GTQ', amount: 200 },
-    },
-    {
-      orderId: 'o-b',
-      vendorId: 'v-2',
-      method: 'cod',
-      lineCount: 13,
-      total: { currency: 'GTQ', amount: 50 },
-    },
-  ],
-  totals: [{ currency: 'GTQ', amount: 250 }],
+  number: '7KQ4-M2XD',
   cancelNonce: 'nonce',
   cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
   receiptEndsAt: '2026-12-03T10:00:00.000Z',
 };
 
-describe('the group receipt', () => {
+describe('the receipt ticket', () => {
   it('round-trips through its cookie', () => {
-    expect(parseReceipt(serializeReceipt(receipt))).toEqual(receipt);
+    expect(parseTicket(serializeTicket(ticket))).toEqual(ticket);
   });
 
-  it('refuses a forged or broken cookie rather than rendering a receipt that lies', () => {
+  it('refuses a forged or broken cookie rather than opening nothing', () => {
     const forged = (patch: Record<string, unknown>) =>
-      parseReceipt(JSON.stringify({ ...receipt, ...patch }));
+      parseTicket(JSON.stringify({ ...ticket, ...patch }));
 
-    expect(parseReceipt(undefined)).toBeUndefined();
-    expect(parseReceipt('not json')).toBeUndefined();
-    expect(parseReceipt('7')).toBeUndefined();
+    expect(parseTicket(undefined)).toBeUndefined();
+    expect(parseTicket('not json')).toBeUndefined();
+    expect(parseTicket('7')).toBeUndefined();
     expect(forged({ groupId: '' })).toBeUndefined();
-    expect(forged({ orders: [] })).toBeUndefined();
-    expect(forged({ orders: 'many' })).toBeUndefined();
-    expect(forged({ orders: [{ orderId: 'x' }] })).toBeUndefined();
-    expect(forged({ orders: [7] })).toBeUndefined();
-    expect(
-      forged({
-        orders: [{ ...receipt.orders[0], total: { currency: 'GTQ' } }],
-      }),
-    ).toBeUndefined();
-    expect(
-      forged({ orders: [{ ...receipt.orders[0], lineCount: 'one' }] }),
-    ).toBeUndefined();
-    expect(forged({ totals: [7] })).toBeUndefined();
-    expect(forged({ totals: 'none' })).toBeUndefined();
+    expect(forged({ cancelNonce: '' })).toBeUndefined();
+    expect(forged({ cancelNonce: 7 })).toBeUndefined();
   });
 
-  it('keeps only true as cancelled, and drops what it cannot read', () => {
-    const parsed = parseReceipt(
-      JSON.stringify({
-        ...receipt,
-        placedAt: 7,
-        cancelNonce: '',
-        orders: [
-          {
-            ...receipt.orders[0],
-            cancelled: 'yes',
-            vendorName: '',
-            lines: [line(), { offeringId: 'broken' }, 7],
-          },
-        ],
-      }),
+  it('drops a blank number and a stamp it cannot read', () => {
+    const parsed = parseTicket(
+      JSON.stringify({ ...ticket, number: '', receiptEndsAt: 7 }),
     );
-
-    expect(parsed?.orders[0]?.cancelled).toBeUndefined();
-    expect(parsed?.orders[0]?.vendorName).toBeUndefined();
-    expect(parsed?.orders[0]?.lines).toEqual([line()]);
-    expect(parsed?.placedAt).toBeUndefined();
-    expect(parsed?.cancelNonce).toBeUndefined();
+    expect(parsed?.number).toBeUndefined();
+    expect(parsed?.receiptEndsAt).toBeUndefined();
   });
 
-  it('keeps a receipt whose windows were never stamped', () => {
+  it('keeps a ticket whose number and windows were never stamped', () => {
     const {
+      number: _number,
       cancelWindowEndsAt: _window,
       receiptEndsAt: _ends,
       ...unstamped
-    } = receipt;
-    expect(parseReceipt(serializeReceipt(unstamped))).toEqual(unstamped);
+    } = ticket;
+    expect(parseTicket(serializeTicket(unstamped))).toEqual(unstamped);
   });
 
-  it('marks one vendor order cancelled and leaves the rest', () => {
-    const after = withCancelled(receipt, 'o-a');
+  // What made the cookie the receipt was a cookie a large basket lost: a
+  // browser drops one past 4 KB without a word, and the buyer's way back and
+  // their cancel go with it (ADR 0053). The ticket keeps no order, so its
+  // size is the same for one line or a thousand.
+  it('keeps nothing the read answers, so its size does not grow with the basket', () => {
+    const uuid = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    const widest: ReceiptTicket = {
+      groupId: uuid,
+      number: '7KQ4-M2XD',
+      cancelNonce: 'x'.repeat(64),
+      cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
+      receiptEndsAt: '2026-12-03T10:00:00.000Z',
+    };
+    const receipt = {
+      ...widest,
+      placedAt: '2026-11-03T10:00:00.000Z',
+      orders: Array.from({ length: 40 }, () => ({
+        orderId: uuid,
+        vendorId: uuid,
+        method: 'link',
+        lines: Array.from({ length: 50 }, () => shown(uuid)),
+        total: { currency: 'GTQ', amount: 99_999_999_999 },
+      })),
+      totals: [{ currency: 'GTQ', amount: 99_999_999_999 }],
+    };
 
-    expect(after.orders.map(order => order.cancelled)).toEqual([
-      true,
-      undefined,
-    ]);
-    expect(parseReceipt(serializeReceipt(after))?.orders[0]?.cancelled).toBe(
-      true,
-    );
+    expect(ticketOf(receipt)).toEqual(widest);
+    const bytes =
+      RECEIPT_COOKIE.length +
+      1 +
+      encodeURIComponent(serializeTicket(receipt)).length;
+    expect(bytes).toBeLessThan(400);
   });
 });
 
@@ -132,6 +114,7 @@ describe('receiptFromReadBack', () => {
   const readBack = (orders: unknown[] = []) => ({
     group: envelope({
       id: 'g-1',
+      number: '7KQ4-M2XD',
       placedAt: '2026-11-03T10:00:00.000Z',
       cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
       receiptEndsAt: '2026-12-03T10:00:00.000Z',
@@ -139,6 +122,7 @@ describe('receiptFromReadBack', () => {
     orders,
   });
   const names = new Map([['v-1', 'Tienda Uno']]);
+  const opened = { groupId: 'g-1', cancelNonce: 'nonce' };
 
   it('builds the receipt from the group and its vendor orders, naming each seller', () => {
     const built = receiptFromReadBack(
@@ -147,21 +131,22 @@ describe('receiptFromReadBack', () => {
           id: 'o-a',
           vendorId: 'v-1',
           paymentMethod: 'cod',
-          items: [line('o-1', 2, 200)],
+          items: [item('o-1', 2, 200)],
         }),
         envelope({
           id: 'o-b',
           vendorId: 'v-2',
-          // More lines than the cookie holds beside the first order's.
-          items: Array.from({ length: 60 }, () => line()),
+          // Every line, however many: nothing is cut to fit a cookie.
+          items: Array.from({ length: 60 }, () => item()),
         }),
       ]),
-      'nonce',
+      opened,
       names,
     );
 
     expect(built).toMatchObject({
       groupId: 'g-1',
+      number: '7KQ4-M2XD',
       placedAt: '2026-11-03T10:00:00.000Z',
       cancelNonce: 'nonce',
       cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
@@ -171,58 +156,130 @@ describe('receiptFromReadBack', () => {
     expect(built?.orders[0]).toMatchObject({
       vendorName: 'Tienda Uno',
       method: 'cod',
-      lineCount: 1,
+      lines: [shown('o-1', 2, 200)],
     });
-    expect(built?.orders[1]).toMatchObject({ method: 'card', lineCount: 60 });
-    expect(built?.orders[1]?.lines).toBeUndefined();
+    expect(built?.orders[1]?.method).toBe('card');
+    expect(built?.orders[1]?.lines).toHaveLength(60);
     expect(built?.orders[1]?.vendorName).toBeUndefined();
   });
 
+  // Order-service says whether an order is cancelled; a cookie never could.
+  it('marks an order cancelled only when its status says so', () => {
+    const built = receiptFromReadBack(
+      readBack([
+        envelope({
+          id: 'o-a',
+          vendorId: 'v-1',
+          status: 'cancelled',
+          items: [item()],
+        }),
+        envelope({
+          id: 'o-b',
+          vendorId: 'v-1',
+          status: 'cancelling',
+          items: [item()],
+        }),
+      ]),
+      opened,
+      names,
+    );
+
+    expect(built?.orders.map(order => order.cancelled)).toEqual([
+      true,
+      undefined,
+    ]);
+  });
+
+  it('drops a line it cannot read and keeps the rest', () => {
+    const built = receiptFromReadBack(
+      readBack([
+        envelope({
+          id: 'o-a',
+          vendorId: 'v-1',
+          items: [item(), { offeringId: 'broken' }, 7],
+        }),
+      ]),
+      opened,
+      names,
+    );
+
+    expect(built?.orders[0]?.lines).toEqual([shown()]);
+  });
+
   it('refuses an answer that is not a group with its orders', () => {
-    expect(receiptFromReadBack(undefined, 'n', names)).toBeUndefined();
+    expect(receiptFromReadBack(undefined, opened, names)).toBeUndefined();
     expect(
-      receiptFromReadBack({ group: 7, orders: [] }, 'n', names),
+      receiptFromReadBack({ group: 7, orders: [] }, opened, names),
     ).toBeUndefined();
-    expect(receiptFromReadBack(readBack([]), 'n', names)).toBeUndefined();
+    expect(receiptFromReadBack(readBack([]), opened, names)).toBeUndefined();
     expect(
-      receiptFromReadBack(readBack([envelope({ id: 'o' })]), 'n', names),
+      receiptFromReadBack(readBack([envelope({ id: 'o' })]), opened, names),
     ).toBeUndefined();
     expect(
       receiptFromReadBack(
         readBack([envelope({ id: 'o', vendorId: 'v', items: [] })]),
-        'n',
+        opened,
         names,
       ),
     ).toBeUndefined();
-    expect(receiptFromReadBack(readBack([7]), 'n', names)).toBeUndefined();
+    expect(receiptFromReadBack(readBack([7]), opened, names)).toBeUndefined();
     expect(
       receiptFromReadBack(
-        readBack([envelope({ id: 'o', vendorId: '', items: [line()] })]),
-        'n',
+        readBack([envelope({ id: 'o', vendorId: '', items: [item()] })]),
+        opened,
         names,
       ),
     ).toBeUndefined();
     expect(
       receiptFromReadBack(
         readBack([envelope({ id: 'o', vendorId: 'v', items: 'none' })]),
-        'n',
+        opened,
         names,
       ),
     ).toBeUndefined();
   });
 
-  it('omits the times a group did not stamp', () => {
+  it('refuses another group’s answer', () => {
+    expect(
+      receiptFromReadBack(
+        readBack([envelope({ id: 'o', vendorId: 'v-1', items: [item()] })]),
+        { groupId: 'g-2', cancelNonce: 'nonce' },
+        names,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('omits what a group did not stamp', () => {
     const built = receiptFromReadBack(
       {
         group: envelope({ id: 'g-1' }),
-        orders: [envelope({ id: 'o', vendorId: 'v-1', items: [line()] })],
+        orders: [envelope({ id: 'o', vendorId: 'v-1', items: [item()] })],
       },
-      'n',
+      opened,
       names,
     );
 
+    expect(built?.number).toBeUndefined();
     expect(built?.placedAt).toBeUndefined();
     expect(built?.cancelWindowEndsAt).toBeUndefined();
+    expect(built?.receiptEndsAt).toBeUndefined();
+  });
+
+  it('reads each seller’s number off its order', () => {
+    const built = receiptFromReadBack(
+      readBack([
+        envelope({
+          id: 'o-a',
+          number: 'Q3AW-37H5',
+          vendorId: 'v-1',
+          items: [item('o-1', 1, 100)],
+        }),
+      ]),
+      opened,
+      new Map(),
+    );
+
+    expect(built?.orders[0]?.number).toBe('Q3AW-37H5');
   });
 });
 
@@ -231,61 +288,21 @@ describe('receiptCookieMaxAge', () => {
 
   it('lives until the group’s own receiptEndsAt, past the cancel window', () => {
     // 30 days, though the cancel window closed after 30 minutes.
-    expect(receiptCookieMaxAge(receipt, NOW)).toBe(30 * 24 * 60 * 60);
+    expect(receiptCookieMaxAge(ticket, NOW)).toBe(30 * 24 * 60 * 60);
   });
 
   it('is nought with no stamp, a broken one, or one already past', () => {
-    const { receiptEndsAt: _, ...unstamped } = receipt;
+    const { receiptEndsAt: _, ...unstamped } = ticket;
     expect(receiptCookieMaxAge(unstamped, NOW)).toBe(0);
-    expect(
-      receiptCookieMaxAge({ ...receipt, receiptEndsAt: 'nope' }, NOW),
-    ).toBe(0);
+    expect(receiptCookieMaxAge({ ...ticket, receiptEndsAt: 'nope' }, NOW)).toBe(
+      0,
+    );
     expect(
       receiptCookieMaxAge(
-        { ...receipt, receiptEndsAt: '2026-11-03T09:00:00.000Z' },
+        { ...ticket, receiptEndsAt: '2026-11-03T09:00:00.000Z' },
         NOW,
       ),
     ).toBe(0);
-  });
-});
-
-describe('the receipt’s numbers (ADR 0076 §5)', () => {
-  it('keeps the purchase’s number and each seller’s, and drops a blank one', () => {
-    const numbered: Receipt = {
-      ...receipt,
-      number: '7KQ4-M2XD',
-      orders: receipt.orders.map((order, index) =>
-        index === 0 ? { ...order, number: 'Q3AW-37H5' } : order,
-      ),
-    };
-
-    expect(parseReceipt(serializeReceipt(numbered))).toEqual(numbered);
-    expect(
-      parseReceipt(JSON.stringify({ ...numbered, number: '' }))?.number,
-    ).toBeUndefined();
-  });
-
-  it('reads them off the group and its orders as order-service answers them', () => {
-    const built = receiptFromReadBack(
-      {
-        group: { data: { id: 'g-1', number: '7KQ4-M2XD' } },
-        orders: [
-          {
-            data: {
-              id: 'o-a',
-              number: 'Q3AW-37H5',
-              vendorId: 'v-1',
-              items: [line('o-1', 1, 100)],
-            },
-          },
-        ],
-      },
-      'nonce',
-      new Map(),
-    );
-
-    expect(built?.number).toBe('7KQ4-M2XD');
-    expect(built?.orders[0]?.number).toBe('Q3AW-37H5');
   });
 });
 
@@ -648,90 +665,5 @@ describe('trackerSteps', () => {
   it('draws nothing for an order that left the way to the door', () => {
     expect(trackerSteps('cancelled', 'card')).toEqual([]);
     expect(trackerSteps('cancelling', 'card')).toEqual([]);
-  });
-});
-
-/**
- * The receipt at its widest, as a browser would be handed it: every id a
- * UUID, every figure at its most digits, every line in the widest unit code.
- * A cookie past 4 KB is dropped without a word, which loses the buyer's way
- * back to the order and their cancel (ADR 0076 §6).
- */
-describe('the receipt cookie', () => {
-  const uuid = '0f8fad5b-d9cb-469f-a165-70867728950e';
-  const widestOrder = (lines: number) => ({
-    orderId: uuid,
-    number: '7KQ4-M2XD',
-    vendorId: uuid,
-    vendorName: 'N'.repeat(60),
-    method: 'link',
-    lines: Array.from({ length: lines }, () => ({
-      offeringId: uuid,
-      unit: 'FT2' as const,
-      quantity: 99_990_000,
-      lineTotal: 9_999_999_999,
-      currency: 'GTQ',
-    })),
-    lineCount: lines,
-    total: { currency: 'GTQ', amount: 99_999_999_999 },
-  });
-  const widest = (orders: number, lines: number): Receipt => ({
-    groupId: uuid,
-    number: '7KQ4-M2XD',
-    placedAt: '2026-11-03T10:00:00.000Z',
-    orders: Array.from({ length: orders }, () => widestOrder(lines)),
-    totals: [{ currency: 'GTQ', amount: 99_999_999_999 }],
-    cancelNonce: 'x'.repeat(43),
-    cancelWindowEndsAt: '2026-11-03T10:30:00.000Z',
-    receiptEndsAt: '2026-12-03T10:00:00.000Z',
-  });
-
-  it('keeps a receipt that fits as it is', () => {
-    expect(fittedReceipt(receipt)).toBe(receipt);
-  });
-
-  it('fits a seller’s dozen widest lines whole', () => {
-    const fitted = fittedReceipt(widest(1, 12));
-    expect(fitted.orders[0]?.lines).toHaveLength(12);
-    expect(receiptCookieBytes(fitted)).toBeLessThanOrEqual(
-      RECEIPT_COOKIE_BUDGET,
-    );
-  });
-
-  it('cuts the widest orders to their count and total until it fits', () => {
-    const wide = widest(2, 12);
-    expect(receiptCookieBytes(wide)).toBeGreaterThan(4096);
-
-    const fitted = fittedReceipt(wide);
-
-    expect(receiptCookieBytes(fitted)).toBeLessThanOrEqual(
-      RECEIPT_COOKIE_BUDGET,
-    );
-    // One order cut is enough here; the other keeps its lines.
-    expect(fitted.orders.map(order => order.lines?.length)).toEqual([
-      undefined,
-      12,
-    ]);
-    expect(fitted.orders.map(order => order.lineCount)).toEqual([12, 12]);
-    expect(fitted.orders.map(order => order.total)).toEqual(
-      wide.orders.map(order => order.total),
-    );
-  });
-
-  // Past the capacity below, every order is down to its count and total and
-  // there is nothing left to cut.
-  it('stops once every order is a summary', () => {
-    const fitted = fittedReceipt(widest(10, 12));
-    expect(fitted.orders.every(order => order.lines === undefined)).toBe(true);
-    expect(fitted.orders).toHaveLength(10);
-  });
-
-  // The capacity, pinned: eight sellers at their widest, cancelled mark
-  // included, still reach the browser.
-  it('holds eight sellers at their widest within what a browser keeps', () => {
-    const fitted = withCancelled(fittedReceipt(widest(8, 12)), uuid);
-    expect(receiptCookieBytes(fitted)).toBeLessThan(
-      4096 - 'r10c_receipt='.length,
-    );
   });
 });

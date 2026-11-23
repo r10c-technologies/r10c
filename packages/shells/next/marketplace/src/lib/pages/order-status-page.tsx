@@ -35,18 +35,18 @@ import { attachPaymentReceipt } from '../cart/evidence-action';
 import type { EvidenceOutcome } from '../cart/evidence-outcome';
 import { readFlowTicket } from '../cart/flow-ticket-cookie';
 import { OrderStatusFlow } from '../cart/order-status-flow';
-import { readReceipt } from '../cart/receipt-cookie';
-import { readBuyerReceiptAnswer } from '../cart/receipt-read';
+import { readReceiptTicket } from '../cart/receipt-cookie';
 import {
   lineNameKey,
-  type Receipt,
   type ReceiptDelivery,
   type ReceiptDetails,
   receiptDetailsOf,
   type ReceiptOrder,
   type ReceiptPayment,
+  type ReceiptTicket,
 } from '../cart/receipt-state';
 import { ReceiptWatch } from '../cart/receipt-watch';
+import { readReceipt } from '../cart/receipt-write';
 import { refreshCheckout, settleCheckout } from '../cart/settle-action';
 import { settleCancellation } from '../cart/settle-cancel-action';
 import { runRead } from '../catalog/catalog-reads';
@@ -61,8 +61,9 @@ import { StoreShell } from './store-shell';
  * Three states, decided only from this browser's own `httpOnly` cookies — the
  * flow id in the address is not a capability:
  *
- * - the group receipt for this flow is written → the receipt, one card per
- *   vendor order, each cancellable on its own while the window is open;
+ * - the receipt ticket for this flow is written → the receipt, read back by
+ *   its capability: one card per vendor order, each cancellable on its own
+ *   while the window is open;
  * - the flow ticket names this flow → a client island waits on the flow's
  *   stream with the ticket's capability, and settles it when it completes;
  * - neither → the receipt has lapsed, or this was never this browser's flow.
@@ -80,14 +81,14 @@ export async function OrderStatusPage({
   readonly evidenceOutcome?: EvidenceOutcome;
 }) {
   const t = getServerTFor(locale, 'r10c');
-  const receipt = await readReceipt();
+  const kept = await readReceiptTicket();
 
-  if (receipt?.groupId === flowId) {
+  if (kept?.groupId === flowId) {
     return (
       <StoreShell locale={locale}>
         <ReceiptView
           locale={locale}
-          receipt={receipt}
+          ticket={kept}
           outcome={outcome}
           evidenceOutcome={evidenceOutcome}
         />
@@ -187,32 +188,69 @@ function ReceiptMoved({ locale }: { readonly locale: Locale }) {
   );
 }
 
+/**
+ * A receipt whose read did not answer: say so, with the number the buyer can
+ * quote and a way to try again, rather than a receipt with nothing in it
+ * (ADR 0051: a failed read still renders, and says it failed).
+ */
+function ReceiptUnavailable({
+  locale,
+  ticket,
+}: {
+  readonly locale: Locale;
+  readonly ticket: ReceiptTicket;
+}) {
+  const t = getServerTFor(locale, 'r10c');
+  return (
+    <Stack gap="l">
+      <HeadingOne>{t('storefront.order.heading')}</HeadingOne>
+      {ticket.number === undefined ? undefined : (
+        <Text weight="semibold" data-testid="order-id">
+          {t('storefront.order.reference')}
+          {': '}
+          {ticket.number}
+        </Text>
+      )}
+      <Alert tone="danger" data-testid="receipt-unavailable">
+        {t('storefront.order.unavailable')}
+      </Alert>
+      <Cluster gap="s">
+        <ButtonLink
+          href={localeHref(locale, storePaths.orderStatus(ticket.groupId))}
+        >
+          {t('storefront.order.retry')}
+        </ButtonLink>
+      </Cluster>
+    </Stack>
+  );
+}
+
 /** The group receipt: one card per vendor order, and the basket's totals. */
 async function ReceiptView({
   locale,
-  receipt,
+  ticket,
   outcome,
   evidenceOutcome,
 }: {
   readonly locale: Locale;
-  readonly receipt: Receipt;
+  readonly ticket: ReceiptTicket;
   readonly outcome?: CancelOutcome;
   readonly evidenceOutcome?: EvidenceOutcome;
 }) {
   const tErrors = getServerTFor(locale, 'errors');
   const t = getServerTFor(locale, 'r10c');
-  // What the cookie never keeps — where it goes, and each line's stored name —
-  // read from the server on every render by the receipt's own capability. A
-  // read that fails renders from the cookie alone (ADR 0076 §1, §6).
-  const answer =
-    receipt.cancelNonce === undefined
-      ? undefined
-      : await readBuyerReceiptAnswer(receipt.groupId, receipt.cancelNonce);
+  // The cookie keeps only the capability; the orders, their lines and status,
+  // where it goes and each line's stored name are read from the server on
+  // every render by it (ADR 0053, ADR 0076 §1, §6).
+  const read = await readReceipt(ticket);
   // The nonce no longer opens this group: an access link re-keyed it on
   // another device, and this browser's receipt is spent (ADR 0076 §6).
-  if (answer?.kind === 'refused') return <ReceiptMoved locale={locale} />;
-  const details =
-    answer?.kind === 'read' ? receiptDetailsOf(answer.body) : undefined;
+  if (read.kind === 'refused') return <ReceiptMoved locale={locale} />;
+  if (read.kind === 'failed') {
+    return <ReceiptUnavailable locale={locale} ticket={ticket} />;
+  }
+  const { receipt } = read;
+  const details = receiptDetailsOf(read.body);
   // When the buyer may still cancel: the nonce has to be there and the window
   // open. A counter sale carries none.
   const cancelWindow = cancelWindowLabel(locale, receipt, new Date());
@@ -224,11 +262,11 @@ async function ReceiptView({
         }).format(new Date(receipt.receiptEndsAt));
   // A cancellation this browser started and is waiting on, for an order on
   // this receipt; one at a time, so the other cancel buttons wait too.
-  const ticket = await readCancelTicket();
+  const cancelTicket = await readCancelTicket();
   const cancelling: CancelTicket | undefined = receipt.orders.some(
-    order => order.orderId === ticket?.orderId,
+    order => order.orderId === cancelTicket?.orderId,
   )
-    ? ticket
+    ? cancelTicket
     : undefined;
   const receiptHref = (cancel: CancelOutcome) =>
     `${localeHref(locale, storePaths.orderStatus(receipt.groupId))}?cancel=${cancel}`;
@@ -331,13 +369,10 @@ async function ReceiptView({
 
       {/* A dispatch or a delivery re-renders this page by push; without
           script, a reload shows the same (ADR 0081 §11). */}
-      {receipt.cancelNonce === undefined ||
-      answer?.kind !== 'read' ? undefined : (
-        <ReceiptWatch
-          capability={receipt.cancelNonce}
-          orderIds={receipt.orders.map(order => order.orderId)}
-        />
-      )}
+      <ReceiptWatch
+        capability={receipt.cancelNonce}
+        orderIds={receipt.orders.map(order => order.orderId)}
+      />
       {receipt.orders.map(order => (
         <VendorOrderCard
           key={order.orderId}
@@ -422,10 +457,9 @@ async function VendorOrderCard({
 }) {
   const t = getServerTFor(locale, 'r10c');
   // Each line under the name it was sold as, read back with the receipt
-  // (#582); the live catalog's name only when that read failed. Never from
-  // the cookie: a name is long, and the cookie is 4 KB.
+  // (#582); the live catalog's name only when the read named none.
   const lines = await Promise.all(
-    (order.lines ?? []).map(async line => ({
+    order.lines.map(async line => ({
       line,
       name:
         details?.lineNames.get(lineNameKey(order.orderId, line.offeringId)) ??
@@ -503,37 +537,31 @@ async function VendorOrderCard({
             {t('storefront.order.whatsapp.label')}
           </a>
         )}
-        {order.lines === undefined ? (
-          <Text muted data-testid="order-summary-only">
-            {t('storefront.order.tooManyLines', { count: order.lineCount })}
-          </Text>
-        ) : (
-          lines.map(({ line, name }) => (
-            <Cluster key={line.offeringId} justify="between" gap="s">
-              <Stack gap="3xs">
-                <Text data-testid="vendor-order-line">
-                  {name ?? line.offeringId}
-                </Text>
-                <Text muted>
-                  {t('storefront.order.units', {
-                    quantity: quantityLabel(
-                      (key, values) => (values ? t(key, values) : t(key)),
-                      locale,
-                    )(line.quantity, line.unit),
-                  })}
-                </Text>
-              </Stack>
-              <Text>
-                <Money
-                  amount={line.lineTotal}
-                  currency={line.currency}
-                  unit="minor"
-                  locale={locale}
-                />
+        {lines.map(({ line, name }) => (
+          <Cluster key={line.offeringId} justify="between" gap="s">
+            <Stack gap="3xs">
+              <Text data-testid="vendor-order-line">
+                {name ?? line.offeringId}
               </Text>
-            </Cluster>
-          ))
-        )}
+              <Text muted>
+                {t('storefront.order.units', {
+                  quantity: quantityLabel(
+                    (key, values) => (values ? t(key, values) : t(key)),
+                    locale,
+                  )(line.quantity, line.unit),
+                })}
+              </Text>
+            </Stack>
+            <Text>
+              <Money
+                amount={line.lineTotal}
+                currency={line.currency}
+                unit="minor"
+                locale={locale}
+              />
+            </Text>
+          </Cluster>
+        ))}
         <Cluster justify="between" gap="s">
           <Stack gap="3xs">
             <Text weight="semibold">

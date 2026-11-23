@@ -287,6 +287,17 @@ const CANCEL_CLOSED_AT = '2026-01-01T00:30:00.000Z';
  */
 const PAYMENT_PENDING_OFFERING = 'offering-terra-ceramic-mug';
 
+/**
+ * The basket whose receipt cannot be read back after it settled: the settle
+ * action's one read answers, and every render after it reaches an
+ * order-service that is down, so the page says it could not load the order
+ * (ADR 0051) rather than render a receipt with nothing in it.
+ */
+const RECEIPT_DOWN_OFFERING = 'offering-lino-napkins-solano';
+
+/** How many times each flow's group was read back. */
+const receiptReads = new Map();
+
 /** The basket whose flow ends badly: flow-status says `failed` for it. */
 const FAILING_OFFERING = 'offering-aurora-floor-lamp';
 
@@ -375,7 +386,9 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
       ? 'payment-pending'
       : holds(vendors, CANCEL_CLOSED_OFFERING)
         ? 'cancel-closed'
-        : 'placed';
+        : holds(vendors, RECEIPT_DOWN_OFFERING)
+          ? 'receipt-down'
+          : 'placed';
   const flowId = `e2e-flow-${kind}-${String(started)}`;
   baskets.set(flowId, vendors);
   contacts.set(flowId, contactRowOf(body.contact));
@@ -455,6 +468,11 @@ const buyerReceiptHandler = http.get(
         401,
       );
     }
+    const reads = (receiptReads.get(params.id) ?? 0) + 1;
+    receiptReads.set(params.id, reads);
+    if (params.id.startsWith('e2e-flow-receipt-down-') && reads > 1) {
+      return new HttpResponse(null, { status: 503 });
+    }
     return HttpResponse.json({
       group: {
         meta: { type: 'entity', entity: 'checkout-group' },
@@ -481,7 +499,13 @@ const buyerReceiptHandler = http.get(
           groupId: params.id,
           vendorId: part.vendorId,
           paymentMethod: part.paymentMethod,
-          status: 'paid',
+          // Cancelled once a cancellation the buyer started has run: the
+          // receipt reads it here, as it reads it from order-service.
+          status: cancellations.has(
+            `e2e-cancel-${orderIdOf(params.id, part.vendorId)}`,
+          )
+            ? 'cancelled'
+            : 'paid',
           items: part.lines,
           // The IVA the coordinator states for a general-regime seller: the
           // price includes it, so it is broken out of the gross (ADR 0078 §6).

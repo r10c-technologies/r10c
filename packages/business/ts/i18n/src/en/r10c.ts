@@ -425,8 +425,8 @@ export const r10c: EsR10c = {
       },
       units: 'Qty {{quantity}}',
       total: 'Total',
-      tooManyLines:
-        'This order has {{count}} items, too many to list here. The order number above identifies all of them.',
+      unavailable:
+        'We could not load your order just now. Your purchase is recorded under the number above; try again in a moment.',
       keepShopping: 'Keep shopping',
       expiredHeading: 'There is no order to show',
       expired:
