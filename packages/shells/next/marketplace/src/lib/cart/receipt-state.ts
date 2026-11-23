@@ -1,3 +1,5 @@
+import { isSaleUnit, type SaleUnit } from '@r10c/business-ts-sales-vocabulary';
+
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
 
 /**
@@ -40,8 +42,11 @@ export const RECEIPT_LINE_CAP = 12;
 /** One line of a vendor order, as the receipt shows it. */
 export interface ReceiptLine {
   readonly offeringId: string;
+  /** What the quantity is counted in, as the order line stated it. */
+  readonly unit: SaleUnit;
   readonly quantity: number;
-  readonly amount: number;
+  /** What the line cost, as placed (ADR 0082 §6): the receipt never multiplies. */
+  readonly lineTotal: number;
   readonly currency: string;
 }
 
@@ -87,12 +92,15 @@ const filled = (value: unknown): value is string =>
 
 const readLine = (value: unknown): ReceiptLine | undefined => {
   if (!isRecord(value)) return undefined;
-  const { offeringId, quantity, amount, currency } = value;
+  const { offeringId, saleUnit, unit, quantity, lineTotal, currency } = value;
+  // An order line names its unit `saleUnit`; the cookie writes it `unit`.
+  const stated = saleUnit ?? unit;
   return filled(offeringId) &&
+    isSaleUnit(stated) &&
     typeof quantity === 'number' &&
-    typeof amount === 'number' &&
+    typeof lineTotal === 'number' &&
     filled(currency)
-    ? { offeringId, quantity, amount, currency }
+    ? { offeringId, unit: stated, quantity, lineTotal, currency }
     : undefined;
 };
 
@@ -251,7 +259,10 @@ export const receiptFromReadBack = (
     ...(filled(placedAt) ? { placedAt } : {}),
     orders: readOrders,
     totals: totalsByCurrency(
-      readOrders.map(order => ({ ...order.total, quantity: 1 })),
+      readOrders.map(order => ({
+        lineTotal: order.total.amount,
+        currency: order.total.currency,
+      })),
     ),
     cancelNonce,
     ...(filled(cancelWindowEndsAt) ? { cancelWindowEndsAt } : {}),

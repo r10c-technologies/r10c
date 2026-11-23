@@ -39,6 +39,7 @@ import {
 } from '@entifix/react-integration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
+import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COUNTER_SALE_SURFACE } from '../sales-surfaces';
@@ -162,8 +163,34 @@ const writeLines = (lines: readonly Line[]): EntityRowDraft[] =>
     quantity: String(line.quantity),
   }));
 
-const totalOf = (lines: readonly Line[]): number =>
-  lines.reduce((sum, line) => sum + line.amount * line.quantity, 0);
+/**
+ * What a line will cost, previewed by `lineTotal` over the offering's live
+ * published terms — never the draft's, which is not trusted (ADR 0032), and
+ * never a price times a quantity here. sales-service prices it again from the
+ * projection, and its figure is the one charged (ADR 0082 §6). A line whose
+ * offering is no longer listed previews as nothing: it cannot be sold.
+ */
+export const previewOf = (
+  line: Line,
+  offerings: readonly PublishedOffering[],
+): number => {
+  const offering = offerings.find(
+    candidate => candidate.offeringId === line.offeringId,
+  );
+  return offering === undefined
+    ? 0
+    : lineTotal({
+        amount: offering.amount,
+        pricePer: offering.pricePer,
+        quantity: line.quantity,
+        saleUnit: offering.saleUnit,
+      });
+};
+
+const totalOf = (
+  lines: readonly Line[],
+  offerings: readonly PublishedOffering[],
+): number => lines.reduce((sum, line) => sum + previewOf(line, offerings), 0);
 
 /**
  * The offerings the till can pick from, one per id. The projection can answer
@@ -695,7 +722,7 @@ export function CounterSaleWizard({
             <Text key={line.key}>
               {line.quantity} × {line.name} —{' '}
               <Money
-                amount={line.amount * line.quantity}
+                amount={previewOf(line, offerings.items)}
                 currency={line.currency}
                 unit="minor"
                 locale={locale}
@@ -711,7 +738,7 @@ export function CounterSaleWizard({
           <Text>
             {translateKey('r10c:sales.counterSale.total')}:{' '}
             <Money
-              amount={totalOf(lines)}
+              amount={totalOf(lines, offerings.items)}
               currency={currencyOf(lines)}
               unit="minor"
               locale={locale}

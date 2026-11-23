@@ -1,0 +1,70 @@
+import {
+  isPricePer,
+  isSaleUnit,
+  lineTotal,
+} from '@r10c/business-ts-sales-vocabulary';
+
+type Body = Readonly<Record<string, unknown>>;
+
+const recordOf = (value: unknown): Body | undefined =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Body)
+    : undefined;
+
+const count = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+
+/**
+ * One line with its total **stated by the coordinator**: `lineTotal` over the
+ * line's own terms, computed here once and copied everywhere after (ADR 0082
+ * §6). Whatever the caller sent for it is dropped first, so a line whose terms
+ * do not add up carries no total and the start's decoding refuses it.
+ */
+export const pricedLine = (line: Body): Body => {
+  const { lineTotal: _stated, ...rest } = line;
+  const { amount, quantity, saleUnit, pricePer } = rest;
+  return count(amount) &&
+    count(quantity) &&
+    isSaleUnit(saleUnit) &&
+    isPricePer(pricePer)
+    ? {
+        ...rest,
+        lineTotal: lineTotal({ amount, quantity, saleUnit, pricePer }),
+      }
+    : rest;
+};
+
+/** A vendor part with every line priced by the coordinator. */
+export const pricedPart = (part: Body): Body =>
+  Array.isArray(part['lines'])
+    ? {
+        ...part,
+        lines: (part['lines'] as unknown[]).map(line =>
+          pricedLine(recordOf(line) ?? {}),
+        ),
+      }
+    : part;
+
+/**
+ * The checkout's totals, one per currency, summed from the lines the
+ * coordinator priced — never the caller's, which a buyer could otherwise
+ * state as anything the capture then takes (ADR 0082 §6).
+ */
+export const totalsOf = (
+  parts: readonly Body[],
+): readonly { readonly currency: string; readonly amount: number }[] => {
+  const byCurrency = new Map<string, number>();
+  for (const part of parts) {
+    for (const line of Array.isArray(part['lines'])
+      ? (part['lines'] as unknown[])
+      : []) {
+      const priced = recordOf(line);
+      const total = priced?.['lineTotal'];
+      const currency = priced?.['currency'];
+      if (typeof total === 'number' && typeof currency === 'string') {
+        byCurrency.set(currency, (byCurrency.get(currency) ?? 0) + total);
+      }
+    }
+  }
+  return Array.from(byCurrency, ([currency, amount]) => ({ currency, amount }));
+};

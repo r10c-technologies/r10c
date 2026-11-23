@@ -17,8 +17,11 @@ const lineData = (amount: number) => ({
   name: 'Lámpara Aurora',
   specificationId: '',
   specificationVersion: 0,
+  saleUnit: 'UN',
   quantity: 1,
   amount,
+  pricePer: 1,
+  lineTotal: amount,
   currency: 'EUR',
   reservationId: 'res-1',
   kind: 'good',
@@ -35,7 +38,12 @@ const anOrder = () =>
     groupId: 'group-1',
     paymentMethod: 'cod',
     channel: { id: 'ch-1', type: 'counter' },
-    items: [new OrderItem('off-1', 'Lámpara Aurora', 1, 1000, 'EUR', 'res-1')],
+    items: [
+      Object.assign(
+        new OrderItem('off-1', 'Lámpara Aurora', 1, 1000, 'EUR', 'res-1'),
+        { saleUnit: 'UN' as const, pricePer: 1 as const, lineTotal: 1000 },
+      ),
+    ],
     placedAt: PLACED,
     paidAt: PAID,
   });

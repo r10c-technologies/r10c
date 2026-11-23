@@ -16,16 +16,16 @@ export interface MoneyTotal {
  */
 export function totalsByCurrency(
   lines: readonly {
-    readonly amount: number;
+    /** What the line costs, from `lineTotal` — never re-derived here. */
+    readonly lineTotal: number;
     readonly currency: string;
-    readonly quantity: number;
   }[],
 ): MoneyTotal[] {
   const byCurrency = new Map<string, number>();
   for (const line of lines) {
     byCurrency.set(
       line.currency,
-      (byCurrency.get(line.currency) ?? 0) + line.amount * line.quantity,
+      (byCurrency.get(line.currency) ?? 0) + line.lineTotal,
     );
   }
   return [...byCurrency].map(([currency, amount]) => ({ currency, amount }));

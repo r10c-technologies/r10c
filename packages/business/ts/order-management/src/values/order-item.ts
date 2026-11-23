@@ -1,5 +1,13 @@
 import { accessor } from '@entifix/core';
 import {
+  type PricePer,
+  SALE_UNIT_NAME_KEY,
+  SALE_UNIT_SCALES,
+  SALE_UNIT_SYMBOL_KEY,
+  type SaleUnit,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
+import {
   type ItemKind,
   ItemKinds,
   type TaxTreatment,
@@ -57,6 +65,11 @@ export class OrderItem {
   #specificationVersion = 0;
   #quantity: number;
   #amount: number;
+  // No defaults: an order line states what it sold in and what its price was
+  // for, or the order write refuses it (ADR 0082 §6).
+  #saleUnit?: SaleUnit;
+  #pricePer?: PricePer;
+  #lineTotal = 0;
   #currency: string;
   #reservationId?: string;
   #kind: ItemKind = 'good';
@@ -157,10 +170,31 @@ export class OrderItem {
     this.#specificationVersion = value;
   }
 
+  /** What one of this line is, copied from the offering at placement. */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.item.saleUnit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+    required: true,
+  })
+  get saleUnit(): SaleUnit | undefined {
+    return this.#saleUnit;
+  }
+  set saleUnit(value: SaleUnit | undefined) {
+    this.#saleUnit = value;
+  }
+
+  /** An integer in the unit's scale: 3500 is 3.5 m (ADR 0082 §2). */
   @accessor({
     type: 'number',
     labelKey: 'entity:product-order.fields.item.quantity',
     required: true,
+    scaled: {
+      unitMember: 'saleUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
   })
   get quantity(): number {
     return this.#quantity;
@@ -169,7 +203,10 @@ export class OrderItem {
     this.#quantity = value;
   }
 
-  /** Minor units, captured at checkout. See `ProductOfferingPrice.amount`. */
+  /**
+   * Minor units, captured at checkout: what `pricePer` whole units cost. See
+   * `ProductOfferingPrice.amount`.
+   */
   @accessor({
     type: 'number',
     labelKey: 'entity:product-order.fields.item.amount',
@@ -181,6 +218,37 @@ export class OrderItem {
   }
   set amount(value: number) {
     this.#amount = value;
+  }
+
+  /** How many whole units `amount` buys: `1`, `100` or `1000`. */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.item.pricePer',
+    required: true,
+  })
+  get pricePer(): PricePer | undefined {
+    return this.#pricePer;
+  }
+  set pricePer(value: PricePer | undefined) {
+    this.#pricePer = value;
+  }
+
+  /**
+   * What the line costs, in minor units: `lineTotal` over its terms, computed
+   * once by the checkout's coordinator and copied here (ADR 0082 §6). Every
+   * total, capture, commission and tax sums this; nothing multiplies again.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.item.lineTotal',
+    money: { unit: 'minor', currencyMember: 'currency' },
+    required: true,
+  })
+  get lineTotal(): number {
+    return this.#lineTotal;
+  }
+  set lineTotal(value: number) {
+    this.#lineTotal = value;
   }
 
   @accessor({

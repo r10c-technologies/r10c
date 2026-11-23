@@ -18,8 +18,11 @@ const line = (offeringId: string, vendorId: string, amount = 100) => ({
   specificationId: 'spec-1',
   specificationVersion: 1,
   vendorId,
+  saleUnit: 'UN' as const,
   quantity: 2,
   amount,
+  pricePer: 1 as const,
+  lineTotal: amount * 2,
   currency: 'GTQ',
 });
 

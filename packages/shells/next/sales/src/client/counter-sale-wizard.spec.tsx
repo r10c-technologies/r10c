@@ -23,6 +23,7 @@ import {
   CounterSaleWizard,
   currencyOf,
   lastChannelKey,
+  previewOf,
   readLines,
 } from './counter-sale-wizard.js';
 import { SalesProvider } from './sales-context.js';
@@ -319,6 +320,27 @@ describe('the till', () => {
     expect(screen.getByText(/^2 × Café de altura —/)).toHaveTextContent(
       /Q\s129\.98/,
     );
+  });
+
+  it('previews a line by its live published terms, and one no longer listed as nothing', () => {
+    const line = {
+      key: 'k',
+      offeringId: 'cable',
+      name: 'Cable',
+      amount: 0,
+      currency: 'GTQ',
+      quantity: 3500,
+    };
+    // 3.5 m at Q45.00 the metre: Q157.50, by `lineTotal` (ADR 0082 §6).
+    const cable = Object.assign(new PublishedOffering('cable', 'v', 'Cable'), {
+      amount: 4500,
+      currency: 'GTQ',
+      saleUnit: 'M' as const,
+      pricePer: 1 as const,
+    });
+
+    expect(previewOf(line, [cable])).toBe(15_750);
+    expect(previewOf(line, [])).toBe(0);
   });
 
   it('sends offering ids and quantities, never prices', async () => {

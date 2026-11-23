@@ -27,6 +27,7 @@ import {
   EventSourceTag,
   OutboxMaxAttempts,
 } from '@entifix/transactions';
+import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import {
   type ExpirySweep,
   type HoldOutcome,
@@ -41,7 +42,6 @@ import {
   stockMovementRecordedEvent,
   UnitMismatch,
 } from '@r10c/business-ts-stock-management';
-import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Layer, Option } from 'effect';
 import type { Db } from 'mongodb';
 

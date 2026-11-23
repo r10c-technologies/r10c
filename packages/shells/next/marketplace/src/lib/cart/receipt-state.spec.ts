@@ -13,10 +13,12 @@ import {
   withCancelled,
 } from './receipt-state.js';
 
-const line = (offeringId = 'o-1', quantity = 2, amount = 100) => ({
+/** A line as the receipt keeps it: its unit, how many, and what it cost. */
+const line = (offeringId = 'o-1', quantity = 2, lineTotal = 200) => ({
   offeringId,
+  unit: 'UN' as const,
   quantity,
-  amount,
+  lineTotal,
   currency: 'GTQ',
 });
 
@@ -143,7 +145,7 @@ describe('receiptFromReadBack', () => {
           id: 'o-a',
           vendorId: 'v-1',
           paymentMethod: 'cod',
-          items: [line('o-1', 2, 100)],
+          items: [line('o-1', 2, 200)],
         }),
         envelope({
           id: 'o-b',

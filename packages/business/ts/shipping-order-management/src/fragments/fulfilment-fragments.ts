@@ -2,6 +2,7 @@ import { defineFragment } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
 import { participantRefusal } from '@r10c/business-ts-flow-contracts';
 import { DeliveryDestinationSchema } from '@r10c/business-ts-order-contracts';
+import { SaleUnits } from '@r10c/business-ts-sales-vocabulary';
 import { Schema } from 'effect';
 
 import { SHIPPING_ORDER_NOT_TRANSITIONABLE } from '../failures/shipping-failures';
@@ -43,7 +44,7 @@ const MOVE_REFUSAL = participantRefusal([
  */
 export const fulfilmentOpen = defineFragment({
   id: 'fulfilment.open',
-  version: 5,
+  version: 6,
   module: 'shipping-order-management',
   kind: 'retriable',
   participant: PARTICIPANT,
@@ -82,7 +83,8 @@ export const fulfilmentOpen = defineFragment({
         openStruct({
           offeringId: Schema.NonEmptyString,
           name: Schema.NonEmptyString,
-          quantity: Schema.Number,
+          unit: Schema.Literals(SaleUnits),
+          quantity: Schema.Int,
         }),
       ),
     }),

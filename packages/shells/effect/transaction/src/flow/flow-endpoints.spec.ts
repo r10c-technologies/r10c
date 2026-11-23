@@ -103,8 +103,10 @@ const basket = {
           name: 'Lámpara',
           specificationId: 'spec-1',
           specificationVersion: 1,
+          saleUnit: 'UN',
           quantity: 1,
           amount: 500,
+          pricePer: 1,
           currency: 'GTQ',
         },
       ],
@@ -285,7 +287,7 @@ describe('the flow start routes', () => {
       orderId: 'ord-1',
       vendorId: 'v-1',
       paymentMethod: 'card',
-      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', unit: 'UN', quantity: 1 }],
       shipped: true,
     });
 
@@ -311,7 +313,7 @@ describe('the flow start routes', () => {
       orderId: 'ord-1',
       vendorId: 'v-1',
       paymentMethod: 'cod',
-      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', unit: 'UN', quantity: 1 }],
       shipped: true,
     });
 
@@ -339,7 +341,7 @@ describe('the flow start routes', () => {
       taxAmount: 107,
       taxRegime: 'general',
       currency: 'GTQ',
-      lines: [{ offeringId: 'o-1', name: 'Lámpara', quantity: 1 }],
+      lines: [{ offeringId: 'o-1', name: 'Lámpara', unit: 'UN', quantity: 1 }],
       // A caller that could set these would decide when a delivery gives up.
       awaitDeliveryMs: 1,
       awaitReturnMs: 1,
@@ -373,7 +375,14 @@ describe('the checkout start’s fiscal facts', () => {
         vendorId: 'v-1',
         paymentMethod: 'cash',
         lines: [
-          { offeringId: 'o-1', amount: 1120, quantity: 1, currency: 'GTQ' },
+          {
+            offeringId: 'o-1',
+            saleUnit: 'UN',
+            amount: 1120,
+            pricePer: 1,
+            quantity: 1,
+            currency: 'GTQ',
+          },
         ],
       },
     ],

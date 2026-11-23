@@ -1,4 +1,5 @@
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
 import type { CartLine } from './cart-state';
@@ -52,8 +53,17 @@ export function pricedCartOf(
     specificationId: offering.specificationId ?? '',
     specificationVersion: offering.specificationVersion ?? 0,
     vendorId: offering.vendorId,
+    saleUnit: offering.saleUnit,
     quantity: line.quantity,
     amount: offering.amount,
+    pricePer: offering.pricePer,
+    // The preview; the coordinator computes the figure charged (ADR 0082 §6).
+    lineTotal: lineTotal({
+      amount: offering.amount,
+      pricePer: offering.pricePer,
+      quantity: line.quantity,
+      saleUnit: offering.saleUnit,
+    }),
     currency: offering.currency,
   }));
   return {

@@ -15,6 +15,7 @@ import {
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
+import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 import {
   getVendor,
@@ -211,7 +212,14 @@ export async function CartPage({
 
                         <Text data-testid="cart-line-price">
                           <Money
-                            amount={offering.amount * line.quantity}
+                            // The preview `lineTotal` computes, as the
+                            // checkout will (ADR 0082 §6).
+                            amount={lineTotal({
+                              amount: offering.amount,
+                              pricePer: offering.pricePer,
+                              quantity: line.quantity,
+                              saleUnit: offering.saleUnit,
+                            })}
                             currency={offering.currency}
                             unit="minor"
                             locale={locale}

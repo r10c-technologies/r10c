@@ -42,6 +42,7 @@ export const deliveryInput = (
   currency: order.currency,
   lines: order.lines.map(line => ({
     offeringId: line.offeringId,
+    unit: line.unit,
     quantity: line.quantity,
   })),
 });

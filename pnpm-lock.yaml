@@ -926,6 +926,9 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-vocabulary
       '@r10c/utils-ts-fleet':
         specifier: workspace:*
         version: link:../../packages/utils/ts/fleet
@@ -2810,6 +2813,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.23.9(effect@4.0.7)
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -4934,6 +4940,9 @@ importers:
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../../business/ts/sales-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/utils-react-ui':
         specifier: workspace:*
         version: link:../../../utils/react/ui

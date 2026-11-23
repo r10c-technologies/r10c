@@ -12,7 +12,10 @@ import { PAYMENT_FRAGMENTS } from '@r10c/business-ts-payment-management';
 import {
   confirmedBySeller,
   OrderTenders,
+  PricePers,
   SalesChannelTypes,
+  type SaleUnit,
+  SaleUnits,
 } from '@r10c/business-ts-sales-vocabulary';
 import { FULFILMENT_FRAGMENTS } from '@r10c/business-ts-shipping-order-management';
 import { STOCK_FRAGMENTS } from '@r10c/business-ts-stock-management';
@@ -61,10 +64,12 @@ const AWAIT_PAYMENT = 'order.payment-decision';
 const SHIPPING = 'shipping-order-management';
 
 /**
- * One priced line: the offering, what it is sold as, how many, and its unit
- * price. The name, the description, the price and the specification version
- * are all copied from the projection the caller priced from, so the order and
- * the shipment keep what was sold (#582, ADR 0079 §3).
+ * One priced line: the offering, what it is sold as, how many in which unit,
+ * and its price and what that price buys. The name, the description, the
+ * price, its terms and the specification version are all copied from the
+ * projection the caller priced from, so the order and the shipment keep what
+ * was sold (#582, ADR 0079 §3). `lineTotal` is the coordinator's: computed
+ * once by `lineTotal` over those terms, whatever the caller sent (ADR 0082 §6).
  */
 const Line = openStruct({
   offeringId: Schema.NonEmptyString,
@@ -72,10 +77,14 @@ const Line = openStruct({
   description: Schema.optionalKey(Schema.String),
   specificationId: Schema.NonEmptyString,
   specificationVersion: Schema.Number,
+  saleUnit: Schema.Literals(SaleUnits),
+  /** In the unit's scale: 3500 is 3.5 m (ADR 0082 §2). */
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
-  amount: Schema.Number,
+  amount: Schema.Int,
+  pricePer: Schema.Literals(PricePers),
+  // Stated by the coordinator, never the caller (ADR 0078 §6, ADR 0082 §6).
+  lineTotal: Schema.Int,
   currency: Schema.NonEmptyString,
-  // Stated by the coordinator, never the caller (ADR 0078 §6).
   kind: Schema.optionalKey(Schema.String),
   taxTreatment: Schema.optionalKey(Schema.String),
   taxRate: Schema.optionalKey(Schema.Number),
@@ -179,9 +188,9 @@ export const CheckoutStart = openStruct({
 );
 export type CheckoutStart = typeof CheckoutStart.Type;
 
-/** A vendor's lines total: unit price times quantity. */
+/** A vendor's lines total: what each line cost, as the coordinator stated it. */
 const totalOf = (lines: readonly Line[]) =>
-  lines.reduce((sum, line) => sum + line.amount * line.quantity, 0);
+  lines.reduce((sum, line) => sum + line.lineTotal, 0);
 
 /** The vendor part a segment was expanded for. */
 const partOf = (
@@ -218,11 +227,19 @@ const holds = (segment: SlipSegment | undefined, entitlement: string) =>
 
 /** One line per offering, keyed by it, for a `perLine` step in its segment. */
 const linesOf = (
-  lines: readonly { readonly offeringId: string; readonly quantity: number }[],
+  lines: readonly {
+    readonly offeringId: string;
+    readonly unit: SaleUnit;
+    readonly quantity: number;
+  }[],
 ) =>
   lines.map(line => ({
     key: line.offeringId,
-    parameters: { offeringId: line.offeringId, quantity: line.quantity },
+    parameters: {
+      offeringId: line.offeringId,
+      unit: line.unit,
+      quantity: line.quantity,
+    },
   }));
 
 /** Every flow reaches the flow itself, by capability, and the vendors it acts for. */
@@ -272,6 +289,7 @@ const openShipment = (
     lines: part.lines.map(line => ({
       offeringId: line.offeringId,
       name: line.name,
+      unit: line.saleUnit,
       quantity: line.quantity,
     })),
   };
@@ -304,7 +322,14 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       paymentMethod: part.paymentMethod,
       entitlements: part.entitlements ?? [],
     })),
-  lines: (start, segment) => linesOf(partOf(start.vendors, segment).lines),
+  lines: (start, segment) =>
+    linesOf(
+      partOf(start.vendors, segment).lines.map(line => ({
+        offeringId: line.offeringId,
+        unit: line.saleUnit,
+        quantity: line.quantity,
+      })),
+    ),
   audience: (start, _context, flowId) =>
     audienceOf(
       flowId,
@@ -344,7 +369,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           }),
         },
         {
-          ref: 'stock.reserve@3',
+          ref: 'stock.reserve@4',
           parameters: (_context, start, segment) => {
             if (!byLink(segment)) return { organizationId: segment?.vendor };
             // A link order's hold outlives the seller's decision: the order
@@ -442,7 +467,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           }),
         },
         {
-          ref: 'fulfilment.open@5',
+          ref: 'fulfilment.open@6',
           when: (_context, start, segment) =>
             !byLink(segment) && !atCounter(start) && holds(segment, SHIPPING),
           parameters: openShipment,
@@ -536,7 +561,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
           when: (_context, _start, segment) => byLink(segment),
         },
         {
-          ref: 'fulfilment.open@5',
+          ref: 'fulfilment.open@6',
           when: (_context, start, segment) =>
             byLink(segment) && !atCounter(start) && holds(segment, SHIPPING),
           parameters: openShipment,
@@ -576,6 +601,8 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
 /** One line a cancellation puts back. */
 const ReturnedLine = openStruct({
   offeringId: Schema.NonEmptyString,
+  /** The order line's unit: the goods go back in what they were sold in. */
+  unit: Schema.Literals(SaleUnits),
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
 });
 
@@ -658,7 +685,7 @@ export const cancellationRecipe: Recipe<CancellationStart> = {
       perSegment: true,
       steps: [
         {
-          ref: 'stock.restore@4',
+          ref: 'stock.restore@5',
           parameters: (_context, start) => ({
             organizationId: start.vendorId,
             orderId: start.orderId,
@@ -837,7 +864,7 @@ export const deliveryRecipe: Recipe<DeliveryStart> = {
           }),
         },
         {
-          ref: 'stock.restore@4',
+          ref: 'stock.restore@5',
           parameters: (_context, start) => ({
             organizationId: start.vendorId,
             orderId: start.orderId,

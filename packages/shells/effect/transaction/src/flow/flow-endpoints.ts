@@ -39,6 +39,7 @@ import {
   taxedPart,
   TaxRulesTag,
 } from './checkout-tax.js';
+import { pricedPart, totalsOf } from './checkout-totals.js';
 import {
   DeliveryDialsTag,
   type FlowDials,
@@ -111,13 +112,15 @@ export const FLOW_STARTS = {
       vendorPartsOf(input)
         .map(part => part['vendorId'])
         .filter(isString),
-    // The coordinator states what it verified: each vendor's entitlements,
-    // the seller's fiscal identity and each line's tax, and the buyer's
-    // fiscal identity normalized (ADR 0078 §6). None is the caller's word.
+    // The coordinator states what it verified: each line's total and the
+    // checkout's totals, each vendor's entitlements, the seller's fiscal
+    // identity and each line's tax, and the buyer's fiscal identity
+    // normalized (ADR 0078 §6, ADR 0082 §6). None is the caller's word.
     state: (input, entitlements, flowId, dials, sellers, rules) => {
       const buyerTax = buyerTaxOfStart(input);
       // The caller's own statement never survives: only the normalized one.
       const { buyerTax: _stated, ...rest } = input;
+      const priced = vendorPartsOf(input).map(pricedPart);
       return {
         ...rest,
         groupId: flowId,
@@ -126,7 +129,8 @@ export const FLOW_STARTS = {
         paymentWindowMs: dials.paymentWindowMs,
         paymentGraceMs: dials.paymentGraceMs,
         ...(buyerTax.ok ? { buyerTax: buyerTax.value } : {}),
-        vendors: vendorPartsOf(input).map(part => ({
+        totals: totalsOf(priced),
+        vendors: priced.map(part => ({
           ...taxedPart(part, sellers.get(String(part['vendorId'])), rules),
           entitlements: entitlements.get(String(part['vendorId'])) ?? [],
         })),

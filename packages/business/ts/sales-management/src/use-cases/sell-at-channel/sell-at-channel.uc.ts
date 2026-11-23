@@ -2,6 +2,13 @@ import { permissionForUseCase } from '@entifix/authz';
 import { NotFound, useCase } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
 import { FlowNotStarted } from '@r10c/business-ts-flow-contracts';
+import {
+  LineBelowOneMinorUnit,
+  QuantityAboveMaximum,
+  QuantityBelowMinimum,
+  QuantityOffStep,
+  QuantityUnreadable,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
 import { SalesChannel } from '../../entities/sales-channel';
@@ -78,6 +85,12 @@ export type CounterSalePayload = typeof CounterSalePayload.Type;
     ChannelInactive,
     OfferingNotYours,
     InvalidBody,
+    // A line its offering's published terms refuse (ADR 0082 §3).
+    QuantityUnreadable,
+    QuantityBelowMinimum,
+    QuantityOffStep,
+    QuantityAboveMaximum,
+    LineBelowOneMinorUnit,
     FlowNotStarted,
   ],
 })

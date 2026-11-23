@@ -14,9 +14,9 @@ describe('settleDecision', () => {
   });
 
   it('reads a flow parked past its commit point as completed, and one not yet committed as pending', () => {
-    expect(settleDecision({ data: { state: 'waiting', committed: true } })).toBe(
-      'completed',
-    );
+    expect(
+      settleDecision({ data: { state: 'waiting', committed: true } }),
+    ).toBe('completed');
     expect(settleDecision({ data: { state: 'waiting' } })).toBe('pending');
   });
 

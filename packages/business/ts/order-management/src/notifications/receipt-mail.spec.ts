@@ -1,3 +1,8 @@
+import {
+  lineTotal,
+  type PricePer,
+  type SaleUnit,
+} from '@r10c/business-ts-sales-vocabulary';
 import { describe, expect, it } from 'vitest';
 
 import { CheckoutGroup } from '../entities/checkout-group/index.js';
@@ -33,20 +38,35 @@ const aGroup = (extra: Partial<CheckoutGroup> = {}) =>
     ...extra,
   });
 
+/** A line as the coordinator states it: its terms, and the total they make. */
+const priced = (
+  item: OrderItem,
+  terms: { saleUnit: SaleUnit; pricePer: PricePer } = {
+    saleUnit: 'UN',
+    pricePer: 1,
+  },
+) =>
+  Object.assign(item, terms, {
+    lineTotal: lineTotal({
+      amount: item.amount,
+      quantity: item.quantity,
+      ...terms,
+    }),
+  });
+
 const anOrder = (
   number: string,
   paymentMethod: ProductOrder['paymentMethod'],
-  items = [new OrderItem('o-1', 'Lámpara Aurora', 2, 4000, 'GTQ')],
+  items: OrderItem[] = [
+    priced(new OrderItem('o-1', 'Lámpara Aurora', 2, 4000, 'GTQ')),
+  ],
 ) =>
   Object.assign(new ProductOrder('buyer-1'), {
     number,
     paymentMethod,
     items,
     // As the coordinator stated it and the order's write checked it.
-    totalAmount: items.reduce(
-      (sum, item) => sum + item.amount * item.quantity,
-      0,
-    ),
+    totalAmount: items.reduce((sum, item) => sum + item.lineTotal, 0),
   });
 
 describe('composeReceiptMail', () => {
@@ -63,7 +83,7 @@ describe('composeReceiptMail', () => {
         }),
         Object.assign(
           anOrder('BBBB-2222', 'cod', [
-            new OrderItem('o-2', 'Foco', 1, 500, 'GTQ'),
+            priced(new OrderItem('o-2', 'Foco', 1, 500, 'GTQ')),
           ]),
           { sellerTaxRegime: 'small-taxpayer', taxAmount: 25 },
         ),
@@ -76,7 +96,8 @@ describe('composeReceiptMail', () => {
     expect(mail?.subject).toBe('Tu pedido 7KQ4-M2XD');
     expect(mail?.text).toContain('Pedido AAAA-1111 · Tarjeta');
     expect(mail?.text).toContain('Pedido BBBB-2222 · Contra entrega');
-    expect(mail?.text).toMatch(/2 × Lámpara Aurora — Q\s40\.00/);
+    // Each line says what it cost: two at Q40 is Q80.
+    expect(mail?.text).toMatch(/2 u\. × Lámpara Aurora — Q\s80\.00/);
     // The seller's total is the order's own: two at Q40 is Q80, not Q40.
     expect(mail?.text).toMatch(/Total de[^\n]*: Q\s80\.00/);
     expect(mail?.text).toMatch(/Total de[^\n]*: Q\s5\.00/);
@@ -94,6 +115,27 @@ describe('composeReceiptMail', () => {
     expect(mail?.html).toContain('Ana &lt;López&gt;');
     expect(mail?.html).not.toContain('<López>');
     expect(mail?.html).toContain(`<a href="${LINK}">Abrir mi pedido</a>`);
+  });
+
+  it('writes a measured line in its unit, and what it cost (ADR 0082)', () => {
+    const mail = composeReceiptMail({
+      group: aGroup(),
+      orders: [
+        anOrder('CCCC-3333', 'card', [
+          priced(new OrderItem('o-3', 'Cable', 3500, 4500, 'GTQ'), {
+            saleUnit: 'M',
+            pricePer: 1,
+          }),
+          // A line the order write would have refused reads as its bare number.
+          new OrderItem('o-4', 'Clavo', 3, 0, 'GTQ'),
+        ]),
+      ],
+      link: LINK,
+      linkHours: 24,
+    });
+
+    expect(mail?.text).toMatch(/3\.5 m × Cable — Q\s157\.50/);
+    expect(mail?.text).toMatch(/\n3 × Clavo/);
   });
 
   it('writes English for an English checkout, and copes with what is missing', () => {

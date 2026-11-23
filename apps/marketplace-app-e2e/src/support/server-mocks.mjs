@@ -401,10 +401,9 @@ const flowStatusHandler = http.get(FLOW_STATUS_URL, ({ request, params }) => {
 
 /** The IVA a 12 % IVA-inclusive gross carries, rounded once per document. */
 const ivaIncludedIn = lines => {
-  const gross = lines.reduce(
-    (sum, line) => sum + line.amount * line.quantity,
-    0,
-  );
+  // Each line's total as the storefront previewed it, which this mock states
+  // as the coordinator would: `lineTotal`, never a price times a quantity.
+  const gross = lines.reduce((sum, line) => sum + line.lineTotal, 0);
   return gross - Math.round((gross * 10000) / 11200);
 };
 

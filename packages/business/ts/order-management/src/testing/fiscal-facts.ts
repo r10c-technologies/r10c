@@ -1,3 +1,8 @@
+import {
+  lineTotal,
+  type PricePer,
+  type SaleUnit,
+} from '@r10c/business-ts-sales-vocabulary';
 import { taxDocument } from '@r10c/business-ts-tax-policy';
 
 import type { ProductOrder } from '../entities/product-order';
@@ -16,17 +21,40 @@ interface LineLike {
   readonly amount: number;
   readonly quantity: number;
   readonly currency?: string;
+  readonly saleUnit?: SaleUnit | undefined;
+  readonly pricePer?: PricePer | undefined;
 }
 
 /**
- * The fiscal facts a coordinator would state for these lines — the seller
- * above, a consumidor final, and each line's tax under the general rule —
- * as plain members, for a JSON body or an entity alike.
+ * What a coordinator states for each line: its unit and price basis — one
+ * piece, priced for one, unless the line already says — and the total they
+ * make, computed once by `lineTotal` (ADR 0082 §6).
+ */
+const termsOf = (line: LineLike) => {
+  const terms = {
+    saleUnit: line.saleUnit ?? ('UN' as const),
+    pricePer: line.pricePer ?? (1 as const),
+  };
+  return {
+    ...terms,
+    lineTotal: lineTotal({
+      amount: line.amount,
+      quantity: line.quantity,
+      ...terms,
+    }),
+  };
+};
+
+/**
+ * The facts a coordinator would state for these lines — each line's terms and
+ * total, the seller above, a consumidor final, and each line's tax under the
+ * general rule — as plain members, for a JSON body or an entity alike.
  */
 export const fiscalFactsFor = (lines: readonly LineLike[]) => {
+  const terms = lines.map(termsOf);
   const document = taxDocument(
-    lines.map(line => ({
-      gross: line.amount * line.quantity,
+    terms.map(line => ({
+      gross: line.lineTotal,
       treatment: 'taxed' as const,
     })),
     GENERAL,
@@ -42,7 +70,8 @@ export const fiscalFactsFor = (lines: readonly LineLike[]) => {
       totalAmount: document.totalAmount,
       currency: lines[0]?.currency ?? 'GTQ',
     },
-    lines: document.lines.map(line => ({
+    lines: document.lines.map((line, index) => ({
+      ...terms[index],
       kind: 'good',
       taxTreatment: 'taxed',
       ...line,
@@ -70,6 +99,8 @@ export const documentOrderBody = <T extends Record<string, unknown>>(
       amount: Number(item['amount']),
       quantity: Number(item['quantity']),
       currency: String(item['currency']),
+      saleUnit: item['saleUnit'] as SaleUnit | undefined,
+      pricePer: item['pricePer'] as PricePer | undefined,
     })),
   );
   return {

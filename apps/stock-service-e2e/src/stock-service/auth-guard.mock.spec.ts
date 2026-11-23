@@ -62,6 +62,7 @@ describe('an authenticated request', () => {
         meta: { type: 'entity', entity: 'stock-movement' },
         data: {
           offeringId: 'product-offering-1',
+          unit: 'UN',
           quantity: 1,
           reason: 'receipt',
         },

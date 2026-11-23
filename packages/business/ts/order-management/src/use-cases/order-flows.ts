@@ -10,6 +10,11 @@ import {
   drawOrderNumber,
   normalizeOrderNumber,
 } from '@r10c/business-ts-order-contracts';
+import {
+  isPricePer,
+  isSaleUnit,
+  lineTotal,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Context, Effect, Option } from 'effect';
 
 import type { CheckoutGroup } from '../entities/checkout-group';
@@ -172,6 +177,33 @@ export const foreignLinesProblem = (
     : undefined;
 
 /**
+ * Why an order's lines do not state what they cost, or `undefined`. Each line
+ * names its unit and its price basis, and its total is `lineTotal` over them —
+ * computed once by the coordinator and checked here, never trusted blind, so
+ * a line that lost its unit cannot be stored as one priced per piece
+ * (ADR 0082 §6).
+ */
+export const lineTotalsProblem = (order: ProductOrder): string | undefined =>
+  order.items.every(
+    line =>
+      isSaleUnit(line.saleUnit) &&
+      isPricePer(line.pricePer) &&
+      Number.isSafeInteger(line.amount) &&
+      Number.isSafeInteger(line.quantity) &&
+      line.amount >= 0 &&
+      line.quantity > 0 &&
+      line.lineTotal ===
+        lineTotal({
+          amount: line.amount,
+          pricePer: line.pricePer,
+          quantity: line.quantity,
+          saleUnit: line.saleUnit,
+        }),
+  )
+    ? undefined
+    : 'every line states its unit, its price basis and the total they make';
+
+/**
  * Why an order's fiscal facts cannot be stored as they were stated, or
  * `undefined`. They are recorded at placement or never (ADR 0078 §4), so an
  * order the coordinator stated without them — or whose lines do not add up to
@@ -186,10 +218,7 @@ export const fiscalFactsProblem = (order: ProductOrder): string | undefined => {
     return 'an order carries its seller’s fiscal identity';
   if (order.buyerTaxId === '')
     return 'an order names its buyer, or consumidor final';
-  const gross = order.items.reduce(
-    (sum, line) => sum + line.amount * line.quantity,
-    0,
-  );
+  const gross = order.items.reduce((sum, line) => sum + line.lineTotal, 0);
   const tax = order.items.reduce((sum, line) => sum + line.taxAmount, 0);
   const base = order.items.reduce((sum, line) => sum + line.taxableBase, 0);
   if (
@@ -226,6 +255,8 @@ export const placeOrder = (input: {
     const foreign = foreignLinesProblem(order.vendorId, input.rawLines);
     if (foreign !== undefined)
       return yield* new InvalidBody({ reason: foreign });
+    const totals = lineTotalsProblem(order);
+    if (totals !== undefined) return yield* new InvalidBody({ reason: totals });
     const fiscal = fiscalFactsProblem(order);
     if (fiscal !== undefined) return yield* new InvalidBody({ reason: fiscal });
 
@@ -291,6 +322,7 @@ export const cancellationInput = (
   paymentMethod: order.paymentMethod,
   lines: order.items.map(line => ({
     offeringId: line.offeringId,
+    unit: line.saleUnit,
     quantity: line.quantity,
   })),
   shipped: order.channel === undefined || order.channel.type === 'storefront',

@@ -46,7 +46,8 @@ it('never refunds more than was captured, however many refunds race', async () =
   ).toBe('completed');
   const [order] = await ordersOf(checkout.flowId);
   const orderId = String(order?.['id']);
-  const captured = offering.amount * quantity;
+  // The order's own total, as placed: never a price times a quantity again.
+  const captured = Number(order?.['totalAmount']);
   // Eight of these would empty the share; twenty are fired.
   const slice = Math.ceil(captured / 8);
 

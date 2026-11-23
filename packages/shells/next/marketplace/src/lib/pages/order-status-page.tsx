@@ -519,7 +519,7 @@ async function VendorOrderCard({
               </Stack>
               <Text>
                 <Money
-                  amount={line.amount * line.quantity}
+                  amount={line.lineTotal}
                   currency={line.currency}
                   unit="minor"
                   locale={locale}
