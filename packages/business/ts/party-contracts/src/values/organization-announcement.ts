@@ -70,6 +70,12 @@ export interface OrganizationAnnouncement {
    */
   readonly whatsappNumber: string;
   /**
+   * Whether the seller is one of the lab's sample stores, whose prices are
+   * illustrative (#676). Public, because the storefront says so beside every
+   * product and on the seller's page.
+   */
+  readonly sampleStore: boolean;
+  /**
    * The seller's fiscal identity, which the checkout copies onto every order
    * it writes for this seller (ADR 0078 §6). **Required**: an order placed
    * without it is a fact that cannot be recovered later, so an announcement
@@ -158,6 +164,7 @@ export const OrganizationAnnouncementSchema = openStruct({
   holdsStock: Schema.optional(Schema.Boolean),
   acceptsLink: Schema.optional(Schema.Boolean),
   whatsappNumber: Schema.optional(Schema.String),
+  sampleStore: Schema.optional(Schema.Boolean),
   fiscal: SellerFiscalIdentitySchema,
 });
 
@@ -191,6 +198,7 @@ export const readOrganizationAnnouncement = (
       holdsStock,
       acceptsLink,
       whatsappNumber,
+      sampleStore,
       fiscal,
     }) => ({
       organizationId,
@@ -200,6 +208,7 @@ export const readOrganizationAnnouncement = (
       holdsStock: holdsStock === true,
       acceptsLink: acceptsLink === true,
       whatsappNumber: whatsappNumber ?? '',
+      sampleStore: sampleStore === true,
       fiscal: {
         taxId: fiscal.taxId,
         legalName: fiscal.legalName,

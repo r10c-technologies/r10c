@@ -5,6 +5,7 @@ import {
 } from '@entifix/testing-e2e/playwright';
 
 import {
+  A_PIECE,
   listedUnder,
   PUBLISHED_OFFERINGS,
   SEARCH_HIT,
@@ -78,6 +79,13 @@ test.describe('the seeded fleet', () => {
     expect(ids).not.toContain(UNPUBLISHED_OFFERING.offeringId);
   });
 });
+
+/** Minor units as `/es` prints them: es-GT, a point before the centavos. */
+const quetzales = (minor: number): string =>
+  new Intl.NumberFormat('es-GT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(minor / 100);
 
 /** The published offering a card names, by the name its heading shows. */
 const seededByName = (name: string) => {
@@ -168,7 +176,7 @@ test.describe('browsing the published catalog', () => {
     // Minor units, rendered by `Intl` for this locale: the separator is the
     // assertion, since a page that skipped the formatter would show `8499`.
     await expect(page.getByRole('main')).toContainText(
-      (offering.amount / 100).toFixed(2).replace('.', ','),
+      quetzales(offering.amount),
     );
     // The seller's name is a projection of their organization (ADR 0061),
     // announced by auth-service — asked of the service, not restated.
@@ -180,7 +188,7 @@ test.describe('browsing the published catalog', () => {
   });
 
   test('a product page states its metadata', async ({ page }) => {
-    const offering = PUBLISHED_OFFERINGS[0];
+    const offering = A_PIECE;
     await page.goto(`/es/p/${offering.offeringId}`);
 
     await expect(page).toHaveTitle(`${offering.name} · r10c · Marketplace`);
@@ -205,9 +213,9 @@ test.describe('browsing the published catalog', () => {
   });
 
   test('a category lists only what was published into it', async ({ page }) => {
-    const offering = PUBLISHED_OFFERINGS[0];
+    const offering = A_PIECE;
     // Its own category's offerings and its active children's (ADR 0062).
-    const siblings = listedUnder(offering.categoryNumber);
+    const siblings = listedUnder(offering.categoryKey);
 
     await page.goto(`/es/c/${offering.categoryCode}`);
 
@@ -220,7 +228,7 @@ test.describe('browsing the published catalog', () => {
   });
 
   test('a brand facet narrows the results to that brand', async ({ page }) => {
-    const offering = PUBLISHED_OFFERINGS[0];
+    const offering = A_PIECE;
     const sameBrand = PUBLISHED_OFFERINGS.filter(
       each => each.brandName === offering.brandName,
     );
@@ -228,7 +236,12 @@ test.describe('browsing the published catalog', () => {
     await page.goto('/es/search');
     await page
       .getByRole('complementary', { name: 'Filtrar' })
-      .getByRole('link', { name: offering.brandName, exact: true })
+      // The facet names the brand and its count ("Tornimax 5").
+      .getByRole('link', {
+        name: new RegExp(
+          `^${offering.brandName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\d+$`,
+        ),
+      })
       .click();
 
     await page.waitForURL(/brand=/);
@@ -240,8 +253,11 @@ test.describe('browsing the published catalog', () => {
   test('sorting by price puts the cheapest publication first', async ({
     page,
   }) => {
+    // Ordered by the price of one whole unit, so screws at Q6.50 the hundred
+    // sort before a switch at Q18.00 each (ADR 0082 §5).
     const cheapest = [...PUBLISHED_OFFERINGS].sort(
-      (left, right) => left.amount - right.amount,
+      (left, right) =>
+        left.amount / left.pricePer - right.amount / right.pricePer,
     )[0];
 
     await page.goto('/es/search?sort=price-asc');
@@ -270,7 +286,7 @@ test.describe('browsing the published catalog', () => {
   });
 
   test('the buy box carries its quantity into the cart', async ({ page }) => {
-    const offering = PUBLISHED_OFFERINGS[0];
+    const offering = A_PIECE;
     await page.goto(`/es/p/${offering.offeringId}`);
 
     const buy = page.getByRole('form', { name: 'Comprar' });
@@ -279,7 +295,7 @@ test.describe('browsing the published catalog', () => {
 
     await page.waitForURL(/\/es\/cart(\?|$)/);
     await expect(page.getByTestId('cart-line-price')).toContainText(
-      ((offering.amount * 2) / 100).toFixed(2).replace('.', ','),
+      quetzales(offering.amount * 2),
     );
   });
 });

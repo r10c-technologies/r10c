@@ -55,11 +55,11 @@ const keyId = (): string => process.env['JWT_KEY_ID'] ?? E2E_KEY_ID;
  * ⚠️ Under `live` this must be the organization the service actually seeded, or
  * every journey reads an empty database and passes for the wrong reason — the
  * precise defect this suite exists to prevent. `SALES_ORGANIZATION_ID` is how a
- * live run names it; the local fleet seeds `demo-organization`.
+ * live run names it; the local fleet seeds `hardware-store`.
  */
 export const E2E_ORGANIZATION_ID =
   process.env['SALES_ORGANIZATION_ID'] ??
-  (isMockProfile() ? 'e2e-organization' : 'demo-organization');
+  (isMockProfile() ? 'e2e-organization' : 'hardware-store');
 
 /**
  * A valid access token for a principal carrying `roles`.

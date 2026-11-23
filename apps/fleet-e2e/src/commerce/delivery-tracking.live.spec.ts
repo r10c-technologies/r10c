@@ -1,9 +1,9 @@
 import {
   closeMongo,
   configValue,
-  DEMO,
   eventually,
   FLEET,
+  HARDWARE,
   mongo,
   ordersOf,
   recordGuide,
@@ -27,10 +27,10 @@ import { openStream, payloads } from '../support/stream';
 afterAll(closeMongo);
 
 const codCheckout = async () => {
-  const offering = await sellable(DEMO.organizationId, 1);
+  const offering = await sellable(HARDWARE.organizationId, 1);
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'cod',
       lines: [
         {
@@ -57,7 +57,7 @@ const dispatch = (orderId: string, bearer: string) =>
   });
 
 it('refuses a dispatch without a guide, then follows the parcel to the door by push', async () => {
-  const bearer = await vendorBearer(DEMO.organizationId);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
   const { checkout, orderId } = await codCheckout();
 
   // The buyer's receipt, open on the stream with its receipt nonce.
@@ -126,7 +126,7 @@ it('refuses a dispatch without a guide, then follows the parcel to the door by p
 }, 400_000);
 
 it('leaves the order with the guide its shipment left with when relabel and dispatch race', async () => {
-  const bearer = await vendorBearer(DEMO.organizationId);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
   const ORDERS = Number(process.env['LIVE_RACE_ORDERS'] ?? 6);
   const placed: string[] = [];
   for (let n = 0; n < ORDERS; n++) {
@@ -164,7 +164,7 @@ it('leaves the order with the guide its shipment left with when relabel and disp
   );
 
   const shipments = (
-    await mongo(`fulfilment_${DEMO.organizationId}`)
+    await mongo(`fulfilment_${HARDWARE.organizationId}`)
   ).collection('shipping-order');
   const orders = (await mongo('order')).collection('product-order');
   for (const orderId of placed) {

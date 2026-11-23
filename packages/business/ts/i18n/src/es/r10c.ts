@@ -169,6 +169,9 @@ export const r10c = {
       newest: 'Lo más nuevo',
       featured: 'Destacados',
     },
+    sampleStore: {
+      note: 'Tienda de muestra · los precios son ilustrativos, no una cotización.',
+    },
     seller: {
       overline: 'Tienda',
       empty: 'Este vendedor todavía no tiene productos publicados.',

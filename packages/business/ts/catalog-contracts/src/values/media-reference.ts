@@ -88,6 +88,26 @@ export const isHttpsUrl = (value: unknown): value is string => {
   }
 };
 
+/**
+ * The one shape of URL that is not `https` and still accepted: a picture of
+ * the lab's sample stores, generated at build time and served by the
+ * platform's own apps (#676) — `/samples/<store>/<product>.svg`, lower-case
+ * letters, digits and hyphens only.
+ *
+ * ⚠️ Matched whole, so `..`, a query, a second slash or another extension
+ * cannot ride along: it names one file the platform itself wrote, and resolves
+ * against whichever of its origins renders it. A vendor naming one shows a
+ * sample drawing, which is harmless; it cannot reach anything else.
+ */
+const SAMPLE_ART_PATH = /^\/samples\/[a-z0-9-]+\/[a-z0-9-]+\.svg$/;
+
+export const isSampleArtPath = (value: unknown): value is string =>
+  typeof value === 'string' && SAMPLE_ART_PATH.test(value);
+
+/** A URL an image may be rendered from: `https`, or the platform's sample art. */
+export const isMediaUrl = (value: unknown): value is string =>
+  isHttpsUrl(value) || isSampleArtPath(value);
+
 const hasAlt = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '';
 
@@ -102,7 +122,7 @@ export const mediaRefusal = (
   media: readonly Partial<MediaReferenceValue>[] | undefined,
 ): MediaRefusalCode | undefined => {
   if (media === undefined) return undefined;
-  if (media.some(entry => !isHttpsUrl(entry.url))) return MEDIA_NOT_HTTPS;
+  if (media.some(entry => !isMediaUrl(entry.url))) return MEDIA_NOT_HTTPS;
   if (media.some(entry => !hasAlt(entry.alt))) return MEDIA_ALT_MISSING;
   return undefined;
 };
@@ -153,7 +173,7 @@ export const readMedia = (
       (entry): entry is Record<string, unknown> =>
         entry !== null && typeof entry === 'object',
     )
-    .filter(entry => isHttpsUrl(entry['url']) && hasAlt(entry['alt']))
+    .filter(entry => isMediaUrl(entry['url']) && hasAlt(entry['alt']))
     .map(entry => ({
       url: entry['url'] as string,
       alt: entry['alt'] as string,

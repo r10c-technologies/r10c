@@ -1,4 +1,4 @@
-import { configValue, DEMO, present, vendorBearer } from '../support/lab';
+import { configValue, HARDWARE, present, vendorBearer } from '../support/lab';
 import { openStream, type Stream } from '../support/stream';
 
 /**
@@ -20,7 +20,7 @@ it('asks for a reauth inside the margin before exp, never after it', async () =>
     await configValue('realtime-service', 'realtime', 'reauthMarginMs'),
   );
   const issuedAt = Date.now();
-  const bearer = await vendorBearer(DEMO.organizationId, TTL_SECONDS);
+  const bearer = await vendorBearer(HARDWARE.organizationId, TTL_SECONDS);
   // `exp` is whole seconds from the signing clock.
   const expMs = (Math.floor(issuedAt / 1000) + TTL_SECONDS) * 1000;
 

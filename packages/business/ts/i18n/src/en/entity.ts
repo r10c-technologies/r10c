@@ -236,6 +236,7 @@ export const entity: EsEntity = {
       establishmentCode: 'Establishment code',
       acceptsPaymentLink: 'Takes payment links',
       whatsappNumber: 'WhatsApp',
+      sampleStore: 'Sample store',
       updatedAt: 'Last updated',
     },
     values: {
@@ -329,6 +330,7 @@ export const entity: EsEntity = {
       holdsStock: 'Holds stock',
       acceptsLink: 'Takes payment links',
       whatsappNumber: 'WhatsApp',
+      sampleStore: 'Sample store',
       taxId: 'Tax ID (NIT)',
       legalName: 'Legal name',
       taxRegime: 'Tax regime',

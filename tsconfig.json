@@ -374,6 +374,9 @@
     },
     {
       "path": "./apps/docs-site"
+    },
+    {
+      "path": "./tools/sample-media"
     }
   ],
   "compilerOptions": {

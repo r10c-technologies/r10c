@@ -39,14 +39,22 @@ export const userIdentitySeedData: ReadonlyArray<Record<string, unknown>> = [
     role: 'super-admin',
     identifiers: ['identifier-5'],
   },
-  // The second seeded vendor's member (#492): Alan's counterpart in
-  // `second-organization`, with the same role.
+  // The phone-accessories store's member (#492): Alan's counterpart in
+  // `phone-accessories-store`, with the same role.
   {
     id: 'user-5',
     displayName: 'Margaret Hamilton',
     status: 'active',
     role: 'admin',
     identifiers: ['identifier-6'],
+  },
+  // The shoemaking-supplies store's member (#676), with the same role.
+  {
+    id: 'user-6',
+    displayName: 'Hedy Lamarr',
+    status: 'active',
+    role: 'admin',
+    identifiers: ['identifier-7'],
   },
 ];
 
@@ -92,6 +100,13 @@ export const entityIdentifierSeedData: ReadonlyArray<Record<string, unknown>> =
       userId: 'user-5',
       type: IdentifierType.Email,
       value: 'margaret@example.com',
+      verified: true,
+    },
+    {
+      id: 'identifier-7',
+      userId: 'user-6',
+      type: IdentifierType.Email,
+      value: 'hedy@example.com',
       verified: true,
     },
   ];

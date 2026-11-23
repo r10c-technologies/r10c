@@ -2,81 +2,23 @@
  * What the **live** fleet's seed puts on the storefront.
  *
  * The rows themselves are written by three different services on boot — the
- * specifications and offerings by marketplace-admin-service
- * (`product-temp-data.ts`, `offering-temp-data.ts`), the brands and categories
- * by marketplace-service (`product-brand-temp-data.ts`,
- * `product-category-temp-data.ts`) — and what reaches `published-catalog` is
+ * specifications and offerings by marketplace-admin-service, the brands and
+ * categories by marketplace-service — and what reaches `published-catalog` is
  * only the subset ADR 0050's rebuild walk announces: the offerings the seed
  * stored `published`.
  *
- * The generation rules are **restated here rather than imported**, which is the
- * convention `back-office-app-e2e/src/support/catalog-seed.ts` already follows:
- * an e2e project reaching into an app's source couples two runtimes, and this
- * is fixture data — when the two diverge the live journeys fail, which is
- * exactly the signal wanted. What it costs is that a seed change has to be
- * mirrored here; what it buys is that a seed change nobody mirrored is caught
- * rather than absorbed.
+ * Every one of those services reads the sample stores' data from
+ * `@r10c/utils-ts-fleet` (#676), so this reads the same data rather than
+ * restating a formula: a product added to a store moves these expectations
+ * with it, and a seed writer that stopped following the data still fails the
+ * journeys.
  */
-
-/** `product-temp-data.ts`: ten families of six, over 20 brands and 50 categories. */
-const FAMILIES = [
-  'Widget',
-  'Gizmo',
-  'Sprocket',
-  'Cog',
-  'Lever',
-  'Piston',
-  'Valve',
-  'Gasket',
-  'Bearing',
-  'Flange',
-];
-const SPECIFICATION_COUNT = 60;
-const BRAND_COUNT = 20;
-const CATEGORY_COUNT = 50;
-
-/** `product-brand-temp-data.ts` and `product-category-temp-data.ts`. */
-const BRAND_NAMES = [
-  'Acme',
-  'Globex',
-  'Umbrella',
-  'Initech',
-  'Soylent',
-  'Hooli',
-  'Stark',
-  'Wayne',
-  'Wonka',
-  'Cyberdyne',
-];
-/**
- * The Spanish half of each base name: every live journey reads `/es`, and a
- * category's name is written per locale (#573).
- */
-const CATEGORY_NAMES = [
-  'Electrónica',
-  'Ropa',
-  'Hogar y cocina',
-  'Libros',
-  'Deportes y aire libre',
-  'Belleza y cuidado personal',
-  'Juguetes y juegos',
-  'Automotriz',
-  'Salud y bienestar',
-  'Mascotas',
-];
-
-/**
- * `offering-temp-data.ts`: one offering per specification, statuses cycled so
- * every verb has a record it applies to and a record it must refuse. Only the
- * second of every four is ever announced.
- */
-const STATUSES = ['draft', 'published', 'unpublished', 'pending-review'];
-
-/** `offering-temp-data.ts`: 19.99, 24.99, 29.99 … in minor units, three currencies. */
-const CURRENCIES = ['GTQ', 'USD', 'EUR'];
-
-const cycled = (names: readonly string[], index: number) =>
-  `${names[index % names.length]} ${Math.floor(index / names.length) + 1}`;
+import {
+  SAMPLE_BRANDS,
+  SAMPLE_CATEGORIES,
+  sampleCategory,
+  SEEDED_VENDORS,
+} from '@r10c/utils-ts-fleet';
 
 export interface SeededOffering {
   /** The storefront's address for it: `/p/<offeringId>` (ADR 0049). */
@@ -87,67 +29,95 @@ export interface SeededOffering {
   readonly code: string;
   /** The category's `code` — the slug `/c/<code>` carries. */
   readonly categoryCode: string;
-  /** The category's name, rendered as the category page's heading. */
+  /** The category's Spanish name, the category page's heading on `/es`. */
   readonly categoryName: string;
-  /** The category's number in the seed (`product-category-<n>`). */
-  readonly categoryNumber: number;
+  /** The category's key in the sample vocabulary. */
+  readonly categoryKey: string;
   /** The brand's name, rendered on the card and in the product page's overline. */
   readonly brandName: string;
   readonly amount: number;
   readonly currency: string;
+  /** How many whole units `amount` buys. */
+  readonly pricePer: number;
+  readonly saleUnit: string;
+  readonly status: string;
 }
 
-const offeringAt = (index: number): SeededOffering => {
-  const number = index + 1;
-  const brandNumber = (index % BRAND_COUNT) + 1;
-  const categoryNumber = (index % CATEGORY_COUNT) + 1;
+const brandName = (key: string): string =>
+  SAMPLE_BRANDS.find(([candidate]) => candidate === key)?.[1].name ?? key;
 
-  return {
-    offeringId: `product-offering-${number}`,
-    name: `${cycled(FAMILIES, index)} — oferta`,
-    code: `P-${String(number).padStart(4, '0')}`,
-    categoryCode: `PC-${String(categoryNumber).padStart(3, '0')}`,
-    categoryName: cycled(CATEGORY_NAMES, categoryNumber - 1),
-    categoryNumber,
-    brandName: cycled(BRAND_NAMES, brandNumber - 1),
-    amount: 1999 + index * 500,
-    currency: CURRENCIES[index % CURRENCIES.length],
-  };
-};
-
-const indices = Array.from(
-  { length: SPECIFICATION_COUNT },
-  (_, index) => index,
+const ALL_OFFERINGS: readonly SeededOffering[] = SEEDED_VENDORS.flatMap(
+  vendor =>
+    vendor.products.map((product, index): SeededOffering => {
+      const category = sampleCategory(product.category);
+      return {
+        offeringId: `${vendor.idPrefix}product-offering-${String(index + 1)}`,
+        name: product.name,
+        code: `P-${String(index + 1).padStart(4, '0')}`,
+        categoryCode: category.code,
+        categoryName: category.name.es,
+        categoryKey: product.category,
+        brandName: brandName(product.brand),
+        amount: product.amount,
+        currency: 'GTQ',
+        pricePer: product.pricePer,
+        saleUnit: product.unit,
+        status: product.status,
+      };
+    }),
 );
 
 /** Every offering the seed leaves `published`, and therefore in the projection. */
-export const PUBLISHED_OFFERINGS: readonly SeededOffering[] = indices
-  .filter(index => STATUSES[index % STATUSES.length] === 'published')
-  .map(offeringAt);
+export const PUBLISHED_OFFERINGS: readonly SeededOffering[] =
+  ALL_OFFERINGS.filter(offering => offering.status === 'published');
+
+const required = <A>(value: A | undefined, what: string): A => {
+  if (value === undefined) {
+    throw new Error(`The live seed no longer has ${what}.`);
+  }
+  return value;
+};
 
 /**
- * `product-category-temp-data.ts`: two levels (ADR 0062). The first ten
- * categories are roots and every later one sits under the root its base name
- * came from; the multiples of five are retired.
+ * A published offering sold by the piece and priced for one: what a journey
+ * that types a quantity of `2` and expects twice the price means.
  */
-const isActiveCategory = (number: number) => number % 5 !== 0;
-const rootOf = (number: number) => ((number - 1) % CATEGORY_NAMES.length) + 1;
+export const A_PIECE: SeededOffering = required(
+  PUBLISHED_OFFERINGS.find(
+    offering => offering.saleUnit === 'UN' && offering.pricePer === 1,
+  ),
+  'a published offering sold by the piece',
+);
+
+/** The keys of `key` and every active category under it. */
+const subtreeOf = (key: string): Set<string> => {
+  const keys = new Set([key]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const [candidate, category] of SAMPLE_CATEGORIES) {
+      if (
+        category.parent !== undefined &&
+        keys.has(category.parent) &&
+        category.retired === undefined &&
+        !keys.has(candidate)
+      ) {
+        keys.add(candidate);
+        grew = true;
+      }
+    }
+  }
+  return keys;
+};
 
 /**
  * What `/c/<code>` lists: the offerings in that category and in every active
  * category under it, because a category page lists its whole subtree.
  */
-export const listedUnder = (
-  categoryNumber: number,
-): readonly SeededOffering[] =>
-  PUBLISHED_OFFERINGS.filter(
-    offering =>
-      offering.categoryNumber === categoryNumber ||
-      (categoryNumber <= CATEGORY_NAMES.length &&
-        offering.categoryNumber > CATEGORY_NAMES.length &&
-        rootOf(offering.categoryNumber) === categoryNumber &&
-        isActiveCategory(offering.categoryNumber)),
-  );
+export const listedUnder = (categoryKey: string): readonly SeededOffering[] => {
+  const keys = subtreeOf(categoryKey);
+  return PUBLISHED_OFFERINGS.filter(offering => keys.has(offering.categoryKey));
+};
 
 /**
  * One offering the seed leaves `draft`.
@@ -156,41 +126,60 @@ export const listedUnder = (
  * projection of what was announced, not a copy of tenant storage, and a page
  * that resolved this id would mean the storefront was reading the wrong store.
  */
-export const UNPUBLISHED_OFFERING: SeededOffering = offeringAt(
-  indices.find(index => STATUSES[index % STATUSES.length] === 'draft') ?? 0,
+export const UNPUBLISHED_OFFERING: SeededOffering = required(
+  ALL_OFFERINGS.find(offering => offering.status === 'draft'),
+  'a draft offering',
 );
 
+/** How the storefront's `q` matches a name: contained, accents and case aside. */
+const folded = (text: string): string =>
+  text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+
+const publishedNamed = (word: string): readonly SeededOffering[] =>
+  PUBLISHED_OFFERINGS.filter(offering =>
+    folded(offering.name).includes(folded(word)),
+  );
+
+const wordsOf = (offerings: readonly SeededOffering[]): string[] =>
+  [
+    ...new Set(
+      offerings.flatMap(offering =>
+        offering.name.split(/[^\p{L}]+/u).filter(word => word.length >= 5),
+      ),
+    ),
+  ].sort();
+
 /**
- * A family the seed publishes more than once, and one it never publishes.
- *
- * The statuses cycle every four and the families every ten, so the two cycles
- * beat against each other: some families land on `published` repeatedly and
- * some never do at all. That second group is what makes a search assertion
- * meaningful — a term matching six specifications in tenant storage and no
- * published offering proves the storefront reads the **projection** rather than
- * the catalog it projects.
+ * A word the storefront must find, and every published offering it names:
+ * at least two of them, few enough to fit one page.
  */
-const familyGroups = FAMILIES.map(family => ({
-  family,
-  published: PUBLISHED_OFFERINGS.filter(offering =>
-    offering.name.startsWith(`${family} `),
+export const SEARCH_HIT: {
+  readonly family: string;
+  readonly published: readonly SeededOffering[];
+} = (() => {
+  const family = required(
+    wordsOf(PUBLISHED_OFFERINGS).find(word => {
+      const count = publishedNamed(word).length;
+      return count >= 2 && count <= 6;
+    }),
+    'a word naming two to six published offerings',
+  );
+  return { family, published: publishedNamed(family) };
+})();
+
+/**
+ * A word that names real specifications and no published offering — what
+ * proves the storefront reads the **projection** rather than the catalog it
+ * projects.
+ */
+export const SEARCH_MISS: { readonly family: string } = {
+  family: required(
+    wordsOf(
+      ALL_OFFERINGS.filter(offering => offering.status !== 'published'),
+    ).find(word => publishedNamed(word).length === 0),
+    'a word naming only unpublished offerings',
   ),
-}));
-
-const familyWhere = (
-  matches: (published: readonly SeededOffering[]) => boolean,
-): { family: string; published: readonly SeededOffering[] } => {
-  const found = familyGroups.find(group => matches(group.published));
-  if (found === undefined) {
-    throw new Error(
-      'The live seed no longer produces the family groups the storefront search journeys need.',
-    );
-  }
-  return found;
 };
-
-/** A term the storefront must find, and every published offering it names. */
-export const SEARCH_HIT = familyWhere(published => published.length >= 2);
-
-/** A term that names real specifications and no published offering. */
-export const SEARCH_MISS = familyWhere(published => published.length === 0);

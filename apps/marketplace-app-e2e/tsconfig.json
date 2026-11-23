@@ -27,6 +27,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/utils/ts/fleet"
+    },
+    {
       "path": "../../packages/testing/catalog-fixtures"
     },
     {

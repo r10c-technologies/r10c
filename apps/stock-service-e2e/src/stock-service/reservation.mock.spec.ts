@@ -30,12 +30,13 @@ type Page = {
 };
 
 /**
- * `product-offering-1` is seeded with a single receipt of 10 and no holds, so
- * its availability is exactly 10 at the start of this file.
+ * `product-offering-7`, the hardware store's wall anchors (#676), is seeded
+ * with a single receipt of 40 and no holds, so its availability is exactly 40
+ * at the start of this file.
  */
-const OFFERING = 'product-offering-1';
+const OFFERING = 'product-offering-7';
 /** Seeded with no `StockItem` row at all — a different path from zero on hand. */
-const UNSTOCKED = 'product-offering-41';
+const UNSTOCKED = 'product-offering-20';
 
 const crossing = (organizationId: string = E2E_ORGANIZATION_ID) => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,

@@ -38,7 +38,11 @@ export const productJsonLd = ({
     ...(offering.description ? { description: offering.description } : {}),
     ...(offering.code ? { sku: offering.code } : {}),
     ...(offering.media && offering.media.length > 0
-      ? { image: offering.media.map(picture => picture.url) }
+      ? {
+          // Absolute, as schema.org asks: a sample store's picture is a path
+          // on this origin (#676), resolved against the page's own URL.
+          image: offering.media.map(picture => new URL(picture.url, url).href),
+        }
       : {}),
     ...(brandName ? { brand: { '@type': 'Brand', name: brandName } } : {}),
     offers: {

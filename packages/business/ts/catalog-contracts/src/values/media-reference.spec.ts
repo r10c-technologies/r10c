@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isHttpsUrl,
+  isMediaUrl,
+  isSampleArtPath,
   MEDIA_ALT_MISSING,
   MEDIA_NOT_HTTPS,
   MediaReference,
@@ -33,6 +35,29 @@ describe('isHttpsUrl', () => {
   it('refuses a value that is not a string', () => {
     expect(isHttpsUrl(42)).toBe(false);
     expect(isHttpsUrl(undefined)).toBe(false);
+  });
+});
+
+describe('isSampleArtPath', () => {
+  it("accepts a generated sample picture on the platform's own origin", () => {
+    expect(
+      isSampleArtPath('/samples/ferreteria-el-martillo/martillo-16.svg'),
+    ).toBe(true);
+    expect(isMediaUrl('/samples/a/b.svg')).toBe(true);
+  });
+
+  it.each([
+    ['another folder', '/images/a.svg'],
+    ['a parent step', '/samples/../etc/passwd.svg'],
+    ['a nested folder', '/samples/a/b/c.svg'],
+    ['another extension', '/samples/a/b.png'],
+    ['a query', '/samples/a/b.svg?x=1'],
+    ['upper case', '/samples/A/b.svg'],
+    ['protocol-relative', '//samples/a/b.svg'],
+    ['not a string', 7],
+  ])('refuses %s', (_label, value) => {
+    expect(isSampleArtPath(value)).toBe(false);
+    expect(isMediaUrl(value)).toBe(false);
   });
 });
 
@@ -101,6 +126,12 @@ describe('readMedia', () => {
     ).toEqual([
       { url: 'https://cdn.example/a.jpg', alt: 'Front' },
       { url: 'https://cdn.example/b.jpg', alt: 'Back' },
+    ]);
+  });
+
+  it('keeps a sample picture the platform serves itself', () => {
+    expect(readMedia([{ url: '/samples/a/b.svg', alt: 'B' }])).toEqual([
+      { url: '/samples/a/b.svg', alt: 'B' },
     ]);
   });
 

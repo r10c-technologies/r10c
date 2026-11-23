@@ -50,8 +50,15 @@ const keyId = (): string => process.env['JWT_KEY_ID'] ?? E2E_KEY_ID;
  * this claim. A token without it is not "an admin with less data" — it gets
  * `409 noActiveOrganization`, which is the correct answer for a caller with
  * no tenant scope and a confusing one to debug from a spec that simply forgot.
+ *
+ * ⚠️ Under `live` it must be the organization the lab seeded, or every
+ * journey reads an empty `tenant_<id>`: the hardware store (#676), whose
+ * catalog the mock seeds under `e2e-organization` too.
+ * `MARKETPLACE_ADMIN_ORGANIZATION_ID` names another.
  */
-export const E2E_ORGANIZATION_ID = 'e2e-organization';
+export const E2E_ORGANIZATION_ID =
+  process.env['MARKETPLACE_ADMIN_ORGANIZATION_ID'] ??
+  (isMockProfile() ? 'e2e-organization' : 'hardware-store');
 
 /**
  * A valid access token for a principal carrying `roles`.

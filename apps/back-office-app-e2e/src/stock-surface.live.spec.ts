@@ -6,7 +6,7 @@ import {
 
 /**
  * The stock surface against the real fleet: a real session, the app's own
- * `/api/stock` proxy, and stock-service reading `stock_demo-organization`.
+ * `/api/stock` proxy, and stock-service reading `stock_hardware-store`.
  *
  * The mock suite beside this one asserts the same affordances against stubbed
  * descriptors, which is what makes it hermetic and what bounds it: it cannot
@@ -17,7 +17,7 @@ import {
  * ⚠️ **Alan, not Ada, and not by preference.** Ada is platform staff and holds
  * no membership, so her token carries no `activeOrganizationId` — every tenant
  * read answers `409 noActiveOrganization`, which looks exactly like a broken
- * screen. Alan is the demo organization's member.
+ * screen. Alan is the hardware store's member.
  *
  * ⚠️ It also depends on the organization being **provisioned** for the domain.
  * The stock nav items are `entitled: true`, so ADR 0007's second ceiling hides
@@ -33,26 +33,27 @@ import {
 const VENDOR = 'alan@example.com';
 
 /**
- * Seeded by stock-service: `product-offering-9`, a lone receipt of 66, and
- * nothing has held any. A list names it by its offering (#552), so the row is
- * found by that name: the seed calls offering *n* `<family> <k> — oferta`.
+ * Seeded by stock-service from the hardware store's catalog (#676): the wall
+ * anchors, `product-offering-7`, a lone receipt of 40, and nothing has held
+ * any. A list names it by its offering (#552), so the row is found by that
+ * name.
  */
 const SEEDED = {
-  offeringId: 'product-offering-9',
-  name: 'Bearing 1 — oferta',
-  onHand: 66,
+  offeringId: 'product-offering-7',
+  name: 'Taco de expansión ¼", bolsa de 25',
+  onHand: 40,
 };
 
 /**
- * A *different* seeded offering for the write journey below,
+ * A *different* seeded offering for the write journey below, the switches,
  * `product-offering-8`.
  *
  * The read journey asserts an exact seeded total, so nothing may move
- * `product-offering-9` or the next run reads a number one receipt out of date.
+ * `product-offering-7` or the next run reads a number one receipt out of date.
  */
 const WRITEABLE = {
   offeringId: 'product-offering-8',
-  name: 'Gasket 1 — oferta',
+  name: 'Apagador sencillo con placa',
 };
 
 type Page = import('@playwright/test').Page;
@@ -62,8 +63,8 @@ type Page = import('@playwright/test').Page;
  *
  * ⚠️ The list opens on what is running out (#555), which puts a seeded total
  * wherever its availability falls, often past the first page. Sorted by
- * `Producto` — the offering id — descending, `product-offering-9` and `-8`
- * are the first two rows. Ascending would open on the `e2e-*` offerings
+ * `Producto` — the offering id — descending, `product-offering-9`, `-8` and
+ * `-7` are the first three rows. Ascending would open on the `e2e-*` offerings
  * stock-service's live suite leaves behind, which sort before `product-…`.
  */
 const openByOffering = async (page: Page) => {
@@ -91,7 +92,9 @@ const onHandOf = async (page: Page, name: string): Promise<number> => {
     .evaluateAll(cells => cells.map(cell => (cell.textContent ?? '').trim()));
   const column = headers.findIndex(header => header.startsWith('En almacén'));
   const cells = rowFor(page, name).locator('th, td');
-  return Number(await cells.nth(column).innerText());
+  // A quantity is shown with its unit since ADR 0082 (`40 u.`), formatted for
+  // es-GT: the digits are the figure.
+  return Number((await cells.nth(column).innerText()).replace(/[^\d.-]/g, ''));
 };
 
 test.beforeEach(async ({ context }) => {
@@ -147,6 +150,14 @@ test('records a receipt and moves the total by exactly that much', async ({
   await page.goto(
     `/stock/stock-movement/new?prefill.offeringId=${WRITEABLE.offeringId}`,
   );
+  // The unit first: a quantity means nothing without it, so the field stays
+  // disabled until one is chosen (ADR 0082 §2).
+  // Retried: a choice made before the form hydrates is reset by it.
+  const unit = page.getByRole('combobox', { name: 'Unidad' });
+  await expect(async () => {
+    await unit.selectOption({ label: 'Unidad' });
+    await expect(unit).toHaveValue('UN', { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
   await page.getByLabel('Cantidad').fill('7');
   await page.getByLabel('Motivo').selectOption('receipt');
   await page.getByRole('button', { name: 'Guardar' }).click();

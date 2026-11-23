@@ -15,6 +15,7 @@ import { notFound } from 'next/navigation';
 
 import { AddedNotice } from '../cart/added-notice';
 import { OfferingListing } from '../catalog/offering-listing';
+import { SampleStoreNote } from '../catalog/sample-store-note';
 import { findSeller } from '../catalog/seller-read';
 import { storePaths } from '../routing/paths';
 import { storefrontOrigin } from '../seo/page-metadata';
@@ -67,6 +68,10 @@ export async function SellerPage({
           <Overline>{t('storefront.seller.overline')}</Overline>
           <HeadingOne>{seller.name}</HeadingOne>
         </Stack>
+
+        {seller.sampleStore ? (
+          <SampleStoreNote label={t('storefront.sampleStore.note')} />
+        ) : null}
 
         <Cluster gap="s">
           <a

@@ -51,7 +51,7 @@ import {
   seedStock,
   SERVICE_NAME,
 } from '@r10c/stock-service';
-import { DEMO_VENDOR, fleetToken } from '@r10c/utils-ts-fleet';
+import { fleetToken, HARDWARE_STORE } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { E2E_CROSSING_TOKEN, E2E_ORGANIZATION_ID } from './tokens';
@@ -151,7 +151,7 @@ const MockAppLayer = (() => {
     Layer.provideMerge(
       Layer.mergeAll(
         Layer.effectDiscard(
-          seedStock(`stock_${E2E_ORGANIZATION_ID}`, DEMO_VENDOR),
+          seedStock(`stock_${E2E_ORGANIZATION_ID}`, HARDWARE_STORE),
         ),
         directory,
       ),

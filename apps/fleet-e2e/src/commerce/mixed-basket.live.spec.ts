@@ -1,12 +1,12 @@
 import {
   closeMongo,
-  DEMO,
   eventually,
   FLEET,
+  HARDWARE,
   mongo,
   ordersOf,
+  PHONE,
   recordGuide,
-  SECOND,
   sellable,
   settled,
   startCheckout,
@@ -28,19 +28,19 @@ const cutOf = (gross: number) =>
   Math.round((gross * AGREEMENT_BASIS_POINTS) / 10_000);
 
 it('settles a basket spanning two vendors, each at its own cut', async () => {
-  const card = await sellable(DEMO.organizationId);
-  const cod = await sellable(SECOND.organizationId);
+  const card = await sellable(HARDWARE.organizationId);
+  const cod = await sellable(PHONE.organizationId);
 
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'card',
       lines: [
         { offeringId: card.offeringId, quantity: 1, amount: card.amount },
       ],
     },
     {
-      vendorId: SECOND.organizationId,
+      vendorId: PHONE.organizationId,
       paymentMethod: 'cod',
       lines: [{ offeringId: cod.offeringId, quantity: 1, amount: cod.amount }],
     },
@@ -52,12 +52,12 @@ it('settles a basket spanning two vendors, each at its own cut', async () => {
 
   const orders = await ordersOf(checkout.flowId);
   expect(orders.map(order => order['vendorId']).sort()).toEqual(
-    [DEMO.organizationId, SECOND.organizationId].sort(),
+    [HARDWARE.organizationId, PHONE.organizationId].sort(),
   );
   const orderOf = (vendorId: string) =>
     String(orders.find(order => order['vendorId'] === vendorId)?.['id']);
-  const cardOrder = orderOf(DEMO.organizationId);
-  const codOrder = orderOf(SECOND.organizationId);
+  const cardOrder = orderOf(HARDWARE.organizationId);
+  const codOrder = orderOf(PHONE.organizationId);
 
   // One capture, allocated to the card order alone.
   const allocations = await (
@@ -73,7 +73,7 @@ it('settles a basket spanning two vendors, each at its own cut', async () => {
 
   // The cash order ships and is delivered: the second vendor dispatches, the
   // courier reports, and the delivery flow records the cash collected.
-  const bearer = await vendorBearer(SECOND.organizationId);
+  const bearer = await vendorBearer(PHONE.organizationId);
   expect((await recordGuide(codOrder, bearer)).status).toBe(200);
   const dispatched = await fetch(
     `${FLEET.fulfilment}/api/shipping-order/${codOrder}/dispatch`,
@@ -112,14 +112,14 @@ it('settles a basket spanning two vendors, each at its own cut', async () => {
     entries.find(entry => entry['orderId'] === orderId);
 
   expect(lineOf(cardOrder)).toMatchObject({
-    vendorId: DEMO.organizationId,
+    vendorId: HARDWARE.organizationId,
     saleAmount: card.amount,
     commissionAmount: cutOf(card.amount),
     collectedBy: 'platform',
   });
   // The vendor holds the cash, so the platform's cut is what it is owed.
   expect(lineOf(codOrder)).toMatchObject({
-    vendorId: SECOND.organizationId,
+    vendorId: PHONE.organizationId,
     saleAmount: cod.amount,
     commissionAmount: cutOf(cod.amount),
     collectedBy: 'vendor',

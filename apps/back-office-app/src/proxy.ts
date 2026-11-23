@@ -92,6 +92,8 @@ export function proxy(request: NextRequest) {
  * refuse the request — and `/api/auth/callback` in particular *must* be
  * reachable without a session, since it is where a visitor arrives to get one.
  */
+// `samples/` is the sample stores' own art (#676), a static file in
+// `public/`: a locale redirect on it would be a broken picture.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|api|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|api|samples/|favicon.ico).*)'],
 };

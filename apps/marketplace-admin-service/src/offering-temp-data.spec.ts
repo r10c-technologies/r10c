@@ -1,8 +1,18 @@
+import { SaleUnits } from '@r10c/business-ts-sales-vocabulary';
+import { SEEDED_VENDORS } from '@r10c/utils-ts-fleet';
 import { describe, expect, it } from 'vitest';
 
-import { offeringPriceTempData, offeringTempData } from './offering-temp-data';
+import {
+  offeringPriceTempDataFor,
+  offeringTempDataFor,
+} from './offering-temp-data';
+import { productTempDataFor } from './product-temp-data';
 
-describe('offeringTempData', () => {
+const offerings = SEEDED_VENDORS.flatMap(offeringTempDataFor);
+const prices = SEEDED_VENDORS.flatMap(offeringPriceTempDataFor);
+const specifications = SEEDED_VENDORS.flatMap(productTempDataFor);
+
+describe('the seeded catalog', () => {
   /**
    * ⚠️ The seed is the reason #215 exists.
    *
@@ -12,59 +22,60 @@ describe('offeringTempData', () => {
    * its status was decided, so a seed that omits one leaves a fresh lab serving
    * an empty storefront exactly as before.
    */
-  it('stamps every seeded offering with the moment its status was decided', () => {
-    expect(
-      offeringTempData.every(
-        offering => offering.statusChangedAt instanceof Date,
-      ),
-    ).toBe(true);
-  });
-
-  it('uses one fixed moment, so a reset is reproducible', () => {
+  it('stamps every seeded offering with one fixed moment', () => {
     // The announcement's id is `<offeringId>:<publishedAt>`. A moment read from
     // the clock at module load would give every boot different event ids and
     // make each restart look like a fresh publication.
     const moments = new Set(
-      offeringTempData.map(offering => offering.statusChangedAt.toISOString()),
+      offerings.map(offering => offering.statusChangedAt.toISOString()),
     );
 
     expect(moments.size).toBe(1);
   });
 
-  it('seeds offerings the walk can actually announce', () => {
-    // Publishing needs a price and a specification, so a seeded `published`
-    // offering missing either is reported unannounceable rather than projected.
-    const priced = new Set(
-      offeringPriceTempData.map(price => price.offeringId),
+  it('prices every offering once, in quetzales', () => {
+    expect(prices.map(price => price.offeringId)).toEqual(
+      offerings.map(offering => offering.id),
     );
-
-    expect(
-      offeringTempData
-        .filter(offering => offering.status === 'published')
-        .every(offering => priced.has(offering.id)),
-    ).toBe(true);
+    expect(new Set(prices.map(price => price.currency))).toEqual(
+      new Set(['GTQ']),
+    );
   });
 
-  // One sold by the metre and one priced per hundred reach the storefront, so
-  // a reset lab shows both cases ADR 0082 adds without anybody editing a row.
-  it('publishes one offering by the half metre and one priced per hundred', () => {
-    const metre = offeringTempData.find(
-      offering => offering.id === 'product-offering-10',
-    );
-    const perHundred = offeringPriceTempData.find(
-      price => price.offeringId === 'product-offering-22',
-    );
+  it('keeps every id unique across stores', () => {
+    // One published catalog keyed by offering id.
+    for (const ids of [
+      offerings.map(offering => offering.id),
+      prices.map(price => price.id),
+      specifications.map(specification => specification.id),
+    ]) {
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
 
-    expect(metre).toMatchObject({
-      status: 'published',
-      saleUnit: 'M',
-      quantityStep: 500,
-      quantityMinimum: 1000,
-    });
-    expect(perHundred).toMatchObject({ pricePer: 100, currency: 'GTQ' });
+  it('sells only in units the vocabulary declares', () => {
+    for (const offering of offerings) {
+      expect(SaleUnits).toContain(offering.saleUnit);
+    }
+  });
+
+  it('serves every picture from the platform', () => {
+    for (const specification of specifications) {
+      expect(specification.media[0]?.url).toMatch(/^\/samples\/[a-z-]+\//);
+    }
+  });
+
+  it('names what a phone accessory fits, and nothing else', () => {
+    const [hardware, phones] = SEEDED_VENDORS;
     expect(
-      offeringTempData.find(offering => offering.id === 'product-offering-22')
-        ?.status,
-    ).toBe('published');
+      productTempDataFor(phones).every(
+        specification => (specification.fitsDeviceModelIds?.length ?? 0) > 0,
+      ),
+    ).toBe(true);
+    expect(
+      productTempDataFor(hardware).some(
+        specification => 'fitsDeviceModelIds' in specification,
+      ),
+    ).toBe(false);
   });
 });

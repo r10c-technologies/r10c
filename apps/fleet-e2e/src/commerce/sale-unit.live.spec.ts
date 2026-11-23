@@ -5,10 +5,12 @@ import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
 import {
   closeMongo,
   crossingHeaders,
-  DEMO,
   eventually,
   FLEET,
+  HARDWARE,
   mongo,
+  offeringIdOf,
+  offeringIdsWith,
   ordersOf,
   present,
   settled,
@@ -31,12 +33,12 @@ import {
  */
 afterAll(closeMongo);
 
-/** The demo vendor's cable, Q64.99 the metre, by the half metre from one. */
-const METRE = 'product-offering-10';
-/** The demo vendor's part, Q124.99 the hundred, by the piece. */
-const PER_HUNDRED = 'product-offering-22';
+/** The hardware store's THHN cable, by the half metre from one. */
+const METRE = offeringIdOf(HARDWARE, 'cable-thhn-12');
+/** The hardware store's wood screws, priced per hundred, by the piece. */
+const PER_HUNDRED = offeringIdOf(HARDWARE, 'tornillo-madera-8');
 
-const STOCK_DB = `stock_${DEMO.organizationId}`;
+const STOCK_DB = `stock_${HARDWARE.organizationId}`;
 const AGREEMENT_BASIS_POINTS = 800;
 
 const published = async (offeringId: string) => {
@@ -74,7 +76,7 @@ const admin = async (
   const res = await fetch(`${FLEET.marketplaceAdmin}/api/${path}`, {
     method,
     headers: {
-      authorization: await vendorBearer(DEMO.organizationId),
+      authorization: await vendorBearer(HARDWARE.organizationId),
       'content-type': 'application/json',
       'idempotency-key': `"${randomUUID()}"`,
     },
@@ -114,7 +116,7 @@ it('sells 3.5 m by card at its line total, end to end', async () => {
 
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'card',
       lines: [{ offeringId: METRE, quantity: 3500, amount }],
     },
@@ -223,7 +225,7 @@ it('charges a part priced per hundred by the hundred', async () => {
   const part = await published(PER_HUNDRED);
   expect(part).toMatchObject({ saleUnit: 'UN', pricePer: 100 });
   const amount = Number(part['amount']);
-  // 250 at Q124.99 the hundred: Q312.475, rounded half up to Q312.48.
+  // 250 at the hundred's price: two and a half hundreds, rounded half up.
   const expected = lineTotal({
     amount,
     quantity: 250,
@@ -234,7 +236,7 @@ it('charges a part priced per hundred by the hundred', async () => {
 
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'cod',
       lines: [{ offeringId: PER_HUNDRED, quantity: 250, amount }],
     },
@@ -251,12 +253,12 @@ it('charges a part priced per hundred by the hundred', async () => {
 it('puts back exactly what a cancelled measured order took, in metres', async () => {
   const cable = await published(METRE);
   const amount = Number(cable['amount']);
-  const bearer = await vendorBearer(DEMO.organizationId);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
   const before = await stockOf(METRE);
 
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'cod',
       lines: [{ offeringId: METRE, quantity: 3500, amount }],
     },
@@ -293,7 +295,7 @@ it('puts back exactly what a cancelled measured order took, in metres', async ()
 });
 
 it('refuses at the till a quantity the cable is not sold in, and sells one it is', async () => {
-  const bearer = await vendorBearer(DEMO.organizationId);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
   const sell = (quantity: number) =>
     fetch(`${FLEET.sales}/api/sales-channel/sales-channel-counter/sell`, {
       method: 'POST',
@@ -345,7 +347,7 @@ it('lets holds on the last metres take exactly the metres there are', async () =
         headers: {
           ...headers,
           'idempotency-key': key(),
-          'x-organization-id': DEMO.organizationId,
+          'x-organization-id': HARDWARE.organizationId,
         },
         body: JSON.stringify({ offeringId: METRE, unit: 'M', quantity }),
       }).then(async res => ({
@@ -380,7 +382,7 @@ it('lets holds on the last metres take exactly the metres there are', async () =
         headers: {
           ...headers,
           'idempotency-key': key(),
-          'x-organization-id': DEMO.organizationId,
+          'x-organization-id': HARDWARE.organizationId,
         },
       }),
     ),
@@ -391,7 +393,7 @@ it('lets holds on the last metres take exactly the metres there are', async () =
 });
 
 it('fixes a new item’s unit by whichever first movement wins', async () => {
-  const bearer = await vendorBearer(DEMO.organizationId);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
   const offeringId = `live-unit-race-${randomBytes(4).toString('hex')}`;
   const receive = (unit: 'UN' | 'M') =>
     fetch(`${FLEET.stock}/api/stock-movement`, {
@@ -427,7 +429,7 @@ it('fixes a new item’s unit by whichever first movement wins', async () => {
  * offering; whichever answers, an edit that was answered `200` is still there.
  */
 it('never loses an edit a publication raced', async () => {
-  const id = 'product-offering-50';
+  const id = offeringIdOf(HARDWARE, 'martillo-16');
   for (let round = 0; round < 6; round += 1) {
     const before = await offering(id);
     expect(before['status']).toBe('published');
@@ -458,12 +460,9 @@ it('never loses an edit a publication raced', async () => {
  * publication carries the unit the record held when it committed.
  */
 it('never loses a sale unit a publication raced', async () => {
-  for (const id of [
-    'product-offering-29',
-    'product-offering-33',
-    'product-offering-37',
-    'product-offering-41',
-  ]) {
+  // The hardware store's drafts: published by the race, so a second pass
+  // needs a reset, as it always did.
+  for (const id of offeringIdsWith(HARDWARE, 'draft')) {
     const before = await offering(id);
     expect(before['status']).toBe('draft');
     const [unitSet, publishedAnswer] = await Promise.all([

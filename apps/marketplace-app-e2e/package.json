@@ -18,6 +18,7 @@
           "@r10c/business-ts-i18n:build",
           "@r10c/business-ts-marketplace-catalog:build",
           "@r10c/business-ts-marketplace-vendor:build",
+          "@r10c/utils-ts-fleet:build",
           "@entifix/business:build",
           "@entifix/mongo:build",
           "@entifix/redis:build",
@@ -32,6 +33,7 @@
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@entifix/testing-e2e": "catalog:",
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
-    "@r10c/testing-catalog-fixtures": "workspace:*"
+    "@r10c/testing-catalog-fixtures": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*"
   }
 }

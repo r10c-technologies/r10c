@@ -37,7 +37,7 @@ import {
   httpFlowStarterLayer,
   httpPublishedPriceReaderLayer,
 } from '@r10c/shells-effect-service';
-import { DEMO_VENDOR, fleetToken } from '@r10c/utils-ts-fleet';
+import { fleetToken, HARDWARE_STORE } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
 import { E2E_ORGANIZATION_ID } from './tokens';
@@ -131,7 +131,7 @@ const MockAppLayer = (() => {
     MongoTenantRepositoryFactoryLayer,
     Layer.provideMerge(
       Layer.effectDiscard(
-        seedSales(`sales_${E2E_ORGANIZATION_ID}`, DEMO_VENDOR),
+        seedSales(`sales_${E2E_ORGANIZATION_ID}`, HARDWARE_STORE),
       ),
       connections,
     ),

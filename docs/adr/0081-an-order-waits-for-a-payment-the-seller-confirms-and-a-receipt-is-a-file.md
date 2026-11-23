@@ -5,6 +5,7 @@
 - Revised: 2026-11-19 by the payment-confirmation build (#667): the wait is `@2` and provides the authorization number; the confirmation is recorded on the collection route
 - Revised: 2026-11-20 by the delivery-tracking build (#669 #670 #671): the order learns its guide through `order.mark-shipped@1`, the simulator is a feed sweep behind a dial, the buyer's receipt follows its orders by push on the receipt digest, and a seller states a WhatsApp number
 - Revised: 2026-11-20 by the receipt build (#689 #692): the seller's attach is the verb's own path, `POST /api/product-order/:id/attach-payment-evidence`; the storefront reads a buyer's receipt through a same-origin route holding the nonce; the count rides in a counter beside the array; the same file attached twice answers the first; the bucket cell is reached by Workload Identity and the lab's directory is `tmp/payment-evidence`
+- Revised: 2026-11-23 by the sample-stores build (#676): §10's dictionaries seed one generic row each beside `other` — `bank-link`, a bank's link served from a reserved `example.com` host, and `national`, a parcel service whose tracking page is an `example.com` address — still no real name
 - Area: business
 - Read when: a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date
 
@@ -352,14 +353,19 @@ choose `other` and type a name.
   unauthenticated config read like every unflagged row. That is acceptable
   because no member is a secret.
 - **The repository seeds no real name.** The seed holds `other` for each
-  dictionary, and nothing else. Which providers and couriers exist for r10c is
+  dictionary and one generic row beside it — a bank's payment link served
+  from `pagos.example.com`, and a national parcel service tracked at
+  `rastreo.example.com` — so the sample stores have something to name that
+  is not `other`, and the host check a provider with hosts applies has a row
+  to apply it. Which providers and couriers exist for r10c is
   our position on whom we work with
   ([ADR 0080](0080-a-capability-register-holds-one-thin-entry-per-use-case.md)
   §8). The names live in Notion and reach an environment as that environment's
   own rows, set outside the repository: through the configuration screens in
   the lab, and from the production configuration source of plan 5.7. The
-  three sample stores (plan 4.19) name their courier and provider through the
-  same rows, so a `dev:reset` lab shows `other` until someone adds them.
+  three sample stores (plan 4.19, #676) name their courier and provider
+  through the same rows: the generic ones in a `dev:reset` lab, an
+  environment's own once someone adds them.
 - **No rate, account, contract status or service level** appears in a row.
   Those stay in Notion ([ADR 0025](0025-where-planning-and-business-knowledge-live.md),
   as revised by [ADR 0080](0080-a-capability-register-holds-one-thin-entry-per-use-case.md) §8).

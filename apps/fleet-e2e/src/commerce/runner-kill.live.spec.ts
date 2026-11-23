@@ -1,7 +1,7 @@
 import {
   closeMongo,
-  DEMO,
   flowStatus,
+  HARDWARE,
   mongo,
   ordersOf,
   PORTS,
@@ -32,8 +32,8 @@ afterAll(async () => {
 });
 
 it(`completes ${String(CHECKOUTS)} checkouts exactly once across a killed runner`, async () => {
-  const offering = await sellable(DEMO.organizationId, CHECKOUTS);
-  const items = (await mongo(`stock_${DEMO.organizationId}`)).collection(
+  const offering = await sellable(HARDWARE.organizationId, CHECKOUTS);
+  const items = (await mongo(`stock_${HARDWARE.organizationId}`)).collection(
     'stock-item',
   );
   const before = await items.findOne({ offeringId: offering.offeringId });
@@ -42,7 +42,7 @@ it(`completes ${String(CHECKOUTS)} checkouts exactly once across a killed runner
     Array.from({ length: CHECKOUTS }, () =>
       startCheckout([
         {
-          vendorId: DEMO.organizationId,
+          vendorId: HARDWARE.organizationId,
           paymentMethod: 'card',
           lines: [
             {

@@ -76,32 +76,36 @@ describe('the RSQL query protocol', () => {
     // One page wide enough to hold every match, so `total` and the page length
     // are comparable.
     const res = await list(
-      `rsql=${encodeURIComponent("name=like='Widget'")}&pageSize=200`,
+      `rsql=${encodeURIComponent("name=like='Cable'")}&pageSize=200`,
     );
 
     expect(res.status).toBe(200);
     expect(namesOf(res).length).toBeGreaterThan(0);
-    expect(namesOf(res).every(name => name.includes('Widget'))).toBe(true);
+    expect(namesOf(res).every(name => name.includes('Cable'))).toBe(true);
     // `total` must reflect the same filter, or the pager lies about the size.
     expect(pageOf(res).total).toBe(pageOf(res).items.length);
   });
 
   it('combines two clauses with and', async () => {
-    const expression = "name=like='Widget';name!='Widget 1'";
+    const expression = "name=like='Cinta';name!='Cinta métrica 5 m'";
     const res = await list(`rsql=${encodeURIComponent(expression)}`);
 
     expect(res.status).toBe(200);
     expect(namesOf(res).length).toBeGreaterThan(0);
-    expect(namesOf(res).every(name => name.includes('Widget'))).toBe(true);
-    expect(namesOf(res)).not.toContain('Widget 1');
+    expect(namesOf(res).every(name => name.includes('Cinta'))).toBe(true);
+    expect(namesOf(res)).not.toContain('Cinta métrica 5 m');
   });
 
   it('combines two clauses with or', async () => {
-    const expression = "name=='Widget 1',name=='Gizmo 1'";
+    const expression =
+      "name=='Martillo de uña 16 oz',name=='Cinta métrica 5 m'";
     const res = await list(`rsql=${encodeURIComponent(expression)}`);
 
     expect(res.status).toBe(200);
-    expect([...new Set(namesOf(res))].sort()).toEqual(['Gizmo 1', 'Widget 1']);
+    expect([...new Set(namesOf(res))].sort()).toEqual([
+      'Cinta métrica 5 m',
+      'Martillo de uña 16 oz',
+    ]);
   });
 
   it('orders a listing by the sort parameter', async () => {
@@ -114,14 +118,15 @@ describe('the RSQL query protocol', () => {
 
   it('applies filtering, sorting and paging together', async () => {
     const res = await list(
-      `rsql=${encodeURIComponent("name=like='Widget'")}&sort=-name&page=1&pageSize=1`,
+      `rsql=${encodeURIComponent("name=like='Cinta'")}&sort=-name&page=1&pageSize=1`,
     );
 
     expect(res.status).toBe(200);
     expect(pageOf(res).items).toHaveLength(1);
     expect(pageOf(res).total).toBeGreaterThan(1);
-    // Descending, so page 1 of the `Widget` matches is the last one alphabetically.
-    expect(namesOf(res)[0]).toBe('Widget 6');
+    // Descending, so page 1 of the two `Cinta` matches — the hardware store's
+    // measuring tape and its teflon tape (#676) — is the last alphabetically.
+    expect(namesOf(res)[0]).toBe('Cinta métrica 5 m');
   });
 
   // The metadata allowlist is the trust boundary: without it a client could

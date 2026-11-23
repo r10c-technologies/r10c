@@ -93,6 +93,18 @@ describe('productJsonLd', () => {
     });
   });
 
+  it('states a sample picture served by the storefront as an absolute URL', () => {
+    const ld = productJsonLd({
+      offering: offering(one => {
+        one.media = [{ url: '/samples/store/item.svg', alt: 'Item' }];
+      }),
+      url: URL,
+    });
+    expect(ld['image']).toEqual([
+      'https://tienda.example/samples/store/item.svg',
+    ]);
+  });
+
   it('treats an empty gallery as no image', () => {
     const ld = productJsonLd({
       offering: offering(one => {

@@ -45,6 +45,8 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// `samples/` is the sample stores' own art (#676), a static file in
+// `public/`: a locale redirect on it would be a broken picture.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|api|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|api|samples/|favicon.ico).*)'],
 };

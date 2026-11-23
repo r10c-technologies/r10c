@@ -56,7 +56,7 @@ const keyId = (): string => process.env['JWT_KEY_ID'] ?? E2E_KEY_ID;
  */
 export const E2E_ORGANIZATION_ID =
   process.env['SETTLEMENT_ORGANIZATION_ID'] ??
-  (isMockProfile() ? 'e2e-organization' : 'demo-organization');
+  (isMockProfile() ? 'e2e-organization' : 'hardware-store');
 
 /** A second vendor, so a scoped read has something to *not* return. */
 export const E2E_OTHER_ORGANIZATION_ID = 'e2e-other-organization';

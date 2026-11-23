@@ -8,11 +8,13 @@ import type { MediaImageLoader } from '@entifix/react-controls/primitives';
  * a fetch the storefront makes on a stranger's behalf, so the list is exact
  * hostnames and never `**`. It is `STOREFRONT_IMAGE_HOSTS`, comma-separated,
  * read by both this module and `next.config.js` (whose `remotePatterns` the
- * optimizer enforces). Unset, it is the seed's one host, `picsum.photos`.
- * Where real vendors' media will live is undecided; when it is, it is a value
- * here, not a code change.
+ * optimizer enforces). Unset, it is **empty**: the seeded sample stores'
+ * pictures are the platform's own, served from `/samples/` on this origin
+ * (#676), so a lab fetches nothing from anybody else's host. Where real
+ * vendors' media will live is undecided; when it is, it is a value here, not
+ * a code change.
  */
-export const DEFAULT_IMAGE_HOSTS = 'picsum.photos';
+export const DEFAULT_IMAGE_HOSTS = '';
 
 /** The optimizer's quality, the one `next.config.js` allows. */
 export const IMAGE_QUALITY = 75;

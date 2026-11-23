@@ -29,9 +29,11 @@ describe('parseImageHosts', () => {
 });
 
 describe('imageHosts', () => {
-  it('is the seed’s one host when nothing is configured', () => {
+  it('allows no host at all when nothing is configured', () => {
+    // The seed's pictures are the platform's own (#676): nothing to fetch.
     vi.stubEnv('STOREFRONT_IMAGE_HOSTS', undefined);
-    expect(imageHosts()).toEqual([DEFAULT_IMAGE_HOSTS]);
+    expect(DEFAULT_IMAGE_HOSTS).toBe('');
+    expect(imageHosts()).toEqual([]);
   });
 
   it('is the configured list when there is one', () => {

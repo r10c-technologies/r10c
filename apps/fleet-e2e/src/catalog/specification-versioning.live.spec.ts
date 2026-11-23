@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import {
   closeMongo,
-  DEMO,
   FLEET,
+  HARDWARE,
   mongo,
   ordersOf,
   sellable,
@@ -29,7 +29,7 @@ const call = async (
   const res = await fetch(`${FLEET.marketplaceAdmin}/api/${path}`, {
     method,
     headers: {
-      authorization: await vendorBearer(DEMO.organizationId),
+      authorization: await vendorBearer(HARDWARE.organizationId),
       'content-type': 'application/json',
       'idempotency-key': `"${randomUUID()}"`,
     },
@@ -84,7 +84,7 @@ it('revises, releases and retires, one active version per series', async () => {
   expect(released.contentHash).toMatch(/^[0-9a-f]{64}$/);
 
   const series = await (
-    await mongo(`tenant_${DEMO.organizationId}`)
+    await mongo(`tenant_${HARDWARE.organizationId}`)
   )
     .collection(KEY)
     .find({ specKey: created.specKey })
@@ -139,7 +139,7 @@ it('refuses to publish an offering pinned to a version in design', async () => {
 });
 
 it('copies the version a line was sold under onto the order', async () => {
-  const offering = await sellable(DEMO.organizationId);
+  const offering = await sellable(HARDWARE.organizationId);
   const published = await (
     await mongo('marketplace')
   )
@@ -148,7 +148,7 @@ it('copies the version a line was sold under onto the order', async () => {
 
   const checkout = await startCheckout([
     {
-      vendorId: DEMO.organizationId,
+      vendorId: HARDWARE.organizationId,
       paymentMethod: 'card',
       lines: [
         {
