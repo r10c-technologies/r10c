@@ -68,13 +68,15 @@ const SEEDED_AT = new Date('2026-01-01T00:00:00.000Z');
 
 /** One seeded vendor's offerings, one per specification, under its prefix. */
 export const offeringTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): ProductOfferingRecord[] =>
   productTempDataFor(vendor).map((specification, index) => {
     // One by the half metre and one priced per hundred, the rest by the
     // piece: the shared seed terms, so stock counts each in its own unit.
-    const { saleUnit, quantityStep, quantityMinimum } =
-      seededSaleTermsOf(index);
+    const { saleUnit, quantityStep, quantityMinimum } = seededSaleTermsOf(
+      vendor,
+      index,
+    );
     return {
       id: `${vendor.idPrefix}product-offering-${index + 1}`,
       name: `${specification.name} — oferta`,
@@ -107,7 +109,7 @@ export const offeringTempData: ProductOfferingRecord[] =
 const CURRENCIES = ['GTQ', 'USD', 'EUR'];
 
 export const offeringPriceTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): ProductOfferingPriceRecord[] =>
   offeringTempDataFor(vendor).map((offering, index) => ({
     id: `${vendor.idPrefix}product-offering-price-${index + 1}`,
@@ -116,7 +118,7 @@ export const offeringPriceTempDataFor = (
     // that drops the fractional part is visible at a glance.
     amount: 1999 + index * 500,
     currency: CURRENCIES[index % CURRENCIES.length],
-    pricePer: seededSaleTermsOf(index).pricePer,
+    pricePer: seededSaleTermsOf(vendor, index).pricePer,
   }));
 
 /** The demo vendor's prices. */

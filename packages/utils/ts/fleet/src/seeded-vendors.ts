@@ -54,6 +54,13 @@ export interface SeededVendor {
    * seller and not the other. Written only at creation.
    */
   readonly whatsappNumber: string;
+  /**
+   * Whether its catalog seeds the two offerings not sold by the piece — one
+   * by the half metre, one priced per hundred (ADR 0082). Only the demo
+   * vendor's: the second vendor's one published GTQ offering on hand is the
+   * piece a cross-vendor basket buys.
+   */
+  readonly measured: boolean;
 }
 
 export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
@@ -71,6 +78,7 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
     },
     acceptsPaymentLink: true,
     whatsappNumber: '+50255550100',
+    measured: true,
   },
   {
     organizationId: 'second-organization',
@@ -91,6 +99,7 @@ export const SEEDED_VENDORS: readonly [SeededVendor, ...SeededVendor[]] = [
     },
     acceptsPaymentLink: false,
     whatsappNumber: '',
+    measured: false,
   },
 ];
 

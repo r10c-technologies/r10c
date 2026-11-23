@@ -49,10 +49,10 @@ describe('offeringTempData', () => {
   // a reset lab shows both cases ADR 0082 adds without anybody editing a row.
   it('publishes one offering by the half metre and one priced per hundred', () => {
     const metre = offeringTempData.find(
-      offering => offering.id === 'product-offering-2',
+      offering => offering.id === 'product-offering-10',
     );
     const perHundred = offeringPriceTempData.find(
-      price => price.offeringId === 'product-offering-6',
+      price => price.offeringId === 'product-offering-22',
     );
 
     expect(metre).toMatchObject({
@@ -61,9 +61,9 @@ describe('offeringTempData', () => {
       quantityStep: 500,
       quantityMinimum: 1000,
     });
-    expect(perHundred?.pricePer).toBe(100);
+    expect(perHundred).toMatchObject({ pricePer: 100, currency: 'GTQ' });
     expect(
-      offeringTempData.find(offering => offering.id === 'product-offering-6')
+      offeringTempData.find(offering => offering.id === 'product-offering-22')
         ?.status,
     ).toBe('published');
   });

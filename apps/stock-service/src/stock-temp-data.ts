@@ -95,11 +95,12 @@ export interface StockItemRecord {
  * exactly the unreconcilable state the fold exists to prevent.
  */
 const movementsFor = (
+  vendor: Pick<SeededVendor, 'measured'>,
   index: number,
 ): ReadonlyArray<{ quantity: number; reason: MovementReason }> => {
   // Whole units, written in the offering's scale: 17 m is 17000.
   const received =
-    (10 + ((index * 7) % 90)) * seededSaleTermsOf(index).wholeUnit;
+    (10 + ((index * 7) % 90)) * seededSaleTermsOf(vendor, index).wholeUnit;
   switch (index % 4) {
     case 0:
       return [{ quantity: received, reason: 'receipt' }];
@@ -134,15 +135,15 @@ const movementsFor = (
  * proves nothing.
  */
 export const stockMovementTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): readonly StockMovementRecord[] =>
   Array.from({ length: stockedOf(vendor) }, (_, index) =>
-    movementsFor(index).map((movement, position) => {
+    movementsFor(vendor, index).map((movement, position) => {
       const id = `${vendor.idPrefix}stock-movement-${index + 1}-${position + 1}`;
       return {
         id,
         offeringId: offeringId(vendor, index),
-        unit: seededSaleTermsOf(index).saleUnit,
+        unit: seededSaleTermsOf(vendor, index).saleUnit,
         ...movement,
         occurredAt: new Date(SEEDED_FROM + position * 60_000).toISOString(),
         causeType: 'manual' as const,
@@ -169,10 +170,10 @@ export const stockMovementTempData: readonly StockMovementRecord[] =
  * would then have to explain.
  */
 export const stockItemTempDataFor = (
-  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings'>,
+  vendor: Pick<SeededVendor, 'idPrefix' | 'offerings' | 'measured'>,
 ): readonly StockItemRecord[] =>
   Array.from({ length: stockedOf(vendor) }, (_, index) => {
-    const onHand = movementsFor(index).reduce(
+    const onHand = movementsFor(vendor, index).reduce(
       (total, movement) => total + movement.quantity,
       0,
     );
@@ -180,7 +181,7 @@ export const stockItemTempDataFor = (
     return {
       id: `${vendor.idPrefix}stock-item-${index + 1}`,
       offeringId: offeringId(vendor, index),
-      unit: seededSaleTermsOf(index).saleUnit,
+      unit: seededSaleTermsOf(vendor, index).saleUnit,
       onHand,
       reserved: 0,
       available: onHand,

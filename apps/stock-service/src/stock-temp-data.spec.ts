@@ -3,21 +3,21 @@ import { describe, expect, it } from 'vitest';
 import { stockItemTempData, stockMovementTempData } from './stock-temp-data';
 
 describe('the seeded ledger', () => {
-  // The catalog seed sells `product-offering-2` by the metre: its stock is
+  // The catalog seed sells `product-offering-10` by the metre: its stock is
   // counted in metres too, or every hold on it is refused `unitMismatch`
   // (ADR 0082 §4).
   it('counts each offering in the unit it is sold in', () => {
     const metre = stockItemTempData.find(
-      item => item.offeringId === 'product-offering-2',
+      item => item.offeringId === 'product-offering-10',
     );
-    expect(metre).toMatchObject({ unit: 'M', onHand: 13_600 });
+    expect(metre).toMatchObject({ unit: 'M', onHand: 58_400 });
     expect(
       stockMovementTempData
-        .filter(movement => movement.offeringId === 'product-offering-2')
+        .filter(movement => movement.offeringId === 'product-offering-10')
         .map(movement => [movement.unit, movement.quantity]),
     ).toEqual([
-      ['M', 17_000],
-      ['M', -3_400],
+      ['M', 73_000],
+      ['M', -14_600],
     ]);
     expect(
       stockItemTempData.find(item => item.offeringId === 'product-offering-1')

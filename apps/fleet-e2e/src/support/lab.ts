@@ -34,6 +34,7 @@ export const FLEET = {
   payment: url('PAYMENT_SERVICE_URL', 3106),
   settlement: url('SETTLEMENT_SERVICE_URL', 3107),
   stock: url('STOCK_SERVICE_URL', 3108),
+  sales: url('SALES_SERVICE_URL', 3109),
   fulfilment: url('FULFILMENT_SERVICE_URL', 3110),
   realtime: url('REALTIME_SERVICE_URL', 3191),
   /** The edge (ADR 0072): what a browser opens a stream through. */
@@ -236,7 +237,14 @@ const sellableOfferings = async (organizationId: string, atLeast: number) => {
     await mongo('marketplace')
   )
     .collection('published-offering')
-    .find({ vendorId: organizationId, currency: 'GTQ' })
+    // Sold by the piece, priced for one: what a spec buying `quantity: 1`
+    // means. The seed's measured offerings are read by `measuredOffering`.
+    .find({
+      vendorId: organizationId,
+      currency: 'GTQ',
+      saleUnit: 'UN',
+      pricePer: 1,
+    })
     .toArray();
   const items = await (
     await mongo(`stock_${organizationId}`)
