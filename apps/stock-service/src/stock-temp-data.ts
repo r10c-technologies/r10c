@@ -15,6 +15,10 @@
  * services that otherwise have none.
  */
 
+import {
+  DEFAULT_SALE_UNIT,
+  type SaleUnit,
+} from '@r10c/business-ts-sales-vocabulary';
 import type { MovementReason } from '@r10c/business-ts-stock-management';
 import { DEMO_VENDOR, type SeededVendor } from '@r10c/utils-ts-fleet';
 
@@ -46,6 +50,8 @@ const offeringId = (
 export interface StockMovementRecord {
   id: string;
   offeringId: string;
+  /** Every seeded offering is sold one by one (ADR 0082 §4). */
+  unit: SaleUnit;
   /** Signed: positive is `in`, negative is `out`. */
   quantity: number;
   reason: MovementReason;
@@ -63,6 +69,7 @@ const SEEDED_FROM = Date.parse('2026-01-01T00:00:00.000Z');
 export interface StockItemRecord {
   id: string;
   offeringId: string;
+  unit: SaleUnit;
   onHand: number;
   reserved: number;
   available: number;
@@ -132,6 +139,7 @@ export const stockMovementTempDataFor = (
       return {
         id,
         offeringId: offeringId(vendor, index),
+        unit: DEFAULT_SALE_UNIT,
         ...movement,
         occurredAt: new Date(SEEDED_FROM + position * 60_000).toISOString(),
         causeType: 'manual' as const,
@@ -169,6 +177,7 @@ export const stockItemTempDataFor = (
     return {
       id: `${vendor.idPrefix}stock-item-${index + 1}`,
       offeringId: offeringId(vendor, index),
+      unit: DEFAULT_SALE_UNIT,
       onHand,
       reserved: 0,
       available: onHand,

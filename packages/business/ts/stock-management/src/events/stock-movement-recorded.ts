@@ -4,9 +4,11 @@ import {
   openStruct,
   registerEvent,
 } from '@entifix/core';
+import { type SaleUnit, SaleUnits } from '@r10c/business-ts-sales-vocabulary';
 import { Schema } from 'effect';
 
 import type { StockMovement } from '../entities/stock-movement';
+import type { InUnit } from '../ports/stock-ledger';
 
 /**
  * A line was written to the stock ledger. Routing key and register name.
@@ -33,7 +35,9 @@ export interface StockMovementRecord {
    */
   readonly organizationId: string;
   readonly offeringId: string;
-  /** Signed: `+` in, `-` out. */
+  /** What `quantity` is counted in: a book kept from it needs both. */
+  readonly unit: SaleUnit;
+  /** Signed: `+` in, `-` out, an integer in the unit's scale. */
   readonly quantity: number;
   /** `receipt`, `sale`, `cancellation`, `return` or `adjustment`. */
   readonly reason: string;
@@ -50,7 +54,8 @@ export const StockMovementRecordSchema = openStruct({
   id: Schema.NonEmptyString,
   organizationId: Schema.NonEmptyString,
   offeringId: Schema.NonEmptyString,
-  quantity: Schema.Finite,
+  unit: Schema.Literals(SaleUnits),
+  quantity: Schema.Int,
   reason: Schema.NonEmptyString,
   occurredAt: Schema.NonEmptyString,
   cause: openStruct({
@@ -76,7 +81,7 @@ registerEvent(STOCK_MOVEMENT_RECORDED, StockMovementRecordSchema, {
  */
 export const stockMovementRecordedEvent = (
   organizationId: string,
-  movement: StockMovement,
+  movement: InUnit<StockMovement>,
   source: string,
 ): DomainEvent<StockMovementRecord> & {
   aggregate: AggregateRef;
@@ -96,6 +101,7 @@ export const stockMovementRecordedEvent = (
       id,
       organizationId,
       offeringId: movement.offeringId,
+      unit: movement.unit,
       quantity: movement.quantity,
       reason: movement.reason,
       occurredAt,

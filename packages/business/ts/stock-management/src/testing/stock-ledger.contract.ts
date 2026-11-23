@@ -1,3 +1,4 @@
+import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -18,18 +19,25 @@ const hold = (
   id: string,
   quantity: number,
   expiresAt = new Date(Date.now() + 60_000),
+  unit: SaleUnit = 'UN',
 ) =>
   Object.assign(new Reservation('o-1', quantity), {
     id,
     status: 'held',
     expiresAt,
+    unit,
   });
 
 const movement = (
   id: string,
   quantity: number,
   reason: MovementReason = 'receipt',
-) => Object.assign(new StockMovement('o-1', quantity, reason), { id });
+  unit: SaleUnit = 'UN',
+) => Object.assign(new StockMovement('o-1', quantity, reason), { id, unit });
+
+/** Three and a half metres, received: the item is counted in `M` from here. */
+const metres = (id: string, quantity = 3500) =>
+  movement(id, quantity, 'receipt', 'M');
 
 /**
  * What every {@link StockLedger} must guarantee, observed through the port
@@ -72,6 +80,86 @@ export const describeStockLedgerContract = (
         available: 2,
       });
       expect(rest._tag).toBe('held');
+    });
+
+    it('counts an item in the unit its first movement stated', async () => {
+      const ledger = await make();
+      await run(ledger.record('org-a', metres('m-1')));
+
+      expect(await run(ledger.item('org-a', 'o-1'))).toMatchObject({
+        unit: 'M',
+        onHand: 3500,
+        available: 3500,
+      });
+    });
+
+    it('refuses a movement in another unit, and leaves the counters as they were', async () => {
+      const ledger = await make();
+      await run(ledger.record('org-a', metres('m-1')));
+
+      const refused = await refusal(
+        ledger.record('org-a', movement('m-2', 2, 'receipt', 'UN')),
+      );
+
+      expect(refused).toMatchObject({
+        _tag: 'UnitMismatch',
+        code: 'unitMismatch',
+        offeringId: 'o-1',
+        unit: 'UN',
+        stocked: 'M',
+      });
+      expect(await run(ledger.item('org-a', 'o-1'))).toMatchObject({
+        onHand: 3500,
+      });
+    });
+
+    it('refuses a hold in another unit as a unit mismatch, never as too little stock', async () => {
+      const ledger = await make();
+      await run(ledger.record('org-a', metres('m-1')));
+
+      const refused = await refusal(
+        ledger.take('org-a', hold('r-1', 1), undefined),
+      );
+
+      expect(refused).toMatchObject({
+        _tag: 'UnitMismatch',
+        unit: 'UN',
+        stocked: 'M',
+      });
+      expect(await run(ledger.item('org-a', 'o-1'))).toMatchObject({
+        reserved: 0,
+      });
+    });
+
+    it('holds and sells in the item’s own unit', async () => {
+      const ledger = await make();
+      await run(ledger.record('org-a', metres('m-1')));
+      const held = hold('r-1', 1500, undefined, 'M');
+
+      await run(ledger.take('org-a', held, undefined));
+      await run(ledger.end('org-a', 'r-1', 'converted'));
+
+      expect(await run(ledger.item('org-a', 'o-1'))).toMatchObject({
+        unit: 'M',
+        onHand: 2000,
+        reserved: 0,
+        available: 2000,
+      });
+    });
+
+    it('refuses a restoration in another unit', async () => {
+      const ledger = await make();
+      await run(ledger.record('org-a', metres('m-1')));
+
+      const refused = await refusal(
+        ledger.restore(
+          'org-a',
+          movement('m-2', 1, 'cancellation', 'UN'),
+          'cmd-1',
+        ),
+      );
+
+      expect(refused).toMatchObject({ _tag: 'UnitMismatch' });
     });
 
     it('answers a redelivered take with its first hold, and holds once', async () => {

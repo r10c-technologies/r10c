@@ -1,5 +1,12 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import {
+  SALE_UNIT_NAME_KEY,
+  SALE_UNIT_SCALES,
+  SALE_UNIT_SYMBOL_KEY,
+  type SaleUnit,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 
 import {
   type ReservationStatus,
@@ -42,6 +49,8 @@ export class Reservation implements Entity {
   #id?: EntityId;
   #offeringId: string;
   #quantity: number;
+  // No default: a unit nobody stated is absent, never `UN` (ADR 0082 §4).
+  #unit?: SaleUnit;
   #status: ReservationStatus = 'held';
   #expiresAt?: Date;
   // #endregion
@@ -81,12 +90,37 @@ export class Reservation implements Entity {
     this.#offeringId = value;
   }
 
+  /**
+   * What `quantity` is counted in; a hold in another unit than the item's is
+   * refused `unitMismatch` (ADR 0082 §4).
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:reservation.fields.unit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+    required: true,
+    filterable: true,
+  })
+  get unit(): SaleUnit | undefined {
+    return this.#unit;
+  }
+  set unit(value: SaleUnit | undefined) {
+    this.#unit = value;
+  }
+
   @accessor({
     type: 'number',
     labelKey: 'entity:reservation.fields.quantity',
     required: true,
-    sortable: true,
-    filterable: true,
+    // In the unit's scale: compared across rows it compares metres with pieces.
+    sortable: false,
+    filterable: false,
+    scaled: {
+      unitMember: 'unit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
   })
   get quantity(): number {
     return this.#quantity;

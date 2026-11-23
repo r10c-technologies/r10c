@@ -1,10 +1,12 @@
 import { Failure } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
+import { isSaleUnit, type SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
 import type { StockMovement } from '../entities/stock-movement';
 import {
+  type InUnit,
   ReservationMaxHoldSecondsTag,
   ReservationTtlSecondsTag,
   StockLedgerTag,
@@ -28,6 +30,21 @@ export class InconsistentMovement extends Failure.invalid<InconsistentMovement>(
  * number of seconds no longer than `maxHoldSeconds` (ADR 0081 §3). Anything
  * else is the step's body to refuse, never a hold quietly shortened.
  */
+/**
+ * The record as the ledger takes it, its unit stated and one r10c sells in
+ * (ADR 0082 §1, §4); refused otherwise, absent included.
+ */
+const inUnit = <T extends { readonly unit?: SaleUnit | undefined }>(
+  record: T,
+): Effect.Effect<InUnit<T>, InvalidBody> =>
+  isSaleUnit(record.unit)
+    ? Effect.succeed(record as InUnit<T>)
+    : Effect.fail(
+        new InvalidBody({
+          reason: `"${String(record.unit)}" is not a sale unit`,
+        }),
+      );
+
 const holdSecondsOf = (stated: unknown) =>
   Effect.gen(function* () {
     if (stated === undefined) return yield* ReservationTtlSecondsTag;
@@ -68,17 +85,14 @@ export const takeReservation = (input: {
         }),
       );
     }
+    const stated = yield* inUnit(reservation);
     const ttlSeconds = yield* holdSecondsOf(input.holdSeconds);
-    reservation.id = globalThis.crypto.randomUUID();
-    reservation.status = 'held';
-    reservation.expiresAt = new Date(Date.now() + ttlSeconds * MILLISECONDS);
+    stated.id = globalThis.crypto.randomUUID();
+    stated.status = 'held';
+    stated.expiresAt = new Date(Date.now() + ttlSeconds * MILLISECONDS);
 
     const ledger = yield* StockLedgerTag;
-    return yield* ledger.take(
-      input.organizationId,
-      reservation,
-      input.commandId,
-    );
+    return yield* ledger.take(input.organizationId, stated, input.commandId);
   });
 
 /** A vendor's own movement: a delivery, a count, a write-off. */
@@ -102,12 +116,13 @@ export const recordMovement = (input: {
         }),
       );
     }
-    movement.id = globalThis.crypto.randomUUID();
-    movement.occurredAt = new Date();
-    movement.causeType = 'manual';
-    movement.causeId = movement.id;
+    const stated = yield* inUnit(movement);
+    stated.id = globalThis.crypto.randomUUID();
+    stated.occurredAt = new Date();
+    stated.causeType = 'manual';
+    stated.causeId = stated.id;
     const ledger = yield* StockLedgerTag;
-    return yield* ledger.record(input.organizationId, movement);
+    return yield* ledger.record(input.organizationId, stated);
   });
 
 /** Why goods are put back: an order cancelled, or a parcel returned. */
@@ -139,14 +154,11 @@ export const restoreStock = (input: {
         }),
       );
     }
-    movement.id = globalThis.crypto.randomUUID();
-    movement.occurredAt = new Date();
-    movement.causeType = 'product-order';
-    movement.causeId = input.orderId;
+    const stated = yield* inUnit(movement);
+    stated.id = globalThis.crypto.randomUUID();
+    stated.occurredAt = new Date();
+    stated.causeType = 'product-order';
+    stated.causeId = input.orderId;
     const ledger = yield* StockLedgerTag;
-    return yield* ledger.restore(
-      input.organizationId,
-      movement,
-      input.commandId,
-    );
+    return yield* ledger.restore(input.organizationId, stated, input.commandId);
   });

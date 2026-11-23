@@ -1,5 +1,12 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import {
+  SALE_UNIT_NAME_KEY,
+  SALE_UNIT_SCALES,
+  SALE_UNIT_SYMBOL_KEY,
+  type SaleUnit,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 
 import {
   type MovementCauseType,
@@ -42,6 +49,8 @@ export class StockMovement implements Entity {
   #id?: EntityId;
   #offeringId: string;
   #quantity: number;
+  // No default: a unit nobody stated is absent, never `UN` (ADR 0082 §4).
+  #unit?: SaleUnit;
   #reason: MovementReason;
   #occurredAt?: Date;
   #causeType?: MovementCauseType;
@@ -88,13 +97,37 @@ export class StockMovement implements Entity {
     this.#offeringId = value;
   }
 
+  /**
+   * What `quantity` is counted in; it must be the item's own (ADR 0082 §4).
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:stock-movement.fields.unit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+    required: true,
+    filterable: true,
+  })
+  get unit(): SaleUnit | undefined {
+    return this.#unit;
+  }
+  set unit(value: SaleUnit | undefined) {
+    this.#unit = value;
+  }
+
   /** Signed: negative removes, positive adds. */
   @accessor({
     type: 'number',
     labelKey: 'entity:stock-movement.fields.quantity',
     required: true,
-    sortable: true,
-    filterable: true,
+    // In the unit's scale: compared across rows it compares metres with pieces.
+    sortable: false,
+    filterable: false,
+    scaled: {
+      unitMember: 'unit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
   })
   get quantity(): number {
     return this.#quantity;

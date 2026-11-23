@@ -31,6 +31,7 @@ import {
   type ExpirySweep,
   type HoldOutcome,
   InsufficientStock,
+  type InUnit,
   Reservation,
   type RestoreOutcome,
   StockItem,
@@ -38,7 +39,9 @@ import {
   StockLedgerTag,
   StockMovement,
   stockMovementRecordedEvent,
+  UnitMismatch,
 } from '@r10c/business-ts-stock-management';
+import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Layer, Option } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -67,7 +70,11 @@ class Insufficient {
   readonly _tag = 'Insufficient';
 }
 
-/** A new offering's first counter raced another's into existence. */
+/**
+ * The upsert found an item it did not match: either a sibling created it a
+ * moment ago in the same unit, or it was stocked in another. Which of the two
+ * is read afterwards, from the item itself.
+ */
 class FirstCounterRaced {
   readonly _tag = 'FirstCounterRaced';
 }
@@ -169,6 +176,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                 {
                   id: String(item['id']),
                   offeringId: String(item['offeringId']),
+                  unit: item['unit'] as SaleUnit,
                   onHand: Number(item['onHand']),
                   reserved: Number(item['reserved']),
                   available: Number(item['available']),
@@ -193,21 +201,58 @@ export const MongoStockLedgerLayer = Layer.effect(
         found => found as T,
       );
 
-    /** Move one offering's counters, creating the item on its first movement. */
+    /**
+     * Move one offering's counters, creating the item on its first movement in
+     * that movement's unit. The filter names the unit, so an item stocked in
+     * another one is not matched: the upsert then meets the offering's unique
+     * index, and {@link commitMovement} tells that from a race.
+     */
     const moveCounter = (
       unit: MongoUnit,
       emitter: Emitting,
       organizationId: string,
-      offeringId: string,
-      onHand: number,
+      movement: InUnit<StockMovement>,
     ) =>
       change(
         unit,
         emitter,
         organizationId,
-        { offeringId },
-        { onHand },
-        { id: globalThis.crypto.randomUUID(), offeringId, reserved: 0 },
+        { offeringId: movement.offeringId, unit: movement.unit },
+        { onHand: movement.quantity },
+        {
+          id: globalThis.crypto.randomUUID(),
+          offeringId: movement.offeringId,
+          unit: movement.unit,
+          reserved: 0,
+        },
+      );
+
+    /** The unit an offering is stocked in, or `undefined` before its first movement. */
+    const stockedUnit = (db: Db, offeringId: string) =>
+      Effect.map(
+        Effect.tryPromise({
+          try: () =>
+            db
+              .collection(STOCK_ITEM_COLLECTION)
+              .findOne({ offeringId }, { projection: { _id: 0, unit: 1 } }),
+          catch: storeUnavailable,
+        }),
+        found => found?.['unit'] as SaleUnit | undefined,
+      );
+
+    /**
+     * Refused as a unit mismatch when the offering is stocked in a unit other
+     * than `unit`; nothing otherwise.
+     */
+    const refuseOtherUnit = (
+      db: Db,
+      offeringId: string,
+      unit: SaleUnit,
+    ): Effect.Effect<void, UnitMismatch | Unavailable> =>
+      Effect.flatMap(stockedUnit(db, offeringId), stocked =>
+        stocked === undefined || stocked === unit
+          ? Effect.void
+          : Effect.fail(new UnitMismatch({ offeringId, unit, stocked })),
       );
 
     /**
@@ -220,7 +265,7 @@ export const MongoStockLedgerLayer = Layer.effect(
       unit: MongoUnit,
       emitter: Emitting,
       organizationId: string,
-      movement: StockMovement,
+      movement: InUnit<StockMovement>,
     ) =>
       Effect.tryPromise({
         try: () =>
@@ -248,7 +293,7 @@ export const MongoStockLedgerLayer = Layer.effect(
     const commitMovement = (
       db: Db,
       organizationId: string,
-      movement: StockMovement,
+      movement: InUnit<StockMovement>,
       commandId: string | undefined,
     ) =>
       units
@@ -257,13 +302,7 @@ export const MongoStockLedgerLayer = Layer.effect(
           unit =>
             Effect.andThen(
               appendMovement(unit.handle, unit, organizationId, movement),
-              moveCounter(
-                unit.handle,
-                unit,
-                organizationId,
-                movement.offeringId,
-                movement.quantity,
-              ),
+              moveCounter(unit.handle, unit, organizationId, movement),
             ).pipe(Effect.as(movement)),
           {
             ...(commandId === undefined
@@ -280,6 +319,14 @@ export const MongoStockLedgerLayer = Layer.effect(
             outcome._tag === 'aborted'
               ? Effect.fail(outcome.reason)
               : Effect.succeed(outcome),
+          ),
+          // The offering's item exists and the filter missed it: stocked in
+          // another unit, which is refused, or created by a sibling in this
+          // one a moment ago, which the second attempt simply increments.
+          Effect.tapError(error =>
+            error instanceof FirstCounterRaced
+              ? refuseOtherUnit(db, movement.offeringId, movement.unit)
+              : Effect.void,
           ),
           Effect.retry({
             times: 1,
@@ -313,14 +360,24 @@ export const MongoStockLedgerLayer = Layer.effect(
       Effect.gen(function* () {
         const held = (yield* Effect.tryPromise({
           try: () =>
-            db
-              .collection(RESERVATION_COLLECTION)
-              .findOne(
-                { id: reservationId, status: 'held' },
-                { projection: { _id: 0, id: 1, offeringId: 1, quantity: 1 } },
-              ),
+            db.collection(RESERVATION_COLLECTION).findOne(
+              { id: reservationId, status: 'held' },
+              {
+                projection: {
+                  _id: 0,
+                  id: 1,
+                  offeringId: 1,
+                  unit: 1,
+                  quantity: 1,
+                },
+              },
+            ),
           catch: storeUnavailable,
-        })) as { offeringId: string; quantity: number } | null;
+        })) as {
+          offeringId: string;
+          unit: SaleUnit;
+          quantity: number;
+        } | null;
         if (held === null) return 'not-held' as const;
 
         const outcome = yield* units.forDatabase(db).run(
@@ -344,10 +401,9 @@ export const MongoStockLedgerLayer = Layer.effect(
               if (to === 'converted') {
                 // A sale leaves the shelf: the ledger says so, and so does the
                 // counter, in the one change that also gives the hold back.
-                const sale = new StockMovement(
-                  held.offeringId,
-                  -held.quantity,
-                  'sale',
+                const sale = Object.assign(
+                  new StockMovement(held.offeringId, -held.quantity, 'sale'),
+                  { unit: held.unit },
                 );
                 sale.id = globalThis.crypto.randomUUID();
                 sale.occurredAt = new Date();
@@ -359,7 +415,8 @@ export const MongoStockLedgerLayer = Layer.effect(
                 unit.handle,
                 unit,
                 organizationId,
-                { offeringId: held.offeringId },
+                // A hold was taken only on an item in its own unit.
+                { offeringId: held.offeringId, unit: held.unit },
                 to === 'converted'
                   ? { reserved: -held.quantity, onHand: -held.quantity }
                   : { reserved: -held.quantity },
@@ -387,6 +444,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                   organizationId,
                   {
                     offeringId: reservation.offeringId,
+                    unit: reservation.unit,
                     $expr: {
                       $gte: [
                         { $subtract: ['$onHand', '$reserved'] },
@@ -426,6 +484,13 @@ export const MongoStockLedgerLayer = Layer.effect(
             return { _tag: 'held', reservation } as HoldOutcome;
           }
           if (outcome._tag === 'aborted') {
+            // The take matched nothing: an item in another unit, refused as
+            // that rather than as too little stock, or too little free.
+            yield* refuseOtherUnit(
+              db,
+              reservation.offeringId,
+              reservation.unit,
+            );
             // What is free now, read after the refusal: a hint for the caller,
             // which the next hold may already have moved.
             const item = yield* Effect.tryPromise({

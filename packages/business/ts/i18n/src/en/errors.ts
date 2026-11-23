@@ -89,6 +89,9 @@ export const errors: EsErrors = {
   // atomic write conditioned on it. Zero documents matched *is* the out-of-stock
   // answer, not a system error.
   insufficientStock: 'There is not enough stock to reserve.',
+  // ADR 0082 §4: stock is counted in the unit of its first movement.
+  unitMismatch:
+    'This product is stocked in another unit. Use the same unit, or create another offering to sell it in this one.',
   flowNotStarted:
     'This could not be started. Check what was asked and try again.',
   invalidTaxId: 'That NIT or CUI is not valid. Check the digits.',

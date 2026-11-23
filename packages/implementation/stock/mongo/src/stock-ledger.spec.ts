@@ -90,6 +90,8 @@ describeStockLedgerContract('the Mongo ledger', () => {
 const item = (offeringId: string, onHand: number, reserved = 0) => ({
   id: `item-${offeringId}`,
   offeringId,
+  // Fixed by its first movement, as every stored item's is (ADR 0082 §4).
+  unit: 'UN',
   onHand,
   reserved,
   available: onHand - reserved,
@@ -99,13 +101,17 @@ const aHold = (id: string, quantity: number) =>
   Object.assign(new Reservation(), {
     id,
     offeringId: 'o-1',
+    unit: 'UN' as const,
     quantity,
     status: 'held',
     expiresAt: new Date(Date.now() + 60_000),
   });
 
 const aMovement = (id: string, quantity: number, reason = 'receipt') =>
-  Object.assign(new StockMovement('o-1', quantity, reason as never), { id });
+  Object.assign(new StockMovement('o-1', quantity, reason as never), {
+    id,
+    unit: 'UN' as const,
+  });
 
 const counterOf = (fake: Fake, offeringId = 'o-1') =>
   fake
@@ -194,16 +200,20 @@ describe('ending a hold', () => {
     makeFakeMongoDb({
       [STOCK_ITEM_COLLECTION]: [item('o-1', 10, 3)],
       [RESERVATION_COLLECTION]: [
-        { id: 'r-1', offeringId: 'o-1', quantity: 3, status: 'held' },
+        {
+          id: 'r-1',
+          offeringId: 'o-1',
+          unit: 'UN',
+          quantity: 3,
+          status: 'held',
+        },
       ],
     });
 
   it('moves what is available in the same update as every counter (#555)', async () => {
     const fake = makeFakeMongoDb();
     const { run } = world({ org: fake });
-    const receipt = Object.assign(new StockMovement('o-1', 10, 'receipt'), {
-      id: 'm-1',
-    });
+    const receipt = aMovement('m-1', 10);
 
     await run(ledger => ledger.record('org', receipt));
     await run(ledger => ledger.take('org', aHold('h-1', 4), undefined));
@@ -380,6 +390,7 @@ describe('releasing expired holds', () => {
         {
           id: 'r-old',
           offeringId: 'o-1',
+          unit: 'UN',
           quantity: 1,
           status: 'held',
           expiresAt: past,
@@ -387,6 +398,7 @@ describe('releasing expired holds', () => {
         {
           id: 'r-new',
           offeringId: 'o-1',
+          unit: 'UN',
           quantity: 1,
           status: 'held',
           expiresAt: future,
@@ -399,6 +411,7 @@ describe('releasing expired holds', () => {
         {
           id: 'r-old-2',
           offeringId: 'o-1',
+          unit: 'UN',
           quantity: 1,
           status: 'held',
           expiresAt: past,
@@ -422,6 +435,7 @@ describe('releasing expired holds', () => {
         {
           id: 'r-old',
           offeringId: 'o-1',
+          unit: 'UN',
           quantity: 1,
           status: 'held',
           expiresAt: past,
@@ -486,10 +500,12 @@ describe('announcing a change', () => {
   it('announces every counter move once, at an increasing version, to its organization', async () => {
     const { run, bus } = world();
     const receipt = Object.assign(new StockMovement('off-1', 5, 'receipt'), {
+      unit: 'UN' as const,
       id: 'mv-1',
     });
     await run(ledger => ledger.record('org', receipt));
     const hold = Object.assign(new Reservation('off-1', 2), {
+      unit: 'UN' as const,
       id: 'res-1',
       expiresAt: new Date(Date.now() + 60_000),
     });
@@ -518,6 +534,7 @@ describe('announcing a change', () => {
   it('announces nothing for a hold refused or one already ended', async () => {
     const { run, bus } = world();
     const short = Object.assign(new Reservation('off-9', 1), {
+      unit: 'UN' as const,
       id: 'res-9',
       expiresAt: new Date(Date.now() + 60_000),
     });
@@ -532,10 +549,12 @@ describe('announcing a change', () => {
   it('announces each ledger line, with its cause, from the unit that wrote it', async () => {
     const { run, bus } = world();
     const receipt = Object.assign(new StockMovement('off-1', 5, 'receipt'), {
+      unit: 'UN' as const,
       id: 'mv-1',
     });
     await run(ledger => ledger.record('org', receipt));
     const hold = Object.assign(new Reservation('off-1', 2), {
+      unit: 'UN' as const,
       id: 'res-1',
       expiresAt: new Date(Date.now() + 60_000),
     });

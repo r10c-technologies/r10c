@@ -1,5 +1,12 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import {
+  SALE_UNIT_NAME_KEY,
+  SALE_UNIT_SCALES,
+  SALE_UNIT_SYMBOL_KEY,
+  type SaleUnit,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 
 /**
  * The running availability of one offering for one vendor: what is physically
@@ -40,6 +47,8 @@ export class StockItem implements Entity {
   // #region properties
   #id?: EntityId;
   #offeringId: string;
+  // No default: a unit nobody stated is absent, never `UN` (ADR 0082 §4).
+  #unit?: SaleUnit;
   #onHand = 0;
   #reserved = 0;
   #available = 0;
@@ -84,12 +93,41 @@ export class StockItem implements Entity {
     this.#offeringId = value;
   }
 
+  /**
+   * What every counter here is counted in (ADR 0082 §4). The first movement
+   * fixes it, and a movement or a hold in another unit is refused
+   * `unitMismatch` rather than added to the total. The counters are neither
+   * sortable nor filterable across items, since 3500 means 3.5 m on one row and
+   * 3,500 pieces on the next — except `available`, whose zero means the same in
+   * every unit.
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:stock-item.fields.unit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+    required: true,
+    filterable: true,
+  })
+  get unit(): SaleUnit | undefined {
+    return this.#unit;
+  }
+  set unit(value: SaleUnit | undefined) {
+    this.#unit = value;
+  }
+
   @accessor({
     type: 'number',
     labelKey: 'entity:stock-item.fields.onHand',
     required: true,
-    sortable: true,
-    filterable: true,
+    // In the unit's scale: compared across rows it compares metres with pieces.
+    sortable: false,
+    filterable: false,
+    scaled: {
+      unitMember: 'unit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
   })
   get onHand(): number {
     return this.#onHand;
@@ -99,15 +137,22 @@ export class StockItem implements Entity {
   }
 
   /**
-   * Held by live reservations. Filterable because the guard a checkout writes is
-   * `onHand - reserved >= qty`, and that predicate is expressed over both.
+   * Held by live reservations. The guard a checkout writes,
+   * `onHand - reserved >= qty`, is the store's conditional write, never a
+   * query, so neither counter needs to be filterable.
    */
   @accessor({
     type: 'number',
     labelKey: 'entity:stock-item.fields.reserved',
     required: true,
-    sortable: true,
-    filterable: true,
+    // In the unit's scale: compared across rows it compares metres with pieces.
+    sortable: false,
+    filterable: false,
+    scaled: {
+      unitMember: 'unit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
   })
   get reserved(): number {
     return this.#reserved;
@@ -126,6 +171,11 @@ export class StockItem implements Entity {
     labelKey: 'entity:stock-item.fields.available',
     sortable: true,
     filterable: true,
+    scaled: {
+      unitMember: 'unit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
   })
   get available(): number {
     return this.#available;

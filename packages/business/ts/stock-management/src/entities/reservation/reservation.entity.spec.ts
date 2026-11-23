@@ -13,11 +13,13 @@ describe('Reservation', () => {
     const expiresAt = new Date('2026-08-12T10:00:00.000Z');
     const reservation = new Reservation('offering-1', 2);
     reservation.id = 'res-1';
+    reservation.unit = 'UN';
     reservation.expiresAt = expiresAt;
 
     expect(serializeEntity(Reservation, reservation)).toEqual({
       id: 'res-1',
       offeringId: 'offering-1',
+      unit: 'UN',
       quantity: 2,
       status: 'held',
       expiresAt,
@@ -83,6 +85,7 @@ describe('Reservation', () => {
     expect(names).toEqual([
       'id',
       'offeringId',
+      'unit',
       'quantity',
       'status',
       'expiresAt',

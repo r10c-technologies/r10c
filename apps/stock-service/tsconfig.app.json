@@ -41,6 +41,9 @@
       "path": "../../packages/business/ts/stock-management/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/business/ts/sales-vocabulary/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/authz-grants/tsconfig.lib.json"
     },
     {

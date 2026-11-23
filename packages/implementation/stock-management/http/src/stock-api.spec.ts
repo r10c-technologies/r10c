@@ -43,7 +43,6 @@ const world = () => {
     effect: Effect.Effect<
       A,
       E,
-      
       | StockLedgerTag
       | ReservationTtlSecondsTag
       | ReservationMaxHoldSecondsTag
@@ -54,7 +53,6 @@ const world = () => {
     effect: Effect.Effect<
       A,
       E,
-      
       | StockLedgerTag
       | ReservationTtlSecondsTag
       | ReservationMaxHoldSecondsTag
@@ -64,10 +62,14 @@ const world = () => {
   return { run, refusal };
 };
 
+/** Sold one by one: every record a body carries states its unit (ADR 0082 §4). */
+const inPieces = <T extends object>(record: T) =>
+  Object.assign(record, { unit: 'UN' as const });
+
 const receipt = (quantity: number) =>
   makeEntityEnvelope(
     StockMovement,
-    new StockMovement('o-1', quantity, 'receipt'),
+    inPieces(new StockMovement('o-1', quantity, 'receipt')),
   );
 /** A flow step's body: the record's members, flat — an envelope's `data`. */
 const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
@@ -75,7 +77,7 @@ const flatOf = (...args: Parameters<typeof makeEntityEnvelope>) =>
     .data;
 
 const hold = (quantity: number) =>
-  flatOf(Reservation, new Reservation('o-1', quantity));
+  flatOf(Reservation, inPieces(new Reservation('o-1', quantity)));
 
 const record = stockMovementApi.options.override.create.handler;
 const take = reservationApi.options.override.create.handler;
@@ -190,7 +192,10 @@ describe('the crossing endpoints', () => {
       cause?: string,
       orderId: string | null = 'order-1',
     ) => {
-      const payload = flatOf(StockMovement, new StockMovement('o-1', quantity));
+      const payload = flatOf(
+        StockMovement,
+        inPieces(new StockMovement('o-1', quantity)),
+      );
       if (cause !== undefined) payload['cause'] = cause;
       if (orderId !== null) payload['orderId'] = orderId;
       return payload;

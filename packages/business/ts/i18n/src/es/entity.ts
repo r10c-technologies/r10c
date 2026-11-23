@@ -906,6 +906,7 @@ export const entity = {
     fields: {
       id: 'ID',
       offeringId: 'Producto',
+      unit: 'Unidad',
       onHand: 'En almacén',
       reserved: 'Reservado',
       available: 'Disponible',
@@ -923,6 +924,7 @@ export const entity = {
     fields: {
       id: 'ID',
       offeringId: 'Producto',
+      unit: 'Unidad',
       quantity: 'Cantidad',
       reason: 'Motivo',
       occurredAt: 'Fecha',
@@ -956,6 +958,7 @@ export const entity = {
     fields: {
       id: 'ID',
       offeringId: 'Producto',
+      unit: 'Unidad',
       quantity: 'Cantidad',
       status: 'Estado',
       expiresAt: 'Vence el',

@@ -12,7 +12,9 @@ const movement = (cause?: {
   type: 'reservation' | 'product-order';
   id: string;
 }) => {
-  const recorded = new StockMovement('off-1', -2, 'sale');
+  const recorded = Object.assign(new StockMovement('off-1', -2, 'sale'), {
+    unit: 'UN' as const,
+  });
   recorded.id = 'mov-1';
   recorded.occurredAt = new Date('2026-11-19T10:00:00.000Z');
   if (cause !== undefined) {
@@ -42,6 +44,7 @@ describe('stockMovementRecordedEvent', () => {
         id: 'mov-1',
         organizationId: 'org-1',
         offeringId: 'off-1',
+        unit: 'UN',
         quantity: -2,
         reason: 'sale',
         occurredAt: '2026-11-19T10:00:00.000Z',

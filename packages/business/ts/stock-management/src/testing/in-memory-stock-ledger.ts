@@ -1,3 +1,4 @@
+import type { SaleUnit } from '@r10c/business-ts-sales-vocabulary';
 import { Effect } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
@@ -6,7 +7,10 @@ import type { StockMovement } from '../entities/stock-movement';
 import {
   type HoldOutcome,
   InsufficientStock,
+  type InUnit,
+  type RestoreOutcome,
   type StockLedger,
+  UnitMismatch,
 } from '../ports/stock-ledger';
 
 /**
@@ -15,6 +19,8 @@ import {
  * contract's `available === onHand − reserved` holds this ledger to it too.
  */
 interface Counter {
+  /** Fixed by the first movement, as the store's upsert fixes it. */
+  readonly unit: SaleUnit;
   onHand: number;
   reserved: number;
   available: number;
@@ -42,14 +48,23 @@ export const makeInMemoryStockLedger = (): StockLedger => {
     }
     return shelf;
   };
-  const counterOf = (shelf: Shelf, offeringId: string) => {
-    let counter = shelf.counters.get(offeringId);
+  /** The counter a movement moves, created in its unit on the first one. */
+  const counterFor = (shelf: Shelf, movement: InUnit<StockMovement>) => {
+    let counter = shelf.counters.get(movement.offeringId);
     if (counter === undefined) {
-      counter = { onHand: 0, reserved: 0, available: 0 };
-      shelf.counters.set(offeringId, counter);
+      counter = { unit: movement.unit, onHand: 0, reserved: 0, available: 0 };
+      shelf.counters.set(movement.offeringId, counter);
     }
     return counter;
   };
+  const mismatch = (
+    offeringId: string,
+    unit: SaleUnit,
+    counter: Counter | undefined,
+  ) =>
+    counter === undefined || counter.unit === unit
+      ? undefined
+      : new UnitMismatch({ offeringId, unit, stocked: counter.unit });
   const claimKey = (organizationId: string, commandId: string) =>
     `${organizationId}:${commandId}`;
 
@@ -63,7 +78,8 @@ export const makeInMemoryStockLedger = (): StockLedger => {
       return 'not-held' as const;
     }
     held.status = to;
-    const counter = counterOf(shelf, held.reservation.offeringId);
+    // A hold was only ever taken on a counter in its own unit.
+    const counter = shelf.counters.get(held.reservation.offeringId) as Counter;
     counter.reserved -= held.reservation.quantity;
     // A sale leaves the shelf and the hold at once, so what is free stays.
     if (to === 'converted') counter.onHand -= held.reservation.quantity;
@@ -71,15 +87,75 @@ export const makeInMemoryStockLedger = (): StockLedger => {
     return 'transitioned' as const;
   };
 
-  const move = (organizationId: string, movement: StockMovement) => {
-    const counter = counterOf(shelfOf(organizationId), movement.offeringId);
+  const move = (organizationId: string, movement: InUnit<StockMovement>) => {
+    const shelf = shelfOf(organizationId);
+    const refused = mismatch(
+      movement.offeringId,
+      movement.unit,
+      shelf.counters.get(movement.offeringId),
+    );
+    if (refused !== undefined) return refused;
+    const counter = counterFor(shelf, movement);
     counter.onHand += movement.quantity;
     counter.available += movement.quantity;
+    return undefined;
   };
 
   return {
     take: (organizationId, reservation, commandId) =>
-      Effect.suspend((): Effect.Effect<HoldOutcome, InsufficientStock> => {
+      Effect.suspend(
+        (): Effect.Effect<HoldOutcome, InsufficientStock | UnitMismatch> => {
+          const key =
+            commandId === undefined
+              ? undefined
+              : claimKey(organizationId, commandId);
+          const first = key === undefined ? undefined : commands.get(key);
+          if (first !== undefined) {
+            return Effect.succeed({
+              _tag: 'replayed' as const,
+              reservation: first as Reservation,
+            });
+          }
+          const shelf = shelfOf(organizationId);
+          const counter = shelf.counters.get(reservation.offeringId);
+          const refused = mismatch(
+            reservation.offeringId,
+            reservation.unit,
+            counter,
+          );
+          if (refused !== undefined) return Effect.fail(refused);
+          // Nothing was ever stocked: nothing is free, and no item is made.
+          const available = counter?.available ?? 0;
+          if (counter === undefined || available < reservation.quantity) {
+            return Effect.fail(
+              new InsufficientStock({
+                offeringId: reservation.offeringId,
+                requested: reservation.quantity,
+                available,
+              }),
+            );
+          }
+          counter.reserved += reservation.quantity;
+          counter.available -= reservation.quantity;
+          shelf.holds.set(reservation.id as string, {
+            reservation,
+            status: 'held',
+          });
+          if (key !== undefined) commands.set(key, reservation);
+          return Effect.succeed({ _tag: 'held' as const, reservation });
+        },
+      ),
+    end: (organizationId, reservationId, to) =>
+      Effect.sync(() => endHold(shelfOf(organizationId), reservationId, to)),
+    record: (organizationId, movement) =>
+      Effect.suspend(() => {
+        const refused = move(organizationId, movement);
+        return refused === undefined
+          ? Effect.succeed(movement)
+          : Effect.fail(refused);
+      }),
+    restore: (organizationId, movement, commandId) =>
+      Effect.suspend((): Effect.Effect<RestoreOutcome, UnitMismatch> => {
         const key =
           commandId === undefined
             ? undefined
@@ -88,50 +164,13 @@ export const makeInMemoryStockLedger = (): StockLedger => {
         if (first !== undefined) {
           return Effect.succeed({
             _tag: 'replayed' as const,
-            reservation: first as Reservation,
+            movement: first as StockMovement,
           });
         }
-        const shelf = shelfOf(organizationId);
-        const counter = counterOf(shelf, reservation.offeringId);
-        const { available } = counter;
-        if (available < reservation.quantity) {
-          return Effect.fail(
-            new InsufficientStock({
-              offeringId: reservation.offeringId,
-              requested: reservation.quantity,
-              available,
-            }),
-          );
-        }
-        counter.reserved += reservation.quantity;
-        counter.available -= reservation.quantity;
-        shelf.holds.set(reservation.id as string, {
-          reservation,
-          status: 'held',
-        });
-        if (key !== undefined) commands.set(key, reservation);
-        return Effect.succeed({ _tag: 'held' as const, reservation });
-      }),
-    end: (organizationId, reservationId, to) =>
-      Effect.sync(() => endHold(shelfOf(organizationId), reservationId, to)),
-    record: (organizationId, movement) =>
-      Effect.sync(() => {
-        move(organizationId, movement);
-        return movement;
-      }),
-    restore: (organizationId, movement, commandId) =>
-      Effect.sync(() => {
-        const key =
-          commandId === undefined
-            ? undefined
-            : claimKey(organizationId, commandId);
-        const first = key === undefined ? undefined : commands.get(key);
-        if (first !== undefined) {
-          return { _tag: 'replayed', movement: first as StockMovement };
-        }
-        move(organizationId, movement);
+        const refused = move(organizationId, movement);
+        if (refused !== undefined) return Effect.fail(refused);
         if (key !== undefined) commands.set(key, movement);
-        return { _tag: 'restored', movement };
+        return Effect.succeed({ _tag: 'restored' as const, movement });
       }),
     releaseExpired: () =>
       Effect.sync(() => {

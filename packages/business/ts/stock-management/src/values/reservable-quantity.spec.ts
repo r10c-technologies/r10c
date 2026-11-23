@@ -8,8 +8,10 @@ describe('isReservableQuantity', () => {
     expect(isReservableQuantity(50)).toBe(true);
   });
 
-  it('accepts a fraction, because a vendor may sell by weight', () => {
-    expect(isReservableQuantity(1.5)).toBe(true);
+  it('refuses a fraction, which is a quantity that lost its unit (ADR 0082 §2)', () => {
+    // 1.5 kg is held as 1500 in `KG`.
+    expect(isReservableQuantity(1.5)).toBe(false);
+    expect(isReservableQuantity(1500)).toBe(true);
   });
 
   it('refuses zero — a hold of nothing still takes a row and an id', () => {

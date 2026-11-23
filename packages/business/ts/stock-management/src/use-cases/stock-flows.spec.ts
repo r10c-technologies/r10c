@@ -9,6 +9,7 @@ import {
   ReservationTtlSecondsTag,
   type StockLedger,
   StockLedgerTag,
+  UnitMismatch,
 } from '../ports/stock-ledger.js';
 import {
   InconsistentMovement,
@@ -46,9 +47,18 @@ const run = <A, E>(
   );
 
 const aHold = (quantity: number) =>
-  Object.assign(new Reservation(), { offeringId: 'o-1', quantity });
+  Object.assign(new Reservation(), {
+    offeringId: 'o-1',
+    unit: 'UN' as const,
+    quantity,
+  });
 const aMovement = (reason: string, quantity: number) =>
-  Object.assign(new StockMovement(), { offeringId: 'o-1', reason, quantity });
+  Object.assign(new StockMovement(), {
+    offeringId: 'o-1',
+    unit: 'UN' as const,
+    reason,
+    quantity,
+  });
 
 describe('takeReservation', () => {
   it('stamps the hold with an id, a status and an expiry the ttl sets', async () => {
@@ -216,5 +226,73 @@ describe('the stock refusals', () => {
     expect(new InconsistentMovement({ reason: 'not a receipt' }).message).toBe(
       'not a receipt',
     );
+    expect(
+      new UnitMismatch({ offeringId: 'o-1', unit: 'UN', stocked: 'M' }).message,
+    ).toBe('o-1 is stocked in M, not UN');
+  });
+});
+
+describe('a quantity’s unit (ADR 0082 §1)', () => {
+  const refusal = <A, E>(
+    effect: Effect.Effect<
+      A,
+      E,
+      StockLedgerTag | ReservationTtlSecondsTag | ReservationMaxHoldSecondsTag
+    >,
+  ) => run(Effect.flip(effect));
+  const unknown = { unit: 'BOX' } as never;
+
+  it('is refused when it names none r10c sells in, before the ledger is asked', async () => {
+    const refusals = await Promise.all([
+      refusal(
+        takeReservation({
+          organizationId: 'org',
+          reservation: Object.assign(aHold(2), unknown),
+          commandId: 'c',
+        }),
+      ),
+      refusal(
+        recordMovement({
+          organizationId: 'org',
+          movement: Object.assign(aMovement('receipt', 2), unknown),
+        }),
+      ),
+      refusal(
+        restoreStock({
+          organizationId: 'org',
+          movement: Object.assign(aMovement('cancellation', 2), unknown),
+          cause: 'cancellation',
+          orderId: 'order-1',
+          commandId: 'c',
+        }),
+      ),
+    ]);
+
+    for (const refused of refusals) {
+      expect(refused).toMatchObject({
+        code: 'invalidBody',
+        reason: '"BOX" is not a sale unit',
+      });
+    }
+  });
+
+  it('is refused when a body names none, never taken as one piece', async () => {
+    // A body read into a `Reservation` without a unit has none: a store that
+    // took it as `UN` would count an offering sold by the metre in pieces.
+    const refused = await refusal(
+      takeReservation({
+        organizationId: 'org',
+        reservation: Object.assign(new Reservation(), {
+          offeringId: 'o-1',
+          quantity: 2,
+        }),
+        commandId: 'c',
+      }),
+    );
+
+    expect(refused).toMatchObject({
+      code: 'invalidBody',
+      reason: '"undefined" is not a sale unit',
+    });
   });
 });

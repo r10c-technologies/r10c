@@ -12,11 +12,16 @@ describe('the in-memory ledger beyond the contract', () => {
   it('never expires a hold with no deadline, nor one already ended', async () => {
     const ledger = makeInMemoryStockLedger();
     const receipt = Object.assign(new StockMovement('o-1', 2, 'receipt'), {
+      unit: 'UN' as const,
       id: 'm-1',
     });
-    const open = Object.assign(new Reservation('o-1', 1), { id: 'r-open' });
+    const open = Object.assign(new Reservation('o-1', 1), {
+      id: 'r-open',
+      unit: 'UN' as const,
+    });
     const ended = Object.assign(new Reservation('o-1', 1), {
       id: 'r-ended',
+      unit: 'UN' as const,
       expiresAt: new Date(Date.now() - 60_000),
     });
 

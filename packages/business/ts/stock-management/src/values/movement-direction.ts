@@ -43,15 +43,16 @@ export function movementDirection(reason: MovementReason): MovementDirection {
  * becomes unrecoverable rather than wrong. The ledger is replayable precisely
  * because nothing in it can do that.
  *
- * Quantities are deliberately **not** required to be integers: what a vendor
- * sells by is theirs to decide, and a marketplace that sells by weight has
- * fractional stock long before it has a special case.
+ * A quantity is an integer in its unit's scale (ADR 0082 §2): 1.5 kg is
+ * `1500` in `KG`, so a fraction here is a quantity that lost its unit. The
+ * step is the catalog's rule for selling, not the ledger's — a vendor writes
+ * off 0.137 m as `137`.
  */
 export function isConsistentMovement(
   reason: MovementReason,
   quantity: number,
 ): boolean {
-  if (!Number.isFinite(quantity) || quantity === 0) {
+  if (!Number.isSafeInteger(quantity) || quantity === 0) {
     return false;
   }
 

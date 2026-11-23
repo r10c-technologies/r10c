@@ -860,6 +860,7 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       offeringId: 'Product',
+      unit: 'Unit',
       onHand: 'On hand',
       reserved: 'Reserved',
       available: 'Available',
@@ -877,6 +878,7 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       offeringId: 'Product',
+      unit: 'Unit',
       quantity: 'Quantity',
       reason: 'Reason',
       occurredAt: 'Occurred at',
@@ -910,6 +912,7 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       offeringId: 'Product',
+      unit: 'Unit',
       quantity: 'Quantity',
       status: 'Status',
       expiresAt: 'Expires at',

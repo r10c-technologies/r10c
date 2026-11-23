@@ -12,6 +12,7 @@ describe('stockItemChangedEvent', () => {
       {
         id: 'item-1',
         offeringId: 'off-1',
+        unit: 'M',
         onHand: 5,
         reserved: 2,
         available: 3,
@@ -27,7 +28,13 @@ describe('stockItemChangedEvent', () => {
       aggregate: { type: 'stock-item', id: 'item-1' },
       version: 7,
       audience: [{ kind: 'organization', id: 'org-1' }],
-      data: { id: 'item-1', offeringId: 'off-1', onHand: 5, reserved: 2 },
+      data: {
+        id: 'item-1',
+        offeringId: 'off-1',
+        unit: 'M',
+        onHand: 5,
+        reserved: 2,
+      },
     });
   });
 });
