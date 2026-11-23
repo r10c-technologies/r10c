@@ -148,7 +148,7 @@ const home = (locale: SiteLocale): ReferencePage => {
       ).join('\n'),
       section(
         copy.catalog.title,
-        `- ${link(copy.catalog.title, href(locale, 'services'))} — ${copy.catalog.description}\n- ${link(copy.catalog.storesTitle, href(locale, 'stores'))} — ${copy.catalog.storesDescription}`,
+        `- ${link(copy.flows.title, href(locale, 'flows'))} — ${copy.flows.description}\n- ${link(copy.catalog.title, href(locale, 'services'))} — ${copy.catalog.description}\n- ${link(copy.catalog.storesTitle, href(locale, 'stores'))} — ${copy.catalog.storesDescription}`,
       ),
       // `/ui/` is outside both locale trees: one Storybook serves either.
       section(

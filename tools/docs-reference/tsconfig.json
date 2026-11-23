@@ -1,0 +1,57 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/docs-reference",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "vitest/globals", "vitest/importMeta"],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/shells/effect/transaction"
+    },
+    {
+      "path": "../../packages/shells/effect/stock"
+    },
+    {
+      "path": "../../packages/shells/effect/settlement"
+    },
+    {
+      "path": "../../packages/shells/effect/sales"
+    },
+    {
+      "path": "../../packages/shells/effect/realtime"
+    },
+    {
+      "path": "../../packages/shells/effect/payment"
+    },
+    {
+      "path": "../../packages/shells/effect/order"
+    },
+    {
+      "path": "../../packages/shells/effect/marketplace-admin"
+    },
+    {
+      "path": "../../packages/shells/effect/marketplace"
+    },
+    {
+      "path": "../../packages/shells/effect/fulfilment"
+    },
+    {
+      "path": "../../packages/shells/effect/flow-catalog"
+    },
+    {
+      "path": "../../packages/shells/effect/config"
+    },
+    {
+      "path": "../../packages/shells/effect/auth"
+    },
+    {
+      "path": "../slices"
+    }
+  ]
+}

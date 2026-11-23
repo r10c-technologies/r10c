@@ -25,11 +25,13 @@ import {
 
 export const SERVICES_FOLDER = 'services';
 export const STORES_FOLDER = 'stores';
+/** Each deployment's OpenAPI pages (`api.ts`), linked from its slice's page. */
+export const API_FOLDER = 'api';
 
 /** A service's inspector is its port + 6000 (`docs/_shared/ports.md`). */
 const INSPECTOR_OFFSET = 6000;
 
-const workspaceRoot = (() => {
+export const workspaceRoot = (() => {
   let directory = process.cwd();
   while (!existsSync(join(directory, 'pnpm-workspace.yaml'))) {
     const parent = dirname(directory);
@@ -121,7 +123,7 @@ const slicePage = (
                   entry => entry.project === project,
                 )?.port;
                 return [
-                  code(project),
+                  link(project, href(locale, API_FOLDER, project)),
                   port === undefined ? '—' : code(String(port)),
                   port === undefined
                     ? '—'
