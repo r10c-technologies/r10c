@@ -30,12 +30,12 @@
     "@r10c/shells-next-stock": "workspace:*",
     "@r10c/shells-next-system-management": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
-    "i18next": "27.1.1",
+    "i18next": "27.2.2",
     "next": "16.4.6",
-    "posthog-js": "1.444.0",
+    "posthog-js": "1.453.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "react-i18next": "18.0.1"
+    "react-i18next": "18.0.3"
   },
   "nx": {
     "tags": [
