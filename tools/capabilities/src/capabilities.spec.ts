@@ -219,9 +219,7 @@ describe('Each check can fail (planted)', () => {
     it('resolves on a filterable member of a served read', () => {
       expect(problemsOf(byDevice)).toBe('');
       const unserved: World = { ...world, serves: () => false };
-      expect(problemsOf(byDevice, unserved)).toContain(
-        'filterable member',
-      );
+      expect(problemsOf(byDevice, unserved)).toContain('filterable member');
     });
 
     it('refuses an unknown member, one not filterable, and none', () => {
@@ -231,8 +229,19 @@ describe('Each check can fail (planted)', () => {
       expect(problemsOf({ ...byDevice, member: 'media' })).toContain(
         'filterable member',
       );
-      const { member: _dropped, ...unnamed } = byDevice;
-      expect(problemsOf(unnamed)).toContain('filterable member');
+      const { id, oda, entities, permissions, screens, status, verticals } =
+        byDevice;
+      expect(
+        problemsOf({
+          id,
+          oda,
+          entities,
+          permissions,
+          screens,
+          status,
+          verticals,
+        }),
+      ).toContain('filterable member');
     });
 
     it('refuses an in-design filter that resolves', () => {
