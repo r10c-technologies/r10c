@@ -142,19 +142,27 @@ describe('a quantity is multiplied only by lineTotal (ADR 0082 §6)', () => {
     );
   });
 
-  it('finds the multiplication lineTotal makes, and none anywhere else', () => {
-    const hits = FILES.flatMap(file => {
-      const path = relative(REPO_ROOT, file);
-      return quantityMultiplications(path, readFileSync(file, 'utf8'));
-    });
+  // Parsing every source file takes a few seconds on a CI runner, past
+  // vitest's default 5 s; the bound is the runner's, not the check's.
+  const SCAN_TIMEOUT_MS = 30_000;
 
-    expect(
-      hits.filter(hit => ALLOWED.has(hit.split(':')[0] ?? '')),
-    ).not.toEqual([]);
-    expect(hits.filter(hit => !ALLOWED.has(hit.split(':')[0] ?? ''))).toEqual(
-      [],
-    );
-  });
+  it(
+    'finds the multiplication lineTotal makes, and none anywhere else',
+    () => {
+      const hits = FILES.flatMap(file => {
+        const path = relative(REPO_ROOT, file);
+        return quantityMultiplications(path, readFileSync(file, 'utf8'));
+      });
+
+      expect(
+        hits.filter(hit => ALLOWED.has(hit.split(':')[0] ?? '')),
+      ).not.toEqual([]);
+      expect(hits.filter(hit => !ALLOWED.has(hit.split(':')[0] ?? ''))).toEqual(
+        [],
+      );
+    },
+    SCAN_TIMEOUT_MS,
+  );
 
   it('fails a plain multiplication of a price by a quantity', () => {
     expect(
