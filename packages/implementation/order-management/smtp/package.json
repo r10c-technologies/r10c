@@ -45,7 +45,7 @@
     "@r10c/business-ts-order-management": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.7",
-    "nodemailer": "10.3.1"
+    "nodemailer": "10.6.1"
   },
   "devDependencies": {
     "@types/nodemailer": "8.0.2"
