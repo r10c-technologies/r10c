@@ -35,7 +35,7 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../../business/ts/catalog-contracts/tsconfig.lib.json"
+      "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
@@ -45,6 +45,9 @@
     },
     {
       "path": "../../../business/ts/catalog-reference/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/catalog-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/i18n/tsconfig.lib.json"

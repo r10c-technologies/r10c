@@ -21,6 +21,7 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
+import { InvalidBody } from '@r10c/business-ts-common';
 import { Configuration } from '@r10c/business-ts-configuration';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
@@ -289,9 +290,33 @@ export const PAID_ORDER_ID = 'product-order-paid-1';
 /** What that order is called: its number, never its id (ADR 0076 §5). */
 export const PAID_ORDER_NUMBER = '7KQ4-M2XD';
 
+/** A payment-link order still waiting for its payment (ADR 0081). */
+export const AWAITING_LINK_ORDER_ID = 'product-order-awaiting-link-1';
+
 const productOrders = entityBackendHandlers(ProductOrder, {
   baseUrl: `${ORDER_SERVICE_URL}/product-order`,
   seed: [
+    {
+      id: AWAITING_LINK_ORDER_ID,
+      number: '7KQ4-M2XE',
+      buyerId: 'buyer-1',
+      vendorId: 'e2e-organization',
+      groupId: 'group-2',
+      paymentMethod: 'link',
+      status: 'awaiting-payment',
+      placedAt: '2026-11-03T11:00:00.000Z',
+      items: [
+        {
+          offeringId: 'product-offering-1',
+          name: 'Aurora Desk Lamp',
+          specificationId: 'spec-1',
+          specificationVersion: 1,
+          quantity: 1,
+          amount: 25,
+          currency: 'GTQ',
+        },
+      ],
+    },
     {
       id: PAID_ORDER_ID,
       number: PAID_ORDER_NUMBER,
@@ -723,6 +748,45 @@ const bulkPublishHandlers = [
   ),
 ];
 
+/**
+ * `set-sale-unit` as the service answers it (ADR 0082 §3): the record at its
+ * new revision, step and minimum reset to one whole metre. Anything but the
+ * body the unit form sends is refused, so a button that posted nothing — what
+ * entifix drew before #315 — fails the journey instead of passing it.
+ */
+const setSaleUnitHandlers = [
+  http.post(
+    `${SERVICE_URL}/product-offering/:id/set-sale-unit`,
+    async ({ params, request }) => {
+      const body = (await request.json().catch(() => undefined)) as
+        { readonly saleUnit?: unknown } | undefined;
+      if (body?.saleUnit !== 'M')
+        return HttpResponse.json(
+          problemOf(
+            new InvalidBody({ reason: 'set-sale-unit names the unit it sets' }),
+          ),
+          {
+            status: 400,
+            headers: { 'content-type': 'application/problem+json' },
+          },
+        );
+      return HttpResponse.json({
+        meta: { type: 'entity', entity: 'product-offering' },
+        data: {
+          id: String(params['id']),
+          name: 'Taza esmaltada',
+          specificationId: 'product-1',
+          status: 'draft',
+          saleUnit: 'M',
+          quantityStep: 1000,
+          quantityMinimum: 1000,
+          revision: 1,
+        },
+      });
+    },
+  ),
+];
+
 /** The mock channel store, for reseeding or for breaking on purpose. */
 export const salesChannelBackend = salesChannels.backend;
 
@@ -1026,6 +1090,7 @@ const base = defineEntifixE2eTest({
     ...mediaHandlers,
     ...offeringMetadataHandlers,
     ...bulkPublishHandlers,
+    ...setSaleUnitHandlers,
     ...sellHandlers,
     ...productOrders.handlers,
     ...orderMetadataHandlers,

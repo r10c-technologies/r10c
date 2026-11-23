@@ -41,6 +41,7 @@ import {
   OFFERING_RELATED_COLUMNS,
   OfferingImagesRegion,
 } from './offering-regions';
+import { SALE_UNIT_FORM, SaleUnitForm } from './sale-unit-form';
 
 /**
  * The catalog's five CRUD surfaces, declared rather than written.
@@ -347,6 +348,9 @@ export const productOfferingCrudWith = ({
         searchProperty: 'name',
       },
     ],
+    // `set-sale-unit` needs the unit it sets, so it opens this form rather
+    // than posting from a button (ADR 0082 §3, entifix #315).
+    verbForms: { [SALE_UNIT_FORM]: SaleUnitForm },
     related: [...OFFERING_RELATED_COLUMNS, ...related],
     regions: offering => [
       <OfferingImagesRegion key="images" offering={offering} />,

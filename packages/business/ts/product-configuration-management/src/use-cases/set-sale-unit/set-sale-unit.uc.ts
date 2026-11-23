@@ -45,6 +45,9 @@ export type SaleUnitPayload = typeof SaleUnitPayload.Type;
   placement: 'context-independent',
   labelKey: 'entity:product-offering.useCases.setSaleUnit',
   payload: SaleUnitPayload,
+  // The back office's offering page opens this form to ask for the unit; a
+  // surface that holds no such form does not offer the verb (entifix #315).
+  form: 'sale-unit',
   availableWhen: { member: 'status', in: NeverPublishedStatuses },
   errors: [NotFound, SaleUnitFixed, OfferingChanged],
 })
