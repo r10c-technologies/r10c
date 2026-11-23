@@ -53,8 +53,9 @@ export interface ProductCardAvailability {
  * one onto these roles, so the same tile renders a catalog entry, a search hit
  * or a fixture.
  *
- * `unitPrice` and `rating` are declared and nothing fills them yet. They are
- * here so that the card's layout already has a place for them.
+ * `unitPrice` says what the price buys when it is not one piece ("por 100
+ * u.", ADR 0082 §5), already worded. `rating` is declared and nothing fills it
+ * yet; it is here so that the card's layout already has a place for it.
  *
  * The roles are nodes, already translated by whoever renders the card, with
  * two exceptions that carry a rule rather than copy: the price is an amount

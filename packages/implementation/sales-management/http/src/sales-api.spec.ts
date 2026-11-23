@@ -59,6 +59,10 @@ describe('the sales-channel declaration', () => {
             vendorId: 'org-1',
             amount: 25,
             currency: 'GTQ',
+            saleUnit: 'UN',
+            quantityStep: 1,
+            quantityMinimum: 1,
+            pricePer: 1,
           }),
       }),
       Layer.succeed(

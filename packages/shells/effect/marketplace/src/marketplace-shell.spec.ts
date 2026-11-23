@@ -2,7 +2,10 @@ import { generateKeyPairSync } from 'node:crypto';
 
 import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { EventBusTag } from '@entifix/transactions';
-import { catalogPublishedEvent } from '@r10c/business-ts-catalog-contracts';
+import {
+  type CatalogPublication,
+  catalogPublishedEvent,
+} from '@r10c/business-ts-catalog-contracts';
 import {
   type PublishedCatalog,
   PublishedCatalogTag,
@@ -84,7 +87,7 @@ describe('the two projections', () => {
           applied.push(announcement);
         }),
     } as unknown as PublishedVendors;
-    const publication = {
+    const publication: CatalogPublication = {
       offeringId: 'offering-1',
       vendorId: 'org-1',
       name: 'A hand-thrown mug',
@@ -94,6 +97,10 @@ describe('the two projections', () => {
       publishedAt: '2026-09-07T10:00:00.000Z',
       specificationId: 'spec-1',
       specificationVersion: 1,
+      saleUnit: 'UN',
+      quantityStep: 1,
+      quantityMinimum: 1,
+      pricePer: 1,
     };
     const announcement = {
       organizationId: 'org-1',

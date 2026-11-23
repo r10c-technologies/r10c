@@ -150,7 +150,7 @@ describe('getOffering', () => {
 describe('searchOfferings', () => {
   it('reads the page the search address states, through the codec', async () => {
     const { result, load } = run(
-      searchOfferings(parseSearch({ category: 'category-lighting' }), {
+      searchOfferings(parseSearch({ category: 'category-lighting' }, 'es'), {
         subtreeOf: id => [id],
       }),
     );

@@ -46,6 +46,10 @@ const PUBLICATION: CatalogPublication = {
   publishedAt: '2026-09-07T10:00:00.000Z',
   specificationId: 'spec-1',
   specificationVersion: 1,
+  saleUnit: 'UN',
+  quantityStep: 1,
+  quantityMinimum: 1,
+  pricePer: 100,
   code: 'product-013',
   description: 'Stoneware, glazed by hand.',
   brandId: 'product-brand-3',
@@ -310,6 +314,10 @@ describe('the payload and the record it is written into', () => {
       publishedAt: true,
       specificationId: true,
       specificationVersion: true,
+      saleUnit: true,
+      quantityStep: true,
+      quantityMinimum: true,
+      pricePer: true,
       code: true,
       description: true,
       brandId: true,
@@ -339,6 +347,15 @@ describe('the payload and the record it is written into', () => {
         `the publication carried '${member}' and the projected document does not`,
       ).toHaveProperty(member);
     }
+  });
+
+  it('stores the key a list orders prices by, derived from the quoted price', async () => {
+    // Q249.00 the hundred is Q2,490.00 the thousand. A sort on `amount` would
+    // rank it beside Q249.00 each (ADR 0082 §5).
+    const p = world();
+    await p.apply(CATALOG_PUBLISHED);
+
+    expect(p.record).toHaveProperty('amountPerThousand', 249_000);
   });
 
   it('omits an absent optional rather than storing null, including one the vendor cleared', async () => {

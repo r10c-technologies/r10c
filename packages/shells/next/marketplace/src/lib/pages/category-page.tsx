@@ -155,7 +155,7 @@ export async function CategoryPage({
   if (!category) notFound();
 
   // The path names the category, so a `?category=` on it is ignored.
-  const state = { ...parseSearch(searchParams), category: [] };
+  const state = { ...parseSearch(searchParams, locale), category: [] };
 
   return (
     <StoreShell

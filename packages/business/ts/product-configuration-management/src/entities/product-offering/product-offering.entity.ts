@@ -3,7 +3,9 @@ import { accessor, entity } from '@entifix/core';
 import {
   DEFAULT_SALE_UNIT,
   oneWholeUnit,
+  SALE_UNIT_NAME_KEY,
   SALE_UNIT_SCALES,
+  SALE_UNIT_SYMBOL_KEY,
   type SaleUnit,
   SaleUnits,
 } from '@r10c/business-ts-sales-vocabulary';
@@ -204,7 +206,7 @@ export class ProductOffering implements Entity {
     type: 'enum',
     labelKey: 'entity:product-offering.fields.saleUnit',
     enumValues: SaleUnits,
-    enumLabelKey: 'entity:product-offering.values.saleUnit',
+    enumLabelKey: SALE_UNIT_NAME_KEY,
     filterable: true,
   })
   get saleUnit(): SaleUnit {
@@ -226,7 +228,7 @@ export class ProductOffering implements Entity {
     scaled: {
       unitMember: 'saleUnit',
       units: SALE_UNIT_SCALES,
-      unitLabelKey: 'entity:product-offering.values.unitSymbol',
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
     },
   })
   get quantityStep(): number {
@@ -244,7 +246,7 @@ export class ProductOffering implements Entity {
     scaled: {
       unitMember: 'saleUnit',
       units: SALE_UNIT_SCALES,
-      unitLabelKey: 'entity:product-offering.values.unitSymbol',
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
     },
   })
   get quantityMinimum(): number {

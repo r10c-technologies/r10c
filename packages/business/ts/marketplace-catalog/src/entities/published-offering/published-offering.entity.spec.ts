@@ -18,6 +18,11 @@ describe('PublishedOffering', () => {
     published.id = 'pub-1';
     published.amount = 1050;
     published.currency = 'EUR';
+    published.pricePer = 100;
+    published.amountPerThousand = 10_500;
+    published.saleUnit = 'M';
+    published.quantityStep = 500;
+    published.quantityMinimum = 1000;
     published.availableHint = true;
     published.publishedAt = new Date('2026-09-07T10:00:00.000Z');
     published.code = 'product-013';
@@ -32,6 +37,11 @@ describe('PublishedOffering', () => {
       name: 'Blue widget, 3-pack',
       amount: 1050,
       currency: 'EUR',
+      pricePer: 100,
+      amountPerThousand: 10_500,
+      saleUnit: 'M',
+      quantityStep: 500,
+      quantityMinimum: 1000,
       availableHint: true,
       publishedAt: new Date('2026-09-07T10:00:00.000Z'),
       code: 'product-013',
@@ -39,6 +49,33 @@ describe('PublishedOffering', () => {
       brandId: 'product-brand-3',
       categoryId: 'product-category-7',
     });
+  });
+
+  it('orders and filters prices by the per-thousand key, never by the quoted amount', () => {
+    const columns = describeEntityColumns(PublishedOffering);
+    const column = (name: string) =>
+      columns.find(candidate => candidate.name === name);
+
+    expect(column('amount')).toMatchObject({
+      sortable: false,
+      filterable: false,
+    });
+    expect(column('amountPerThousand')).toMatchObject({
+      sortable: true,
+      filterable: true,
+    });
+  });
+
+  it('counts its step and minimum in the scale of its own unit', () => {
+    const columns = describeEntityColumns(PublishedOffering);
+
+    for (const name of ['quantityStep', 'quantityMinimum']) {
+      expect(columns.find(column => column.name === name)?.scaled).toEqual({
+        unitMember: 'saleUnit',
+        units: expect.objectContaining({ UN: 0, M: 3 }),
+        unitLabelKey: 'entity:sale-unit.symbol',
+      });
+    }
   });
 
   it('serializes an absent merchandising member to nothing at all', () => {

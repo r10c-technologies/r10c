@@ -18,6 +18,7 @@ import { addToCart } from '../cart/cart-actions';
 import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
 import { emptyPage, runReadOutcome } from './catalog-reads';
+import { priceBasisLabel } from './price-basis';
 
 /**
  * The names a grid's cards carry beside the offering itself: each brand's, and
@@ -131,6 +132,12 @@ export function OfferingGrid({
   }
 
   const t = getServerTFor(locale, 'r10c');
+  const priceBasis = priceBasisLabel(
+    // i18next 27's `TFunction` is not assignable to a plain translate
+    // signature, so the label gets the call it declares.
+    (key, values) => (values ? t(key, values) : t(key)),
+    locale,
+  );
   const hosts = imageHosts();
 
   return (
@@ -140,6 +147,7 @@ export function OfferingGrid({
           locale,
           brandName: names.brandName,
           sellerName: names.sellerName,
+          priceBasis,
           soldBy: seller => t('storefront.product.soldBy', { seller }),
           labels: {
             available: t('storefront.product.available'),

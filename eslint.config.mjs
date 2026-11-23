@@ -195,17 +195,28 @@ const scopeConstraints = [
   },
 ];
 
-// Internal ordering INSIDE the business layer.
-// `policy` is the authorization vocabulary every domain may express itself in;
-// a `domain` may reach down to it but never sideways to another domain.
+// Internal ordering INSIDE the business layer: `vocabulary` ‹ `policy` ‹
+// `domain`. `vocabulary` is pure values with no r10c dependency — the units a
+// quantity is counted in and the one function a price meets a quantity in —
+// which a contract has to name as much as a domain does (ADR 0082). `policy`
+// is the shared language every domain may express itself in; a `domain` may
+// reach down to both but never sideways to another domain.
 const businessConstraints = [
   {
-    sourceTag: 'business:policy',
+    sourceTag: 'business:vocabulary',
     onlyDependOnLibsWithTags: ['layer:utils'],
   },
   {
+    sourceTag: 'business:policy',
+    onlyDependOnLibsWithTags: ['business:vocabulary', 'layer:utils'],
+  },
+  {
     sourceTag: 'business:domain',
-    onlyDependOnLibsWithTags: ['business:policy', 'layer:utils'],
+    onlyDependOnLibsWithTags: [
+      'business:vocabulary',
+      'business:policy',
+      'layer:utils',
+    ],
   },
 ];
 

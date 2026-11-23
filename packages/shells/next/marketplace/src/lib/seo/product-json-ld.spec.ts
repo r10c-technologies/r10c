@@ -68,6 +68,31 @@ describe('productJsonLd', () => {
     });
   });
 
+  it('says how much a price for more than one piece buys', () => {
+    const ld = productJsonLd({
+      offering: offering(one => {
+        one.amount = 750;
+        one.saleUnit = 'UN';
+        one.pricePer = 100;
+      }),
+      url: URL,
+    });
+
+    expect(ld['offers']).toMatchObject({
+      price: '7.50',
+      priceSpecification: {
+        '@type': 'UnitPriceSpecification',
+        price: '7.50',
+        priceCurrency: 'USD',
+        referenceQuantity: {
+          '@type': 'QuantitativeValue',
+          value: 100,
+          unitCode: 'H87',
+        },
+      },
+    });
+  });
+
   it('treats an empty gallery as no image', () => {
     const ld = productJsonLd({
       offering: offering(one => {

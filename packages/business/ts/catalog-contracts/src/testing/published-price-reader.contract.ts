@@ -54,6 +54,10 @@ export const describePublishedPriceReaderContract = (
           name: 'Mug',
           specificationId: 's-1',
           specificationVersion: 1,
+          saleUnit: 'M',
+          quantityStep: 500,
+          quantityMinimum: 1000,
+          pricePer: 100,
         },
       });
 
@@ -64,6 +68,10 @@ export const describePublishedPriceReaderContract = (
           vendorId: 'v-1',
           amount: 7,
           currency: 'GTQ',
+          saleUnit: 'M',
+          quantityStep: 500,
+          quantityMinimum: 1000,
+          pricePer: 100,
         },
       });
     });

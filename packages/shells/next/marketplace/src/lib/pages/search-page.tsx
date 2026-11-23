@@ -27,7 +27,7 @@ export function SearchPage({
   readonly searchParams: SearchParams;
 }) {
   const t = getServerTFor(locale, 'r10c');
-  const state = parseSearch(searchParams);
+  const state = parseSearch(searchParams, locale);
   const term = state.q[0]?.trim();
 
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { getUCFactory } from '@entifix/business';
-import type { Entity } from '@entifix/core';
+import { type Entity, formattingLocale } from '@entifix/core';
 import {
   type CrudContext,
   crudContextOf,
@@ -13,8 +13,11 @@ import {
   ButtonLink,
   MediaGallery,
   MediaImage,
+  Money,
   Stack,
   Text,
+  useLocale,
+  useT,
   useTranslateKey,
 } from '@entifix/react-controls';
 import { useEntityRecord } from '@entifix/react-integration';
@@ -63,6 +66,33 @@ function ThumbnailCell({
 }
 
 /**
+ * A price as the vendor quoted it: the amount, and "por 100" when it buys more
+ * than one unit — the unit itself is the list's own column. Read alone, Q7.50
+ * the hundred is Q7.50 each (ADR 0082 §5).
+ */
+export function PriceCell({ price }: { readonly price: ProductOfferingPrice }) {
+  const locale = useLocale();
+  const t = useT('r10c');
+  return (
+    <span>
+      <Money
+        amount={price.amount}
+        currency={price.currency}
+        unit="minor"
+        locale={locale}
+      />
+      {price.pricePer === 1
+        ? null
+        : ` ${t('marketplaceAdmin.offering.pricePer', {
+            quantity: new Intl.NumberFormat(formattingLocale(locale)).format(
+              price.pricePer,
+            ),
+          })}`}
+    </span>
+  );
+}
+
+/**
  * The offering list's price and picture columns: one read per column per page,
  * through this slice's own adapters (entifix 0030).
  */
@@ -75,6 +105,9 @@ export const OFFERING_RELATED_COLUMNS: readonly EntityCrudRelated<MarketplaceAdm
       repository: 'productOfferingPriceRest',
       match: 'offeringId',
       member: 'amount',
+      render: (match: Entity) => (
+        <PriceCell price={match as ProductOfferingPrice} />
+      ),
     },
     {
       key: 'image',

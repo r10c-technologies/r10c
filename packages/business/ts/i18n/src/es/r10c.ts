@@ -183,6 +183,12 @@ export const r10c = {
       empty: 'No hay productos en esta categoría todavía.',
       children: 'Subcategorías',
     },
+    // Lo que compra un precio, junto al precio, cuando no es una pieza: un
+    // metro, o cien tornillos (ADR 0082 §5).
+    price: {
+      per: 'por {{symbol}}',
+      perQuantity: 'por {{quantity}} {{symbol}}',
+    },
     product: {
       buy: 'Comprar',
       soldBy: 'Vendido por {{seller}}',
@@ -716,6 +722,9 @@ export const r10c = {
      * cada región lee y escribe en su propio servicio.
      */
     offering: {
+      // Junto al precio en la lista de ofertas, cuando no es por una unidad:
+      // la columna de la unidad dice cuál (ADR 0082 §5).
+      pricePer: 'por {{quantity}}',
       saleUnit: {
         resets:
           'El paso y la cantidad mínima vuelven a una unidad completa de la unidad nueva. Después de publicar la oferta, la unidad ya no cambia.',

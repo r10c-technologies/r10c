@@ -4,7 +4,10 @@ import type { EntityVerbFormProps } from '@entifix/next-shell';
 import { Stack, Text, useT, useTranslateKey } from '@entifix/react-controls';
 import { Select } from '@entifix/react-controls/primitives';
 import type { ProductOffering } from '@r10c/business-ts-product-configuration-management';
-import { SaleUnits } from '@r10c/business-ts-sales-vocabulary';
+import {
+  SALE_UNIT_NAME_KEY,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 
 /** The name `set-sale-unit` declares its form under. */
 export const SALE_UNIT_FORM = 'sale-unit';
@@ -50,7 +53,7 @@ export function SaleUnitForm({
         >
           {SaleUnits.map(unit => (
             <option key={unit} value={unit}>
-              {translateKey(`entity:product-offering.values.saleUnit.${unit}`)}
+              {translateKey(`${SALE_UNIT_NAME_KEY}.${unit}`)}
             </option>
           ))}
         </Select>

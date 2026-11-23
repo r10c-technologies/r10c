@@ -7,6 +7,8 @@ const context: OfferingCardContext = {
   locale: 'es',
   brandName: id => (id === 'brand-1' ? 'Aurora' : undefined),
   sellerName: id => (id === 'vendor-1' ? 'Casa Solano' : undefined),
+  priceBasis: one =>
+    one.pricePer === 1 ? undefined : `por ${String(one.pricePer)} u.`,
   soldBy: seller => `Vendido por ${seller}`,
   labels: { available: 'Disponible', unavailable: 'Agotado' },
 };
@@ -37,6 +39,7 @@ describe('offeringCard', () => {
     expect(card).toEqual({
       title: 'Lámpara Arco',
       price: { amount: 45000, currency: 'GTQ', locale: 'es' },
+      unitPrice: undefined,
       brand: 'Aurora',
       seller: 'Vendido por Casa Solano',
       description: 'Luz cálida',
@@ -53,6 +56,18 @@ describe('offeringCard', () => {
     expect(card.description).toBeUndefined();
     expect(card.media).toBeUndefined();
     expect(card.availability).toEqual({ label: 'Agotado', available: false });
+  });
+
+  it('says what the price buys beside it', () => {
+    const card = offeringCard(
+      offering(one => {
+        one.amount = 750;
+        one.pricePer = 100;
+      }),
+      context,
+    );
+
+    expect(card.unitPrice).toBe('por 100 u.');
   });
 
   it('leaves the brand absent when the vocabulary does not know it', () => {

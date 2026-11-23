@@ -76,6 +76,11 @@ const adapters = (): MarketplaceAdminAdapters => {
       Object.assign(new ProductOfferingPrice('o-1', 4500, 'GTQ'), {
         id: 'p-1',
       }),
+      // Q7.50 the hundred (ADR 0082 §5).
+      Object.assign(new ProductOfferingPrice('o-2', 750, 'GTQ'), {
+        id: 'p-2',
+        pricePer: 100,
+      }),
     ] as Entity[]),
   );
   return {
@@ -141,6 +146,21 @@ describe('the offering list (#558)', () => {
     );
     expect(screen.getAllByText(/45[.,]00/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('says what a price quoted per hundred buys', async () => {
+    renderPage(<productOfferingCrud.ListPage />);
+
+    await waitFor(() =>
+      expect(
+        // The amount is `Money`'s own element; the cell reads as one phrase.
+        screen.getAllByText(
+          (_, element) =>
+            element?.tagName === 'SPAN' &&
+            /7[.,]50 por 100$/.test(element.textContent),
+        ).length,
+      ).toBeGreaterThan(0),
+    );
   });
 });
 

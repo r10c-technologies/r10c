@@ -50,7 +50,7 @@ export async function SellerPage({
   if (!seller) notFound();
 
   // The path names the seller, so a `?seller=` on it is ignored.
-  const state = { ...parseSearch(searchParams), seller: [] };
+  const state = { ...parseSearch(searchParams, locale), seller: [] };
   const url = `${storefrontOrigin()}${localeHref(locale, storePaths.seller(vendorId))}`;
   const chat = whatsappChatUrl(
     seller.whatsappNumber,

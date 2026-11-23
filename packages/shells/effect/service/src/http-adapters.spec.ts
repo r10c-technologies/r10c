@@ -114,6 +114,14 @@ describePublishedPriceReaderContract('the HTTP price reader', catalog => {
 });
 
 describe('httpPublishedPriceReaderLayer', () => {
+  // What the price buys (ADR 0082): a record without it prices nothing.
+  const TERMS = {
+    saleUnit: 'UN',
+    quantityStep: 1,
+    quantityMinimum: 1,
+    pricePer: 1,
+  } as const;
+
   it('reads the price off the first published record', async () => {
     respond(200, {
       data: {
@@ -125,6 +133,7 @@ describe('httpPublishedPriceReaderLayer', () => {
             currency: 'GTQ',
             specificationId: 's-1',
             specificationVersion: 1,
+            ...TERMS,
           },
         ],
       },
@@ -138,6 +147,7 @@ describe('httpPublishedPriceReaderLayer', () => {
       currency: 'GTQ',
       specificationId: 's-1',
       specificationVersion: 1,
+      ...TERMS,
     });
   });
 
@@ -173,6 +183,7 @@ describe('httpPublishedPriceReaderLayer', () => {
                     currency: 'GTQ',
                     specificationId: 's-1',
                     specificationVersion: 1,
+                    ...TERMS,
                   },
                 ],
               },

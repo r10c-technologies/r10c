@@ -23,6 +23,10 @@ const PUBLICATION: CatalogPublication = {
   publishedAt: '2026-09-07T10:00:00.000Z',
   specificationId: 'spec-1',
   specificationVersion: 2,
+  saleUnit: 'UN',
+  quantityStep: 1,
+  quantityMinimum: 1,
+  pricePer: 1,
   code: 'product-013',
   description: 'Stoneware, glazed by hand.',
   brandId: 'product-brand-3',
@@ -30,7 +34,7 @@ const PUBLICATION: CatalogPublication = {
   media: [{ url: 'https://cdn.example/mug.jpg', alt: 'The mug, glazed blue' }],
 };
 
-/** The nine members every publication must carry to be readable at all. */
+/** The thirteen members every publication must carry to be readable at all. */
 const REQUIRED = {
   offeringId: PUBLICATION.offeringId,
   vendorId: PUBLICATION.vendorId,
@@ -41,6 +45,10 @@ const REQUIRED = {
   publishedAt: PUBLICATION.publishedAt,
   specificationId: PUBLICATION.specificationId,
   specificationVersion: PUBLICATION.specificationVersion,
+  saleUnit: PUBLICATION.saleUnit,
+  quantityStep: PUBLICATION.quantityStep,
+  quantityMinimum: PUBLICATION.quantityMinimum,
+  pricePer: PUBLICATION.pricePer,
 };
 
 const read = (data: unknown) =>
@@ -222,6 +230,44 @@ describe('readCatalogPublication', () => {
     ).toBe(0);
   });
 
+  it('reads the terms a measured offering is sold on', () => {
+    const metre = {
+      ...PUBLICATION,
+      saleUnit: 'M',
+      quantityStep: 500,
+      quantityMinimum: 1000,
+      pricePer: 100,
+    };
+
+    expect(Effect.runSync(readCatalogPublication(metre))).toMatchObject({
+      saleUnit: 'M',
+      quantityStep: 500,
+      quantityMinimum: 1000,
+      pricePer: 100,
+    });
+  });
+
+  it.each([
+    ['a unit outside the vocabulary', { saleUnit: 'BOX' }, 'saleUnit'],
+    ['a price basis other than 1, 100 or 1000', { pricePer: 12 }, 'pricePer'],
+    ['a fractional step', { quantityStep: 0.5 }, 'quantityStep'],
+  ])('rejects %s', (_, change, member) => {
+    expect(failureMessage({ ...PUBLICATION, ...change })).toContain(member);
+  });
+
+  it('rejects a rule no quantity can meet', () => {
+    // Each member is well formed; together they sell nothing, since no
+    // multiple of the step reaches the minimum.
+    expect(
+      failureMessage({
+        ...PUBLICATION,
+        saleUnit: 'M',
+        quantityStep: 300,
+        quantityMinimum: 1000,
+      }),
+    ).toContain('sells nothing');
+  });
+
   it('accepts availableHint false', () => {
     expect(
       Effect.runSync(
@@ -244,6 +290,10 @@ describe('readCatalogPublication', () => {
       'availableHint',
       'specificationId',
       'specificationVersion',
+      'saleUnit',
+      'quantityStep',
+      'quantityMinimum',
+      'pricePer',
     ]) {
       expect(message).toContain(member);
     }

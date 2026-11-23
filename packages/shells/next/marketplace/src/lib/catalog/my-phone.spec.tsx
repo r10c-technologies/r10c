@@ -33,7 +33,7 @@ describe('MyPhone', () => {
     const { container } = render(
       <MyPhone
         href="/es/search"
-        state={parseSearch({ q: 'funda', page: '2' })}
+        state={parseSearch({ q: 'funda', page: '2' }, 'es')}
         models={MODELS}
         labels={LABELS}
       />,
@@ -61,7 +61,7 @@ describe('MyPhone', () => {
     render(
       <MyPhone
         href="/es/search"
-        state={parseSearch({ q: 'funda', model: 'dm-1' })}
+        state={parseSearch({ q: 'funda', model: 'dm-1' }, 'es')}
         models={MODELS}
         labels={LABELS}
       />,
@@ -79,7 +79,7 @@ describe('MyPhone', () => {
     const { container } = render(
       <MyPhone
         href="/es/search"
-        state={parseSearch({})}
+        state={parseSearch({}, 'es')}
         models={[]}
         labels={LABELS}
       />,

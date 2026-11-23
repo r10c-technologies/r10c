@@ -2,9 +2,11 @@
  * **sales-vocabulary** — the channel types, the order tenders, and how a
  * thing is sold: its unit, its step and what a line of it costs.
  *
- * `business:policy`, the role `@entifix/authz` plays for permissions: a
- * vocabulary several domains express themselves in, depended on by any of them
- * and depending on none.
+ * `business:vocabulary`, the rung below `business:policy`: a vocabulary
+ * several domains and their contracts express themselves in, depended on by
+ * any of them and depending on no r10c package. It moved below policy with
+ * ADR 0082, because a publication, an order line and a stock movement are
+ * contracts that each have to name a sale unit.
  *
  * It exists because three packages need the same closed set and no two of them
  * may see each other. `sales-management` owns the `SalesChannel` a type

@@ -1,0 +1,49 @@
+import type { CatalogPublication } from '@r10c/business-ts-catalog-contracts';
+import { describe, expect, it } from 'vitest';
+
+import { projectPublication } from './project-publication.js';
+
+const PUBLICATION: CatalogPublication = {
+  offeringId: 'o-1',
+  vendorId: 'v-1',
+  name: 'Tornillo',
+  amount: 750,
+  currency: 'GTQ',
+  availableHint: true,
+  publishedAt: '2026-11-22T10:00:00.000Z',
+  specificationId: 's-1',
+  specificationVersion: 2,
+  saleUnit: 'UN',
+  quantityStep: 50,
+  quantityMinimum: 100,
+  pricePer: 100,
+  code: 'T-4',
+  description: 'Cabeza plana.',
+  brandId: 'b-1',
+  categoryId: 'c-1',
+  media: [{ url: 'https://cdn.example/t.jpg', alt: 'Un tornillo' }],
+  fitsDeviceModelIds: ['universal'],
+};
+
+describe('projectPublication', () => {
+  const AT = new Date('2026-11-22T10:00:01.000Z');
+
+  it('copies the snapshot onto the record, keyed on the offering', () => {
+    const { publishedAt: _, ...copied } = PUBLICATION;
+
+    expect(projectPublication(PUBLICATION, AT)).toMatchObject({
+      ...copied,
+      id: 'o-1',
+      publishedAt: AT,
+    });
+  });
+
+  it('derives the key a list orders prices quoted per hundred by', () => {
+    // Q7.50 the hundred is Q75.00 the thousand: it ranks below Q0.10 each.
+    expect(projectPublication(PUBLICATION, AT).amountPerThousand).toBe(7500);
+    expect(
+      projectPublication({ ...PUBLICATION, amount: 10, pricePer: 1 }, AT)
+        .amountPerThousand,
+    ).toBe(10_000);
+  });
+});

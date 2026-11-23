@@ -128,6 +128,12 @@ const journeyOffering = (offeringId, vendorId, name, amount) => ({
   name,
   amount,
   currency: 'GTQ',
+  // One piece at a time, priced for one (ADR 0082): the key a price sorts on.
+  pricePer: 1,
+  amountPerThousand: amount * 1000,
+  saleUnit: 'UN',
+  quantityStep: 1,
+  quantityMinimum: 1,
   availableHint: false,
   publishedAt: '2025-01-01T00:00:00.000Z',
   code: offeringId.toUpperCase(),
