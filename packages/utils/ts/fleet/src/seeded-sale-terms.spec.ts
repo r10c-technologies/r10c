@@ -15,7 +15,7 @@ describe('seededSaleTermsOf', () => {
       quantityStep: 500,
       quantityMinimum: 1000,
       pricePer: 1,
-      wholeUnit: 1000,
+      stockCount: 1000,
     });
   });
 
@@ -24,6 +24,7 @@ describe('seededSaleTermsOf', () => {
       saleUnit: 'UN',
       quantityStep: 1,
       pricePer: 100,
+      stockCount: 100,
     });
   });
 
@@ -33,7 +34,7 @@ describe('seededSaleTermsOf', () => {
       quantityStep: 1,
       quantityMinimum: 1,
       pricePer: 1,
-      wholeUnit: 1,
+      stockCount: 1,
     });
   });
 

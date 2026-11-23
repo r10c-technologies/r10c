@@ -98,9 +98,9 @@ const movementsFor = (
   vendor: Pick<SeededVendor, 'measured'>,
   index: number,
 ): ReadonlyArray<{ quantity: number; reason: MovementReason }> => {
-  // Whole units, written in the offering's scale: 17 m is 17000.
+  // Counted the way the goods are bought: 73 m is 73000, 67 hundreds 6700.
   const received =
-    (10 + ((index * 7) % 90)) * seededSaleTermsOf(vendor, index).wholeUnit;
+    (10 + ((index * 7) % 90)) * seededSaleTermsOf(vendor, index).stockCount;
   switch (index % 4) {
     case 0:
       return [{ quantity: received, reason: 'receipt' }];

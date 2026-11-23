@@ -23,6 +23,10 @@ describe('the seeded ledger', () => {
       stockItemTempData.find(item => item.offeringId === 'product-offering-1')
         ?.unit,
     ).toBe('UN');
+    // Sold by the hundred, so stocked by the hundred: 67 hundreds in.
+    expect(
+      stockItemTempData.find(item => item.offeringId === 'product-offering-22'),
+    ).toMatchObject({ unit: 'UN', onHand: 5_360 });
   });
 
   it('folds to the items it seeds, unit by unit', () => {

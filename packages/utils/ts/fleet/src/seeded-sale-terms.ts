@@ -19,10 +19,11 @@ export interface SeededSaleTerms {
   readonly quantityMinimum: number;
   readonly pricePer: 1 | 100;
   /**
-   * How many of the scale one whole unit is: 1000 for the metre. A seeded
-   * stock count is written in whole units and scaled by this.
+   * What one seeded stock count is, in the scale: a metre (1000) for the
+   * cable, a hundred (100) for the part sold by the hundred, one piece for
+   * the rest — so stock is counted the way the goods are bought.
    */
-  readonly wholeUnit: number;
+  readonly stockCount: number;
 }
 
 /** The seeded offering sold by the metre: `product-offering-10`. */
@@ -35,7 +36,7 @@ const ONE_PIECE: SeededSaleTerms = {
   quantityStep: 1,
   quantityMinimum: 1,
   pricePer: 1,
-  wholeUnit: 1,
+  stockCount: 1,
 };
 
 /** How `vendor`'s seeded offering at catalog position `index` is sold. */
@@ -51,10 +52,10 @@ export const seededSaleTermsOf = (
         quantityStep: 500,
         quantityMinimum: 1000,
         pricePer: 1,
-        wholeUnit: 1000,
+        stockCount: 1000,
       };
     case SEEDED_PER_HUNDRED:
-      return { ...ONE_PIECE, pricePer: 100 };
+      return { ...ONE_PIECE, pricePer: 100, stockCount: 100 };
     default:
       return ONE_PIECE;
   }
