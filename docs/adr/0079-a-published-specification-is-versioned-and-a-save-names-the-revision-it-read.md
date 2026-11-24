@@ -1,12 +1,13 @@
 # 79. A published specification is versioned, an instance pins its version, and a save names the revision it read
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-16
 - Area: business
 - Read when: editing a specification something points at, two people saving one record, or a tenant needing its own field or step — a released version is never edited, an order line is a copy, and a stale `revision` answers `409`
 - Revised: 2026-11-17 — a missing `revision` answers `400 invalid`, not `invalidBody`, and a status move increments `revision`, as entifix's revision check decides ([entifix ADR 0032](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0032-a-save-names-the-revision-it-read.md))
 - Revised: 2026-11-19 — open questions 3 and 6 answered by the build of §1–§3 (#664): `obsolete` is a person's verb refused while a published offering pins the version, and `specKey` is a member of its own set from the create's `code`; a rebuild restates a publication whatever its pin now stands at
 - Revised: 2026-11-21 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — proposed: the line's copy also holds its unit, `pricePer` and total, so `amount` is the price of `pricePer` units rather than always of one
+- Revised: 2026-11-24 — Accepted on the live fleet (#695): a released version refuses a `PUT` with `409`, two racing releases and two racing revises each land exactly once, and an order line carries the version it was sold under (`specification-versioning.live.spec.ts`)
 
 ## Context
 

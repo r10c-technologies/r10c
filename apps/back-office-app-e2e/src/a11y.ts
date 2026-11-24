@@ -8,7 +8,7 @@ import {
   walkKeyboard,
   type WalkOptions,
 } from '@entifix/testing-e2e/a11y';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 /**
  * Every gated screen's accepted violations, each against the issue that
@@ -49,6 +49,30 @@ export const expectAccessible = async (page: Page, screen: string) => {
   await expect(page.locator('main:visible')).toBeVisible();
   await expectNoNewA11yViolations(page, { screen, baselinePath: BASELINE });
   await walkKeyboard(page, WALK);
+};
+
+/**
+ * The gate for a modal form: axe on the page with the dialog open, focus
+ * inside it after a full cycle of Tab presses (2.4.3, a modal keeps focus),
+ * and Escape closing it with focus back on the page (2.1.2, no trap).
+ */
+export const expectAccessibleDialog = async (
+  page: Page,
+  dialog: Locator,
+  screen: string,
+) => {
+  await expect(dialog).toBeVisible();
+  await expectNoNewA11yViolations(page, { screen, baselinePath: BASELINE });
+  for (let stop = 0; stop < 30; stop += 1) {
+    await page.keyboard.press('Tab');
+    await expect
+      .poll(() =>
+        dialog.evaluate(node => node.contains(document.activeElement)),
+      )
+      .toBe(true);
+  }
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
 };
 
 /**

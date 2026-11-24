@@ -2239,3 +2239,19 @@ describe('Tailwind scans exactly what each app states', () => {
     ]);
   });
 });
+
+describe('The UX measurement is named where a change is verified', () => {
+  // #566: a comparison that only exists in a session is one that gets
+  // skipped (ADR 0046), so the tool that takes it is committed and named.
+  it('names @r10c/ux-capture and its targets in DEVELOPING.md', () => {
+    const text = read('docs/DEVELOPING.md');
+    for (const name of [
+      '@r10c/ux-capture:measure',
+      '`static`',
+      '`cwv`',
+      '`capture`',
+    ]) {
+      expect(text, `DEVELOPING.md no longer names ${name}`).toContain(name);
+    }
+  });
+});

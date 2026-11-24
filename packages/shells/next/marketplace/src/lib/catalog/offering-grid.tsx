@@ -142,7 +142,7 @@ export function OfferingGrid({
 
   return (
     <div className={GRID[layout]}>
-      {offerings.map(offering => {
+      {offerings.map((offering, index) => {
         const card = offeringCard(offering, {
           locale,
           brandName: names.brandName,
@@ -172,6 +172,9 @@ export function OfferingGrid({
                     alt: card.media.alt,
                     sizes: SIZES[layout],
                     loader: imageLoaderFor(card.media.url, hosts),
+                    // A listing's first row is what a phone paints largest:
+                    // its pictures are fetched first (#566).
+                    priority: layout === 'listing' && index < PRIORITY_CARDS,
                   }
             }
             // One action, and it is not a client component. The card itself is
@@ -220,6 +223,9 @@ export function OfferingGrid({
  * viewport in two columns, then a strip's quarter of the 80rem frame or a
  * listing's column beside its filters.
  */
+/** A listing's first row on a phone: two cards. */
+const PRIORITY_CARDS = 2;
+
 const SIZES: Record<OfferingGridLayout, string> = {
   strip: '(min-width: 64rem) 20rem, 50vw',
   listing: '(min-width: 40rem) 24rem, 50vw',

@@ -7,6 +7,7 @@ import '@r10c/i18n-catalog';
 
 import { isLocale, type Locale, locales } from '@entifix/core';
 import { getServerTFor } from '@entifix/next-i18n/server';
+import { clientCatalog } from '@r10c/i18n-catalog';
 import { storefrontOrigin } from '@r10c/shells-next-marketplace/server';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -20,6 +21,20 @@ import { Providers } from '../providers';
  * path lives under a locale prefix, so the topmost layout of the only segment
  * chain that exists is the one that owns `<html>`.
  */
+
+/**
+ * The copy the storefront's **client** components read (#566): entifix's
+ * controls and shell, and the not-found page's few keys — that page is the one
+ * client component here that translates for itself. Every other label is
+ * server-rendered or arrives as a prop, so the back office's copy, every
+ * entity label and the rest of the storefront's stay out of the browser.
+ */
+const CLIENT_CATALOG = [
+  'controls',
+  'shell',
+  'r10c.storefront.missing',
+  'r10c.storefront.nav',
+] as const;
 
 interface LocaleParams {
   params: Promise<{ locale: string }>;
@@ -100,7 +115,12 @@ export default async function RootLayout({
           `Providers` is a client component, but `children` reaches it as a
           prop — so everything below it still renders on the server.
         */}
-        <Providers locale={locale}>{children}</Providers>
+        <Providers
+          locale={locale}
+          catalog={clientCatalog(locale, CLIENT_CATALOG)}
+        >
+          {children}
+        </Providers>
         <Analytics />
       </body>
     </html>

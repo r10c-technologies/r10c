@@ -1,5 +1,6 @@
 import {
   expectAccessible,
+  expectAccessibleDialog,
   expectConsistentHelp,
   helpPosition,
   PALETTES,
@@ -71,6 +72,45 @@ const SCREENS = [
     path: '/es/sales/counter-sale',
     ready: { role: 'radiogroup', name: 'Canal' },
   },
+  // The screens MVP-4 added or changed (#690): the order a seller confirms a
+  // payment on (ADR 0081), the specification a version is released from
+  // (ADR 0079), a shipment still waiting for its guide, the settlement
+  // statements and the selling channels.
+  {
+    screen: 'operaciones-orders',
+    path: '/es/order/product-order',
+    ready: { record: '7KQ4-M2XD' },
+  },
+  {
+    screen: 'order-awaiting-payment',
+    path: '/es/order/product-order/product-order-awaiting-link-1',
+    ready: { role: 'button', name: 'Confirmar pago' },
+  },
+  {
+    screen: 'definiciones-product-specification',
+    path: '/es/catalog/product/product-1',
+    ready: { role: 'textbox', name: 'Nombre' },
+  },
+  {
+    screen: 'shipment-awaiting-guide',
+    path: '/es/fulfilment/shipping-order/ship-a1',
+    ready: { role: 'button', name: 'Registrar guía' },
+  },
+  {
+    screen: 'definiciones-agreement',
+    path: '/es/settlement/agreement',
+    ready: { role: 'heading', name: 'Mi acuerdo', level: 1 },
+  },
+  {
+    screen: 'consultas-vendor-payouts',
+    path: '/es/settlement/vendor-payout',
+    ready: { role: 'heading', name: 'Mis pagos', level: 1 },
+  },
+  {
+    screen: 'definiciones-sales-channels',
+    path: '/es/sales/sales-channel',
+    ready: { record: 'Mostrador principal' },
+  },
   {
     screen: 'account',
     path: '/es/account',
@@ -127,5 +167,47 @@ for (const palette of PALETTES) {
     }
 
     expectConsistentHelp(help);
+  });
+}
+
+/**
+ * The verb forms MVP-4 added open as dialogs, so the page gate never sees
+ * them: each is opened the way a seller opens it and gated as a dialog —
+ * axe on what is rendered, focus held inside, Escape closing it (#690).
+ */
+const DIALOGS = [
+  {
+    screen: 'dialog-price-tiers',
+    path: '/es/catalog/product-offering-price/price-1',
+    verb: 'Definir precios por volumen',
+  },
+  {
+    screen: 'dialog-sale-unit',
+    path: '/es/catalog/product-offering/offering-priced',
+    verb: 'Definir unidad de venta',
+  },
+  {
+    screen: 'dialog-stock-source',
+    path: '/es/catalog/product-offering/offering-priced',
+    verb: 'Vender una presentación del mismo inventario',
+  },
+] as const;
+
+for (const palette of PALETTES) {
+  test(`every verb form meets the gate in ${palette}`, async ({ page }) => {
+    test.setTimeout(DIALOGS.length * 20_000);
+    await usePalette(page, palette);
+
+    for (const { screen, path, verb } of DIALOGS) {
+      await test.step(screen, async () => {
+        await page.goto(path);
+        await page.getByRole('button', { name: verb }).click();
+        await expectAccessibleDialog(
+          page,
+          page.getByRole('dialog', { name: verb }),
+          `${screen}:${palette}`,
+        );
+      });
+    }
   });
 }

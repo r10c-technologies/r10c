@@ -1,4 +1,5 @@
 import { useT } from '@entifix/react-controls';
+import { clientCatalog } from '@r10c/i18n-catalog';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 
@@ -11,8 +12,12 @@ import { Providers } from '../src/app/providers';
  *
  * `Providers` is where the locale crosses from the server into client code. If
  * it were wired wrong the page would still prerender perfectly and every
- * interactive control would silently speak the wrong language.
+ * interactive control would silently speak the wrong language. The copy it
+ * installs is the subset its layout hands it (#566).
  */
+const catalogFor = (locale: 'en' | 'es') =>
+  clientCatalog(locale, ['controls', 'r10c.storefront.missing']);
+
 function Copy() {
   const t = useT('controls');
   return <span>{t('table.filters')}</span>;
@@ -21,7 +26,7 @@ function Copy() {
 describe('Providers', () => {
   it('hands the locale it was given to the client tree', () => {
     render(
-      <Providers locale="en">
+      <Providers locale="en" catalog={catalogFor('en')}>
         <Copy />
       </Providers>,
     );
@@ -31,7 +36,7 @@ describe('Providers', () => {
 
   it('renders in Spanish when that is the locale', () => {
     render(
-      <Providers locale="es">
+      <Providers locale="es" catalog={catalogFor('es')}>
         <Copy />
       </Providers>,
     );

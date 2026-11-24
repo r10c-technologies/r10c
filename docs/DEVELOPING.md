@@ -1392,6 +1392,20 @@ the flow per caller and omits a verb the caller cannot reach.
 - Runtime: bring up `infra/local`, then `pnpm nx run <service>:dev` and exercise
   the routes (`/api/health`, `/api/config`, the entity routes). For frontends,
   drive the `/catalog/*` pages.
+- UX numbers: `pnpm nx run @r10c/ux-capture:measure` — the measurement the UX
+  programme's Batch 0 took and #566 compares against, committed so the after
+  pass is the same measurement. `static` counts raw colours, inline styles and
+  off-scale values in the apps, the Next shells and the react/next cells
+  (rules 0 / 0 / ≤ 5); `cwv` measures the storefront's LCP, CLS, TTFB and
+  first-load bytes on a Pixel 7 profile at 4× CPU, 1.6 Mbps and 150ms RTT, and
+  walks a checkout counting its taps (≤ 4) and naming its fields; `capture`
+  screenshots both apps at 390 and 1280 and counts the back office's raw-id
+  cells, its lists that must be tables at 1280, and the loads one headless page
+  load makes in 12 seconds. Run `cwv` and `capture` against production builds
+  (`next build` + `next start`): `next dev` reloads itself under a headless
+  browser. `capture` reads the back office signed in as Alan through the
+  real hosted login, so the lab's Zitadel must be up; what it writes lands in
+  `tools/ux-capture/out/`, which is not committed.
 
 ## Keeping the documentation true
 

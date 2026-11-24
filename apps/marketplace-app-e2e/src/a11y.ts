@@ -80,6 +80,10 @@ export const duplicateReferencedIds = (page: Page) =>
  */
 export const expectAccessible = async (page: Page, screen: string) => {
   await expect(page.locator('main:visible')).toBeVisible();
+  // A page reached by a server action's redirect gets its title after the
+  // body; axe judges the settled page, and one that never gets a title
+  // still fails here, by name (2.4.2).
+  await expect(page).toHaveTitle(/\S/);
   await expectNoNewA11yViolations(page, { screen, baselinePath: BASELINE });
   expect(
     await duplicateReferencedIds(page),

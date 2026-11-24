@@ -1,7 +1,8 @@
 // r10c's locales, declared before anything asks about one (entifix#35).
 import '@r10c/business-ts-i18n/locales';
 
-import { defineCatalogs } from '@entifix/i18n';
+import type { Locale } from '@entifix/core';
+import { defineCatalogs, type LocaleCatalogs } from '@entifix/i18n';
 import { shellCatalogs, type ShellResources } from '@entifix/next-shell';
 import {
   controlsCatalogs,
@@ -9,6 +10,8 @@ import {
   registerFallbackCatalog,
 } from '@entifix/react-controls';
 import { r10cCatalogs, type R10cOwnResources } from '@r10c/business-ts-i18n';
+
+import { DEFAULT_NS, NAMESPACES } from './namespaces.js';
 
 /**
  * r10c's catalogs, and the composition of entifix's with them.
@@ -47,16 +50,46 @@ export type Resources = ControlsResources & ShellResources & R10cOwnResources;
 
 export type Namespace = keyof Resources;
 
-export const NAMESPACES = [
-  'controls',
-  'shell',
-  'errors',
-  'entity',
-  'app',
-  'r10c',
-] as const satisfies readonly Namespace[];
+export { DEFAULT_NS, NAMESPACES } from './namespaces.js';
 
-export const DEFAULT_NS = 'controls' satisfies Namespace;
+/**
+ * What one surface's **client** components render, cut from the catalogs for
+ * one locale (#566): each path a namespace (`'controls'`) or a subtree of one
+ * (`'r10c.storefront.missing'`). A server layout passes the result to its
+ * client providers, which install it with `installClientCatalog` from
+ * `./client` — so a page ships the copy its browser code reads, in its own
+ * language, and nothing else.
+ *
+ * Copy a server component renders is never part of it: that is translated on
+ * the server, and arrives as markup or as a label prop. A path that names
+ * nothing throws, so a renamed key fails the build's prerender rather than
+ * reaching a browser as a raw key.
+ */
+export const clientCatalog = (
+  locale: Locale,
+  paths: readonly string[],
+): LocaleCatalogs => {
+  const all: Record<string, unknown> =
+    R10C_RESOURCES[locale === 'en' ? 'en' : 'es'];
+  const picked: Record<string, unknown> = {};
+  for (const path of paths) {
+    const keys = path.split('.');
+    let from: unknown = all;
+    let into = picked;
+    keys.forEach((key, at) => {
+      from = (from as Record<string, unknown> | undefined)?.[key];
+      if (from === undefined) {
+        throw new Error(`the ${locale} catalog has nothing at '${path}'`);
+      }
+      if (at === keys.length - 1) {
+        into[key] = from;
+      } else {
+        into = (into[key] ??= {}) as Record<string, unknown>;
+      }
+    });
+  }
+  return picked as LocaleCatalogs;
+};
 
 /**
  * The typed-key gate. Binding `CustomTypeOptions` to the Spanish shape makes

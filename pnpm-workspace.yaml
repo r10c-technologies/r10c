@@ -43,6 +43,10 @@ packages:
   # it may not import: each service's OpenAPI document and the composed flow
   # scenarios (#654, #687).
   - 'tools/docs-reference'
+  # `ux-capture` is the UX programme's measurement — screenshots, the
+  # storefront's Core Web Vitals and the source counts — committed so an
+  # after pass measures what Batch 0 measured (#566).
+  - 'tools/ux-capture'
 # entifix is installed from the registry, at one version for every package: it
 # releases on fixed versioning, so two @entifix/* at different versions is a
 # combination nobody tested. Every manifest says `catalog:` and this is the only

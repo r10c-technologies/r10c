@@ -9,6 +9,7 @@
 - Revised: 2026-11-24 by the presentations build (#673) — §7 is built. The snapshot also carries the base's unit, `stockUnit`, read at publication, because the ledger refuses a hold in another unit and the coordinator reads no catalog. The coordinator states `stockQuantity` with `stockQuantityOf`, beside `lineTotal` in the vocabulary, and drops the caller's factor; the order line and the shipping line copy the base, its unit and that quantity, and a cancellation or a return restores exactly them. A `draw-on-stock` verb with its own form sets the source in any status, effective at the next publication, which checks the base again; a presentation's unit cannot leave `UN`. A presentation holds no stock row of its own.
 - Area: business
 - Read when: multiplying a price by a quantity, selling by the metre, yard or box, or pricing below a centavo — a quantity is a scaled integer, a line's total is computed once, and a sale never grows after it is placed
+- Revised: 2026-11-24 — stays Proposed by its own trigger (#695): #672 is merged and §1–§8 are built and pass live in the three verticals; Accepted waits only on the leather merchants' answers to question 1 (#644), which no build can supply
 
 ## Context
 

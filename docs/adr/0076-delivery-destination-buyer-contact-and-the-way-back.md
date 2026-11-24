@@ -1,6 +1,6 @@
 # 76. Delivery destination, buyer contact, order numbers, and the buyer's way back to an order
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-14
 - Area: business
 - Read when: storing a buyer's address or contact, numbering an order, or letting a buyer find an order again — contact data lives on the group and the shipment only, a buyer's tax id on the order, and a number never authorizes
@@ -9,6 +9,7 @@
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — payment evidence is personal data removed by the §4 sweep; the receipt capability authorizes one write; the review step offers `link`
 - Revised: 2026-11-18 — §6: the access page answers `Referrer-Policy: strict-origin`, not `no-referrer`, which made a browser post the redemption with `Origin: null` and Next refuse it without script (#725)
 - Revised: 2026-11-18 — §4: each sweep also clears the copy the record's opening command left in `command_inbox` for a redelivery, and a shipment gains a `withdrawnAt` stamp so a withdrawn one is counted from when its job ended (#581)
+- Revised: 2026-11-24 — Accepted after M19's live pass (#590): a storefront order from the review to the door, the receipt mail and its link redeemed exactly once by a burst of browsers, "find my order" mailing once per interval under a burst, and no personal key on any `order.*`, `shipping-order.*` or `checkout-group.*` message
 
 ## Context
 
@@ -216,8 +217,8 @@ exists.
 > **2026-11-23 — the cookie keeps only the capability.** Every render reads the
 > group back by it, so the orders and whether one was cancelled are the
 > service's answer, and the cookie no longer grows with the basket (ADR 0053). The receipt page offers Cancel from the stamped `cancelWindowEndsAt`
-it already carries, so the "Cancel button that quietly stops working" cannot
-occur.
+> it already carries, so the "Cancel button that quietly stops working" cannot
+> occur.
 
 **A one-time access link re-keys the capability.** The group gains
 `accessDigest`, `accessExpiresAt` and `accessSentAt`. order-service mints 32

@@ -4751,6 +4751,9 @@ importers:
 
   packages/shells/next/i18n-catalog:
     dependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.23.10(effect@4.0.7)
       '@entifix/i18n':
         specifier: 'catalog:'
         version: 0.23.10(effect@4.0.7)(i18next@27.2.2(typescript@6.0.3))
@@ -5481,6 +5484,12 @@ importers:
       '@r10c/shells-effect-transaction':
         specifier: workspace:*
         version: link:../../packages/shells/effect/transaction
+
+  tools/ux-capture:
+    devDependencies:
+      '@entifix/testing-e2e':
+        specifier: 'catalog:'
+        version: 0.23.10(aa839920e10f64ab2687033899f6157a)
 
 packages:
   '@adobe/css-tools@4.5.0':

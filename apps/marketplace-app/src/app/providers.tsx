@@ -1,9 +1,7 @@
 'use client';
 
-// Installs r10c's catalogs into the i18next binding. Importing is the act.
-import '@r10c/i18n-catalog';
-
 import type { Locale } from '@entifix/core';
+import type { LocaleCatalogs } from '@entifix/i18n';
 import {
   ANONYMOUS_WORKSPACE_SCOPE,
   PendingFlowsProvider,
@@ -16,6 +14,7 @@ import {
   useT,
 } from '@entifix/react-controls/primitives';
 import { makeEventSourcePushChannel } from '@entifix/react-integration/event-source';
+import { installClientCatalog } from '@r10c/i18n-catalog/client';
 import {
   heldCapabilities,
   StorefrontPushProvider,
@@ -64,8 +63,13 @@ function ThemedProviders({ children }: PropsWithChildren) {
 
 export function Providers({
   locale,
+  catalog,
   children,
-}: PropsWithChildren<{ locale: Locale }>) {
+}: PropsWithChildren<{ locale: Locale; catalog: LocaleCatalogs }>) {
+  // The layout cut this locale's client copy on the server; the browser
+  // installs it before the provider below builds its instance, and bundles
+  // no catalog of its own (#566).
+  installClientCatalog(locale, catalog);
   return (
     <I18nProvider locale={locale}>
       <ThemedProviders>
