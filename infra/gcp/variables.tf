@@ -57,3 +57,33 @@ variable "domain" {
   description = "The public domain: the storefront, the back office and the identity provider are served at shop., office. and id. under it (tools/edge)."
   type        = string
 }
+
+variable "docs_hosts" {
+  description = "Where each documentation site is served (#686). The defaults are placeholders under `.example` (RFC 2606); the real hosts arrive at MVP-7."
+  type = object({
+    r10c    = string
+    entifix = string
+  })
+  default = {
+    r10c    = "docs.r10c.example"
+    entifix = "docs.entifix.example"
+  }
+}
+
+variable "docs_readers" {
+  description = "Who may read r10c's documentation site through IAP: IAM members such as `group:` or `user:`. The default is a placeholder."
+  type        = list(string)
+  default     = ["group:docs-readers@r10c.example"]
+}
+
+variable "docs_repositories" {
+  description = "The GitHub repository whose `main` deploys each documentation site."
+  type = object({
+    r10c    = string
+    entifix = string
+  })
+  default = {
+    r10c    = "r10c-technologies/r10c"
+    entifix = "r10c-technologies/entifix"
+  }
+}

@@ -5,6 +5,7 @@
 - Area: platform
 - Revised: 2026-11-20 — #683 and #685 built §4, §5 and the secrets row: a secret reaches a pod through the up command, each Atlas user may read and write any database, and the edge's certificate comes from cert-manager.
 - Revised: 2026-11-20 — #692 built the receipts and mail rows: a private bucket in `infra/gcp/storage.tf`, granted by Workload Identity to order-service's own Kubernetes account (every workload now runs as its own), and the SMTP provider's account and STARTTLS rule carried into order-service's rows and re-stated to Zitadel on every seed.
+- Revised: 2026-11-24 — #686: the documentation sites run on GCP after all, as two Cloud Run services that scale to zero beside the cluster and outside it. One cloud means no AWS bill and no NAT on it. r10c's site sits behind IAP on the service itself, without a load balancer. Each repository deploys its own site through Workload Identity Federation. Every real value is still a placeholder.
 - Read when: declaring a cloud resource, choosing what runs managed and what runs in the cluster, writing the up or down command, or wondering whether "nothing runs in production" still holds once a cluster exists — one region, one zonal cluster scaled to zero, and the demo environment is reset like the lab
 
 ## Context
@@ -101,8 +102,25 @@ GCP `us-central1`).
 | Logs, metrics, traces                            | Grafana Cloud, `prod-us-central-0`           | ADR 0001                                                                                                                                                                                                                                                   | external                                                                   |
 | Product analytics                                | PostHog                                      | ADR 0001                                                                                                                                                                                                                                                   | external                                                                   |
 
-The documentation sites are not on GCP. They are static exports on S3 and
-CloudFront, as myself-app is (#686, plan Q23).
+The documentation sites are on GCP too, but **not in the cluster**
+(`infra/gcp/docs.tf`, #686). Each is a static export plus Storybook, served by
+one dependency-free Node script on Cloud Run. Cloud Run scales to zero, so the
+docs stay readable while the cluster is down, and a site with no traffic costs
+only its stored image. The plan first had them on S3 and CloudFront, as
+myself-app is (Q23). One cloud keeps a second provider's bill and its NAT out
+of the demo, and Cloud Run serves an export as cheaply.
+
+- **r10c's site is restricted** by IAP on the service itself, to the
+  `docs_readers` members. Running without a load balancer means no forwarding
+  rule to pay for. entifix's site is public.
+- **Each repository deploys only its own site.** A run on `main` exchanges its
+  GitHub OIDC token, through Workload Identity Federation, for that site's
+  deploy account. No key exists.
+- **The hosts and the readers are placeholders** under `.example`, which are
+  replaced at MVP-7 (#702) by a `tfvars` kept out of git. IAP without a load
+  balancer needs the project to sit in an organization. If the bootstrap
+  project does not, the fallback is one HTTPS load balancer with serverless
+  network endpoint groups for both sites, at the price of its forwarding rule.
 
 ### 4. Atlas over an IP access list until the tier is dedicated
 

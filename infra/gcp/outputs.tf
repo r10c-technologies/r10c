@@ -77,3 +77,18 @@ output "evidence_bucket" {
   description = "The bucket order-service keeps payment receipts in (#692)."
   value       = google_storage_bucket.evidence.name
 }
+
+output "docs_workload_identity_provider" {
+  description = "Each repository's `DOCS_GCP_WIF_PROVIDER` variable."
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "docs_deploy_service_accounts" {
+  description = "Each repository's `DOCS_GCP_DEPLOY_SA` variable, by site."
+  value       = { for key, account in google_service_account.docs_deploy : key => account.email }
+}
+
+output "docs_dns_records" {
+  description = "The records each documentation host needs, as Cloud Run's domain mapping states them."
+  value       = { for key, mapping in google_cloud_run_domain_mapping.docs : key => mapping.status[0].resource_records }
+}

@@ -120,6 +120,16 @@
             "target": "generate"
           }
         ]
+      },
+      "container": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "docker build -t r10c/docs-site:local apps/docs-site",
+          "forwardAllArgs": false
+        }
       }
     }
   }

@@ -256,6 +256,79 @@ export const app = {
         refused: 'rechazado',
         unanswered: 'sin reporte a tiempo',
       },
+      lifecycles: {
+        title: 'Ciclos de vida',
+        intro:
+          'Existencias, liquidación y pagos a vendedores no son flujos: son un libro de movimientos, un pliegue sobre dos eventos y un corte. Cada paso nombra lo que ya está registrado — un caso de uso, una ruta, un evento o un barrido — y el sitio no se construye si un paso nombra algo que no existe.',
+        planned: 'planificado, todavía no construido',
+        kinds: {
+          capability: 'Caso de uso',
+          route: 'Ruta',
+          event: 'Evento',
+          sweep: 'Barrido',
+        },
+        columns: {
+          order: 'N.º',
+          step: 'Paso',
+          kind: 'Tipo',
+          names: 'Qué nombra',
+        },
+        items: {
+          stock: {
+            title: 'Existencias, de la entrada a la venta',
+            description:
+              'La existencia es un libro de movimientos: nunca se sobrescribe una cantidad, y una compra aparta antes de descontar.',
+            steps: {
+              receive:
+                'El vendedor registra un movimiento: mercadería que entra, un conteo o una baja.',
+              hold: 'Al comprar, el flujo aparta lo pedido. Si no alcanza, la compra se rechaza ahí.',
+              convert:
+                'Cuando el cobro sale bien, lo apartado se convierte en venta.',
+              release:
+                'Si el flujo falla antes del cobro, lo apartado se libera.',
+              expire:
+                'Un barrido libera lo que se apartó y nunca se cobró, al vencer su plazo.',
+              restore:
+                'Una cancelación o una devolución regresa la mercadería con un movimiento nuevo.',
+              announce:
+                'Cada cambio se anuncia, y las pestañas abiertas del vendedor lo ven sin recargar.',
+              read: 'El vendedor consulta su posición de existencias.',
+            },
+          },
+          settlement: {
+            title: 'Liquidación de una venta',
+            description:
+              'La comisión se escribe cuando la venta y su cobro han llegado los dos, y se revierte cuando la cancelación y su reembolso han llegado los dos.',
+            steps: {
+              terms:
+                'La plataforma fija los términos de comisión del vendedor. Ningún rol del vendedor puede escribirlos.',
+              placed:
+                'La orden colocada trae las líneas del vendedor y el canal de venta.',
+              captured: 'El cobro dice que el dinero se movió, y por cuánto.',
+              entries:
+                'Con las dos, se escriben los apuntes de comisión, a los términos vigentes al vender.',
+              cancelled: 'La cancelación dice que la venta ya no va.',
+              refunded:
+                'El reembolso dice que el dinero regresó. Con los dos, los apuntes se revierten copiando los originales, no recalculando.',
+              balance: 'El vendedor ve lo que le pagará el próximo corte.',
+            },
+          },
+          payout: {
+            title: 'Pago a un vendedor',
+            description:
+              'Un corte liquida todos los apuntes pendientes en un pago por vendedor. Entregar ese pago todavía no está construido.',
+            steps: {
+              run: 'La plataforma corre el corte de liquidación.',
+              settled:
+                'Cada apunte pendiente queda asignado a ese corte, incluidas las reversiones.',
+              payout:
+                'Cada vendedor tiene su pago: lo bruto menos la comisión. Puede ser negativo y descontarse del siguiente.',
+              disburse:
+                'Entregar el pago a la cuenta del vendedor está planificado y no construido.',
+            },
+          },
+        },
+      },
       scenarios: {
         'checkout-card': {
           title: 'Compra en la tienda, con tarjeta',
@@ -331,6 +404,12 @@ export const app = {
       implemented: 'Construido',
       planned: 'Planeado',
       'in-design': 'En diseño',
+    },
+    guides: {
+      title: 'Guías por vertical',
+      description:
+        'De abrir la tienda a cobrar la comisión, para cada tipo de comercio del MVP.',
+      inSpanish: '',
     },
     verticals: {
       hardware: 'Ferretería',

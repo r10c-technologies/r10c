@@ -241,6 +241,78 @@ export const app: EsApp = {
         refused: 'refused',
         unanswered: 'no report in time',
       },
+      lifecycles: {
+        title: 'Lifecycles',
+        intro:
+          'Stock, settlement and vendor payouts are not flows: they are a movement ledger, a fold over two events and a run. Each step names what is already registered — a use case, a route, an event or a sweep — and the site does not build if a step names something that does not exist.',
+        planned: 'planned, not built yet',
+        kinds: {
+          capability: 'Use case',
+          route: 'Route',
+          event: 'Event',
+          sweep: 'Sweep',
+        },
+        columns: {
+          order: 'No.',
+          step: 'Step',
+          kind: 'Kind',
+          names: 'What it names',
+        },
+        items: {
+          stock: {
+            title: 'Stock, from receipt to sale',
+            description:
+              'Stock is a movement ledger: a quantity is never overwritten, and a purchase holds before it takes.',
+            steps: {
+              receive:
+                'The vendor records a movement: goods in, a count or a write-off.',
+              hold: 'At checkout the flow holds what was ordered. If there is not enough, the purchase is refused there.',
+              convert: 'When the capture succeeds, the hold becomes a sale.',
+              release:
+                'If the flow fails before the capture, the hold is released.',
+              expire:
+                'A sweep releases a hold that was never paid for once it expires.',
+              restore:
+                'A cancellation or a return puts the goods back as a new movement.',
+              announce:
+                "Every change is announced, and the vendor's open tabs see it without a reload.",
+              read: 'The vendor reads their stock position.',
+            },
+          },
+          settlement: {
+            title: 'Settling a sale',
+            description:
+              'Commission is written once the sale and its capture have both arrived, and reversed once the cancellation and its refund have both arrived.',
+            steps: {
+              terms:
+                "The platform sets the vendor's commission terms. No vendor role can write them.",
+              placed:
+                "The placed order carries the vendor's lines and the sales channel.",
+              captured: 'The capture says the money moved, and how much.',
+              entries:
+                'With both, the commission entries are written, at the terms in force at the sale.',
+              cancelled: 'The cancellation says the sale is off.',
+              refunded:
+                'The refund says the money went back. With both, the entries are reversed by mirroring the originals, never by re-pricing them.',
+              balance: 'The vendor sees what the next run will pay them.',
+            },
+          },
+          payout: {
+            title: 'Paying a vendor',
+            description:
+              'A run settles every unsettled entry into one payout per vendor. Paying that payout out is not built yet.',
+            steps: {
+              run: 'The platform runs the settlement.',
+              settled:
+                'Every unsettled entry is assigned to that run, reversals included.',
+              payout:
+                'Each vendor has a payout: the gross less the commission. It may be negative and carry into the next one.',
+              disburse:
+                "Paying the payout into the vendor's account is planned and not built.",
+            },
+          },
+        },
+      },
       scenarios: {
         'checkout-card': {
           title: 'Storefront checkout, paid by card',
@@ -316,6 +388,12 @@ export const app: EsApp = {
       implemented: 'Built',
       planned: 'Planned',
       'in-design': 'In design',
+    },
+    guides: {
+      title: 'Guides by vertical',
+      description:
+        'From opening the store to collecting the commission, for each kind of merchant in the MVP.',
+      inSpanish: '(in Spanish, the language of the merchants they are for)',
     },
     verticals: {
       hardware: 'Hardware store',

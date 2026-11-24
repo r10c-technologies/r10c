@@ -5,9 +5,11 @@ import {
   type Capability,
   DOMAINS,
   STATUSES,
+  VERTICALS,
 } from '@r10c/capabilities';
 
 import { docsCopy, type SiteLocale } from './copy';
+import { GUIDES_FOLDER, GUIDES_LOCALE } from './guides';
 import { code, href, link, list, page, section, table } from './markdown';
 import {
   capabilityHref,
@@ -88,8 +90,26 @@ const operator = (locale: SiteLocale) => {
   );
 };
 
+/** The guides, one per vertical, always in the Spanish tree (Q26). */
+const guideLinks = (locale: SiteLocale) => {
+  const copy = docsCopy(locale);
+  const note = copy.guides.inSpanish === '' ? '' : ` ${copy.guides.inSpanish}`;
+  return section(
+    copy.guides.title,
+    `${copy.guides.description}${note}\n\n${VERTICALS.map(
+      vertical =>
+        `- ${link(copy.verticals[vertical], href(GUIDES_LOCALE, GUIDES_FOLDER, vertical))}`,
+    ).join('\n')}`,
+  );
+};
+
 /** What a seller can do and where, with what does not exist yet said plainly. */
-const merchant = (locale: SiteLocale) => {
+const merchant = (locale: SiteLocale) => [
+  guideLinks(locale),
+  ...merchantByDomain(locale),
+];
+
+const merchantByDomain = (locale: SiteLocale) => {
   const copy = docsCopy(locale);
   const words = copy.useCase;
   return byDomain(
@@ -146,6 +166,7 @@ const home = (locale: SiteLocale): ReferencePage => {
         audience =>
           `- ${link(copy.audiences[audience].title, href(locale, AUDIENCE_FOLDER, audience))} — ${copy.audiences[audience].description}`,
       ).join('\n'),
+      guideLinks(locale),
       section(
         copy.catalog.title,
         `- ${link(copy.flows.title, href(locale, 'flows'))} — ${copy.flows.description}\n- ${link(copy.catalog.title, href(locale, 'services'))} — ${copy.catalog.description}\n- ${link(copy.catalog.storesTitle, href(locale, 'stores'))} — ${copy.catalog.storesDescription}`,

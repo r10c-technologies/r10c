@@ -12,6 +12,13 @@ locals {
     "storage.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
+    # The documentation sites (docs.tf): Cloud Run, IAP on it, and the
+    # federation their deploy workflows sign in through.
+    "run.googleapis.com",
+    "iap.googleapis.com",
+    "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
+    "sts.googleapis.com",
   ]
 }
 

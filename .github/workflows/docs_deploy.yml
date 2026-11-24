@@ -1,0 +1,62 @@
+name: Docs Deploy
+
+# The documentation site (#686, ADR 0083 §3) on Cloud Run, behind IAP: only
+# `docs_readers` read it. The hosting is `infra/gcp/docs.tf`, which grants this
+# repository's `main` a Workload Identity Federation deploy account for this
+# site alone — no key is stored anywhere.
+#
+# Change Validation already builds the image and answers it on every pull
+# request. This workflow pushes and rolls it, and needs three repository
+# variables that exist only once the infrastructure is applied (MVP-7, #702);
+# until then it is skipped, by design:
+#   DOCS_GCP_PROJECT           the project id
+#   DOCS_GCP_WIF_PROVIDER      tofu output docs_workload_identity_provider
+#   DOCS_GCP_DEPLOY_SA         tofu output docs_deploy_service_accounts.r10c
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+env:
+  REGION: us-central1
+  SERVICE: r10c-docs
+  REPOSITORY: docs
+
+jobs:
+  deploy:
+    name: Build and deploy the documentation site
+    if: vars.DOCS_GCP_PROJECT != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # To exchange this job's OIDC token for the deploy account.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - run: pnpm nx build @r10c/docs-site --skip-nx-cache
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.DOCS_GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.DOCS_GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Push the image
+        env:
+          IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ vars.DOCS_GCP_PROJECT }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -t "$IMAGE" apps/docs-site
+          docker push "$IMAGE"
+      - name: Roll the service onto it
+        run: >-
+          gcloud run deploy "$SERVICE"
+          --project "${{ vars.DOCS_GCP_PROJECT }}"
+          --region "$REGION"
+          --image "$REGION-docker.pkg.dev/${{ vars.DOCS_GCP_PROJECT }}/$REPOSITORY/$SERVICE:$GITHUB_SHA"
+          --quiet

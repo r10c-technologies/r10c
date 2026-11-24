@@ -458,6 +458,19 @@ evidence_bucket`, the up command seeds it into order-service's
    (ADR 0081 §8, #692). A `--target lab` rehearsal has no bucket and keeps
    receipts in the pod's `/tmp`, gone with it.
 
+6. **The documentation sites** (#686), which need no up and no down. Cloud
+   Run scales them to zero.
+   - Set `docs_hosts` and `docs_readers` in the same `terraform.tfvars`. The
+     defaults are placeholders under `.example`.
+   - Add the DNS records `tofu output docs_dns_records` names.
+   - On each repository, set three Actions variables from the outputs:
+     `DOCS_GCP_PROJECT`, `DOCS_GCP_WIF_PROVIDER` and `DOCS_GCP_DEPLOY_SA`.
+   - The next push to `main` deploys the site, and until then
+     `docs_deploy.yml` skips its deploy.
+   - r10c's site answers only the readers, through IAP. IAP without a load
+     balancer needs the project to sit in a Google Cloud organization
+     (ADR 0083 §3).
+
 ### Up, smoke test, down
 
 ```sh

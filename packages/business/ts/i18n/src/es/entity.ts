@@ -756,6 +756,9 @@ export const entity = {
     },
     label: 'Pago a vendedor',
     plural: 'Pagos a vendedores',
+    useCases: {
+      disburse: 'Pagar al vendedor',
+    },
     fields: {
       id: 'ID',
       runId: 'Corte de liquidación',
