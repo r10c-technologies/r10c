@@ -8,6 +8,7 @@ import {
   readDeviceModelIds,
   readMedia,
 } from '@r10c/business-ts-catalog-contracts';
+import { priceTiersRefusal } from '@r10c/business-ts-sales-vocabulary';
 import { Context, Effect, Schema } from 'effect';
 
 import type { ProductOffering } from '../../entities/product-offering';
@@ -358,6 +359,16 @@ export const transitionOffering = Effect.gen(function* () {
     return yield* new OfferingHasNoPrice({ id: String(id) });
   }
 
+  // The tiers were checked against the rule when they were set, but the unit
+  // can still change before a first publication, and `set-sale-unit` resets
+  // the step and minimum under them (ADR 0082 §8). Publication only: a
+  // takedown announces whatever was published.
+  const tiers = price.tiers;
+  if (tiers !== undefined && next === 'published') {
+    const refused = priceTiersRefusal(tiers, price, offering);
+    if (refused !== undefined) return yield* refused;
+  }
+
   offering.status = next;
   // ⚠️ Stamped on **both** transitions, and stored rather than only announced.
   // It is the same value the payload carries as `publishedAt` and therefore the
@@ -386,6 +397,10 @@ export const transitionOffering = Effect.gen(function* () {
     quantityStep: offering.quantityStep,
     quantityMinimum: offering.quantityMinimum,
     pricePer: price.pricePer,
+    // Absent, never `[]`, when the price has none (ADR 0049).
+    ...(tiers === undefined || tiers.length === 0
+      ? {}
+      : { tiers: tiers.map(({ from, amount }) => ({ from, amount })) }),
     ...pinOf(offering, specification),
     ...merchandisingOf(specification),
   };

@@ -185,6 +185,17 @@ export const r10c: EsR10c = {
       quantity: '{{quantity}} {{symbol}}',
       // How something not sold one at a time is sold.
       sold: 'From {{minimum}}, in steps of {{step}}',
+      // A price that steps down by quantity (ADR 0082 §8): the table on the
+      // product page, and the note on a line that reached one.
+      tiers: {
+        heading: 'Volume prices',
+        caption: 'The whole line is charged the price its quantity reaches.',
+        quantity: 'Quantity',
+        price: 'Price',
+        from: 'From {{quantity}}',
+        base: 'Less than {{quantity}}',
+      },
+      tierApplied: 'Volume price from {{quantity}}',
     },
     product: {
       buy: 'Buy',
@@ -704,6 +715,18 @@ export const r10c: EsR10c = {
         previous: 'Previous image',
         next: 'Next image',
         position: '{{index}} of {{total}}',
+      },
+    },
+    // Where a price steps down by quantity (ADR 0082 §8): the form
+    // `set-price-tiers` opens.
+    price: {
+      tiers: {
+        hint: 'From each quantity on, the whole line costs the price you set here for the same quantity the base price is for. Each tier starts higher and costs less than the one before.',
+        none: 'No volume prices: every quantity is charged the base price.',
+        loading: 'Loading the product…',
+        row: 'Tier {{position}}',
+        remove: 'Remove tier {{position}}',
+        add: 'Add a tier',
       },
     },
     /** A specification's page: its offerings, and how to offer it. */

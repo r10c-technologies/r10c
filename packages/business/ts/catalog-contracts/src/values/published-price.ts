@@ -1,5 +1,7 @@
 import type { Overloaded, UpstreamUnavailable } from '@entifix/core';
 import {
+  type PriceTier,
+  priceTiersOf,
   type SaleTerms,
   saleTermsOf,
 } from '@r10c/business-ts-sales-vocabulary';
@@ -19,6 +21,11 @@ export interface PublishedPrice extends SaleTerms {
   readonly description?: string;
   readonly vendorId: string;
   readonly amount: number;
+  /**
+   * Where the price steps down by quantity (ADR 0082 §8): a sale is charged
+   * `tieredPrice` over these and `amount`, never `amount` alone.
+   */
+  readonly tiers?: readonly PriceTier[];
   readonly currency: string;
   readonly specificationId: string;
   readonly specificationVersion: number;
@@ -70,6 +77,7 @@ export const publishedPriceOf = (
   const specificationId = record?.['specificationId'];
   const specificationVersion = record?.['specificationVersion'];
   const description = record?.['description'];
+  const tiers = priceTiersOf(record?.['tiers']);
   const terms = saleTermsOf(record);
   return terms !== undefined &&
     typeof vendorId === 'string' &&
@@ -89,6 +97,7 @@ export const publishedPriceOf = (
         specificationId,
         specificationVersion,
         ...terms,
+        ...(tiers === undefined ? {} : { tiers }),
         ...(typeof description === 'string' && description !== ''
           ? { description }
           : {}),

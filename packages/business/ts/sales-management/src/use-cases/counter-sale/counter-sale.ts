@@ -13,6 +13,7 @@ import {
   type PricePer,
   saleLineRefusal,
   type SaleUnit,
+  tieredPrice,
 } from '@r10c/business-ts-sales-vocabulary';
 import {
   type BuyerTax,
@@ -64,9 +65,14 @@ interface PricedLine {
   /** What one is, and how many in its scale (ADR 0082 §2). */
   readonly saleUnit: SaleUnit;
   readonly quantity: number;
-  /** What `pricePer` whole units cost, as published. */
+  /**
+   * What `pricePer` whole units cost at this quantity: the published price,
+   * or the volume price it reached (ADR 0082 §8).
+   */
   readonly amount: number;
   readonly pricePer: PricePer;
+  /** Where that volume price starts, when the line reached one. */
+  readonly tierFrom?: number;
   readonly currency: string;
 }
 
@@ -164,14 +170,15 @@ export const sellAtCounter = (input: {
       if (price.vendorId !== organizationId) {
         return yield* new OfferingNotYours({ offeringId: line.offeringId });
       }
+      // The volume price this quantity reaches, chosen here from what the
+      // projection publishes — never from what the till sent (ADR 0082 §8).
+      const charged = tieredPrice(price, line.quantity);
       // The decision (ADR 0082 §3): checked against the terms the projection
       // publishes, refused rather than rounded — whatever the till showed.
-      const refused = saleLineRefusal(
-        line.offeringId,
-        line.quantity,
-        price,
-        price,
-      );
+      const refused = saleLineRefusal(line.offeringId, line.quantity, price, {
+        amount: charged.amount,
+        pricePer: price.pricePer,
+      });
       if (refused !== undefined) return yield* refused;
       priced.push({
         offeringId: line.offeringId,
@@ -183,8 +190,11 @@ export const sellAtCounter = (input: {
         specificationVersion: price.specificationVersion,
         saleUnit: price.saleUnit,
         quantity: line.quantity,
-        amount: price.amount,
+        amount: charged.amount,
         pricePer: price.pricePer,
+        ...(charged.tierFrom === undefined
+          ? {}
+          : { tierFrom: charged.tierFrom }),
         currency: price.currency,
       });
     }

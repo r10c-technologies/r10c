@@ -54,6 +54,7 @@ const adapters: MarketplaceAdminAdapters = {
   deviceModelUseCases: real.deviceModelUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
+  productOfferingPriceUseCases: real.productOfferingPriceUseCases,
   productUseCases: real.productUseCases,
 };
 

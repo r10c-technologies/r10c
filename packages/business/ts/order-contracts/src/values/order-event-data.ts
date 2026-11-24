@@ -11,6 +11,8 @@ const LINE_MEMBERS = [
   'quantity',
   'amount',
   'pricePer',
+  // The volume price a line was charged at starts from here (ADR 0082 §8).
+  'tierFrom',
   'lineTotal',
   'currency',
   'kind',

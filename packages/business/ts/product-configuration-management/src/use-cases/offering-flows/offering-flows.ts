@@ -1,4 +1,5 @@
 import {
+  type EntityRepository,
   EntityRepositoryFactoryTag,
   EntityRepositoryTag,
   TenantDirectoryTag,
@@ -16,6 +17,7 @@ import {
   DEFAULT_SALE_UNIT,
   isPricePer,
   isSellableRule,
+  priceTiersRefusal,
 } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Option, Schema } from 'effect';
 
@@ -216,23 +218,32 @@ export const preserveOfferingLifecycle = (
     return offering;
   });
 
+/**
+ * The stored record a save names, or none when it is new. Only an absent row
+ * makes it new: a store that cannot be read fails the save — reading it as
+ * absent would let the body's server-owned members through, which is the
+ * bypass these rules exist to close.
+ */
+const storedRecord = <T extends ProductOffering | ProductOfferingPrice>(
+  repository: EntityRepository,
+  id: EntityId,
+) =>
+  repository.get<T>(id).pipe(
+    Effect.map(Option.some),
+    Effect.catchIf(
+      failure => isFailure(failure) && failure.category === 'notFound',
+      () => Effect.succeed(Option.none<T>()),
+    ),
+  );
+
 /** The stored offering a save names, or none when it is new. */
 const storedOffering = (offering: ProductOffering, organizationId: string) =>
   Effect.gen(function* () {
     if (offering.id == null) return Option.none<ProductOffering>();
     const factory = yield* EntityRepositoryFactoryTag;
-    const repository = yield* factory.for(ProductOffering, {
-      organizationId,
-    });
-    // Only an absent row makes this a new offering. A store that cannot be
-    // read fails the save — reading it as absent would let the body's
-    // `status` through, which is the bypass this rule exists to close.
-    return yield* repository.get<ProductOffering>(offering.id).pipe(
-      Effect.map(Option.some),
-      Effect.catchIf(
-        failure => isFailure(failure) && failure.category === 'notFound',
-        () => Effect.succeed(Option.none<ProductOffering>()),
-      ),
+    return yield* storedRecord<ProductOffering>(
+      yield* factory.for(ProductOffering, { organizationId }),
+      offering.id,
     );
   });
 
@@ -244,6 +255,37 @@ export const refuseUnknownPricePer = (price: ProductOfferingPrice) =>
   isPricePer(price.pricePer)
     ? Effect.succeed(price)
     : Effect.fail(new PricePerInvalid({ pricePer: Number(price.pricePer) }));
+
+/**
+ * What every generic save of a price does before it is written: refuse an
+ * unknown `pricePer`, carry the **stored** tiers across — only
+ * `set-price-tiers` writes them, whatever the body said — and check them
+ * against the amount and `pricePer` being saved, so lowering the base price
+ * to or below a tier is refused `priceTiersInvalid` rather than leaving a
+ * tier that costs more than no tier (ADR 0082 §8).
+ */
+export const preparePrice = (
+  price: ProductOfferingPrice,
+  organizationId: string,
+) =>
+  Effect.gen(function* () {
+    yield* refuseUnknownPricePer(price);
+    const factory = yield* EntityRepositoryFactoryTag;
+    const scope = { organizationId };
+    const stored =
+      price.id == null
+        ? Option.none<ProductOfferingPrice>()
+        : yield* storedRecord<ProductOfferingPrice>(
+            yield* factory.for(ProductOfferingPrice, scope),
+            price.id,
+          );
+    price.tiers = Option.isSome(stored) ? stored.value.tiers : undefined;
+    if (price.tiers === undefined) return price;
+    const offerings = yield* factory.for(ProductOffering, scope);
+    const offering = yield* offerings.get<ProductOffering>(price.offeringId);
+    const refused = priceTiersRefusal(price.tiers, price, offering);
+    return refused === undefined ? price : yield* refused;
+  });
 
 export type RebuildOutcome =
   'announced' | 'revived' | 'alreadyAnnounced' | 'unannounceable' | 'unstamped';

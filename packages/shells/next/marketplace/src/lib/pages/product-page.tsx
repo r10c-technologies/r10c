@@ -37,7 +37,12 @@ import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { DeliveryFacts } from '../catalog/delivery-facts';
 import { loadCardNames, OfferingGrid } from '../catalog/offering-grid';
-import { priceBasisLabel, saleRuleLabel } from '../catalog/price-basis';
+import {
+  priceBasisLabel,
+  quantityLabel,
+  saleRuleLabel,
+} from '../catalog/price-basis';
+import { type PriceTierRowView, PriceTiers } from '../catalog/price-tiers';
 import { readProduct } from '../catalog/product-read';
 import { SampleStoreNote } from '../catalog/sample-store-note';
 import { imageHosts, imageLoaderFor } from '../media/image-hosts';
@@ -175,6 +180,27 @@ async function ProductContent({
     values ? t(key, values) : t(key);
   const priceBasis = priceBasisLabel(translate, locale)(offering);
   const saleRule = saleRuleLabel(translate, locale)(offering);
+  // The volume prices, the base first: below the first tier, then from each
+  // (ADR 0082 §8). Empty when the price has none, and the table says nothing.
+  const quantityOf = quantityLabel(translate, locale);
+  const tiers = offering.tiers ?? [];
+  const tierRows: readonly PriceTierRowView[] =
+    tiers.length === 0
+      ? []
+      : [
+          {
+            quantity: t('storefront.price.tiers.base', {
+              quantity: quantityOf(tiers[0]?.from ?? 0, offering.saleUnit),
+            }),
+            amount: offering.amount,
+          },
+          ...tiers.map(tier => ({
+            quantity: t('storefront.price.tiers.from', {
+              quantity: quantityOf(tier.from, offering.saleUnit),
+            }),
+            amount: tier.amount,
+          })),
+        ];
   const hosts = imageHosts();
   const url = `${storefrontOrigin()}${localeHref(locale, storePaths.offering(offering.offeringId))}`;
 
@@ -257,6 +283,19 @@ async function ProductContent({
                 </StatusTag>
               )}
             </Cluster>
+
+            <PriceTiers
+              rows={tierRows}
+              currency={offering.currency}
+              locale={locale}
+              {...(priceBasis === undefined ? {} : { priceBasis })}
+              labels={{
+                heading: t('storefront.price.tiers.heading'),
+                caption: t('storefront.price.tiers.caption'),
+                quantity: t('storefront.price.tiers.quantity'),
+                price: t('storefront.price.tiers.price'),
+              }}
+            />
 
             {/*
               A real form, not an onClick. It submits without JavaScript, and on

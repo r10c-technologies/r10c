@@ -57,7 +57,8 @@ export const HARDWARE_PRODUCTS: readonly SampleProduct[] = [
     {
       key: 'tornillo-madera-8',
       name: 'Tornillo para madera #8 × 1½"',
-      description: 'Cabeza plana, punta fina. Precio por ciento.',
+      description:
+        'Cabeza plana, punta fina. Precio por ciento, más barato desde 500.',
       brand: 'tornimax',
       category: 'screws',
       art: 'screw',
@@ -65,7 +66,14 @@ export const HARDWARE_PRODUCTS: readonly SampleProduct[] = [
       status: 'published',
       stock: 12000,
     },
-    { pricePer: 100 },
+    {
+      pricePer: 100,
+      // Q7 the hundred from 500, Q6 from 1000 (ADR 0082 §8).
+      tiers: [
+        { from: 500, amount: 700 },
+        { from: 1000, amount: 600 },
+      ],
+    },
   ),
   product(
     {

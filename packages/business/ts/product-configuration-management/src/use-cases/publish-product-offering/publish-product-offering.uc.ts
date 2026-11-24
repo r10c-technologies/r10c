@@ -1,6 +1,7 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
 import { InvalidBody, SelectionTooLarge } from '@r10c/business-ts-common';
+import { PriceTiersInvalid } from '@r10c/business-ts-sales-vocabulary';
 
 import { ProductOffering } from '../../entities/product-offering';
 import { statusesBefore } from '../../values/offering-transition';
@@ -56,6 +57,7 @@ import {
     OfferingHasNoPrice,
     OfferingHasNoSpecification,
     SpecificationNotActive,
+    PriceTiersInvalid,
     OfferingChanged,
     InvalidBody,
     SelectionTooLarge,

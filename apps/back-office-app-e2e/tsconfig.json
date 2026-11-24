@@ -36,6 +36,9 @@
       "path": "../../packages/business/ts/settlement-management"
     },
     {
+      "path": "../../packages/business/ts/sales-vocabulary"
+    },
+    {
       "path": "../../packages/business/ts/sales-management"
     },
     {

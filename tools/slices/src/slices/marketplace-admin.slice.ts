@@ -69,6 +69,8 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     'GET|POST /api/product-offering-price',
     'GET|PUT|DELETE /api/product-offering-price/:id',
     'GET /api/product-offering-price/$metadata',
+    // A price's volume tiers (ADR 0082 §8), a verb with its own form.
+    'POST /api/product-offering-price/:id/set-price-tiers',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   // The `marketplace` slice consumes both to write the `published-catalog`

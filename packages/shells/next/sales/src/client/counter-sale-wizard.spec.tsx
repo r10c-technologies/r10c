@@ -361,6 +361,11 @@ describe('the till', () => {
 
     expect(previewOf(line, [cable])).toBe(15_750);
     expect(previewOf(line, [])).toBe(0);
+    // From 3 m at Q40.00: the whole line at the volume price (ADR 0082 §8).
+    const tiered = Object.assign(cable, {
+      tiers: [{ from: 3000, amount: 4000 }],
+    });
+    expect(previewOf(line, [tiered])).toBe(14_000);
   });
 
   it('writes a line’s quantity in its offering’s unit, and a bare one when it is gone', () => {

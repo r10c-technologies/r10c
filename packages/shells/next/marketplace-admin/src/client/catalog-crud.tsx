@@ -41,6 +41,7 @@ import {
   OFFERING_RELATED_COLUMNS,
   OfferingImagesRegion,
 } from './offering-regions';
+import { PRICE_TIERS_FORM, PriceTiersForm } from './price-tiers-form';
 import { SALE_UNIT_FORM, SaleUnitForm } from './sale-unit-form';
 
 /**
@@ -381,7 +382,14 @@ export const productOfferingPriceCrud = makeEntityCrud(ProductOfferingPrice, {
   catalogKey: PRODUCT_OFFERING_PRICE_SURFACE.entityKey,
   repository: 'productOfferingPriceRest',
   write: 'productOfferingPriceWriter',
-  hiddenFields: ['id'],
+  // Served affordances and a runner, or `set-price-tiers` renders nowhere.
+  metadata: 'catalogMetadata',
+  useCases: 'productOfferingPriceUseCases',
+  // `tiers` too (ADR 0082 §8): only `set-price-tiers` writes them, through
+  // the form below that reads the offering's unit, and the save carries the
+  // stored ones across — a row editor here would offer edits the write drops.
+  hiddenFields: ['id', 'tiers'],
+  verbForms: { [PRICE_TIERS_FORM]: PriceTiersForm },
   links: [
     {
       field: 'offeringId',

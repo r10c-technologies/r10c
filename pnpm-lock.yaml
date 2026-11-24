@@ -704,6 +704,9 @@ importers:
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/sales-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-vocabulary
       '@r10c/business-ts-settlement-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/settlement-management

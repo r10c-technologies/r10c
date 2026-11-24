@@ -3,12 +3,14 @@ import { accessor, entity } from '@entifix/core';
 import {
   MediaReference,
   type MediaReferenceValue,
+  PriceTierRow,
 } from '@r10c/business-ts-catalog-contracts';
 import {
   DEFAULT_PRICE_PER,
   DEFAULT_SALE_UNIT,
   oneWholeUnit,
   type PricePer,
+  type PriceTier,
   SALE_UNIT_NAME_KEY,
   SALE_UNIT_SCALES,
   SALE_UNIT_SYMBOL_KEY,
@@ -69,6 +71,7 @@ export class PublishedOffering implements Entity {
   #quantityStep = oneWholeUnit(DEFAULT_SALE_UNIT);
   #quantityMinimum = oneWholeUnit(DEFAULT_SALE_UNIT);
   #pricePer: PricePer = DEFAULT_PRICE_PER;
+  #tiers?: readonly PriceTier[];
   #amountPerThousand = 0;
   // The epoch, so a record written before this member existed compares as
   // older than every real publication rather than as newer than all of them.
@@ -201,6 +204,24 @@ export class PublishedOffering implements Entity {
   }
   set pricePer(value: PricePer) {
     this.#pricePer = value;
+  }
+
+  /**
+   * Where the price steps down by quantity, as published (ADR 0082 §8): the
+   * product page shows the table and a line is charged `tieredPrice` over
+   * these and `amount`. Absent, never `[]`, when there are none. Neither
+   * sortable nor filterable: a list orders by the base price.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => PriceTierRow,
+    labelKey: 'entity:published-offering.fields.tiers',
+  })
+  get tiers(): readonly PriceTier[] | undefined {
+    return this.#tiers;
+  }
+  set tiers(value: readonly PriceTier[] | undefined) {
+    this.#tiers = value;
   }
 
   /**

@@ -32,6 +32,7 @@ import {
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
+import { PriceTiersInvalid } from '@r10c/business-ts-sales-vocabulary';
 import {
   Agreement,
   CommissionEntry,
@@ -798,6 +799,65 @@ const setSaleUnitHandlers = [
   ),
 ];
 
+/**
+ * The price screen's affordance document, with the verb the entity declares —
+ * `set-price-tiers` — so its button renders as the service would offer it.
+ */
+const priceMetadataHandlers = [
+  http.get(`${APP_URL}/api/admin/product-offering-price/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'product-offering-price' },
+      data: {
+        actions: ['read', 'write', 'delete'],
+        useCases: describeEntityUseCases(ProductOfferingPrice),
+      },
+    }),
+  ),
+];
+
+/**
+ * `set-price-tiers` as the service answers it (ADR 0082 §8): the price with
+ * its tiers at its next revision, or `priceTiersInvalid` for a tier no
+ * cheaper than Q45.00 — the seeded price — so the form's refusal shows.
+ */
+const setPriceTiersHandlers = [
+  http.post(
+    `${SERVICE_URL}/product-offering-price/:id/set-price-tiers`,
+    async ({ params, request }) => {
+      const body = (await request.json().catch(() => undefined)) as
+        | { readonly tiers?: readonly { from: number; amount: number }[] }
+        | undefined;
+      const tiers = body?.tiers ?? [];
+      const dear = tiers.findIndex(tier => !(tier.amount < 4500));
+      if (tiers.length === 0 || dear !== -1)
+        return HttpResponse.json(
+          problemOf(
+            new PriceTiersInvalid({
+              index: Math.max(dear, 0),
+              problem: 'notCheaper',
+            }),
+          ),
+          {
+            status: 400,
+            headers: { 'content-type': 'application/problem+json' },
+          },
+        );
+      return HttpResponse.json({
+        meta: { type: 'entity', entity: 'product-offering-price' },
+        data: {
+          id: String(params['id']),
+          offeringId: 'product-offering-1',
+          amount: 4500,
+          currency: 'GTQ',
+          pricePer: 1,
+          tiers,
+          revision: 1,
+        },
+      });
+    },
+  ),
+];
+
 /** The mock channel store, for reseeding or for breaking on purpose. */
 export const salesChannelBackend = salesChannels.backend;
 
@@ -1102,6 +1162,8 @@ const base = defineEntifixE2eTest({
     ...offeringMetadataHandlers,
     ...bulkPublishHandlers,
     ...setSaleUnitHandlers,
+    ...priceMetadataHandlers,
+    ...setPriceTiersHandlers,
     ...sellHandlers,
     ...productOrders.handlers,
     ...orderMetadataHandlers,

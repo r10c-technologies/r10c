@@ -189,7 +189,8 @@ const JOURNEY_OFFERINGS = [
     media: [{ url: `${OUTSIDE_MEDIA_HOST}/runner.jpg`, alt: 'Runner, folded' }],
   },
   // Sold by the half metre from one metre, at Q45.00 the metre (ADR 0082):
-  // the storefront's quantity journeys in a unit that is not a piece.
+  // the storefront's quantity journeys in a unit that is not a piece. Q40.00
+  // the metre from 10 m, for the whole line (§8).
   {
     ...journeyOffering(
       'offering-coax-cable',
@@ -200,6 +201,7 @@ const JOURNEY_OFFERINGS = [
     saleUnit: 'M',
     quantityStep: 500,
     quantityMinimum: 1000,
+    tiers: [{ from: 10_000, amount: 4000 }],
   },
 ];
 

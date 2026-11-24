@@ -3,6 +3,7 @@ import type { CatalogEvent } from '@r10c/business-ts-catalog-contracts';
 import { Context, type Effect } from 'effect';
 
 import type { ProductOffering } from '../entities/product-offering';
+import type { ProductOfferingPrice } from '../entities/product-offering-price';
 import type { ProductSpecification } from '../entities/product-specification';
 import type { SpecificationLifecycleStatus } from '../values/specification-lifecycle';
 
@@ -36,6 +37,17 @@ export interface OfferingCatalog {
   readonly setSaleUnit: (
     organizationId: string,
     offering: ProductOffering,
+  ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
+  /**
+   * Write a price's tiers — or remove them, when it holds none — **only at
+   * the revision it was read at**, moving the revision in the same write
+   * (ADR 0082 §8, ADR 0079 §4). A seeded price has no revision, and is
+   * matched while it still has none. `changed` means it was saved since or
+   * is not held, and nothing was written.
+   */
+  readonly setPriceTiers: (
+    organizationId: string,
+    price: ProductOfferingPrice,
   ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
   /**
    * Put one publication back on the outbox for the rebuild walk (ADR 0050):

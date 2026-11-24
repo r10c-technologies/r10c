@@ -1,6 +1,7 @@
 export * from './line-total';
 export * from './order-tender';
 export * from './price-basis';
+export * from './price-tier';
 export * from './sale-line-refusal';
 export * from './sale-quantity-failures';
 export * from './sale-rule';

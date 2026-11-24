@@ -320,6 +320,53 @@ describe('the price precondition', () => {
   });
 });
 
+describe('the tiers a price holds', () => {
+  const tiered = (tiers: { from: number; amount: number }[]) =>
+    Object.assign(price('1'), { tiers });
+
+  it('travel in the publication', () => {
+    const event = publicationOf(
+      run([offering('1', 'draft')], '1', 'publish', [
+        tiered([{ from: 10, amount: 22_000 }]),
+      ]).exit,
+    );
+
+    expect(event.data.tiers).toEqual([{ from: 10, amount: 22_000 }]);
+  });
+
+  it('refuse a publication they no longer fit, and leave the status alone', () => {
+    const record = offering('1', 'draft');
+    // A tier at the minimum is the base price: what a unit reset leaves.
+    const { exit } = run([record], '1', 'publish', [
+      tiered([{ from: 1, amount: 22_000 }]),
+    ]);
+
+    expect(failureOf(exit)).toMatchObject({
+      code: 'priceTiersInvalid',
+      problem: 'notAscending',
+    });
+    expect(record.status).toBe('draft');
+  });
+
+  it('are announced as published on a takedown, unchecked', () => {
+    const event = publicationOf(
+      run([offering('1', 'published')], '1', 'unpublish', [
+        tiered([{ from: 1, amount: 22_000 }]),
+      ]).exit,
+    );
+
+    expect(event.data.tiers).toEqual([{ from: 1, amount: 22_000 }]);
+  });
+
+  it('are absent, never empty, when the price has none', () => {
+    const event = publicationOf(
+      run([offering('1', 'draft')], '1', 'publish', [tiered([])]).exit,
+    );
+
+    expect('tiers' in event.data).toBe(false);
+  });
+});
+
 describe('what a transition announces', () => {
   it('names a publication for a move to published', () => {
     const event = publicationOf(

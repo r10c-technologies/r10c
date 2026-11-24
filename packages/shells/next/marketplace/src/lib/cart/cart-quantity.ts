@@ -4,12 +4,13 @@ import {
   type SaleLineRefusal,
   saleLineRefusal,
   type SaleRule,
-  type UnitPrice,
+  tieredPrice,
+  type TieredUnitPrice,
 } from '@r10c/business-ts-sales-vocabulary';
 
 /** What the cart reads of a published offering to decide a line. */
 export type CartTerms = SaleRule &
-  UnitPrice & {
+  TieredUnitPrice & {
     readonly offeringId: string;
   };
 
@@ -21,12 +22,12 @@ export type CartDecision =
   { readonly quantity: number } | { readonly refusal: CartRefusal };
 
 const decide = (offering: CartTerms, quantity: number): CartDecision => {
-  const refused = saleLineRefusal(
-    offering.offeringId,
-    quantity,
-    offering,
-    offering,
-  );
+  // At the volume price the quantity reaches, which is what the line is
+  // charged (ADR 0082 §8): a line that rounds to nothing there is refused.
+  const refused = saleLineRefusal(offering.offeringId, quantity, offering, {
+    amount: tieredPrice(offering, quantity).amount,
+    pricePer: offering.pricePer,
+  });
   return refused === undefined ? { quantity } : { refusal: refused.code };
 };
 

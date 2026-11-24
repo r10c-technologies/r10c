@@ -82,6 +82,14 @@ export interface SampleProduct {
   readonly pricePer: 1 | 100;
   /** GTQ minor units, IVA included (illustrative, never a real quote). */
   readonly amount: number;
+  /**
+   * Where the price steps down by quantity (ADR 0082 §8): from each `from` —
+   * in the unit's scale — the whole line costs `amount` for `pricePer` units.
+   */
+  readonly tiers?: readonly {
+    readonly from: number;
+    readonly amount: number;
+  }[];
   readonly status: SampleOfferingStatus;
   readonly stock: SampleStock;
   /** Seeded device-model ids the product is made for (#641). */

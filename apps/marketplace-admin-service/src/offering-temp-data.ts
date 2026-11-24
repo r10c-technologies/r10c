@@ -35,6 +35,8 @@ export interface ProductOfferingPriceRecord {
   currency: string;
   /** How many whole units `amount` buys: 1, or 100 for the one per hundred. */
   pricePer: number;
+  /** Where the price steps down by quantity; absent, never `[]`, when none. */
+  tiers?: { from: number; amount: number }[];
 }
 
 /**
@@ -103,4 +105,7 @@ export const offeringPriceTempDataFor = (
     amount: product.amount,
     currency: 'GTQ',
     pricePer: product.pricePer,
+    ...(product.tiers === undefined
+      ? {}
+      : { tiers: product.tiers.map(tier => ({ ...tier })) }),
   }));

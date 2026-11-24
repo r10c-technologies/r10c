@@ -20,6 +20,14 @@ export type OfferingSeed = Readonly<
   >
 >;
 
+/** An organization's prices, by id, at the revision each one stands at. */
+export type PriceSeed = Readonly<
+  Record<
+    string,
+    ReadonlyArray<{ readonly id: string; readonly revision?: number }>
+  >
+>;
+
 /**
  * An {@link OfferingCatalog} held in memory, for the specs of whatever
  * consumes the port. It runs `describeOfferingCatalogContract`, so a
@@ -28,11 +36,18 @@ export type OfferingSeed = Readonly<
  */
 export const makeInMemoryOfferingCatalog = (
   seed: OfferingSeed = {},
+  priceSeed: PriceSeed = {},
 ): OfferingCatalog => {
   const stored = new Map<string, { status: string; revision?: number }>();
   for (const [organizationId, offerings] of Object.entries(seed)) {
     for (const { id, status, revision } of offerings) {
       stored.set(`${organizationId}/${id}`, { status, revision });
+    }
+  }
+  const prices = new Map<string, { revision?: number }>();
+  for (const [organizationId, seeded] of Object.entries(priceSeed)) {
+    for (const { id, revision } of seeded) {
+      prices.set(`${organizationId}/${id}`, { revision });
     }
   }
   const announced = new Set<string>();
@@ -57,6 +72,14 @@ export const makeInMemoryOfferingCatalog = (
           !isNeverPublished(record.status as OfferingStatus) ||
           record.revision !== offering.revision
         )
+          return 'changed';
+        record.revision = (record.revision ?? 0) + 1;
+        return 'committed';
+      }),
+    setPriceTiers: (organizationId, price) =>
+      Effect.sync(() => {
+        const record = prices.get(`${organizationId}/${String(price.id)}`);
+        if (record === undefined || record.revision !== price.revision)
           return 'changed';
         record.revision = (record.revision ?? 0) + 1;
         return 'committed';

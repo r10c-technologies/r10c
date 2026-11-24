@@ -76,6 +76,12 @@ export const entity = {
         'Esta versión se conserva para los pedidos que la nombran y ya no puede usarse.',
     },
   },
+  'price-tier': {
+    fields: {
+      from: 'Desde',
+      amount: 'Precio',
+    },
+  },
   'media-reference': {
     fields: {
       url: 'URL de la imagen',
@@ -386,6 +392,7 @@ export const entity = {
       amount: 'Importe',
       currency: 'Moneda',
       pricePer: 'Precio por',
+      tiers: 'Precios por volumen',
       amountPerThousand: 'Importe por mil',
       saleUnit: 'Unidad de venta',
       quantityStep: 'Se vende de',
@@ -482,6 +489,7 @@ export const entity = {
         specificationVersion: 'Versión del producto',
         saleUnit: 'Unidad',
         pricePer: 'Precio por',
+        tierFrom: 'Precio por volumen desde',
         lineTotal: 'Total de la línea',
         quantity: 'Cantidad',
         amount: 'Importe',
@@ -813,7 +821,6 @@ export const entity = {
       publish: 'Publicar',
       setSaleUnit: 'Definir unidad de venta',
       drawOnStock: 'Vender una presentación del mismo inventario',
-      priceByTier: 'Precio por tramos de cantidad',
       publishConfirm:
         'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',
       unpublish: 'Retirar',
@@ -839,6 +846,10 @@ export const entity = {
       amount: 'Importe',
       currency: 'Moneda',
       pricePer: 'Precio por',
+      tiers: 'Precios por volumen',
+    },
+    useCases: {
+      setPriceTiers: 'Definir precios por volumen',
     },
   },
   'entity-specification': {

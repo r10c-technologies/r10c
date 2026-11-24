@@ -69,6 +69,7 @@ export class OrderItem {
   // for, or the order write refuses it (ADR 0082 §6).
   #saleUnit?: SaleUnit;
   #pricePer?: PricePer;
+  #tierFrom?: number;
   #lineTotal = 0;
   #currency: string;
   #reservationId?: string;
@@ -231,6 +232,28 @@ export class OrderItem {
   }
   set pricePer(value: PricePer | undefined) {
     this.#pricePer = value;
+  }
+
+  /**
+   * The quantity the volume price `amount` was taken at starts from, in the
+   * unit's scale, when the line was charged one (ADR 0082 §8): copied with
+   * the amount, so the buyer's receipt can say which price applied after the
+   * tiers change. Absent for the base price.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.item.tierFrom',
+    scaled: {
+      unitMember: 'saleUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
+  })
+  get tierFrom(): number | undefined {
+    return this.#tierFrom;
+  }
+  set tierFrom(value: number | undefined) {
+    this.#tierFrom = value;
   }
 
   /**

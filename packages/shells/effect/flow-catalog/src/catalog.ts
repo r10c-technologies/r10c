@@ -82,6 +82,9 @@ const Line = openStruct({
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
   amount: Schema.Int,
   pricePer: Schema.Literals(PricePers),
+  // The `from` of the volume price `amount` was taken at, when one was: the
+  // caller chose it by `tieredPrice` over the published tiers (ADR 0082 §8).
+  tierFrom: Schema.optionalKey(Schema.Int),
   // Stated by the coordinator, never the caller (ADR 0078 §6, ADR 0082 §6).
   lineTotal: Schema.Int,
   currency: Schema.NonEmptyString,

@@ -43,6 +43,41 @@ test.describe('a product sold by the metre', () => {
     await expect(page.getByText(/Coax Cable · Cant\. 3\.5 m/)).toBeVisible();
   });
 
+  test('shows its volume prices, and charges the whole line the one its quantity reaches', async ({
+    page,
+  }) => {
+    await page.goto(CABLE);
+    const tiers = page.getByRole('table', { name: /Precios por volumen/ });
+    await expect(tiers.getByRole('row')).toHaveCount(3);
+    await expect(
+      tiers.getByRole('row', { name: /Menos de 10 m/ }),
+    ).toContainText(/(?<!GT)Q\s45\.00/);
+    await expect(tiers.getByRole('row', { name: /Desde 10 m/ })).toContainText(
+      /(?<!GT)Q\s40\.00/,
+    );
+
+    const buy = page.getByRole('form', { name: 'Comprar' });
+    await buy.getByRole('spinbutton', { name: 'Cantidad' }).fill('10');
+    await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart(\?|$)/);
+
+    // 10 m at Q40.00, not at Q45.00: less than 9.5 m would cost.
+    await expect(page.getByTestId('cart-line-price')).toContainText(
+      /(?<!GT)Q\s400\.00/,
+    );
+    await expect(page.getByTestId('cart-line-tier')).toHaveText(
+      'Precio por volumen desde 10 m',
+    );
+
+    await page.getByTestId('review').click();
+    await page.waitForURL(/\/es\/cart\/review/);
+    await expect(
+      page.getByText(
+        /Coax Cable · Cant\. 10 m · Precio por volumen desde 10 m/,
+      ),
+    ).toBeVisible();
+  });
+
   test('refuses a quantity off its step, and the cart says why', async ({
     page,
   }) => {

@@ -21,6 +21,7 @@ import {
 } from '@r10c/business-ts-product-configuration-management';
 import {
   CONTRACT_OFFERINGS,
+  CONTRACT_PRICES,
   describeOfferingCatalogContract,
   describeSpecificationCommandsContract,
 } from '@r10c/business-ts-product-configuration-management/testing';
@@ -31,6 +32,7 @@ import { describe, expect, it } from 'vitest';
 import {
   MongoOfferingCatalogLayer,
   OFFERING_COLLECTION,
+  PRICE_COLLECTION,
 } from './offering-catalog.js';
 import {
   COUNTERS_COLLECTION,
@@ -89,6 +91,9 @@ const contractPorts = () => {
         organizationId,
         makeFakeMongoDb({
           [OFFERING_COLLECTION]: offerings.map(offering => ({ ...offering })),
+          [PRICE_COLLECTION]: CONTRACT_PRICES[
+            organizationId as keyof typeof CONTRACT_PRICES
+          ].map(price => ({ ...price })),
         }),
       ] as const,
   );

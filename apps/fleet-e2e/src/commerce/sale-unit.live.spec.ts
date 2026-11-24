@@ -484,3 +484,101 @@ it('never loses a sale unit a publication raced', async () => {
     }
   }
 });
+
+/**
+ * Volume prices (ADR 0082 §8): the seed's wood screws step down from 500 and
+ * from 1000. The till names no amount, so the tier is chosen by sales-service
+ * from the projection, and the order line keeps the amount and the `from`.
+ */
+it('charges a whole till line the volume price its quantity reaches', async () => {
+  const part = await published(PER_HUNDRED);
+  expect(part['tiers']).toEqual([
+    { from: 500, amount: 700 },
+    { from: 1000, amount: 600 },
+  ]);
+  const bearer = await vendorBearer(HARDWARE.organizationId);
+  const sold = await fetch(
+    `${FLEET.sales}/api/sales-channel/sales-channel-counter/sell`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: bearer,
+        'content-type': 'application/json',
+        'idempotency-key': key(),
+      },
+      body: JSON.stringify({
+        paymentMethod: 'cash',
+        lines: [{ offeringId: PER_HUNDRED, quantity: 1000 }],
+      }),
+    },
+  );
+  expect(sold.status).toBe(202);
+  const flowId = String(
+    ((await sold.json()) as { data?: { flowId?: string } }).data?.flowId,
+  );
+  expect((await settled(flowId, { bearer })).state).toBe('completed');
+  const [order] = await ordersOf(flowId);
+  // A thousand at Q6.00 the hundred: Q60.00, not the Q80.00 the base asks.
+  expect(order?.['items']).toMatchObject([
+    { amount: 600, tierFrom: 1000, pricePer: 100, lineTotal: 6000 },
+  ]);
+  expect(order?.['totalAmount']).toBe(6000);
+});
+
+it('sets a seeded price’s tiers by its verb, once per revision, and guards the base', async () => {
+  const priceId = PER_HUNDRED.replace(
+    'product-offering-',
+    'product-offering-price-',
+  );
+  const read = (await admin('GET', `product-offering-price/${priceId}`)).body[
+    'data'
+  ] as Record<string, any>;
+  const tiers = [
+    { from: 500, amount: 700 },
+    { from: 1000, amount: 600 },
+  ];
+
+  // The seeded price has no revision: the verb writes it while it has none.
+  const set = await admin(
+    'POST',
+    `product-offering-price/${priceId}/set-price-tiers`,
+    {
+      tiers,
+      ...(read['revision'] === undefined ? {} : { revision: read['revision'] }),
+    },
+  );
+  expect(set.status, JSON.stringify(set.body)).toBe(200);
+  const revision = Number(set.body['data']['revision']);
+
+  // The same read again lost: another write moved the revision.
+  const stale = await admin(
+    'POST',
+    `product-offering-price/${priceId}/set-price-tiers`,
+    { tiers, revision: revision - 1 },
+  );
+  expect(stale.status).toBe(409);
+  expect(stale.body['code']).toBe('priceChanged');
+
+  // A tier no cheaper than the price is refused.
+  const dear = await admin(
+    'POST',
+    `product-offering-price/${priceId}/set-price-tiers`,
+    { tiers: [{ from: 500, amount: 900 }], revision },
+  );
+  expect(dear.status).toBe(400);
+  expect(dear.body).toMatchObject({
+    code: 'priceTiersInvalid',
+    problem: 'notCheaper',
+  });
+
+  // A save carries the tiers across, and refuses a base lowered onto them.
+  const current = (await admin('GET', `product-offering-price/${priceId}`))
+    .body['data'] as Record<string, any>;
+  expect(current['tiers']).toEqual(tiers);
+  const lowered = await admin('PUT', `product-offering-price/${priceId}`, {
+    meta: { type: 'entity', entity: 'product-offering-price' },
+    data: { ...current, amount: 700 },
+  });
+  expect(lowered.status).toBe(400);
+  expect(lowered.body['code']).toBe('priceTiersInvalid');
+});
