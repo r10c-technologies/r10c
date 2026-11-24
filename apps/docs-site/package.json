@@ -28,6 +28,7 @@
     "@r10c/business-ts-stock-management": "workspace:*",
     "@r10c/capabilities": "workspace:*",
     "@r10c/slices": "workspace:*",
+    "@xyflow/react": "13.0.2",
     "fumadocs-ui": "16.19.5",
     "i18next": "27.2.2",
     "next": "16.4.6",
@@ -55,6 +56,12 @@
               "@r10c/storefront-storybook"
             ],
             "target": "build-storybook"
+          },
+          {
+            "projects": [
+              "@r10c/docs-reference"
+            ],
+            "target": "generate"
           }
         ],
         "inputs": [
@@ -81,7 +88,13 @@
         "executor": "nx:run-commands",
         "continuous": true,
         "dependsOn": [
-          "^build"
+          "^build",
+          {
+            "projects": [
+              "@r10c/docs-reference"
+            ],
+            "target": "generate"
+          }
         ],
         "options": {
           "command": "next dev -p 3220 --webpack",
@@ -96,6 +109,17 @@
           "command": "node serve.mjs",
           "cwd": "apps/docs-site"
         }
+      },
+      "test": {
+        "dependsOn": [
+          "^build",
+          {
+            "projects": [
+              "@r10c/docs-reference"
+            ],
+            "target": "generate"
+          }
+        ]
       }
     }
   }

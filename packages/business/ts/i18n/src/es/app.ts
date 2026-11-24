@@ -183,6 +183,150 @@ export const app = {
         id: 'id',
       },
     },
+    api: {
+      title: 'APIs',
+      description:
+        'Cada operación que sirve cada servicio, desde el documento OpenAPI que responde en $openapi.',
+      intro:
+        'Cada página se genera al compilar con el mismo ensamblado que sirve el servicio, sin levantar ningún servidor, así que no puede desviarse de él. Solo lectura: no hay área de pruebas, porque casi toda ruta pide una sesión o un token de cruce.',
+      operations: 'operaciones',
+      operation: 'Operación',
+      slice: 'Slice',
+      download: 'El documento OpenAPI',
+      downloadNote: 'el JSON del que sale esta página.',
+      name: 'Parámetro',
+      in: 'En',
+      required: 'Obligatorio',
+      type: 'Tipo',
+      yes: 'Sí',
+      no: 'No',
+      noParameters: 'Sin parámetros.',
+      requestBody: 'Cuerpo de la solicitud',
+      noBody: 'Sin cuerpo de solicitud.',
+      noContent: 'sin cuerpo',
+      failures: 'Fallos',
+      none: 'Ninguno',
+      problem: 'Cuerpo del error',
+      problemNote:
+        'Todo fallo responde application/problem+json con esta forma. Su code es la clave del catálogo errors, y un cliente decide por el code, nunca por el estado.',
+      link: 'Su API',
+    },
+    flows: {
+      title: 'Flujos',
+      description:
+        'Cada flujo por el que pasa una venta, paso a paso, compuesto con el mismo código que ejecuta el coordinador.',
+      intro:
+        'Un flujo es una hoja de ruta: el coordinador la compone una vez, a partir de una receta y de los hechos que verificó, y ejecuta sus pasos en orden sobre un motor durable. Estos son los flujos del MVP, cada uno para un vendedor.',
+      diagram: 'Los pasos en orden, con cada rama que puede tomar una espera',
+      interactive: 'Explorar el diagrama',
+      static: 'Volver al diagrama estático',
+      legendTitle: 'Cómo leerlo',
+      legend: {
+        pivot:
+          'Borde grueso: el pivote. Antes de él todo paso se puede deshacer; después, el flujo solo avanza.',
+        wait: 'Borde punteado: una espera a una respuesta de fuera del flujo.',
+        compensatable:
+          'Borde discontinuo: un paso que se deshace si falla un paso posterior antes del pivote.',
+        retriable:
+          'Borde simple: un paso que se reintenta hasta que sale bien, después del pivote.',
+      },
+      kinds: {
+        pivot: 'Pivote',
+        wait: 'Espera',
+        compensatable: 'Se deshace si algo falla',
+        retriable: 'Se reintenta hasta que sale bien',
+      },
+      columns: {
+        order: 'N.º',
+        step: 'Paso',
+        kind: 'Tipo',
+        service: 'Servicio',
+        call: 'Llamada',
+        undo: 'Se deshace con',
+        when: 'Solo cuando',
+      },
+      coordinator: 'El propio coordinador',
+      notUndone: 'No se deshace',
+      always: 'Siempre',
+      answeredWith: 'respondió',
+      outcomes: {
+        confirmed: 'el vendedor confirmó el pago',
+        cancelled: 'el pago no llegó',
+        delivered: 'entregado',
+        refused: 'rechazado',
+        unanswered: 'sin reporte a tiempo',
+      },
+      scenarios: {
+        'checkout-card': {
+          title: 'Compra en la tienda, con tarjeta',
+          description:
+            'El comprador paga al comprar: se aparta el inventario, se escribe la orden, se cobra y luego se abre el envío.',
+        },
+        'checkout-cash-on-delivery': {
+          title: 'Compra en la tienda, contra entrega',
+          description:
+            'El comprador le paga al mensajero: el vendedor debe aceptar contra entrega, y no se mueve dinero al comprar.',
+        },
+        'checkout-payment-link': {
+          title: 'Compra en la tienda, con enlace de pago',
+          description:
+            'El comprador paga fuera de la plataforma: la orden espera a que el vendedor confirme el pago, y libera el inventario si nunca llega.',
+        },
+        'checkout-counter': {
+          title: 'Venta en mostrador',
+          description:
+            'El vendedor vende en persona: la misma compra, con la mercadería entregada en el momento en lugar de enviada.',
+        },
+        delivery: {
+          title: 'Entrega, contra entrega',
+          description:
+            'El vendedor despacha el paquete y el flujo espera al mensajero: entregado cierra la orden, rechazado espera la devolución.',
+        },
+        cancellation: {
+          title: 'Cancelar una orden pagada',
+          description:
+            'La orden se bloquea contra el despacho, se devuelve el dinero, la mercadería vuelve al inventario y la orden se cierra.',
+        },
+      },
+      steps: {
+        flow: { commit: 'Punto de compromiso: nada que cobrar ahora' },
+        fulfilment: {
+          'await-delivery': 'Esperar el reporte del mensajero',
+          'await-return': 'Esperar que vuelva el paquete',
+          dispatch: 'Despachar el paquete',
+          hold: 'Retener el envío',
+          open: 'Abrir el envío',
+          withdraw: 'Retirar el envío',
+        },
+        order: {
+          'await-payment': 'Esperar el pago',
+          'claim-cancel': 'Reservar la orden para cancelarla',
+          close: 'Cerrar la orden',
+          'close-cancelled': 'Cerrar la orden como cancelada',
+          'close-fulfilled': 'Cerrar la orden como cumplida',
+          confirm: 'Confirmar la orden',
+          'mark-dispatched': 'Marcar la orden como entregada en mano',
+          'mark-shipped': 'Marcar la orden como enviada',
+          'notify-buyer': 'Enviar el comprobante al comprador',
+          'open-group': 'Abrir el comprobante del comprador',
+          'payment-decision': 'Esperar la decisión del vendedor',
+          write: 'Escribir la orden del vendedor',
+        },
+        payment: {
+          capture: 'Cobrar',
+          'cod-eligible': 'Verificar que se permite contra entrega',
+          'record-collection': 'Registrar el efectivo cobrado',
+          'record-confirmation': 'Registrar el pago confirmado',
+          refund: 'Devolver el dinero',
+        },
+        stock: {
+          convert: 'Convertir el apartado en venta',
+          release: 'Liberar el apartado',
+          reserve: 'Apartar el inventario',
+          restore: 'Devolver la mercadería al inventario',
+        },
+      },
+    },
     statuses: {
       implemented: 'Construido',
       planned: 'Planeado',

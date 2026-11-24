@@ -168,6 +168,150 @@ export const app: EsApp = {
         id: 'id',
       },
     },
+    api: {
+      title: 'APIs',
+      description:
+        'Every operation each service serves, from the OpenAPI document it answers at $openapi.',
+      intro:
+        'Each page is generated at build time from the same assembly the service serves, with no server running, so it cannot drift from the service. Read-only: there is no playground, because almost every route needs a session or a crossing token.',
+      operations: 'operations',
+      operation: 'Operation',
+      slice: 'Slice',
+      download: 'The OpenAPI document',
+      downloadNote: 'the JSON this page is drawn from.',
+      name: 'Parameter',
+      in: 'In',
+      required: 'Required',
+      type: 'Type',
+      yes: 'Yes',
+      no: 'No',
+      noParameters: 'No parameters.',
+      requestBody: 'Request body',
+      noBody: 'No request body.',
+      noContent: 'no body',
+      failures: 'Failures',
+      none: 'None',
+      problem: 'Problem body',
+      problemNote:
+        'Every failure answers application/problem+json in this shape. Its code is the key of the errors catalog, and a client decides by the code, never by the status.',
+      link: 'Its API',
+    },
+    flows: {
+      title: 'Flows',
+      description:
+        'Each flow a sale goes through, step by step, composed by the same code the coordinator runs.',
+      intro:
+        'A flow is a routing slip: the coordinator composes it once, from a recipe and the facts it verified, and runs its steps in order on a durable engine. These are the flows of the MVP, each for one vendor.',
+      diagram: 'The steps in order, with each branch a wait can take',
+      interactive: 'Explore the diagram',
+      static: 'Back to the static diagram',
+      legendTitle: 'How to read it',
+      legend: {
+        pivot:
+          'Thick border: the pivot. Before it every step can be undone; after it the flow only moves forward.',
+        wait: 'Dotted border: a wait for an answer from outside the flow.',
+        compensatable:
+          'Dashed border: a step that is undone if a later step before the pivot fails.',
+        retriable:
+          'Plain border: a step that is retried until it succeeds, after the pivot.',
+      },
+      kinds: {
+        pivot: 'Pivot',
+        wait: 'Wait',
+        compensatable: 'Undone on failure',
+        retriable: 'Retried until it succeeds',
+      },
+      columns: {
+        order: 'No.',
+        step: 'Step',
+        kind: 'Kind',
+        service: 'Service',
+        call: 'Call',
+        undo: 'Undone by',
+        when: 'Only when',
+      },
+      coordinator: 'The coordinator itself',
+      notUndone: 'Not undone',
+      always: 'Always',
+      answeredWith: 'answered',
+      outcomes: {
+        confirmed: 'the seller confirmed the payment',
+        cancelled: 'the payment did not arrive',
+        delivered: 'delivered',
+        refused: 'refused',
+        unanswered: 'no report in time',
+      },
+      scenarios: {
+        'checkout-card': {
+          title: 'Storefront checkout, paid by card',
+          description:
+            'The buyer pays at checkout: stock is held, the order written, the money taken, and then the shipment opened.',
+        },
+        'checkout-cash-on-delivery': {
+          title: 'Storefront checkout, cash on delivery',
+          description:
+            'The buyer pays the courier: the seller must accept cash on delivery, and no money moves at checkout.',
+        },
+        'checkout-payment-link': {
+          title: 'Storefront checkout, paid by link',
+          description:
+            'The buyer pays off the platform: the order waits for the seller to confirm the payment, and lets its stock go if it never arrives.',
+        },
+        'checkout-counter': {
+          title: 'Sale at the counter',
+          description:
+            'The seller sells in person: the same checkout, with the goods handed over on the spot instead of shipped.',
+        },
+        delivery: {
+          title: 'Delivery, cash on delivery',
+          description:
+            'The seller dispatches the parcel and the flow waits for the courier: delivered closes the order, refused waits for the return.',
+        },
+        cancellation: {
+          title: 'Cancelling a paid order',
+          description:
+            'The order is locked against dispatch, the money given back, the goods put back in stock and the order closed.',
+        },
+      },
+      steps: {
+        flow: { commit: 'Commit point: nothing to charge now' },
+        fulfilment: {
+          'await-delivery': 'Wait for the courier’s report',
+          'await-return': 'Wait for the parcel to come back',
+          dispatch: 'Dispatch the parcel',
+          hold: 'Hold the shipment',
+          open: 'Open the shipment',
+          withdraw: 'Withdraw the shipment',
+        },
+        order: {
+          'await-payment': 'Wait for the payment',
+          'claim-cancel': 'Claim the order for cancelling',
+          close: 'Close the order',
+          'close-cancelled': 'Close the order cancelled',
+          'close-fulfilled': 'Close the order fulfilled',
+          confirm: 'Confirm the order',
+          'mark-dispatched': 'Mark the order handed over',
+          'mark-shipped': 'Mark the order shipped',
+          'notify-buyer': 'Mail the buyer the receipt',
+          'open-group': 'Open the buyer’s receipt',
+          'payment-decision': 'Wait for the seller’s decision',
+          write: 'Write the seller’s order',
+        },
+        payment: {
+          capture: 'Take the money',
+          'cod-eligible': 'Check cash on delivery is allowed',
+          'record-collection': 'Record the cash collected',
+          'record-confirmation': 'Record the confirmed payment',
+          refund: 'Give the money back',
+        },
+        stock: {
+          convert: 'Turn the hold into a sale',
+          release: 'Release the hold',
+          reserve: 'Hold the stock',
+          restore: 'Put the goods back in stock',
+        },
+      },
+    },
     statuses: {
       implemented: 'Built',
       planned: 'Planned',

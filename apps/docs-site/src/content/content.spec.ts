@@ -2,11 +2,20 @@ import { CAPABILITIES, DOMAINS } from '@r10c/capabilities';
 import { declaredEntityResources, SLICES } from '@r10c/slices';
 
 import { siteFor } from '../site';
+import { API_FOLDER, OPENAPI_PATH, serviceDocuments } from './api';
 import { AUDIENCE_FOLDER, AUDIENCES } from './audiences';
 import { SERVICES_FOLDER, STORES, STORES_FOLDER } from './catalog';
 import { actionTitle, SITE_LOCALES } from './copy';
 import { ENTITY_GRAPH } from './entity-graph';
 import { entityMap } from './entity-map';
+import {
+  FLOW_SCHEME,
+  flowCatalog,
+  FLOWS_FOLDER,
+  kindOf,
+  stepsOf,
+  stepTitle,
+} from './flows';
 import { storeMap } from './store-map';
 import { capabilitySlugs, MAP_SCHEME, partsOf } from './use-cases';
 
@@ -52,6 +61,45 @@ describe.each(SITE_LOCALES)('the %s tree', locale => {
       expect(body).toContain(`(${MAP_SCHEME}${locale}/${capability.id})`);
       for (const { member } of entityMap(capability).edges) {
         expect(body, capability.id).toContain(`\`${member}\``);
+      }
+    }
+  });
+
+  it('shows every composed flow, each step captioned and its diagram asked for (#687)', () => {
+    const { scenarios, recipes } = flowCatalog();
+    expect(new Set(scenarios.map(scenario => scenario.recipe))).toEqual(
+      new Set(recipes),
+    );
+    for (const scenario of scenarios) {
+      const body = markdownOf([FLOWS_FOLDER, scenario.id]);
+      expect(body).toContain(`(${FLOW_SCHEME}${locale}/${scenario.id})`);
+      const placed = new Set(scenario.layout.nodes.map(node => node.step));
+      for (const step of stepsOf(scenario)) {
+        expect(body, step.step).toContain(stepTitle(locale, step.step));
+        expect(body, step.step).toContain(`\`${step.ref}\``);
+        expect(['pivot', 'wait', 'compensatable', 'retriable']).toContain(
+          kindOf(step),
+        );
+        expect(placed, step.step).toContain(step.step);
+      }
+    }
+  });
+
+  it('documents every operation each service serves, with its document beside it (#654)', () => {
+    const documents = serviceDocuments();
+    expect([...documents.keys()].sort()).toEqual(
+      SLICES.flatMap(slice => slice.deployments).sort(),
+    );
+    for (const [deployment, document] of documents) {
+      const body = markdownOf([API_FOLDER, deployment]);
+      expect(body).toContain(`(${OPENAPI_PATH}${deployment}.json)`);
+      for (const [path, operations] of Object.entries(document.paths)) {
+        for (const method of Object.keys(operations)) {
+          const route = path.replaceAll(/\{([^}]+)\}/g, ':$1');
+          expect(body, `${deployment} ${method} ${route}`).toContain(
+            `\`${method.toUpperCase()} ${route}\``,
+          );
+        }
       }
     }
   });

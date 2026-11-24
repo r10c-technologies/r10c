@@ -1462,6 +1462,8 @@ hand**: each page is derived at build time from what the build already checks.
 | Services              | `tools/slices/` and `FLEET`, plus each deployment's own `nx.tags` (#653)                             |
 | Stores and the map    | `tools/slices/`: plane, partitioning, truth and the single writer (#657)                             |
 | A use case's map      | each domain package's own `@entity`/`@accessor` metadata (#656)                                      |
+| Flows                 | the recipes, composed by `@r10c/docs-reference` and laid out by ELK (#687)                           |
+| APIs, `/openapi/`     | each service's OpenAPI document, built by `@r10c/docs-reference` (#654)                              |
 | `/ui/`                | `@r10c/storefront-storybook`'s build, copied in                                                      |
 
 It is exported twice, `/es/…` and `/en/…`, one engine site per language, and
@@ -1475,6 +1477,30 @@ the site's dependencies; its spec compares the graph with the entities
 `tools/slices` finds in source and fails otherwise. A relation that crosses a
 store is drawn dashed and called an id, whatever its member is named. An id list
 with no `references` in its metadata is not drawn, because nothing declares it.
+
+**What the site may not import, `tools/docs-reference` writes.** The recipes
+and every service's endpoints live in shells, and `layer:docs` reaches no shell.
+So `pnpm nx run @r10c/docs-reference:generate` — a dependency of the site's
+`build`, `dev` and `test` — writes two gitignored things under
+`tools/docs-reference/out/`, and the site reads them from disk:
+
+- `flow-catalog.json` — six scenarios (four ways to buy, a delivery, a
+  cancellation), each composed by `compose` exactly as the coordinator composes
+  it, and laid out by `elkjs` at that moment. The site draws each one twice
+  from one placement: a static SVG that needs no script, and a React Flow
+  canvas a reader may open once the page has hydrated, with its attribution
+  kept. A step's caption is the `docs.flows.steps` copy under the step's name
+  in the slip, so a new step without copy fails the build.
+- `openapi/<deployment>.json` — what `serviceOpenApi` from
+  `@entifix/service-shell` builds: the assembly `makeServerLayer` serves, so a
+  page is the document the service answers at `$openapi`, with no server and no
+  network. Read-only; `finish.mjs` copies the files to `/openapi/`.
+
+The generator is the one project tagged `scope:docs`, the host scope that may
+reach every domain scope. Its spec holds its service table to the slice register
+and to each service's `main.ts`, and holds each document's operations to the
+endpoints the service declares. Under plain `node` it needs `resolve-dist.mjs`
+beside it, because the libraries' `dist` keeps bundler-style directory imports.
 
 ```sh
 pnpm nx build @r10c/docs-site          # next build, Storybook into out/ui, Pagefind, link check

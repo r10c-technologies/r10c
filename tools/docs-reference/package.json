@@ -1,0 +1,80 @@
+{
+  "name": "@r10c/docs-reference",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "What the documentation site reads from the shells it may not import: each service's OpenAPI document and the flow scenarios composed from the recipes, written as JSON at build time.",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:docs",
+      "type:testing"
+    ],
+    "sourceRoot": "tools/docs-reference/src",
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts",
+          "cwd": "tools/docs-reference"
+        }
+      },
+      "generate": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^build"
+        ],
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/src/**/*",
+          "^production",
+          {
+            "externalDependencies": [
+              "@entifix/business",
+              "@entifix/service-shell"
+            ]
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/out"
+        ],
+        "options": {
+          "command": "node --import ../ts-source-resolver.mjs --import ./resolve-dist.mjs src/generate.ts",
+          "cwd": "tools/docs-reference"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@r10c/shells-effect-auth": "workspace:*",
+    "@r10c/shells-effect-config": "workspace:*",
+    "@r10c/shells-effect-flow-catalog": "workspace:*",
+    "@r10c/shells-effect-fulfilment": "workspace:*",
+    "@r10c/shells-effect-marketplace": "workspace:*",
+    "@r10c/shells-effect-marketplace-admin": "workspace:*",
+    "@r10c/shells-effect-order": "workspace:*",
+    "@r10c/shells-effect-payment": "workspace:*",
+    "@r10c/shells-effect-realtime": "workspace:*",
+    "@r10c/shells-effect-sales": "workspace:*",
+    "@r10c/shells-effect-settlement": "workspace:*",
+    "@r10c/shells-effect-stock": "workspace:*",
+    "@r10c/shells-effect-transaction": "workspace:*",
+    "effect": "4.0.7",
+    "elkjs": "0.12.1"
+  },
+  "devDependencies": {
+    "@r10c/slices": "workspace:*"
+  }
+}

@@ -377,6 +377,9 @@
     },
     {
       "path": "./tools/sample-media"
+    },
+    {
+      "path": "./tools/docs-reference"
     }
   ],
   "compilerOptions": {

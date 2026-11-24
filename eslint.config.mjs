@@ -134,6 +134,31 @@ const scopeConstraints = [
       'scope:shared',
     ],
   },
+  // The second **host** scope: `tools/docs-reference`, which reads every
+  // slice's shell to write what the documentation site renders — each
+  // service's OpenAPI document and the composed flows (#654, #687). The site
+  // itself stays `layer:docs` and imports no shell; this generator is the one
+  // project that may, and like `scope:back-office` it widens only itself:
+  // no domain scope gains an edge by it.
+  {
+    sourceTag: 'scope:docs',
+    onlyDependOnLibsWithTags: [
+      'scope:docs',
+      'scope:auth',
+      'scope:config',
+      'scope:fulfilment',
+      'scope:marketplace',
+      'scope:marketplace-admin',
+      'scope:order',
+      'scope:payment',
+      'scope:realtime',
+      'scope:sales',
+      'scope:settlement',
+      'scope:stock',
+      'scope:transaction',
+      'scope:shared',
+    ],
+  },
   // The coordinator's own app, registered when the slice was split out to
   // `:3103` (#229). It hosts **no domain**, so it reaches nothing but the
   // shared core — a recipe is data, and the whole reason it is data is that an

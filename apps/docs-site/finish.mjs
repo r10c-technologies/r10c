@@ -3,6 +3,7 @@
 // 1. Storybook beside the site, at `/ui/` (#658): the storefront's components,
 //    built by `@r10c/storefront-storybook:build-storybook` and copied, not
 //    rebuilt, so the site serves exactly what that target's gate checked.
+//    Each service's OpenAPI document beside it, at `/openapi/` (#654).
 // 2. The Pagefind index, over the pages only: Storybook's HTML carries no
 //    `data-pagefind-body`, so it is never indexed.
 // 3. Every internal link and asset an exported page names must resolve to a
@@ -29,6 +30,14 @@ if (!existsSync(join(STORYBOOK, 'index.html'))) {
   process.exit(1);
 }
 cpSync(STORYBOOK, join(OUT, 'ui'), { recursive: true });
+
+// Each service's OpenAPI document beside its page (#654), as the generator
+// wrote it: the API pages link it, and the link check below proves it is here.
+cpSync(
+  join(HERE, '../../tools/docs-reference/out/openapi'),
+  join(OUT, 'openapi'),
+  { recursive: true },
+);
 
 const pagefind = spawnSync(
   'pagefind',

@@ -5,9 +5,11 @@ import {
 } from '@entifix/docs-engine';
 import { CAPABILITIES } from '@r10c/capabilities';
 
+import { apiSource } from './content/api';
 import { audienceSource } from './content/audiences';
 import { servicesSource, STORES, storesSource } from './content/catalog';
 import { SITE_LOCALES, type SiteLocale } from './content/copy';
+import { flowsSource } from './content/flows';
 import { href } from './content/markdown';
 import {
   capabilityHref,
@@ -26,7 +28,9 @@ const build = (locale: SiteLocale): DocsSite =>
     sources: [
       audienceSource(locale),
       ...capabilitySources(locale),
+      flowsSource(locale),
       servicesSource(locale),
+      apiSource(locale),
       storesSource(locale),
     ],
     // What a guide may cite (#655): a use case by its id, a store by its name.
