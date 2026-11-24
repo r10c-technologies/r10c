@@ -13,6 +13,7 @@ import {
   type PricePer,
   saleLineRefusal,
   type SaleUnit,
+  type StockSource,
   tieredPrice,
 } from '@r10c/business-ts-sales-vocabulary';
 import {
@@ -51,8 +52,12 @@ export const validateSalesChannel = (
         )
       : Effect.succeed(channel);
 
-/** One priced counter line, as a checkout's start input carries it. */
-interface PricedLine {
+/**
+ * One priced counter line, as a checkout's start input carries it. A
+ * presentation's line also states the base it draws on, as published; the
+ * coordinator multiplies and reserves on the base (ADR 0082 §7).
+ */
+interface PricedLine extends Partial<StockSource> {
   readonly offeringId: string;
   /**
    * What it is sold as, from the same projection as its price: the name, the
@@ -196,6 +201,13 @@ export const sellAtCounter = (input: {
           ? {}
           : { tierFrom: charged.tierFrom }),
         currency: price.currency,
+        ...(price.stockOfferingId === undefined
+          ? {}
+          : {
+              stockOfferingId: price.stockOfferingId,
+              stockFactor: price.stockFactor,
+              stockUnit: price.stockUnit,
+            }),
       });
     }
 

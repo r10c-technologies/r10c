@@ -170,6 +170,30 @@ describe('dispatchShipment', () => {
       'entitlements',
     );
   });
+
+  it('returns to its base what a presentation’s parcel line took', () => {
+    const shipment = Object.assign(aShipment(), {
+      lines: [
+        Object.assign(new ShippingLine('roll', 'Rollo 100 m', 2), {
+          unit: 'UN' as const,
+          stockOfferingId: 'cable',
+          stockUnit: 'M' as const,
+          stockQuantity: 200_000,
+        }),
+      ],
+    });
+
+    expect(deliveryInput(ORG, shipment).lines).toEqual([
+      {
+        offeringId: 'roll',
+        unit: 'UN',
+        quantity: 2,
+        stockOfferingId: 'cable',
+        stockUnit: 'M',
+        stockQuantity: 200_000,
+      },
+    ]);
+  });
 });
 
 describe('dispatchShipmentSelection', () => {

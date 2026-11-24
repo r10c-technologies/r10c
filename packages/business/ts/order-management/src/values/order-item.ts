@@ -70,6 +70,9 @@ export class OrderItem {
   #saleUnit?: SaleUnit;
   #pricePer?: PricePer;
   #tierFrom?: number;
+  #stockOfferingId?: string;
+  #stockUnit?: SaleUnit;
+  #stockQuantity?: number;
   #lineTotal = 0;
   #currency: string;
   #reservationId?: string;
@@ -254,6 +257,54 @@ export class OrderItem {
   }
   set tierFrom(value: number | undefined) {
     this.#tierFrom = value;
+  }
+
+  /**
+   * What the line took from its base's stock, when it sold a presentation
+   * (ADR 0082 §7): the base, the base's unit and how much, stated by the
+   * checkout's coordinator and copied here, so a cancellation or a return
+   * puts back exactly that whatever the factor reads by then. Absent on a
+   * line that drew on no base.
+   */
+  @accessor({
+    references: { entity: 'product-configuration-management:product-offering' },
+    type: 'string',
+    labelKey: 'entity:product-order.fields.item.stockOfferingId',
+  })
+  get stockOfferingId(): string | undefined {
+    return this.#stockOfferingId;
+  }
+  set stockOfferingId(value: string | undefined) {
+    this.#stockOfferingId = value;
+  }
+
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:product-order.fields.item.stockUnit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+  })
+  get stockUnit(): SaleUnit | undefined {
+    return this.#stockUnit;
+  }
+  set stockUnit(value: SaleUnit | undefined) {
+    this.#stockUnit = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-order.fields.item.stockQuantity',
+    scaled: {
+      unitMember: 'stockUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
+  })
+  get stockQuantity(): number | undefined {
+    return this.#stockQuantity;
+  }
+  set stockQuantity(value: number | undefined) {
+    this.#stockQuantity = value;
   }
 
   /**

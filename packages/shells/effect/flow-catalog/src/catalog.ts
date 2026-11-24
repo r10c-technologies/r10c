@@ -64,6 +64,18 @@ const AWAIT_PAYMENT = 'order.payment-decision';
 const SHIPPING = 'shipping-order-management';
 
 /**
+ * What a presentation's line takes from its base's stock (ADR 0082 §7): the
+ * base, its unit and how much — stated by the coordinator from the published
+ * factor, and copied by the order and the shipment, so a cancellation or a
+ * return puts back what was taken. Absent on a line that draws on no base.
+ */
+const StockTaken = {
+  stockOfferingId: Schema.optionalKey(Schema.NonEmptyString),
+  stockUnit: Schema.optionalKey(Schema.Literals(SaleUnits)),
+  stockQuantity: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThan(0))),
+};
+
+/**
  * One priced line: the offering, what it is sold as, how many in which unit,
  * and its price and what that price buys. The name, the description, the
  * price, its terms and the specification version are all copied from the
@@ -85,6 +97,7 @@ const Line = openStruct({
   // The `from` of the volume price `amount` was taken at, when one was: the
   // caller chose it by `tieredPrice` over the published tiers (ADR 0082 §8).
   tierFrom: Schema.optionalKey(Schema.Int),
+  ...StockTaken,
   // Stated by the coordinator, never the caller (ADR 0078 §6, ADR 0082 §6).
   lineTotal: Schema.Int,
   currency: Schema.NonEmptyString,
@@ -228,22 +241,54 @@ const atCounter = (start: CheckoutStart) => start.channel.type !== 'storefront';
 const holds = (segment: SlipSegment | undefined, entitlement: string) =>
   segment?.entitlements?.includes(entitlement) === true;
 
-/** One line per offering, keyed by it, for a `perLine` step in its segment. */
+/**
+ * One line per offering, keyed by it, for a `perLine` step in its segment.
+ * A presentation's line moves its base's stock — the base, in the base's unit,
+ * by what the line took (ADR 0082 §7) — and keeps its own key, so a box and
+ * loose units of one base are two lines competing for one balance.
+ */
 const linesOf = (
   lines: readonly {
     readonly offeringId: string;
     readonly unit: SaleUnit;
     readonly quantity: number;
+    readonly stockOfferingId?: string;
+    readonly stockUnit?: SaleUnit;
+    readonly stockQuantity?: number;
   }[],
 ) =>
   lines.map(line => ({
     key: line.offeringId,
-    parameters: {
-      offeringId: line.offeringId,
-      unit: line.unit,
-      quantity: line.quantity,
-    },
+    parameters:
+      line.stockOfferingId !== undefined &&
+      line.stockUnit !== undefined &&
+      line.stockQuantity !== undefined
+        ? {
+            offeringId: line.stockOfferingId,
+            unit: line.stockUnit,
+            quantity: line.stockQuantity,
+          }
+        : {
+            offeringId: line.offeringId,
+            unit: line.unit,
+            quantity: line.quantity,
+          },
   }));
+
+/** The stock a line took, absent members left absent. */
+const takenOf = (line: {
+  readonly stockOfferingId?: string;
+  readonly stockUnit?: SaleUnit;
+  readonly stockQuantity?: number;
+}) => ({
+  ...(line.stockOfferingId === undefined
+    ? {}
+    : { stockOfferingId: line.stockOfferingId }),
+  ...(line.stockUnit === undefined ? {} : { stockUnit: line.stockUnit }),
+  ...(line.stockQuantity === undefined
+    ? {}
+    : { stockQuantity: line.stockQuantity }),
+});
 
 /** Every flow reaches the flow itself, by capability, and the vendors it acts for. */
 const audienceOf = (
@@ -294,6 +339,8 @@ const openShipment = (
       name: line.name,
       unit: line.saleUnit,
       quantity: line.quantity,
+      // A return restores what the line took from its base (ADR 0082 §7).
+      ...takenOf(line),
     })),
   };
 };
@@ -331,6 +378,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
         offeringId: line.offeringId,
         unit: line.saleUnit,
         quantity: line.quantity,
+        ...takenOf(line),
       })),
     ),
   audience: (start, _context, flowId) =>
@@ -607,6 +655,8 @@ const ReturnedLine = openStruct({
   /** The order line's unit: the goods go back in what they were sold in. */
   unit: Schema.Literals(SaleUnits),
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
+  // What a presentation's line took from its base, as the order copied it.
+  ...StockTaken,
 });
 
 /**

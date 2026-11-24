@@ -120,7 +120,8 @@ const world = (tiers?: { from: number; amount: number }[]) => {
     );
 };
 
-const [publish, unpublish, setSaleUnit] = productOfferingApi.options.useCases;
+const [publish, unpublish, setSaleUnit, drawOnStock] =
+  productOfferingApi.options.useCases;
 const [setPriceTiers] = productOfferingPriceApi.options.useCases;
 const [release, revise, retire, obsolete] =
   productSpecificationApi.options.useCases;
@@ -416,6 +417,26 @@ describe('an offering', () => {
           quantityStep: 1000,
           quantityMinimum: 1000,
         },
+      },
+    });
+  });
+
+  it('draws on another offering’s stock, and answers the record', async () => {
+    const run = world();
+
+    const drawn = await run(
+      drawOnStock.handler(
+        {
+          params: { id: 'unpriced' },
+          payload: { stockOfferingId: 'priced', stockFactor: 12 },
+        },
+        context,
+      ),
+    );
+
+    expect(drawn).toMatchObject({
+      success: {
+        data: { id: 'unpriced', stockOfferingId: 'priced', stockFactor: 12 },
       },
     });
   });

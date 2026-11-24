@@ -76,6 +76,14 @@ export const makeInMemoryOfferingCatalog = (
         record.revision = (record.revision ?? 0) + 1;
         return 'committed';
       }),
+    setStockSource: (organizationId, offering) =>
+      Effect.sync(() => {
+        const record = stored.get(`${organizationId}/${String(offering.id)}`);
+        if (record === undefined || record.revision !== offering.revision)
+          return 'changed';
+        record.revision = (record.revision ?? 0) + 1;
+        return 'committed';
+      }),
     setPriceTiers: (organizationId, price) =>
       Effect.sync(() => {
         const record = prices.get(`${organizationId}/${String(price.id)}`);

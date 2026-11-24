@@ -150,6 +150,31 @@ export const MongoOfferingCatalogLayer = Layer.effect(
             : ('committed' as const);
         }),
 
+      setStockSource: (organizationId, offering) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          // One conditional write at the revision read (ADR 0082 §7, ADR 0079
+          // §4); the base and its factor move together, and no base is
+          // neither member, never `null`.
+          const { stockOfferingId, stockFactor } = offering;
+          const written = yield* Effect.tryPromise({
+            try: () =>
+              db.collection(OFFERING_COLLECTION).updateOne(
+                { id: offering.id, ...atRevision(offering.revision) },
+                {
+                  ...(stockOfferingId === undefined
+                    ? { $unset: { stockOfferingId: '', stockFactor: '' } }
+                    : { $set: { stockOfferingId, stockFactor } }),
+                  ...bumpRevision.mongo,
+                },
+              ),
+            catch: mongoUnitFault,
+          });
+          return written.matchedCount === 0
+            ? ('changed' as const)
+            : ('committed' as const);
+        }),
+
       setPriceTiers: (organizationId, price) =>
         Effect.gen(function* () {
           const db = yield* databaseOf(organizationId);

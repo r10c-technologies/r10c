@@ -40,10 +40,18 @@ export const deliveryInput = (
   taxAmount: order.taxAmount,
   taxRegime: order.taxRegime,
   currency: order.currency,
+  // A presentation's line goes back to its base (ADR 0082 §7).
   lines: order.lines.map(line => ({
     offeringId: line.offeringId,
     unit: line.unit,
     quantity: line.quantity,
+    ...(line.stockOfferingId === undefined
+      ? {}
+      : {
+          stockOfferingId: line.stockOfferingId,
+          stockUnit: line.stockUnit,
+          stockQuantity: line.stockQuantity,
+        }),
   })),
 });
 

@@ -75,6 +75,34 @@ describe('the seeded catalog', () => {
     }
   });
 
+  it('seeds each presentation drawing on a base of its own store, one level deep', () => {
+    const drawn = offerings.filter(one => one.stockOfferingId !== undefined);
+    expect(drawn.length).toBeGreaterThan(0);
+    for (const presentation of drawn) {
+      const base = offerings.find(
+        one => one.id === presentation.stockOfferingId,
+      );
+      expect(base?.stockOfferingId).toBeUndefined();
+      expect(presentation.saleUnit).toBe('UN');
+      // Same store: the same id prefix.
+      expect(base?.id.replace(/product-offering-\d+$/, '')).toBe(
+        presentation.id.replace(/product-offering-\d+$/, ''),
+      );
+    }
+  });
+
+  it('refuses a presentation drawing on a product its store does not hold', () => {
+    const [vendor] = SEEDED_VENDORS;
+    const broken = {
+      ...vendor!,
+      products: [
+        { ...vendor!.products[0]!, drawsOn: { key: 'nothing', factor: 1 } },
+      ],
+    };
+
+    expect(() => offeringTempDataFor(broken)).toThrow(/no product nothing/);
+  });
+
   it('sells only in units the vocabulary declares', () => {
     for (const offering of offerings) {
       expect(SaleUnits).toContain(offering.saleUnit);

@@ -402,6 +402,30 @@ describe('cancellationInput', () => {
     });
   });
 
+  it('puts back on its base what a presentation’s line took', () => {
+    const roll = Object.assign(
+      new OrderItem('roll', 'Rollo 100 m', 2, 10, 'GTQ'),
+      {
+        saleUnit: 'UN' as const,
+        stockOfferingId: 'cable',
+        stockUnit: 'M' as const,
+        stockQuantity: 200_000,
+      },
+    );
+    const order = Object.assign(anOrder(), { id: 'o-1', items: [roll] });
+
+    expect(cancellationInput(order).lines).toEqual([
+      {
+        offeringId: 'roll',
+        unit: 'UN',
+        quantity: 2,
+        stockOfferingId: 'cable',
+        stockUnit: 'M',
+        stockQuantity: 200_000,
+      },
+    ]);
+  });
+
   it('ships nothing handed over at a counter, and names no buyer a walk-in lacks', () => {
     const order = Object.assign(new ProductOrder(), {
       id: 'o-2',

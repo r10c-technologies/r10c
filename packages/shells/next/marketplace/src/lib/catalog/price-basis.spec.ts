@@ -4,7 +4,12 @@ import '@r10c/business-ts-i18n/locales';
 
 import { describe, expect, it } from 'vitest';
 
-import { priceBasisLabel, quantityLabel, saleRuleLabel } from './price-basis';
+import {
+  presentationLabel,
+  priceBasisLabel,
+  quantityLabel,
+  saleRuleLabel,
+} from './price-basis';
 
 /** A translator that shows which key it was asked for, with what. */
 const t = (key: string, values?: Readonly<Record<string, string>>) =>
@@ -40,6 +45,22 @@ describe('quantityLabel', () => {
     expect(label(2, 'UN')).toBe(
       'storefront.price.quantity{"quantity":"2","symbol":"entity:sale-unit.symbol.UN"}',
     );
+  });
+});
+
+describe('presentationLabel', () => {
+  const label = presentationLabel(t, 'es');
+
+  it('says what one presentation holds of its base, in the base’s unit', () => {
+    const words = label({ stockFactor: 100_000, stockUnit: 'M' });
+
+    expect(words).toMatch(/^storefront\.price\.contains/);
+    expect(words).toContain('\\"quantity\\":\\"100\\"');
+    expect(words).toContain('entity:sale-unit.symbol.M');
+  });
+
+  it('says nothing for an offering that draws on no base', () => {
+    expect(label({})).toBeUndefined();
   });
 });
 

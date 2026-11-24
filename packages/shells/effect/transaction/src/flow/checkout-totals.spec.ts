@@ -49,6 +49,41 @@ describe('pricedLine', () => {
   );
 });
 
+describe('a presentation’s line', () => {
+  /** Two 100 m rolls of the cable, at Q4,000.00 each. */
+  const ROLLS = {
+    offeringId: 'roll',
+    saleUnit: 'UN',
+    quantity: 2,
+    amount: 400_000,
+    pricePer: 1,
+    currency: 'GTQ',
+    stockOfferingId: 'cable',
+    stockFactor: 100_000,
+    stockUnit: 'M',
+  };
+
+  it('states what it takes from its base, in the base’s unit, and drops the factor', () => {
+    const { stockFactor: _, ...kept } = ROLLS;
+
+    expect(pricedLine({ ...ROLLS, stockQuantity: 1 })).toEqual({
+      ...kept,
+      lineTotal: 800_000,
+      stockQuantity: 200_000,
+    });
+  });
+
+  it.each([
+    ['names no whole source', { stockUnit: 'BOX' }],
+    ['is not sold by the unit', { saleUnit: 'M', quantity: 2000 }],
+  ])('takes nothing from a base when it %s', (_, change) => {
+    const priced = pricedLine({ ...ROLLS, ...change, stockQuantity: 5 });
+
+    expect(priced).not.toHaveProperty('stockOfferingId');
+    expect(priced).not.toHaveProperty('stockQuantity');
+  });
+});
+
 describe('pricedPart', () => {
   it('prices every line of a part, and leaves a part with no lines alone', () => {
     expect(

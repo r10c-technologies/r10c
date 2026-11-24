@@ -2,6 +2,9 @@ import {
   isPricePer,
   isSaleUnit,
   lineTotal,
+  PRESENTATION_UNIT,
+  stockQuantityOf,
+  stockSourceOf,
 } from '@r10c/business-ts-sales-vocabulary';
 
 type Body = Readonly<Record<string, unknown>>;
@@ -21,7 +24,14 @@ const count = (value: unknown): value is number =>
  * do not add up carries no total and the start's decoding refuses it.
  */
 export const pricedLine = (line: Body): Body => {
-  const { lineTotal: _stated, ...rest } = line;
+  const {
+    lineTotal: _stated,
+    stockOfferingId: _base,
+    stockFactor: _factor,
+    stockUnit: _unit,
+    stockQuantity: _taken,
+    ...rest
+  } = line;
   const { amount, quantity, saleUnit, pricePer } = rest;
   return count(amount) &&
     count(quantity) &&
@@ -30,8 +40,32 @@ export const pricedLine = (line: Body): Body => {
     ? {
         ...rest,
         lineTotal: lineTotal({ amount, quantity, saleUnit, pricePer }),
+        ...drawnStock(line, quantity, saleUnit),
       }
     : rest;
+};
+
+/**
+ * What a presentation's line takes from its base, **stated by the
+ * coordinator**: `stockQuantityOf` over the published factor, computed here
+ * once (ADR 0082 §7). The line keeps the base and its unit and drops the
+ * factor, so a cancellation restores what was taken whatever the factor reads
+ * by then. A line naming no whole source, or one not sold in `UN`, draws on
+ * nothing: it reserves on its own id, where no stock is held, and is refused.
+ */
+const drawnStock = (line: Body, quantity: number, saleUnit: string): Body => {
+  const source = stockSourceOf(line);
+  return source === undefined || saleUnit !== PRESENTATION_UNIT
+    ? {}
+    : {
+        stockOfferingId: source.stockOfferingId,
+        stockUnit: source.stockUnit,
+        stockQuantity: stockQuantityOf({
+          quantity,
+          saleUnit: PRESENTATION_UNIT,
+          stockFactor: source.stockFactor,
+        }),
+      };
 };
 
 /** A vendor part with every line priced by the coordinator. */

@@ -50,6 +50,29 @@ describe('publishedPriceOf', () => {
     expect(publishedPriceOf('o-1', record)).not.toHaveProperty('tiers');
   });
 
+  it('reads a presentation’s stock source, and none from an offering that has none', () => {
+    const record = {
+      vendorId: 'v-1',
+      amount: 12,
+      currency: 'GTQ',
+      name: 'Rollo 100 m',
+      ...TERMS,
+      ...PIN,
+    };
+    const stock = {
+      stockOfferingId: 'o-base',
+      stockFactor: 100_000,
+      stockUnit: 'M',
+    };
+
+    expect(publishedPriceOf('o-1', { ...record, ...stock })).toMatchObject(
+      stock,
+    );
+    expect(publishedPriceOf('o-1', record)).not.toHaveProperty(
+      'stockOfferingId',
+    );
+  });
+
   it('omits a blank or absent description rather than copying it', () => {
     const record = {
       vendorId: 'v-1',

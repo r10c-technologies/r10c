@@ -38,6 +38,7 @@ import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { DeliveryFacts } from '../catalog/delivery-facts';
 import { loadCardNames, OfferingGrid } from '../catalog/offering-grid';
 import {
+  presentationLabel,
   priceBasisLabel,
   quantityLabel,
   saleRuleLabel,
@@ -180,6 +181,7 @@ async function ProductContent({
     values ? t(key, values) : t(key);
   const priceBasis = priceBasisLabel(translate, locale)(offering);
   const saleRule = saleRuleLabel(translate, locale)(offering);
+  const contains = presentationLabel(translate, locale)(offering);
   // The volume prices, the base first: below the first tier, then from each
   // (ADR 0082 §8). Empty when the price has none, and the table says nothing.
   const quantityOf = quantityLabel(translate, locale);
@@ -283,6 +285,12 @@ async function ProductContent({
                 </StatusTag>
               )}
             </Cluster>
+
+            {contains === undefined ? null : (
+              <Text muted data-testid="presentation-contains">
+                {contains}
+              </Text>
+            )}
 
             <PriceTiers
               rows={tierRows}

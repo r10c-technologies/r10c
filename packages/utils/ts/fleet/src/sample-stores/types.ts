@@ -92,6 +92,13 @@ export interface SampleProduct {
   }[];
   readonly status: SampleOfferingStatus;
   readonly stock: SampleStock;
+  /**
+   * The product in this store whose stock this one is sold from, and how
+   * much of it — in that product's scale — one of this takes (ADR 0082 §7):
+   * a 100 m roll of a cable stocked in metres is `{ key, factor: 100000 }`.
+   * A presentation is sold by the piece and holds no stock of its own.
+   */
+  readonly drawsOn?: { readonly key: string; readonly factor: number };
   /** Seeded device-model ids the product is made for (#641). */
   readonly fits?: readonly string[];
   readonly art: SampleArt;

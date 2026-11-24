@@ -15,6 +15,7 @@ import {
   type OfferingCatalog,
   OfferingCatalogTag,
 } from '../../ports/offering-catalog.js';
+import { SetStockSourceUC } from '../draw-on-stock/draw-on-stock.uc.js';
 import { SetSaleUnitUC } from '../set-sale-unit/set-sale-unit.uc.js';
 import {
   OFFERING_CHANGED,
@@ -64,6 +65,7 @@ interface Stores {
   readonly specifications?: ProductSpecification[];
   readonly commit?: 'committed' | 'changed';
   readonly unitWrite?: 'committed' | 'changed';
+  readonly stockWrite?: 'committed' | 'changed';
   readonly reannounce?: 'announced' | 'revived' | 'alreadyAnnounced';
   readonly offeringsDown?: boolean;
   readonly organizations?: string[];
@@ -72,6 +74,11 @@ interface Stores {
 const world = (stores: Stores = {}) => {
   const committed: { organizationId: string; from: string }[] = [];
   const unitWrites: { revision: number | undefined; saleUnit: string }[] = [];
+  const stockWrites: {
+    revision: number | undefined;
+    stockOfferingId: string | undefined;
+    stockFactor: number | undefined;
+  }[] = [];
   const announced: CatalogEvent[] = [];
   const offerings = makeInMemoryEntityRepository(stores.offerings ?? []);
   const prices = makeInMemoryEntityRepository(
@@ -95,6 +102,15 @@ const world = (stores: Stores = {}) => {
           saleUnit: written.saleUnit,
         });
         return stores.unitWrite ?? 'committed';
+      }) as Effect.Effect<'committed' | 'changed'>,
+    setStockSource: (_organizationId, written) =>
+      Effect.sync(() => {
+        stockWrites.push({
+          revision: written.revision,
+          stockOfferingId: written.stockOfferingId,
+          stockFactor: written.stockFactor,
+        });
+        return stores.stockWrite ?? 'committed';
       }) as Effect.Effect<'committed' | 'changed'>,
     setPriceTiers: () => Effect.die('unused'),
     reannounce: (_organizationId, event) =>
@@ -134,7 +150,7 @@ const world = (stores: Stores = {}) => {
       EntityRepositoryFactoryTag | OfferingCatalogTag | TenantDirectoryTag
     >,
   ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
-  return { run, committed, announced, offerings, unitWrites };
+  return { run, committed, announced, offerings, unitWrites, stockWrites };
 };
 
 const SOURCE = 'marketplace-admin';
@@ -341,6 +357,36 @@ describe('preserveOfferingLifecycle', () => {
     ]);
   });
 
+  it('starts a new offering drawing on no base, whatever the body named', async () => {
+    const created = Object.assign(new ProductOffering('Box', 'spec-1'), {
+      stockOfferingId: 'o-1',
+      stockFactor: 12,
+    });
+
+    const kept = await world().run(preserveOfferingLifecycle(created, 'acme'));
+
+    expect([kept.stockOfferingId, kept.stockFactor]).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('keeps the stored stock source on an update, whatever the body named', async () => {
+    const w = world({
+      offerings: [
+        offering('o-2', 'draft', { stockOfferingId: 'o-1', stockFactor: 12 }),
+      ],
+    });
+    const claimed = offering('o-2', 'draft', {
+      stockOfferingId: 'o-9',
+      stockFactor: 1,
+    });
+
+    const kept = await w.run(preserveOfferingLifecycle(claimed, 'acme'));
+
+    expect([kept.stockOfferingId, kept.stockFactor]).toEqual(['o-1', 12]);
+  });
+
   it('refuses a step and minimum that sell nothing', async () => {
     const claimed = offering('o-9', 'draft', {
       quantityStep: 2,
@@ -522,6 +568,170 @@ describe('SetSaleUnitUC', () => {
   });
 });
 
+describe('SetSaleUnitUC on a presentation', () => {
+  it('keeps a presentation counted', async () => {
+    const w = world({
+      offerings: [
+        offering('o-2', 'draft', { stockOfferingId: 'o-1', stockFactor: 12 }),
+      ],
+    });
+
+    const error = await w.run(
+      Effect.flip(
+        SetSaleUnitUC.run({
+          organizationId: 'acme',
+          id: 'o-2',
+          payload: { saleUnit: 'M' },
+        }),
+      ),
+    );
+
+    expect(error).toMatchObject({
+      code: 'stockSourceInvalid',
+      problem: 'notCounted',
+    });
+    expect(w.unitWrites).toEqual([]);
+  });
+});
+
+describe('SetStockSourceUC', () => {
+  const base = offering('base', 'published', { saleUnit: 'M' });
+  const draw = (
+    payload: {
+      stockOfferingId?: string;
+      stockFactor?: number;
+      revision?: number;
+    },
+    id = 'box',
+  ) => SetStockSourceUC.run({ organizationId: 'acme', id, payload });
+
+  it('draws on a base, and answers the new revision', async () => {
+    const w = world({
+      offerings: [base, offering('box', 'published', { revision: 2 })],
+    });
+
+    const set = await w.run(
+      draw({ stockOfferingId: 'base', stockFactor: 100_000, revision: 2 }),
+    );
+
+    expect([set.stockOfferingId, set.stockFactor, set.revision]).toEqual([
+      'base',
+      100_000,
+      3,
+    ]);
+    expect(w.stockWrites).toEqual([
+      { revision: 2, stockOfferingId: 'base', stockFactor: 100_000 },
+    ]);
+  });
+
+  it('starts a seeded offering, which has no revision, at revision 1', async () => {
+    const w = world({ offerings: [base, offering('box', 'draft')] });
+
+    const set = await w.run(draw({ stockOfferingId: 'base', stockFactor: 12 }));
+
+    expect(set.revision).toBe(1);
+  });
+
+  it('stops drawing when it names no base, against the stored revision', async () => {
+    const w = world({
+      offerings: [
+        offering('box', 'draft', {
+          stockOfferingId: 'base',
+          stockFactor: 12,
+          revision: 4,
+          saleUnit: 'M',
+        }),
+      ],
+    });
+
+    await w.run(draw({}));
+
+    expect(w.stockWrites).toEqual([
+      { revision: 4, stockOfferingId: undefined, stockFactor: undefined },
+    ]);
+  });
+
+  it.each([
+    [
+      'notCounted',
+      [base, offering('box', 'draft', { saleUnit: 'M' })],
+      { stockOfferingId: 'base', stockFactor: 12 },
+    ],
+    [
+      'factor',
+      [base, offering('box', 'draft')],
+      { stockOfferingId: 'base', stockFactor: 1.5 },
+    ],
+    ['factor', [base, offering('box', 'draft')], { stockOfferingId: 'base' }],
+    ['baseMissing', [base, offering('box', 'draft')], { stockFactor: 12 }],
+    [
+      'baseMissing',
+      [base, offering('box', 'draft')],
+      { stockOfferingId: '', stockFactor: 12 },
+    ],
+    [
+      'baseMissing',
+      [offering('box', 'draft')],
+      { stockOfferingId: 'base', stockFactor: 12 },
+    ],
+    [
+      'self',
+      [offering('box', 'draft')],
+      { stockOfferingId: 'box', stockFactor: 12 },
+    ],
+    [
+      'baseIsPresentation',
+      [
+        offering('base', 'draft', { stockOfferingId: 'other', stockFactor: 2 }),
+        offering('box', 'draft'),
+      ],
+      { stockOfferingId: 'base', stockFactor: 12 },
+    ],
+    [
+      'isBase',
+      [
+        base,
+        offering('box', 'draft'),
+        offering('pack', 'draft', { stockOfferingId: 'box', stockFactor: 6 }),
+      ],
+      { stockOfferingId: 'base', stockFactor: 12 },
+    ],
+  ] as const)('refuses %s', async (problem, offerings, payload) => {
+    const w = world({ offerings: [...offerings] });
+
+    const error = await w.run(Effect.flip(draw(payload)));
+
+    expect(error).toMatchObject({ code: 'stockSourceInvalid', problem });
+    expect(w.stockWrites).toEqual([]);
+  });
+
+  it('fails a base that cannot be read rather than call it missing', async () => {
+    const w = world({ offerings: [offering('box', 'draft')] });
+    const get = w.offerings.get.bind(w.offerings);
+    w.offerings.get = id =>
+      id === 'base' ? Effect.fail(new Unavailable({})) : get(id);
+
+    const error = await w.run(
+      Effect.flip(draw({ stockOfferingId: 'base', stockFactor: 12 })),
+    );
+
+    expect(error).toBeInstanceOf(Unavailable);
+  });
+
+  it('answers a write that lost to a save as changed', async () => {
+    const w = world({
+      offerings: [base, offering('box', 'draft', { revision: 3 })],
+      stockWrite: 'changed',
+    });
+
+    const error = await w.run(
+      Effect.flip(draw({ stockOfferingId: 'base', stockFactor: 12 })),
+    );
+
+    expect((error as { code?: string }).code).toBe(OFFERING_CHANGED);
+  });
+});
+
 describe('rebuildPublications', () => {
   it('re-announces each published offering at its own stored moment, never a fresh one', async () => {
     const w = world({
@@ -642,6 +852,7 @@ describe('rebuildEveryPublication', () => {
               Layer.succeed(OfferingCatalogTag, {
                 commitTransition: () => Effect.die('unused'),
                 setSaleUnit: () => Effect.die('unused'),
+                setStockSource: () => Effect.die('unused'),
                 setPriceTiers: () => Effect.die('unused'),
                 reannounce: () => Effect.die('unused'),
               }),

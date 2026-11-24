@@ -94,6 +94,7 @@ const walkWith = async (
           Layer.succeed(OfferingCatalogTag, {
             commitTransition: () => Effect.die('unused'),
             setSaleUnit: () => Effect.die('unused'),
+            setStockSource: () => Effect.die('unused'),
             setPriceTiers: () => Effect.die('unused'),
             reannounce: () => Effect.die('unused'),
           } as never),

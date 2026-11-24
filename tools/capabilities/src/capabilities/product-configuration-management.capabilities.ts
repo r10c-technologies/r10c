@@ -109,9 +109,11 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
         'product-configuration-management:product-offering',
         'stock-management:stock-item',
       ],
-      permissions: [],
+      permissions: [
+        'product-configuration-management:product-offering:draw-on-stock',
+      ],
       screens: ['master:product-offering'],
-      status: 'planned',
+      status: 'implemented',
       verticals: ['hardware', 'shoemaking-supplies'],
     },
     // ADR 0082 §8 (#674): a price steps down by quantity, for the whole line.

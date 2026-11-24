@@ -195,6 +195,8 @@ export const r10c = {
       quantity: '{{quantity}} {{symbol}}',
       // Cómo se vende lo que no se vende de uno en uno.
       sold: 'Desde {{minimum}}, de {{step}} en {{step}}',
+      // Lo que trae una presentación de su base (ADR 0082 §7): «Contiene 100 m».
+      contains: 'Contiene {{quantity}}',
       // Un precio que baja con la cantidad (ADR 0082 §8): la tabla en la
       // página del producto, y la nota en una línea que alcanzó uno.
       tiers: {
@@ -752,6 +754,14 @@ export const r10c = {
       saleUnit: {
         resets:
           'El paso y la cantidad mínima vuelven a una unidad completa de la unidad nueva. Después de publicar la oferta, la unidad ya no cambia.',
+      },
+      stockSource: {
+        hint: 'Una caja, un rollo o una docena se vende del inventario de otra oferta: cada una que se vende toma esta cantidad de ella, así la caja y las sueltas comparten un mismo saldo.',
+        loading: 'Cargando tus ofertas…',
+        none: 'Ninguna: tiene su propio inventario',
+        factor: 'Cada una toma',
+        notCounted:
+          'Una presentación se vende por unidad. Primero define la unidad de esta oferta en piezas.',
       },
       regions: {
         images: 'Imágenes',

@@ -460,6 +460,62 @@ describe('the checkout recipe', () => {
   });
 });
 
+describe('a presentation in a basket (ADR 0082 §7)', () => {
+  /** Two 100 m rolls drawing on the cable, beside 3.5 m of it loose. */
+  const roll = {
+    ...line('roll'),
+    stockOfferingId: 'cable',
+    stockUnit: 'M' as const,
+    stockQuantity: 200_000,
+  };
+  const loose = { ...line('cable'), saleUnit: 'M' as const, quantity: 3500 };
+  const basket = checkout('storefront', [
+    { ...part('v-1', 'card'), lines: [roll, loose] },
+  ]);
+
+  it('composes, reserving both lines on the base, each under its own key', () => {
+    const slip = composed(basket);
+    const reserves = slipSteps(slip).filter(step =>
+      step.step.endsWith(':stock.reserve'),
+    );
+
+    expect(reserves.map(step => [step.step, step.parameters])).toEqual([
+      [
+        'v-1/card:roll:stock.reserve',
+        expect.objectContaining({
+          offeringId: 'cable',
+          unit: 'M',
+          quantity: 200_000,
+        }),
+      ],
+      [
+        'v-1/card:cable:stock.reserve',
+        expect.objectContaining({
+          offeringId: 'cable',
+          unit: 'M',
+          quantity: 3500,
+        }),
+      ],
+    ]);
+  });
+
+  it('opens a shipment whose line keeps what it took', () => {
+    const shipment = slipSteps(composed(basket)).find(
+      step => step.step === 'v-1/card:fulfilment.open',
+    );
+
+    expect((shipment?.parameters as { lines: unknown[] }).lines[0]).toEqual({
+      offeringId: 'roll',
+      name: 'Name of roll',
+      unit: 'UN',
+      quantity: 2,
+      stockOfferingId: 'cable',
+      stockUnit: 'M',
+      stockQuantity: 200_000,
+    });
+  });
+});
+
 const cancellation = (
   paymentMethod: CancellationStart['paymentMethod'],
   shipped: boolean,
@@ -529,6 +585,34 @@ describe('the cancellation recipe', () => {
       organizationId: 'v-1',
       orderId: 'ord-1',
       cause: 'cancellation',
+    });
+  });
+
+  it('puts back on the base what a presentation’s line took', () => {
+    const start = {
+      ...cancellation('card', false),
+      lines: [
+        {
+          offeringId: 'roll',
+          unit: 'UN' as const,
+          quantity: 2,
+          stockOfferingId: 'cable',
+          stockUnit: 'M' as const,
+          stockQuantity: 200_000,
+        },
+      ],
+    };
+    const restore = slipSteps(
+      Effect.runSync(
+        compose(cancellationRecipe, flowCatalog, coordinator, start, OPTIONS),
+      ),
+    ).find(step => step.step.endsWith(':stock.restore'));
+
+    expect(restore?.step).toBe('v-1/card:roll:stock.restore');
+    expect(restore?.parameters).toMatchObject({
+      offeringId: 'cable',
+      unit: 'M',
+      quantity: 200_000,
     });
   });
 

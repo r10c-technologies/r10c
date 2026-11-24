@@ -192,6 +192,8 @@ export const errors: EsErrors = {
   pricePerInvalid: 'A price is for 1, 100 or 1000 units.',
   priceTiersInvalid:
     'Each volume price starts at a quantity the product sells, above its minimum and above the one before, and costs less than the price before it. A price holds at most five.',
+  stockSourceInvalid:
+    "A presentation is sold by the unit and takes a whole number of its base's units. Its base is another offering of yours that is not itself a presentation, and a presentation is never another one's base.",
   saleUnitFixed:
     'This offering was already published, so its unit cannot change. Create another offering to sell it in another unit.',
 };

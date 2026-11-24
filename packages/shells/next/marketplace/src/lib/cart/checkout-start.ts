@@ -6,7 +6,11 @@ import {
   VENDOR_DOES_NOT_SHIP,
   type VendorDoesNotShip,
 } from '@r10c/business-ts-flow-contracts';
-import type { PricePer, SaleUnit } from '@r10c/business-ts-sales-vocabulary';
+import type {
+  PricePer,
+  SaleUnit,
+  StockSource,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Option, Schema } from 'effect';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
@@ -49,8 +53,12 @@ export const tendersOffered = (
   ...(vendor?.acceptsLink === true ? (['link'] as const) : []),
 ];
 
-/** One cart line priced from the published offering. */
-export interface PricedLine {
+/**
+ * One cart line priced from the published offering. A presentation's line
+ * also states the base it draws on, as published; the coordinator multiplies
+ * and reserves on the base (ADR 0082 §7).
+ */
+export interface PricedLine extends Partial<StockSource> {
   readonly offeringId: string;
   /** What it is sold as: the order and the shipment keep it (#582). */
   readonly name: string;
