@@ -91,8 +91,14 @@ export class CommissionEntry implements Entity {
     this.#id = value;
   }
 
+  /**
+   * The order this line was earned on, named by its number on a screen rather
+   * than its id: a reference the host resolves through the order shell's
+   * label registration (entifix ADR 0030, #566).
+   */
   @accessor({
     type: 'string',
+    references: { entity: 'order-management:product-order' },
     labelKey: 'entity:commission-entry.fields.orderId',
     required: true,
     filterable: true,

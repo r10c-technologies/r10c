@@ -450,13 +450,14 @@ async function ProductContent({
               // and the rest wait.
               renderMedia={(item, slide) => (
                 <MediaImage
-                  className="h-full w-full object-cover"
+                  // The slide owns the ratio: `aspect-auto!` outranks the
+                  // one `MediaImage` reserves inline (#566).
+                  className="aspect-auto! h-full w-full object-cover"
                   src={item.src}
                   alt={item.alt}
                   sizes={slide.sizes}
                   priority={slide.priority}
                   loader={imageLoaderFor(item.src, hosts)}
-                  style={{ aspectRatio: undefined }}
                 />
               )}
             />

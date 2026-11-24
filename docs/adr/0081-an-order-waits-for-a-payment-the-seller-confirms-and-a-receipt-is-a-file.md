@@ -1,6 +1,6 @@
 # 81. An order waits for a payment the seller confirms, and a receipt is a file
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-16
 - Revised: 2026-11-19 by the payment-confirmation build (#667): the wait is `@2` and provides the authorization number; the confirmation is recorded on the collection route
 - Revised: 2026-11-20 by the delivery-tracking build (#669 #670 #671): the order learns its guide through `order.mark-shipped@1`, the simulator is a feed sweep behind a dial, the buyer's receipt follows its orders by push on the receipt digest, and a seller states a WhatsApp number
@@ -8,6 +8,7 @@
 - Revised: 2026-11-23 by the sample-stores build (#676): §10's dictionaries seed one generic row each beside `other` — `bank-link`, a bank's link served from a reserved `example.com` host, and `national`, a parcel service whose tracking page is an `example.com` address — still no real name
 - Area: business
 - Read when: a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date
+- Revised: 2026-11-24 — Accepted on the live fleet (#691): confirm against expiry and withdrawal leaves one winner with one `Payment` or one release; attach against withdrawal leaves the file store holding exactly what the order lists, with no orphan to sweep; and the MVP flow runs end to end in the three verticals — link, card and cash on delivery, each to delivery, its FEL document and its ledger line
 
 ## Context
 

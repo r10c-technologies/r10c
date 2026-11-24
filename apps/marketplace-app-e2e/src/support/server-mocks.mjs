@@ -300,6 +300,40 @@ const RECEIPT_DOWN_OFFERING = 'offering-lino-napkins-solano';
 /** How many times each flow's group was read back. */
 const receiptReads = new Map();
 
+/**
+ * The receipt states the accessibility gate reads (#690), each from a basket
+ * nothing else checks out: a payment-link order still waiting for its payment
+ * (ADR 0081), and an order already on its way with its guide and its FEL
+ * document (#668, #669).
+ */
+const AWAITING_LINK_OFFERING = 'offering-eclipse-runner';
+const IN_TRANSIT_OFFERING = 'offering-coax-cable';
+
+/** What a receipt's order adds in each of those states. */
+const receiptStateOf = flowId =>
+  flowId.startsWith('e2e-flow-awaiting-link-')
+    ? {
+        status: 'awaiting-payment',
+        paymentMethod: 'link',
+        paymentLinkUrl: 'https://pagos.example.com/p/e2e',
+        paymentLinkProviderName: 'Banco de ejemplo',
+        paymentLinkProviderKey: 'bank-link',
+        paymentDueAt: '2099-01-02T00:00:00.000Z',
+        paymentEvidence: [],
+      }
+    : flowId.startsWith('e2e-flow-in-transit-')
+      ? {
+          status: 'dispatched',
+          courierName: 'Courier nacional',
+          trackingNumber: 'GT-000123',
+          trackingUrl: 'https://courier.example.com/track/GT-000123',
+          fiscalDocumentType: 'FACT',
+          fiscalSeries: 'E2E0001',
+          fiscalNumber: '123456789',
+          fiscalAuthorization: '00000000-0000-0000-0000-000000000123',
+        }
+      : undefined;
+
 /** The basket whose flow ends badly: flow-status says `failed` for it. */
 const FAILING_OFFERING = 'offering-aurora-floor-lamp';
 
@@ -390,7 +424,11 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
         ? 'cancel-closed'
         : holds(vendors, RECEIPT_DOWN_OFFERING)
           ? 'receipt-down'
-          : 'placed';
+          : holds(vendors, AWAITING_LINK_OFFERING)
+            ? 'awaiting-link'
+            : holds(vendors, IN_TRANSIT_OFFERING)
+              ? 'in-transit'
+              : 'placed';
   const flowId = `e2e-flow-${kind}-${String(started)}`;
   baskets.set(flowId, vendors);
   contacts.set(flowId, contactRowOf(body.contact));
@@ -516,6 +554,7 @@ const buyerReceiptHandler = http.get(
           buyerTaxIdType: 'cf',
           buyerTaxId: 'CF',
           buyerTaxName: '',
+          ...receiptStateOf(params.id),
         },
       })),
     });

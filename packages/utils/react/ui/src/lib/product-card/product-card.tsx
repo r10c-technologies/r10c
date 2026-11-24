@@ -26,6 +26,11 @@ export interface ProductCardMedia {
    * the vendor's original (#571). Absent, the picture is served as it is.
    */
   readonly loader?: MediaImageLoader;
+  /**
+   * Fetched first and at once: the picture a list's first row shows, which
+   * is what a phone paints largest (#566). Absent, it waits its turn.
+   */
+  readonly priority?: boolean;
 }
 
 export type ProductCardDensity = 'comfortable' | 'compact';
@@ -123,8 +128,11 @@ function CardMedia({
   readonly media: ProductCardMedia | undefined;
   readonly title: string;
 }) {
+  // `!` because `MediaImage` reserves a ratio inline: an important class
+  // outranks it, and the ratio stays the class's, which changes with the
+  // card's width — no `style` prop to undo it (#566).
   const box =
-    'aspect-video w-full overflow-hidden rounded-xl @max-[13rem]:aspect-square';
+    'aspect-video! w-full overflow-hidden rounded-xl @max-[13rem]:aspect-square!';
   if (media === undefined) {
     return (
       <div
@@ -142,9 +150,7 @@ function CardMedia({
       alt={media.alt}
       sizes={media.sizes ?? '100vw'}
       loader={media.loader}
-      // The box is the class's, which changes with the card's width; an inline
-      // ratio would pin it.
-      style={{ aspectRatio: undefined }}
+      priority={media.priority ?? false}
     />
   );
 }

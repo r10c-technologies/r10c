@@ -1,0 +1,52 @@
+{
+  "name": "@r10c/ux-capture",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:shared",
+      "type:testing"
+    ],
+    "sourceRoot": "tools/ux-capture/src",
+    "targets": {
+      "static": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/ux-capture/src/static.mjs"
+        }
+      },
+      "capture": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/ux-capture/src/capture.mjs"
+        }
+      },
+      "cwv": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/ux-capture/src/cwv.mjs"
+        }
+      },
+      "measure": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "commands": [
+            "node tools/ux-capture/src/static.mjs",
+            "node tools/ux-capture/src/cwv.mjs",
+            "node tools/ux-capture/src/capture.mjs"
+          ],
+          "parallel": false
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@entifix/testing-e2e": "catalog:"
+  }
+}

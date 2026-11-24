@@ -321,7 +321,7 @@ export interface Segment {
     readonly offeringId: string;
     readonly quantity: number;
     readonly amount: number;
-    /** The name as sold; the offering's id stands in when a spec names none. */
+    /** The name as sold; the published name stands in when a spec names none. */
     readonly name?: string;
   }[];
 }
@@ -349,6 +349,8 @@ const pinOf = async (offeringId: string) => {
   if (terms === undefined)
     throw new Error(`${offeringId} is published with no sale terms`);
   return {
+    // The name it is sold under, as the storefront copies it onto a line.
+    publishedName: String(published?.['name'] ?? offeringId),
     specificationId: String(published?.['specificationId'] ?? ''),
     specificationVersion: Number(published?.['specificationVersion'] ?? 0),
     saleUnit: terms.saleUnit,
@@ -396,14 +398,22 @@ export const startCheckout = async (
       channel: { type: 'storefront' },
       vendors: segments.map(segment => ({
         ...segment,
-        lines: segment.lines.map(line => ({
-          ...line,
-          // A line names what was sold, and the version it was sold under
-          // (#582, ADR 0079 §3).
-          name: line.name ?? line.offeringId,
-          ...pins.get(line.offeringId),
-          currency: 'GTQ',
-        })),
+        lines: segment.lines.map(line => {
+          const { publishedName, ...pin } = present(
+            pins.get(line.offeringId),
+            `the pin of ${line.offeringId}`,
+          );
+          return {
+            ...line,
+            // A line names what was sold, as the storefront names it — the
+            // published name — and the version it was sold under (#582,
+            // ADR 0079 §3). An id here would be a raw id on every screen
+            // that lists the order (#566).
+            name: line.name ?? publishedName,
+            ...pin,
+            currency: 'GTQ',
+          };
+        }),
       })),
       totals: [{ currency: 'GTQ', amount: total }],
       capabilityDigest: cap.digest,

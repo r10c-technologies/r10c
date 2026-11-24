@@ -116,7 +116,8 @@ test('shows an absent channel rate and a zero one as different values', async ({
 test('shows the ledger line behind a payout', async ({ page }) => {
   await page.goto('/settlement/commission-entry');
 
-  const line = record(page, 'order-1');
+  // Named by its order's number, never the order's id (#566).
+  const line = record(page, '7KQ4-M2XD');
   await expect(line).toBeVisible();
   // The base and the cut, both on the line, as money (#596). A payout is the
   // first minus the second, which is why the entry captures the base at all.

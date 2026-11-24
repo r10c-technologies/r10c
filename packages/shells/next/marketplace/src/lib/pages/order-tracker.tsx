@@ -46,7 +46,7 @@ export function OrderTracker({
     <Stack gap="3xs" data-testid="order-tracker">
       <Text weight="semibold">{t('storefront.order.tracker.heading')}</Text>
       <ol
-        className="flex flex-col gap-1"
+        className="flex flex-col gap-3xs"
         aria-label={t('storefront.order.tracker.heading')}
       >
         {steps.map(step => (

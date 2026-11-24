@@ -13,6 +13,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "@r10c/source": "./src/client.ts",
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
     }
   },
   "files": [
@@ -53,7 +59,8 @@
     "@entifix/next-shell": "catalog:",
     "@entifix/react-controls": "catalog:",
     "@r10c/business-ts-i18n": "workspace:*",
-    "i18next": "27.2.2"
+    "i18next": "27.2.2",
+    "@entifix/core": "catalog:"
   },
   "sideEffects": true
 }

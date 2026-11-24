@@ -96,6 +96,23 @@ describe('ProductCard', () => {
     ).toHaveClass('relative', 'z-10');
   });
 
+  it('waits its turn for its picture, unless it is told it comes first', () => {
+    const { rerender } = render(
+      <ProductCard title="Aurora Desk Lamp" price={PRICE} media={MEDIA} />,
+    );
+    expect(screen.getByRole('img')).toHaveAttribute('loading', 'lazy');
+
+    rerender(
+      <ProductCard
+        title="Aurora Desk Lamp"
+        price={PRICE}
+        media={{ ...MEDIA, priority: true }}
+      />,
+    );
+    expect(screen.getByRole('img')).toHaveAttribute('fetchpriority', 'high');
+    expect(screen.getByRole('img')).not.toHaveAttribute('loading', 'lazy');
+  });
+
   it('leaves out what it is not given, keeping the media box', () => {
     const { container } = render(
       <ProductCard title="Terra Ceramic Mug" price={PRICE} />,
@@ -103,7 +120,7 @@ describe('ProductCard', () => {
 
     expect(screen.queryByRole('img')).toBeNull();
     const placeholder = container.querySelector('[aria-hidden="true"]');
-    expect(placeholder).toHaveClass('aspect-video');
+    expect(placeholder).toHaveClass('aspect-video!');
     expect(placeholder).toHaveTextContent('T');
     expect(screen.queryByRole('link')).toBeNull();
     expect(container.querySelectorAll('p')).toHaveLength(1);
