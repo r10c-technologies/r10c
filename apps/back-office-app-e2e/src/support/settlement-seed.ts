@@ -29,7 +29,9 @@ export const agreementSeed = [
 export const commissionEntrySeed = [
   {
     id: 'commission-entry-1',
-    orderId: 'order-1',
+    // The paid order the order mocks serve, so the line names it by its
+    // number, as a commission line does in the fleet (#566).
+    orderId: 'product-order-paid-1',
     vendorId: 'e2e-organization',
     saleAmount: 2500,
     commissionAmount: 200,

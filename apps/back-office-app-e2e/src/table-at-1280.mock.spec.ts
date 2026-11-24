@@ -13,7 +13,7 @@ for (const { path, row } of [
   { path: '/es/catalog/product-brand', row: 'Acme 1' },
   // With its price, picture and stock columns (#558).
   { path: '/es/catalog/product-offering', row: 'Taza de cerámica' },
-  { path: '/es/settlement/commission-entry', row: 'order-1' },
+  { path: '/es/settlement/commission-entry', row: '7KQ4-M2XD' },
   { path: '/es/system/configuration', row: 'stock-service-domain' },
   // Read by number, status, what was bought and the total (#556).
   { path: '/es/order/product-order', row: '7KQ4-M2XD' },

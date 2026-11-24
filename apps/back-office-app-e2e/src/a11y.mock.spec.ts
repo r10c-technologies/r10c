@@ -55,7 +55,7 @@ const SCREENS = [
   {
     screen: 'consultas-commission-entries',
     path: '/es/settlement/commission-entry',
-    ready: { record: 'order-1' },
+    ready: { record: '7KQ4-M2XD' },
   },
   {
     screen: 'operaciones-shipment-worklist',
