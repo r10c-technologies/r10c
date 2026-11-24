@@ -1,7 +1,7 @@
 import { DeviceModel } from '@r10c/business-ts-catalog-reference';
 import { describe, expect, it } from 'vitest';
 
-import { fitNames, readFitIds, toggleFit } from './device-model-fit-picker.js';
+import { fitNames, readFitIds, toggleFit } from './device-model-fits.js';
 
 describe('readFitIds', () => {
   it('splits the draft’s comma form and drops blanks', () => {
@@ -31,8 +31,8 @@ describe('fitNames', () => {
   model.id = 'dm-1';
 
   it('reads ids as names, universal as its label, and an unknown id as itself', () => {
-    expect(
-      fitNames(['dm-1', 'universal', 'dm-9'], [model], 'Universal'),
-    ).toBe('Galaxy A15, Universal, dm-9');
+    expect(fitNames(['dm-1', 'universal', 'dm-9'], [model], 'Universal')).toBe(
+      'Galaxy A15, Universal, dm-9',
+    );
   });
 });

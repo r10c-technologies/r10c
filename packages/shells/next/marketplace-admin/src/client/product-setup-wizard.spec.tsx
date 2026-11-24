@@ -7,7 +7,7 @@ import {
   type Entity,
   Unavailable,
 } from '@entifix/core';
-import { useDraftsState } from '@entifix/next-shell';
+import { ReferenceLabelsHost, useDraftsState } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { MarketplaceAdminAdapters } from './client-types.js';
+import { UniversalFitLabels } from './device-model-fits.js';
 import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/marketplace-admin-context.js';
 import {
   PRODUCT_SETUP_WIZARD,
@@ -161,14 +162,26 @@ const adapters = (): MarketplaceAdminAdapters => ({
 /** The verbs the wizard ran on the records it created. */
 let released: { key: string; id: string }[] = [];
 
-const renderWizard = (props: { step?: string; onFinished?: () => void } = {}) =>
-  render(
+const renderWizard = (
+  props: { step?: string; onFinished?: () => void } = {},
+) => {
+  const built = adapters();
+  return render(
     <EntifixQueryProvider>
-      <MarketplaceAdminAdaptersProvider adapters={adapters()}>
-        <ProductSetupWizard {...props} />
+      <MarketplaceAdminAdaptersProvider adapters={built}>
+        {/* The host's registry, as back-office-app mounts it: a fitted id
+            reads as its model's name, `universal` as its own. */}
+        <ReferenceLabelsHost
+          registrations={[[DeviceModel, built.deviceModelRest]]}
+        >
+          <UniversalFitLabels>
+            <ProductSetupWizard {...props} />
+          </UniversalFitLabels>
+        </ReferenceLabelsHost>
       </MarketplaceAdminAdaptersProvider>
     </EntifixQueryProvider>,
   );
+};
 
 const click = async (name: string | RegExp) => {
   await userEvent.click(await screen.findByRole('button', { name }));
@@ -453,36 +466,47 @@ describe('the phones a product fits (plan 1.17)', () => {
     await screen.findByRole('heading', { name: 'Clasificación' });
   };
 
+  const suggest = () =>
+    userEvent.click(
+      screen.getByRole('button', {
+        name: 'Ver sugerencias de Teléfonos compatibles',
+      }),
+    );
+
   it('offers the active models by name, and universal stands alone', async () => {
     await reachClassification();
 
-    const group = await screen.findByRole('group', {
-      name: 'Teléfonos compatibles',
-    });
-    const a15 = await within(group).findByRole('checkbox', {
-      name: 'Galaxy A15',
-    });
+    await suggest();
+    expect(
+      await screen.findByRole('option', { name: 'Galaxy A15' }),
+    ).toBeInTheDocument();
     // A retired model is not offered for new classifications.
     expect(
-      within(group).queryByRole('checkbox', { name: 'Nokia 3310' }),
+      screen.queryByRole('option', { name: 'Nokia 3310' }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', { name: 'Galaxy A15' }));
+
+    const held = await screen.findByRole('list', {
+      name: 'Teléfonos compatibles',
+    });
+    await waitFor(() => expect(held).toHaveTextContent('Galaxy A15'));
+
+    const universal = screen.getByRole('checkbox', { name: /^Universal/ });
+    await userEvent.click(universal);
+    expect(universal).toBeChecked();
+    // Universal stands alone: the models are cleared and not offered.
+    expect(
+      screen.queryByRole('list', { name: 'Teléfonos compatibles' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Ver sugerencias de Teléfonos compatibles',
+      }),
     ).not.toBeInTheDocument();
 
-    await userEvent.click(a15);
-    await userEvent.click(
-      within(group).getByRole('checkbox', { name: 'iPhone 15' }),
-    );
-    const universal = within(group).getByRole('checkbox', {
-      name: /^Universal/,
-    });
     await userEvent.click(universal);
-
-    expect(universal).toBeChecked();
-    expect(a15).not.toBeChecked();
-
-    await userEvent.click(a15);
     expect(universal).not.toBeChecked();
-    await userEvent.click(a15);
-    expect(a15).not.toBeChecked();
+    expect(await screen.findByText('Ninguno todavía')).toBeInTheDocument();
   });
 
   it('names the phones in the summary and writes their ids', async () => {
@@ -492,14 +516,13 @@ describe('the phones a product fits (plan 1.17)', () => {
     await click('Continuar');
     await type(/Nombre/, 'Funda');
     await click('Continuar');
-    const group = await screen.findByRole('group', {
-      name: 'Teléfonos compatibles',
-    });
+    await suggest();
     await userEvent.click(
-      await within(group).findByRole('checkbox', { name: 'Galaxy A15' }),
+      await screen.findByRole('option', { name: 'Galaxy A15' }),
     );
+    await suggest();
     await userEvent.click(
-      within(group).getByRole('checkbox', { name: 'iPhone 15' }),
+      await screen.findByRole('option', { name: 'iPhone 15' }),
     );
     await click('Continuar');
 
@@ -538,9 +561,8 @@ describe('the phones a product fits (plan 1.17)', () => {
     repositories.deviceModel = makeInMemoryEntityRepository([]);
     await reachClassification();
 
-    expect(
-      await screen.findByText('No hay modelos de teléfono cargados.'),
-    ).toBeInTheDocument();
+    await suggest();
+    expect(await screen.findByText('Sin coincidencias')).toBeInTheDocument();
   });
 });
 

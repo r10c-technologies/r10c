@@ -11,8 +11,11 @@ import {
   cloneEntityDraft,
   describeEntityColumns,
   describeEntityUseCases,
+  type Entity,
   type EntityDraft,
   type EntityFieldDescriptor,
+  type EntityLinkSource,
+  type FilterGroup,
   readStepChoice,
   readStepDraft,
   readStepIds,
@@ -49,6 +52,7 @@ import {
   useWizard,
 } from '@entifix/react-integration';
 import {
+  DeviceModel,
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -61,15 +65,15 @@ import { PRODUCT_SURFACE } from '../catalog-surfaces';
 import { PRODUCT_SETUP_SURFACE, wizardAddress } from '../wizard-surfaces';
 import type { MarketplaceAdminAdapters } from './client-types';
 import {
-  DeviceModelFitPicker,
+  DeviceModelFitsField,
   fitNames,
   readFitIds,
   useDeviceModels,
-} from './device-model-fit-picker';
+} from './device-model-fits';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 
 /**
- * The classification step's two pickers.
+ * The classification step's three pickers.
  *
  * Declared at module scope and **frozen**, which is what makes
  * `useEntityLinkSources`' loop legal: it is the same array object on every
@@ -77,12 +81,18 @@ import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
  * and cannot see. `NO_PICKERS` is the same object every time for the same
  * reason, so the identity step calls exactly as many hooks as this one.
  *
- * Both targets live in `catalog-reference`, another slice's store, so
- * `brandId`/`categoryId` are plain `string` members and the label and search
- * properties are stated here — a scalar id's `@accessor()` cannot name them
- * (ADR 0022).
+ * Every target lives in `catalog-reference`, another slice's store, so
+ * `brandId`/`categoryId` are plain `string` members, `fitsDeviceModelIds` a
+ * list of them, and the label and search properties are stated here — a
+ * scalar id's `@accessor()` cannot name them (ADR 0022).
  */
 const NO_PICKERS: readonly EntityCrudLinkSource[] = [];
+
+/** Only an active model is one a vendor fits a product to. */
+const ACTIVE_DEVICE_MODELS: FilterGroup<DeviceModel> = {
+  operator: 'and',
+  values: [{ property: 'status', operator: 'eq', value: 'active' }],
+};
 
 /** The descriptor half of each picker, resolved once from the entity's metadata. */
 const PICKER_PLANS = [
@@ -95,6 +105,14 @@ const PICKER_PLANS = [
     field: 'categoryId',
     entityConstructor: ProductCategory,
     repository: 'productCategoryRest',
+  },
+  // A list of references (entifix 0030): picked by name, active models only,
+  // since a retired model is no longer one a vendor fits a product to.
+  {
+    field: 'fitsDeviceModelIds',
+    entityConstructor: DeviceModel,
+    repository: 'deviceModelRest',
+    baseFiltering: ACTIVE_DEVICE_MODELS,
   },
 ] as const;
 
@@ -130,6 +148,13 @@ function pickersFor(
       loadUc: loadUCFactory(),
       getUc: getUCFactory(),
       ctx: crudContextOf(adapters, plan.repository),
+      // The config's target is erased to `Entity`, as `makeEntityCrud` erases
+      // it; the filter is written against the real target above.
+      ...('baseFiltering' in plan
+        ? {
+            baseFiltering: plan.baseFiltering as unknown as FilterGroup<Entity>,
+          }
+        : {}),
     },
   }));
 }
@@ -148,8 +173,12 @@ const CLASSIFICATION_FIELDS = [
   'fitsDeviceModelIds',
 ] as const;
 
-/** The member r10c's own picker edits, since entifix has no list-of-ids control. */
+/** The list of phones a product fits: device models by name, or `universal`. */
 const FITS_FIELD = 'fitsDeviceModelIds';
+
+const FITS_DESCRIPTOR = describeEntityColumns(ProductSpecification).find(
+  entry => entry.name === FITS_FIELD,
+) as EntityFieldDescriptor;
 
 /**
  * The guided alta of a product.
@@ -702,7 +731,9 @@ function FormStep({
         <EntityField<ProductSpecification>
           field={FITS_FIELD}
           render={({ value, setField, id }) => (
-            <DeviceModelFitPicker
+            <DeviceModelFitsField
+              descriptor={FITS_DESCRIPTOR}
+              source={linkSources[FITS_FIELD] as EntityLinkSource<Entity>}
               id={id}
               value={value}
               onChange={next => setField(FITS_FIELD, next)}

@@ -128,8 +128,14 @@ export const productSeed = [
  * of them. One retired, which the wizard's picker must not offer.
  */
 export const deviceModelSeed = [
-  { id: 'device-model-1', name: 'Samsung Galaxy A15', maker: 'Samsung' },
-  { id: 'device-model-2', name: 'iPhone 15', maker: 'Apple' },
+  // Stated, as the service stores it: the picker asks for `status==active`.
+  {
+    id: 'device-model-1',
+    name: 'Samsung Galaxy A15',
+    maker: 'Samsung',
+    status: 'active',
+  },
+  { id: 'device-model-2', name: 'iPhone 15', maker: 'Apple', status: 'active' },
   {
     id: 'device-model-3',
     name: 'Nokia 3310',

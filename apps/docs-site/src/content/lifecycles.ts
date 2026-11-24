@@ -290,7 +290,6 @@ export const lifecyclePage = (
     description,
     file: 'apps/docs-site/src/content/lifecycles.ts',
     markdown: page(
-      description,
       table(
         [
           words.columns.order,

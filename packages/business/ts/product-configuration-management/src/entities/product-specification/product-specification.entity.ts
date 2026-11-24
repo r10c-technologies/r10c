@@ -229,10 +229,11 @@ export class ProductSpecification implements Entity {
    * means the vendor has not said.
    *
    * A `scalarCollection` of ids for the reason `brandId` is a plain id: the
-   * target is another slice's store. It cannot declare `references` — entifix
-   * holds a reference to one record's id — so the back office's picker is a
-   * control of r10c's own, and `universal` beside another id is refused on both
-   * write paths by `refuseSpecificationFits`.
+   * target is another slice's store. Each element names one `DeviceModel`
+   * (entifix ADR 0030), so the back office edits the list by name and shows
+   * names, not ids. `universal` is the reserved element that is no record — a
+   * rule — and `universal` beside another id is refused on both write paths by
+   * `refuseSpecificationFits`.
    *
    * Not queryable here: the vendor's list never filters by it. The storefront
    * does, on the published snapshot, where the same member is `filterable`.
@@ -240,6 +241,7 @@ export class ProductSpecification implements Entity {
   @accessor({
     type: 'scalarCollection',
     labelKey: 'entity:product-specification.fields.fitsDeviceModelIds',
+    references: { entity: 'catalog-reference:device-model' },
   })
   get fitsDeviceModelIds(): readonly string[] | undefined {
     return this.#fitsDeviceModelIds;

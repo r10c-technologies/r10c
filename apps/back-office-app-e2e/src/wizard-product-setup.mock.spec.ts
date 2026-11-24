@@ -133,12 +133,18 @@ test('names the phones a product fits, and writes their ids', async ({
   await fillIdentity(page, 'Funda TPU');
   await next(page);
 
-  const phones = page.getByRole('group', { name: 'Teléfonos compatibles' });
+  // entifix's list-of-references picker (#296): active models only, by name.
+  const suggest = page.getByRole('button', {
+    name: 'Ver sugerencias de Teléfonos compatibles',
+  });
+  await suggest.click();
+  await expect(page.getByRole('option', { name: 'Nokia 3310' })).toHaveCount(0);
+  await page.getByRole('option', { name: 'Samsung Galaxy A15' }).click();
+  await suggest.click();
+  await page.getByRole('option', { name: 'iPhone 15' }).click();
   await expect(
-    phones.getByRole('checkbox', { name: 'Nokia 3310' }),
-  ).toHaveCount(0);
-  await phones.getByRole('checkbox', { name: 'Samsung Galaxy A15' }).check();
-  await phones.getByRole('checkbox', { name: 'iPhone 15' }).check();
+    page.getByRole('list', { name: 'Teléfonos compatibles' }),
+  ).toContainText('Samsung Galaxy A15');
   await next(page);
 
   await expect(page.getByText('Samsung Galaxy A15, iPhone 15')).toBeVisible();
