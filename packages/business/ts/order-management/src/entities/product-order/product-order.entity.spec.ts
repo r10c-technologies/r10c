@@ -100,6 +100,30 @@ describe('ProductOrder', () => {
     expect(order.paidAt).toEqual(PAID);
   });
 
+  it('keeps on a line the volume price it was charged, and none for the base price', async () => {
+    const tiered = Object.assign(anOrder(), {
+      items: [
+        Object.assign(
+          new OrderItem('off-1', 'Lámpara Aurora', 12, 900, 'EUR', 'res-1'),
+          {
+            saleUnit: 'UN' as const,
+            pricePer: 1 as const,
+            tierFrom: 10,
+            lineTotal: 10_800,
+          },
+        ),
+      ],
+    });
+
+    const stored = serializeEntity(ProductOrder, tiered);
+    const read = (await Effect.runPromise(
+      deserializeSingleEntity(ProductOrder, stored),
+    )) as ProductOrder;
+
+    expect(read.items[0]?.tierFrom).toBe(10);
+    expect(anOrder().items[0]?.tierFrom).toBeUndefined();
+  });
+
   it('keeps on each line the description and the version it was sold as', () => {
     const line = new OrderItem('off-1', 'Lámpara Aurora', 1, 1000, 'EUR');
     line.description = 'De bronce.';

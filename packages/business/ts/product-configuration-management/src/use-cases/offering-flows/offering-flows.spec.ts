@@ -18,6 +18,7 @@ import {
 import { SetSaleUnitUC } from '../set-sale-unit/set-sale-unit.uc.js';
 import {
   OFFERING_CHANGED,
+  preparePrice,
   preserveOfferingLifecycle,
   rebuildEveryPublication,
   rebuildPublications,
@@ -59,6 +60,7 @@ const specification = () =>
 interface Stores {
   readonly offerings?: ProductOffering[];
   readonly priced?: string[];
+  readonly tiers?: { from: number; amount: number }[];
   readonly specifications?: ProductSpecification[];
   readonly commit?: 'committed' | 'changed';
   readonly unitWrite?: 'committed' | 'changed';
@@ -74,7 +76,7 @@ const world = (stores: Stores = {}) => {
   const offerings = makeInMemoryEntityRepository(stores.offerings ?? []);
   const prices = makeInMemoryEntityRepository(
     (stores.priced ?? (stores.offerings ?? []).map(one => String(one.id))).map(
-      priceFor,
+      id => Object.assign(priceFor(id), { tiers: stores.tiers }),
     ),
   );
   const specifications = makeInMemoryEntityRepository(
@@ -94,6 +96,7 @@ const world = (stores: Stores = {}) => {
         });
         return stores.unitWrite ?? 'committed';
       }) as Effect.Effect<'committed' | 'changed'>,
+    setPriceTiers: () => Effect.die('unused'),
     reannounce: (_organizationId, event) =>
       Effect.sync(() => {
         announced.push(event);
@@ -377,6 +380,87 @@ describe('refuseUnknownPricePer', () => {
   });
 });
 
+describe('preparePrice', () => {
+  const saving = (amount: number, id?: string) =>
+    Object.assign(new ProductOfferingPrice('o-1', amount, 'GTQ'), {
+      id,
+      // What a body may say; the stored tiers win.
+      tiers: [{ from: 3, amount: 1 }],
+    });
+
+  it('starts a new price with no tiers, whatever the body said', async () => {
+    const w = world({ offerings: [offering('o-1', 'draft')] });
+
+    const prepared = await w.run(preparePrice(saving(1999), 'acme'));
+
+    expect(prepared.tiers).toBeUndefined();
+  });
+
+  it('carries the stored tiers across a save', async () => {
+    const w = world({
+      offerings: [offering('o-1', 'draft')],
+      tiers: [{ from: 10, amount: 1800 }],
+    });
+
+    const prepared = await w.run(
+      preparePrice(saving(2100, 'price-o-1'), 'acme'),
+    );
+
+    expect(
+      prepared.tiers?.map(({ from, amount }) => ({ from, amount })),
+    ).toEqual([{ from: 10, amount: 1800 }]);
+  });
+
+  it('refuses a base price lowered to a tier', async () => {
+    const w = world({
+      offerings: [offering('o-1', 'draft')],
+      tiers: [{ from: 10, amount: 1800 }],
+    });
+
+    const error = await w.run(
+      Effect.flip(preparePrice(saving(1800, 'price-o-1'), 'acme')),
+    );
+
+    expect(error).toMatchObject({
+      code: 'priceTiersInvalid',
+      problem: 'notCheaper',
+    });
+  });
+
+  it('keeps a stored price with no tiers as it is', async () => {
+    const w = world({ offerings: [offering('o-1', 'draft')] });
+
+    const prepared = await w.run(
+      preparePrice(saving(2100, 'price-o-1'), 'acme'),
+    );
+
+    expect(prepared.tiers).toBeUndefined();
+  });
+
+  it('starts a price whose id is not stored as new', async () => {
+    const w = world({ offerings: [offering('o-1', 'draft')] });
+
+    const prepared = await w.run(preparePrice(saving(2100, 'absent'), 'acme'));
+
+    expect(prepared.tiers).toBeUndefined();
+  });
+
+  it('refuses an unknown pricePer before reading anything', async () => {
+    const w = world({ offerings: [offering('o-1', 'draft')] });
+
+    const error = await w.run(
+      Effect.flip(
+        preparePrice(
+          Object.assign(saving(2100), { pricePer: 12 }) as ProductOfferingPrice,
+          'acme',
+        ),
+      ),
+    );
+
+    expect(error).toMatchObject({ code: 'pricePerInvalid' });
+  });
+});
+
 describe('SetSaleUnitUC', () => {
   const setUnit = (revision?: number) =>
     SetSaleUnitUC.run({
@@ -558,6 +642,7 @@ describe('rebuildEveryPublication', () => {
               Layer.succeed(OfferingCatalogTag, {
                 commitTransition: () => Effect.die('unused'),
                 setSaleUnit: () => Effect.die('unused'),
+                setPriceTiers: () => Effect.die('unused'),
                 reannounce: () => Effect.die('unused'),
               }),
             ),

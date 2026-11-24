@@ -190,6 +190,24 @@ describe('receiptFromReadBack', () => {
     ]);
   });
 
+  it('keeps where the volume price a line was charged starts', () => {
+    const built = receiptFromReadBack(
+      readBack([
+        envelope({
+          id: 'o-a',
+          vendorId: 'v-1',
+          items: [{ ...item('o-1', 12, 1080), tierFrom: 10 }],
+        }),
+      ]),
+      opened,
+      names,
+    );
+
+    expect(built?.orders[0]?.lines).toEqual([
+      { ...shown('o-1', 12, 1080), tierFrom: 10 },
+    ]);
+  });
+
   it('drops a line it cannot read and keeps the rest', () => {
     const built = receiptFromReadBack(
       readBack([

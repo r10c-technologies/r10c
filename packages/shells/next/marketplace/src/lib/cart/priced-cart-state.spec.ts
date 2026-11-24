@@ -48,6 +48,28 @@ describe('pricedCartOf', () => {
     expect(cart.unavailable).toBe(0);
   });
 
+  it('charges the whole line the volume price its quantity reaches, and says where it starts', () => {
+    const tiered = Object.assign(offering('o-1', 'v-1', 500), {
+      tiers: [{ from: 10, amount: 400 }],
+    });
+
+    const [below] = pricedCartOf([
+      { line: { offeringId: 'o-1', quantity: 9 }, offering: tiered },
+    ]).priced;
+    const [reached] = pricedCartOf([
+      { line: { offeringId: 'o-1', quantity: 10 }, offering: tiered },
+    ]).priced;
+
+    expect(below).toMatchObject({ amount: 500, lineTotal: 4500 });
+    expect(below).not.toHaveProperty('tierFrom');
+    // Ten cost less than nine: the whole line steps down (ADR 0082 §8).
+    expect(reached).toMatchObject({
+      amount: 400,
+      tierFrom: 10,
+      lineTotal: 4000,
+    });
+  });
+
   it('copies the description and the version each line is sold under', () => {
     const pinned = Object.assign(offering('o-1', 'v-1', 500), {
       description: 'Esmaltada a mano.',

@@ -152,6 +152,19 @@ describe('readCatalogPublication', () => {
     );
   });
 
+  it('reads the tiers a price steps down by, and folds a list that is not tiers to none', () => {
+    const tiers = [{ from: 10, amount: 900 }];
+
+    expect(
+      Effect.runSync(readCatalogPublication({ ...PUBLICATION, tiers })),
+    ).toEqual({ ...PUBLICATION, tiers });
+    expect(
+      Effect.runSync(
+        readCatalogPublication({ ...PUBLICATION, tiers: [{ from: 'x' }] }),
+      ),
+    ).not.toHaveProperty('tiers');
+  });
+
   it('survives the round trip through JSON, which is how it actually arrives', () => {
     const wire: unknown = JSON.parse(JSON.stringify(PUBLICATION));
 

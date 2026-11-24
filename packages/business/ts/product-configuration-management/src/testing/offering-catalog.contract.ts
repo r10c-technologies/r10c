@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { ProductOffering } from '../entities/product-offering';
+import { ProductOfferingPrice } from '../entities/product-offering-price';
 import type { OfferingCatalog } from '../ports/offering-catalog';
 
 /**
@@ -17,7 +18,24 @@ export const CONTRACT_OFFERINGS = {
   other: [],
 } as const;
 
+/**
+ * The prices every subject is made with: `acme` holds `p-1` at revision 1 and
+ * a seeded `p-seeded`, which has no revision; `other` nothing.
+ */
+export const CONTRACT_PRICES = {
+  acme: [{ id: 'p-1', revision: 1 }, { id: 'p-seeded' }],
+  other: [],
+} as const;
+
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
+
+/** A price as `set-price-tiers` decided it, at the revision it was read at. */
+const tiered = (id: string, revision?: number) =>
+  Object.assign(new ProductOfferingPrice('o-1', 1250, 'GTQ'), {
+    id,
+    revision,
+    tiers: [{ from: 10, amount: 1100 }],
+  });
 
 /** The offering as a transition decided it, at the revision it was read at. */
 const moved = (status: ProductOffering['status'], revision = 1) =>
@@ -186,6 +204,42 @@ export const describeOfferingCatalogContract = (
       const catalog = await make();
 
       expect(await run(catalog.setSaleUnit('other', moved('draft')))).toBe(
+        'changed',
+      );
+    });
+
+    it('sets a price’s tiers at the revision it was read at, once', async () => {
+      const catalog = await make();
+
+      expect(await run(catalog.setPriceTiers('acme', tiered('p-1', 1)))).toBe(
+        'committed',
+      );
+      expect(await run(catalog.setPriceTiers('acme', tiered('p-1', 1)))).toBe(
+        'changed',
+      );
+    });
+
+    it('removes a price’s tiers at the revision it was read at', async () => {
+      const catalog = await make();
+      const cleared = Object.assign(tiered('p-1', 1), { tiers: undefined });
+
+      expect(await run(catalog.setPriceTiers('acme', cleared))).toBe(
+        'committed',
+      );
+    });
+
+    it('sets the tiers of a seeded price, which has no revision yet', async () => {
+      const catalog = await make();
+
+      expect(await run(catalog.setPriceTiers('acme', tiered('p-seeded')))).toBe(
+        'committed',
+      );
+    });
+
+    it('answers changed for tiers on a price the organization does not hold', async () => {
+      const catalog = await make();
+
+      expect(await run(catalog.setPriceTiers('other', tiered('p-1', 1)))).toBe(
         'changed',
       );
     });

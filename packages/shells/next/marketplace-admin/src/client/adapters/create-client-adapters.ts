@@ -160,6 +160,11 @@ const productOfferingUseCases = makeEntityRestUseCaseRunner(
   ProductOffering,
   CATALOG_SERVICE,
 );
+/** A price's volume tiers (ADR 0082 §8). */
+const productOfferingPriceUseCases = makeEntityRestUseCaseRunner(
+  ProductOfferingPrice,
+  CATALOG_SERVICE,
+);
 /** A product version's four lifecycle verbs (ADR 0079 §1). */
 const productUseCases = makeEntityRestUseCaseRunner(
   ProductSpecification,
@@ -218,6 +223,7 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productBrandUseCases,
     productCategoryUseCases,
     productOfferingUseCases,
+    productOfferingPriceUseCases,
     productUseCases,
   };
 }

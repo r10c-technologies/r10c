@@ -47,6 +47,7 @@ import {
   SALE_UNIT_SYMBOL_KEY,
   saleLineRefusal,
   saleUnitScale,
+  tieredPrice,
 } from '@r10c/business-ts-sales-vocabulary';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -173,8 +174,9 @@ const writeLines = (lines: readonly Line[]): EntityRowDraft[] =>
 
 /**
  * What a line will cost, previewed by `lineTotal` over the offering's live
- * published terms — never the draft's, which is not trusted (ADR 0032), and
- * never a price times a quantity here. sales-service prices it again from the
+ * published terms at the volume price its quantity reaches (ADR 0082 §8) —
+ * never the draft's, which is not trusted (ADR 0032), and never a price times
+ * a quantity here. sales-service prices it again from the
  * projection, and its figure is the one charged (ADR 0082 §6). A line whose
  * offering is no longer listed previews as nothing: it cannot be sold.
  */
@@ -188,7 +190,7 @@ export const previewOf = (
   return offering === undefined
     ? 0
     : lineTotal({
-        amount: offering.amount,
+        amount: tieredPrice(offering, line.quantity).amount,
         pricePer: offering.pricePer,
         quantity: line.quantity,
         saleUnit: offering.saleUnit,
@@ -354,7 +356,10 @@ export function CounterSaleWizard({
   const pendingRefusal =
     picked === undefined
       ? undefined
-      : saleLineRefusal(picked.offeringId, pendingQuantity, picked, picked);
+      : saleLineRefusal(picked.offeringId, pendingQuantity, picked, {
+          amount: tieredPrice(picked, pendingQuantity).amount,
+          pricePer: picked.pricePer,
+        });
   const pick = (offeringId: string) => {
     setPendingOffering(offeringId);
     const offering = offerings.items.find(

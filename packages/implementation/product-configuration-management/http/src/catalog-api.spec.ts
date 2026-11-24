@@ -41,7 +41,7 @@ const offering = (id: string, status: ProductOffering['status']) =>
   });
 
 /** Two offerings, one priced and one not, both drafts naming one specification. */
-const world = () => {
+const world = (tiers?: { from: number; amount: number }[]) => {
   const offerings = makeInMemoryEntityRepository([
     offering('priced', 'draft'),
     offering('unpriced', 'draft'),
@@ -52,6 +52,7 @@ const world = () => {
       offeringId: 'priced',
       amount: 1999,
       currency: 'GTQ',
+      tiers,
     }),
   ]);
   const versions = [
@@ -84,12 +85,15 @@ const world = () => {
     }),
     Layer.succeed(
       OfferingCatalogTag,
-      makeInMemoryOfferingCatalog({
-        acme: [
-          { id: 'priced', status: 'draft' },
-          { id: 'unpriced', status: 'draft' },
-        ],
-      }),
+      makeInMemoryOfferingCatalog(
+        {
+          acme: [
+            { id: 'priced', status: 'draft' },
+            { id: 'unpriced', status: 'draft' },
+          ],
+        },
+        { acme: [{ id: 'price-1' }] },
+      ),
     ),
     Layer.succeed(
       SpecificationCommandsTag,
@@ -117,6 +121,7 @@ const world = () => {
 };
 
 const [publish, unpublish, setSaleUnit] = productOfferingApi.options.useCases;
+const [setPriceTiers] = productOfferingPriceApi.options.useCases;
 const [release, revise, retire, obsolete] =
   productSpecificationApi.options.useCases;
 const updating = { ...context, verb: 'update' as const };
@@ -426,7 +431,7 @@ describe('a price', () => {
     const run = world();
 
     const saved = await run(
-      productOfferingPriceApi.options.prepare(price(100)),
+      productOfferingPriceApi.options.prepare(price(100), updating),
     );
 
     expect(saved).toMatchObject({ success: { pricePer: 100 } });
@@ -436,9 +441,59 @@ describe('a price', () => {
     const run = world();
 
     const refused = await run(
-      productOfferingPriceApi.options.prepare(price(12)),
+      productOfferingPriceApi.options.prepare(price(12), updating),
     );
 
     expect(refused).toMatchObject({ failure: { code: 'pricePerInvalid' } });
+  });
+});
+
+describe('a price’s tiers', () => {
+  const setTiers = (tiers: { from: number; amount: number }[]) =>
+    setPriceTiers.handler(
+      { params: { id: 'price-1' }, payload: { tiers } },
+      context,
+    );
+
+  it('are set by their verb and answered with the record', async () => {
+    const run = world();
+
+    const set = await run(setTiers([{ from: 10, amount: 1800 }]));
+
+    expect(set).toMatchObject({
+      success: {
+        data: { id: 'price-1', tiers: [{ from: 10, amount: 1800 }] },
+      },
+    });
+  });
+
+  it('are refused when one is no cheaper than the price', async () => {
+    const run = world();
+
+    expect(await run(setTiers([{ from: 10, amount: 1999 }]))).toMatchObject({
+      failure: { code: 'priceTiersInvalid', index: 0, problem: 'notCheaper' },
+    });
+  });
+
+  it('survive a save that names none, and refuse a base lowered under them', async () => {
+    const run = world([{ from: 10, amount: 1800 }]);
+    const saving = (amount: number) =>
+      Object.assign(new ProductOfferingPrice('priced', amount, 'GTQ'), {
+        id: 'price-1',
+      });
+
+    const kept = await run(
+      productOfferingPriceApi.options.prepare(saving(2100), updating),
+    );
+    const lowered = await run(
+      productOfferingPriceApi.options.prepare(saving(1800), updating),
+    );
+
+    expect(kept).toMatchObject({
+      success: { tiers: [expect.objectContaining({ from: 10, amount: 1800 })] },
+    });
+    expect(lowered).toMatchObject({
+      failure: { code: 'priceTiersInvalid', problem: 'notCheaper' },
+    });
   });
 });

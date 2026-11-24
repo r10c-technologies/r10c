@@ -1,4 +1,7 @@
-import { SaleUnits } from '@r10c/business-ts-sales-vocabulary';
+import {
+  priceTiersRefusal,
+  SaleUnits,
+} from '@r10c/business-ts-sales-vocabulary';
 import { SEEDED_VENDORS } from '@r10c/utils-ts-fleet';
 import { describe, expect, it } from 'vitest';
 
@@ -50,6 +53,25 @@ describe('the seeded catalog', () => {
       specifications.map(specification => specification.id),
     ]) {
       expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
+
+  it('seeds tiers only where they step a price down, and at least one store has some', () => {
+    const tiered = prices.filter(price => price.tiers !== undefined);
+    expect(tiered.length).toBeGreaterThan(0);
+    for (const price of tiered) {
+      const offering = offerings.find(one => one.id === price.offeringId);
+      expect(
+        priceTiersRefusal(
+          price.tiers ?? [],
+          { amount: price.amount, pricePer: price.pricePer as 1 | 100 },
+          {
+            saleUnit: offering?.saleUnit as 'UN',
+            quantityStep: offering?.quantityStep ?? 0,
+            quantityMinimum: offering?.quantityMinimum ?? 0,
+          },
+        ),
+      ).toBeUndefined();
     }
   });
 

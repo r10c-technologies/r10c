@@ -16,7 +16,6 @@ import {
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import {
-  lineTotal,
   quantityMaximum,
   SALE_UNIT_SYMBOL_KEY,
   saleUnitScale,
@@ -36,7 +35,7 @@ import type { CartNotice } from '../cart/cart-notice';
 import type { CheckoutOutcome } from '../cart/checkout-action';
 import { readPricedCart } from '../cart/priced-cart';
 import { runRead } from '../catalog/catalog-reads';
-import { saleRuleLabel } from '../catalog/price-basis';
+import { quantityLabel, saleRuleLabel } from '../catalog/price-basis';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -72,6 +71,7 @@ export async function CartPage({
   const translate = (key: string, values?: Readonly<Record<string, string>>) =>
     values ? t(key, values) : t(key);
   const ruleOf = saleRuleLabel(translate, locale);
+  const quantityOf = quantityLabel(translate, locale);
   const { present, parts, offerings, totals, refusals } =
     await readPricedCart();
   const vendors = new Map(
@@ -271,21 +271,33 @@ export async function CartPage({
                           )}
                         </Stack>
 
-                        <Text data-testid="cart-line-price">
-                          <Money
-                            // The preview `lineTotal` computes, as the
-                            // checkout will (ADR 0082 §6).
-                            amount={lineTotal({
-                              amount: offering.amount,
-                              pricePer: offering.pricePer,
-                              quantity: line.quantity,
-                              saleUnit: offering.saleUnit,
-                            })}
-                            currency={offering.currency}
-                            unit="minor"
-                            locale={locale}
-                          />
-                        </Text>
+                        <Stack gap="3xs">
+                          <Text data-testid="cart-line-price">
+                            <Money
+                              // The preview `lineTotal` computes at the
+                              // volume price the quantity reaches, as the
+                              // checkout will (ADR 0082 §6, §8).
+                              amount={line.lineTotal}
+                              currency={line.currency}
+                              unit="minor"
+                              locale={locale}
+                            />
+                          </Text>
+                          {line.tierFrom === undefined ? null : (
+                            <Text
+                              step={-1}
+                              tone="muted"
+                              data-testid="cart-line-tier"
+                            >
+                              {t('storefront.price.tierApplied', {
+                                quantity: quantityOf(
+                                  line.tierFrom,
+                                  line.saleUnit,
+                                ),
+                              })}
+                            </Text>
+                          )}
+                        </Stack>
 
                         <form action={removeFromCart}>
                           <input

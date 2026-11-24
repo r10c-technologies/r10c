@@ -35,6 +35,21 @@ describe('publishedPriceOf', () => {
     });
   });
 
+  it('reads the tiers the price steps down by, and none when it has none', () => {
+    const record = {
+      vendorId: 'v-1',
+      amount: 12,
+      currency: 'GTQ',
+      name: 'Lámpara Aurora',
+      ...TERMS,
+      ...PIN,
+    };
+    const tiers = [{ from: 10_000, amount: 10 }];
+
+    expect(publishedPriceOf('o-1', { ...record, tiers })?.tiers).toEqual(tiers);
+    expect(publishedPriceOf('o-1', record)).not.toHaveProperty('tiers');
+  });
+
   it('omits a blank or absent description rather than copying it', () => {
     const record = {
       vendorId: 'v-1',

@@ -21,7 +21,10 @@ type Required = Pick<
 export const product = (
   required: Required,
   rest: Partial<
-    Pick<SampleProduct, 'unit' | 'step' | 'minimum' | 'pricePer' | 'fits'>
+    Pick<
+      SampleProduct,
+      'unit' | 'step' | 'minimum' | 'pricePer' | 'fits' | 'tiers'
+    >
   > = {},
 ): SampleProduct => ({
   unit: 'UN',

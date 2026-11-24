@@ -143,6 +143,19 @@ export async function CheckoutReviewPage({
                                   line.saleUnit,
                                 ),
                               })}
+                              {/* The volume price the line reached, so the
+                                  total is traceable (ADR 0082 §8). */}
+                              {line.tierFrom === undefined ? null : (
+                                <>
+                                  {' · '}
+                                  {t('storefront.price.tierApplied', {
+                                    quantity: quantityOf(
+                                      line.tierFrom,
+                                      line.saleUnit,
+                                    ),
+                                  })}
+                                </>
+                              )}
                             </Text>
                             <Text>
                               <Money

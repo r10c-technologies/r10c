@@ -67,6 +67,18 @@ const prices: Record<string, PublishedPrice> = {
     quantityMinimum: 1000,
     pricePer: 1,
   },
+  // Q5 a nail, Q4 each from two: the whole line steps down (ADR 0082 §8).
+  tiered: {
+    offeringId: 'tiered',
+    name: 'Clavo por volumen',
+    vendorId: 'org-1',
+    amount: 500,
+    tiers: [{ from: 2, amount: 400 }],
+    currency: 'GTQ',
+    specificationId: 'spec-tiered',
+    specificationVersion: 1,
+    ...ONE_PIECE,
+  },
   theirs: {
     offeringId: 'theirs',
     name: 'Plato',
@@ -210,6 +222,24 @@ describe('sellAtCounter', () => {
         },
       },
     ]);
+  });
+
+  it('charges the whole line the volume price its quantity reaches, and says where it starts', async () => {
+    const { sold, started } = world();
+
+    await sold('c-open', 'tiered');
+
+    const input = started[0]?.input as {
+      readonly vendors: readonly {
+        readonly lines: readonly Record<string, unknown>[];
+      }[];
+      readonly totals: unknown;
+    };
+    expect(input.vendors[0]?.lines[0]).toMatchObject({
+      amount: 400,
+      tierFrom: 2,
+    });
+    expect(input.totals).toEqual([{ currency: 'GTQ', amount: 800 }]);
   });
 
   it('copies no description onto a line whose specification had none', async () => {

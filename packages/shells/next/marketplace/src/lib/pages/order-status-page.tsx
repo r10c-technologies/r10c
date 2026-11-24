@@ -551,6 +551,19 @@ async function VendorOrderCard({
                   )(line.quantity, line.unit),
                 })}
               </Text>
+              {/* The volume price the line was charged, as placed: the
+                  order copied it, so a later change to the tiers does not
+                  rewrite it (ADR 0082 §8). */}
+              {line.tierFrom === undefined ? null : (
+                <Text muted data-testid="vendor-order-line-tier">
+                  {t('storefront.price.tierApplied', {
+                    quantity: quantityLabel(
+                      (key, values) => (values ? t(key, values) : t(key)),
+                      locale,
+                    )(line.tierFrom, line.unit),
+                  })}
+                </Text>
+              )}
             </Stack>
             <Text>
               <Money

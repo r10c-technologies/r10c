@@ -25,6 +25,7 @@ export const projectPublication = (
   projected.amount = publication.amount;
   projected.currency = publication.currency;
   projected.pricePer = publication.pricePer;
+  projected.tiers = publication.tiers;
   projected.amountPerThousand = amountPerThousand(publication);
   projected.saleUnit = publication.saleUnit;
   projected.quantityStep = publication.quantityStep;

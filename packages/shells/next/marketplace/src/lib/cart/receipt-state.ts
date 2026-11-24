@@ -61,6 +61,8 @@ export interface ReceiptLine {
   readonly quantity: number;
   /** What the line cost, as placed (ADR 0082 §6): the receipt never multiplies. */
   readonly lineTotal: number;
+  /** Where the volume price the line was charged starts, when it reached one (ADR 0082 §8). */
+  readonly tierFrom?: number;
   readonly currency: string;
 }
 
@@ -97,13 +99,21 @@ const filled = (value: unknown): value is string =>
 
 const readLine = (value: unknown): ReceiptLine | undefined => {
   if (!isRecord(value)) return undefined;
-  const { offeringId, saleUnit, quantity, lineTotal, currency } = value;
+  const { offeringId, saleUnit, quantity, lineTotal, currency, tierFrom } =
+    value;
   return filled(offeringId) &&
     isSaleUnit(saleUnit) &&
     typeof quantity === 'number' &&
     typeof lineTotal === 'number' &&
     filled(currency)
-    ? { offeringId, unit: saleUnit, quantity, lineTotal, currency }
+    ? {
+        offeringId,
+        unit: saleUnit,
+        quantity,
+        lineTotal,
+        currency,
+        ...(typeof tierFrom === 'number' ? { tierFrom } : {}),
+      }
     : undefined;
 };
 

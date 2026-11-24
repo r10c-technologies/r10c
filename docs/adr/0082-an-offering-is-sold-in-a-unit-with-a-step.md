@@ -5,6 +5,7 @@
 - Revised: 2026-11-22 — §5 gains the key a list orders and filters prices by, `amountPerThousand`, since `amount` compared across `pricePer` ranks a price per hundred a hundred times too dear; and the units, scales and `lineTotal` move to a `business:vocabulary` rung below `business:policy`, so a contract names a unit as a domain does (#672).
 - Revised: 2026-11-23 — §2: only the offering defaults to `UN`; a stock record, an order line and a shipping line state their unit and a body naming none is refused. §3: the cart refuses rather than rounds and a line made invalid blocks the review and the checkout. §4: the ledger tells `unitMismatch` from a first-movement race and from too little stock. §6: the coordinator also overwrites the group's totals, and the order write refuses a line whose `lineTotal` disagrees with its terms. Consequences: what was built, and the check that fails a new multiplication (#672).
 - Revised: 2026-11-23 by the sample-stores build (#676) — the three sample stores sell by the metre, the pound, the hundred, the yard, the litre and the pair. The shoemaking-supplies store sells faux leather and linings by the yard and **no natural leather**, which waits on the merchant calls (#644) this record's trigger names; the hardware store sells no cement.
+- Revised: 2026-11-23 by the price-tiers build (#674) — §8 is built. A price holds at most five tiers, a tier at the offering's minimum is refused because it is the base price, and the tiers are written by a `set-price-tiers` verb with its own form: a tier's quantity is in the offering's unit and its amount in the price's currency, neither of which lives on the row, so the generic save carries the stored tiers across and refuses a base lowered to or below one. A publication checks them again, since the unit can change before it. `tieredPrice` is the one place a tier is chosen; the storefront and the till call it on the projection, and the order line and the order events carry the `tierFrom` that priced it.
 - Area: business
 - Read when: multiplying a price by a quantity, selling by the metre, yard or box, or pricing below a centavo — a quantity is a scaled integer, a line's total is computed once, and a sale never grows after it is placed
 
@@ -284,6 +285,14 @@ another vocabulary and is out until a vertical needs it.
    `implemented`.
 
 **Then** #673 (§7) and #674 (§8).
+
+**Built for #674:** `tieredPrice` and `priceTiersRefusal` beside `lineTotal`
+in the vocabulary; `tiers` on the price, the snapshot, the projection and the
+published price the till reads; the `set-price-tiers` verb and its form; the
+product page's table; and `tierFrom` on the checkout line, the order line, the
+order events and the buyer's receipt. The coordinator still computes every
+line's total from the amount it is handed, so a tier never meets a quantity
+anywhere but `lineTotal`.
 
 **Costs accepted:**
 

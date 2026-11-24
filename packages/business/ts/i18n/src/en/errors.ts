@@ -79,6 +79,8 @@ export const errors: EsErrors = {
     'Someone else changed this product first. Reload it and try again.',
   // Two changes raced on one offering and the other landed first; the vendor
   // reloads and acts on what is there now (#371).
+  priceChanged:
+    'Someone else changed this price while you were editing it. Reload it and try again.',
   offeringChanged:
     'This offering changed while you were working. Reload it and try again.',
   // A movement's quantity is signed, so a well-formed document can still
@@ -188,6 +190,8 @@ export const errors: EsErrors = {
   saleRuleInvalid:
     'The step and the minimum must be whole numbers of the unit, and the minimum a multiple of the step.',
   pricePerInvalid: 'A price is for 1, 100 or 1000 units.',
+  priceTiersInvalid:
+    'Each volume price starts at a quantity the product sells, above its minimum and above the one before, and costs less than the price before it. A price holds at most five.',
   saleUnitFixed:
     'This offering was already published, so its unit cannot change. Create another offering to sell it in another unit.',
 };

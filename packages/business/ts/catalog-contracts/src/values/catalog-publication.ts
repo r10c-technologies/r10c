@@ -7,6 +7,8 @@ import {
   registerEvent,
 } from '@entifix/core';
 import {
+  type PriceTier,
+  priceTiersOf,
   type SaleTerms,
   SaleTermsFields,
   saleTermsOf,
@@ -90,6 +92,12 @@ export interface CatalogPublication extends SaleTerms {
    */
   readonly amount: number;
   readonly currency: string;
+  /**
+   * Where the price steps down by quantity (ADR 0082 §8): from each `from`
+   * on, the whole line costs that tier's amount for `pricePer` units. Absent,
+   * never `[]`, when the price has none; `tieredPrice` is what reads it.
+   */
+  readonly tiers?: readonly PriceTier[];
   /**
    * A hint, not a promise — the checkout reservation is the truth (ADR 0009,
    * ADR 0010).
@@ -272,6 +280,16 @@ const termsOf = (
     : Effect.succeed(terms);
 };
 
+/**
+ * The tiers a payload states, folded like the merchandising: none, or a list
+ * that is not tier-shaped, is absent rather than poison, since an offering
+ * whose tiers were lost still sells at its base price.
+ */
+const tiersOf = (value: unknown): Pick<CatalogPublication, 'tiers'> => {
+  const tiers = priceTiersOf(value);
+  return tiers === undefined ? {} : { tiers };
+};
+
 const optionalString = (value: unknown): string | undefined =>
   typeof value === 'string' && value !== '' ? value : undefined;
 
@@ -308,6 +326,7 @@ export const readCatalogPublication = (
         categoryId: optionalString(raw['categoryId']),
         media: readMedia(raw['media']),
         fitsDeviceModelIds: readDeviceModelIds(raw['fitsDeviceModelIds']),
+        ...tiersOf(raw['tiers']),
         ...terms,
       })),
     ),

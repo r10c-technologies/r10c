@@ -21,6 +21,7 @@ import {
   NeverPublishedStatuses,
   OfferingCatalogTag,
   ProductOffering,
+  ProductOfferingPrice,
 } from '@r10c/business-ts-product-configuration-management';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
@@ -28,6 +29,7 @@ import type { Db } from 'mongodb';
 import { atRevision } from './at-revision.js';
 
 export const OFFERING_COLLECTION = envelopeEntityName(ProductOffering);
+export const PRICE_COLLECTION = envelopeEntityName(ProductOfferingPrice);
 
 /** The stored record moved under this transition: the compare-and-set missed. */
 class OfferingMoved {
@@ -138,6 +140,34 @@ export const MongoOfferingCatalogLayer = Layer.effect(
                     quantityStep: offering.quantityStep,
                     quantityMinimum: offering.quantityMinimum,
                   },
+                  ...bumpRevision.mongo,
+                },
+              ),
+            catch: mongoUnitFault,
+          });
+          return written.matchedCount === 0
+            ? ('changed' as const)
+            : ('committed' as const);
+        }),
+
+      setPriceTiers: (organizationId, price) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          // One conditional write at the revision read (ADR 0082 §8, ADR 0079
+          // §4); no tiers is no member, never `[]` — the verb answers an empty
+          // list as none.
+          const tiers = price.tiers?.map(({ from, amount }) => ({
+            from,
+            amount,
+          }));
+          const written = yield* Effect.tryPromise({
+            try: () =>
+              db.collection(PRICE_COLLECTION).updateOne(
+                { id: price.id, ...atRevision(price.revision) },
+                {
+                  ...(tiers === undefined
+                    ? { $unset: { tiers: '' } }
+                    : { $set: { tiers } }),
                   ...bumpRevision.mongo,
                 },
               ),

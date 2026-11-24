@@ -1,8 +1,10 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import { PriceTierRow } from '@r10c/business-ts-catalog-contracts';
 import {
   DEFAULT_PRICE_PER,
   type PricePer,
+  type PriceTier,
 } from '@r10c/business-ts-sales-vocabulary';
 
 /**
@@ -25,7 +27,8 @@ import {
  *
  * The rating *function* is not here either: SID's `PricingLogicAlgorithm` models
  * the seam and not the behaviour, which is a port, and it is where promotions
- * and tiered pricing land later.
+ * land later. Tiers are not a rating function: they are data the price holds,
+ * and `tieredPrice` reads them the same way everywhere (ADR 0082 §8).
  *
  * Tenant plane, `catalog` store.
  */
@@ -42,6 +45,7 @@ export class ProductOfferingPrice implements Entity {
   #amount: number;
   #currency: string;
   #pricePer: PricePer = DEFAULT_PRICE_PER;
+  #tiers?: readonly PriceTier[];
   #revision?: number;
   // #endregion
 
@@ -138,6 +142,27 @@ export class ProductOfferingPrice implements Entity {
   }
   set pricePer(value: PricePer) {
     this.#pricePer = value;
+  }
+
+  /**
+   * Where the price steps down by quantity (ADR 0082 §8): from each tier's
+   * `from` on, the whole line is charged its `amount` for `pricePer` units.
+   * Absent, never `[]`, when it has none.
+   *
+   * Only `set-price-tiers` writes it: a save carries the stored tiers across,
+   * because a `from` means nothing without the offering's unit, and the
+   * generic form has no way to show it.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => PriceTierRow,
+    labelKey: 'entity:product-offering-price.fields.tiers',
+  })
+  get tiers(): readonly PriceTier[] | undefined {
+    return this.#tiers;
+  }
+  set tiers(value: readonly PriceTier[] | undefined) {
+    this.#tiers = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

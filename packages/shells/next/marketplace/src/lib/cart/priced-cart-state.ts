@@ -1,5 +1,5 @@
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { lineTotal } from '@r10c/business-ts-sales-vocabulary';
+import { lineTotal, tieredPrice } from '@r10c/business-ts-sales-vocabulary';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
 import { type CartRefusal, heldLineRefusal } from './cart-quantity';
@@ -35,6 +35,43 @@ export interface PricedCart {
 }
 
 /**
+ * One cart line priced from its published offering: the volume price its
+ * quantity reaches by `tieredPrice`, which prices the whole line, and where
+ * that price starts (ADR 0082 §8).
+ */
+const pricedLineOf = (
+  line: CartLine,
+  offering: PublishedOffering,
+): PricedLine => {
+  const charged = tieredPrice(offering, line.quantity);
+  return {
+    offeringId: line.offeringId,
+    name: offering.name,
+    ...(offering.description === undefined || offering.description === ''
+      ? {}
+      : { description: offering.description }),
+    // Every publication carries its pin (ADR 0079 §2); a row without one
+    // predates the widening and is refused by the checkout's own schema.
+    specificationId: offering.specificationId ?? '',
+    specificationVersion: offering.specificationVersion ?? 0,
+    vendorId: offering.vendorId,
+    saleUnit: offering.saleUnit,
+    quantity: line.quantity,
+    amount: charged.amount,
+    pricePer: offering.pricePer,
+    ...(charged.tierFrom === undefined ? {} : { tierFrom: charged.tierFrom }),
+    // The preview; the coordinator computes the figure charged (ADR 0082 §6).
+    lineTotal: lineTotal({
+      amount: charged.amount,
+      pricePer: offering.pricePer,
+      quantity: line.quantity,
+      saleUnit: offering.saleUnit,
+    }),
+    currency: offering.currency,
+  };
+};
+
+/**
  * Prices the cart's lines from the offerings they name. A line whose offering
  * is gone — unpublished since it was added — is dropped and counted rather than
  * shown nameless, so the review can say what is not part of the order; totals
@@ -50,30 +87,9 @@ export function pricedCartOf(
   const present: PresentLine[] = items.flatMap(({ line, offering }) =>
     offering === undefined ? [] : [{ line, offering }],
   );
-  const priced: PricedLine[] = present.map(({ line, offering }) => ({
-    offeringId: line.offeringId,
-    name: offering.name,
-    ...(offering.description === undefined || offering.description === ''
-      ? {}
-      : { description: offering.description }),
-    // Every publication carries its pin (ADR 0079 §2); a row without one
-    // predates the widening and is refused by the checkout's own schema.
-    specificationId: offering.specificationId ?? '',
-    specificationVersion: offering.specificationVersion ?? 0,
-    vendorId: offering.vendorId,
-    saleUnit: offering.saleUnit,
-    quantity: line.quantity,
-    amount: offering.amount,
-    pricePer: offering.pricePer,
-    // The preview; the coordinator computes the figure charged (ADR 0082 §6).
-    lineTotal: lineTotal({
-      amount: offering.amount,
-      pricePer: offering.pricePer,
-      quantity: line.quantity,
-      saleUnit: offering.saleUnit,
-    }),
-    currency: offering.currency,
-  }));
+  const priced: PricedLine[] = present.map(({ line, offering }) =>
+    pricedLineOf(line, offering),
+  );
   return {
     present,
     priced,

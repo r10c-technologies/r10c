@@ -116,12 +116,17 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
     },
     // ADR 0082 §8 (#674): a price steps down by quantity, for the whole line.
     {
-      id: 'product-configuration-management:product-offering:price-by-tier',
+      id: 'product-configuration-management:product-offering-price:set-price-tiers',
       oda: 'TMFC001',
-      entities: ['product-configuration-management:product-offering'],
-      permissions: [],
-      screens: ['master:product-offering'],
-      status: 'planned',
+      entities: [
+        'product-configuration-management:product-offering-price',
+        'product-configuration-management:product-offering',
+      ],
+      permissions: [
+        'product-configuration-management:product-offering-price:set-price-tiers',
+      ],
+      screens: ['master:product-offering', 'master:product-offering-price'],
+      status: 'implemented',
       verticals: 'all',
     },
   ];

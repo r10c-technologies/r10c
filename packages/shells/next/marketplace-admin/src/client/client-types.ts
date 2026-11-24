@@ -30,6 +30,8 @@ export interface MarketplaceAdminAdapters {
   productBrandUseCases: EntityUseCaseRunner;
   productCategoryUseCases: EntityUseCaseRunner;
   productOfferingUseCases: EntityUseCaseRunner;
+  /** A price's verb: `set-price-tiers` (ADR 0082 §8). */
+  productOfferingPriceUseCases: EntityUseCaseRunner;
   /** A product version's lifecycle verbs: release, revise, retire, obsolete. */
   productUseCases: EntityUseCaseRunner;
 }

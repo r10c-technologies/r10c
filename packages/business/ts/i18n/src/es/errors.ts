@@ -91,6 +91,8 @@ export const errors = {
     'Alguien más cambió este producto primero. Recárgalo e inténtalo de nuevo.',
   // Dos cambios compitieron por una oferta y el otro llegó primero; el vendedor
   // recarga y actúa sobre lo que hay ahora (#371).
+  priceChanged:
+    'Alguien más cambió este precio mientras lo editabas. Vuelve a cargarlo e inténtalo de nuevo.',
   offeringChanged:
     'Esta oferta cambió mientras trabajabas. Recárgala e inténtalo de nuevo.',
   // La cantidad de un movimiento es con signo, así que un documento bien
@@ -219,6 +221,8 @@ export const errors = {
   saleRuleInvalid:
     'El paso y el mínimo deben ser cantidades de la unidad, y el mínimo un múltiplo del paso.',
   pricePerInvalid: 'Un precio es por 1, 100 o 1000 unidades.',
+  priceTiersInvalid:
+    'Cada precio por volumen empieza en una cantidad que el producto vende, mayor que su mínimo y que la del anterior, y cuesta menos que el precio anterior. Un precio tiene como máximo cinco.',
   saleUnitFixed:
     'Esta oferta ya se publicó, así que su unidad no puede cambiar. Crea otra oferta para venderla en otra unidad.',
 };

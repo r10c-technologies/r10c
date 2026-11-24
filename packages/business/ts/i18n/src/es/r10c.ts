@@ -195,6 +195,17 @@ export const r10c = {
       quantity: '{{quantity}} {{symbol}}',
       // Cómo se vende lo que no se vende de uno en uno.
       sold: 'Desde {{minimum}}, de {{step}} en {{step}}',
+      // Un precio que baja con la cantidad (ADR 0082 §8): la tabla en la
+      // página del producto, y la nota en una línea que alcanzó uno.
+      tiers: {
+        heading: 'Precios por volumen',
+        caption: 'Toda la línea se cobra al precio que alcanza su cantidad.',
+        quantity: 'Cantidad',
+        price: 'Precio',
+        from: 'Desde {{quantity}}',
+        base: 'Menos de {{quantity}}',
+      },
+      tierApplied: 'Precio por volumen desde {{quantity}}',
     },
     product: {
       buy: 'Comprar',
@@ -756,6 +767,18 @@ export const r10c = {
         previous: 'Imagen anterior',
         next: 'Imagen siguiente',
         position: '{{index}} de {{total}}',
+      },
+    },
+    // Dónde baja un precio con la cantidad (ADR 0082 §8): el formulario
+    // que abre `set-price-tiers`.
+    price: {
+      tiers: {
+        hint: 'Desde cada cantidad, toda la línea cuesta el precio que pongas aquí, por la misma cantidad que el precio base. Cada tramo empieza más arriba y cuesta menos que el anterior.',
+        none: 'Sin precios por volumen: toda cantidad se cobra al precio base.',
+        loading: 'Cargando el producto…',
+        row: 'Tramo {{position}}',
+        remove: 'Quitar el tramo {{position}}',
+        add: 'Agregar un tramo',
       },
     },
     /** La página de una especificación: sus ofertas, y cómo ofertarla. */

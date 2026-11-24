@@ -65,6 +65,12 @@ export const entity: EsEntity = {
         'This version is kept for the orders that name it, and can no longer be used.',
     },
   },
+  'price-tier': {
+    fields: {
+      from: 'From',
+      amount: 'Price',
+    },
+  },
   'media-reference': {
     fields: {
       url: 'Image URL',
@@ -352,6 +358,7 @@ export const entity: EsEntity = {
       amount: 'Amount',
       currency: 'Currency',
       pricePer: 'Price per',
+      tiers: 'Volume prices',
       amountPerThousand: 'Amount per thousand',
       saleUnit: 'Sale unit',
       quantityStep: 'Sold in steps of',
@@ -447,6 +454,7 @@ export const entity: EsEntity = {
         specificationVersion: 'Product version',
         saleUnit: 'Unit',
         pricePer: 'Price per',
+        tierFrom: 'Volume price from',
         lineTotal: 'Line total',
         quantity: 'Quantity',
         amount: 'Amount',
@@ -767,7 +775,6 @@ export const entity: EsEntity = {
       publish: 'Publish',
       setSaleUnit: 'Set the sale unit',
       drawOnStock: 'Sell a presentation from the same stock',
-      priceByTier: 'Price by quantity tier',
       publishConfirm:
         'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',
       unpublish: 'Unpublish',
@@ -793,6 +800,10 @@ export const entity: EsEntity = {
       amount: 'Amount',
       currency: 'Currency',
       pricePer: 'Price per',
+      tiers: 'Volume prices',
+    },
+    useCases: {
+      setPriceTiers: 'Set volume prices',
     },
   },
   'entity-specification': {

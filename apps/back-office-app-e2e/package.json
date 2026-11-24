@@ -32,6 +32,7 @@
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@r10c/business-ts-order-management": "workspace:*",
     "@r10c/business-ts-sales-management": "workspace:*",
+    "@r10c/business-ts-sales-vocabulary": "workspace:*",
     "@r10c/business-ts-settlement-management": "workspace:*",
     "@r10c/business-ts-shipping-order-management": "workspace:*",
     "@r10c/business-ts-stock-management": "workspace:*"

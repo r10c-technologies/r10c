@@ -26,21 +26,23 @@ import {
   moveSpecificationFor,
   ObsoleteProductSpecificationUC,
   type OfferingTransition,
+  preparePrice,
   preserveOfferingLifecycle,
   preserveSpecificationLifecycle,
+  type PriceTiersPayload,
   ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
   PublishProductOfferingUC,
   refuseSpecificationFits,
   refuseSpecificationMedia,
-  refuseUnknownPricePer,
   ReleaseProductSpecificationUC,
   removeSpecificationFor,
   RetireProductSpecificationUC,
   ReviseProductSpecificationUC,
   reviseSpecificationFor,
   type SaleUnitPayload,
+  SetPriceTiersUC,
   SetSaleUnitUC,
   SpecificationCommandsTag,
   type SpecificationMove,
@@ -299,8 +301,31 @@ export const productOfferingApi = defineEntityApi(
 );
 
 /**
+ * `POST /api/product-offering-price/:id/set-price-tiers` — the vendor says
+ * where the price steps down by quantity (ADR 0082 §8). Answered with the
+ * record at its new revision.
+ */
+const setPriceTiers = verbEndpoint(SetPriceTiersUC, {
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const price = yield* SetPriceTiersUC.run({
+        organizationId: organizationOf(context),
+        id: request.params?.id as string,
+        payload: request.payload as PriceTiersPayload,
+      });
+      return makeEntityEnvelope(
+        ProductOfferingPrice,
+        price,
+        context.links.record(price.id),
+      );
+    }),
+});
+
+/**
  * A vendor's prices. A price is for one, a hundred or a thousand units
  * (ADR 0082 §5); a save naming another quantity is refused `pricePerInvalid`.
+ * Its tiers are written by `set-price-tiers` only: a save carries the stored
+ * ones across and refuses a base price lowered to or below one (§8).
  */
 export const productOfferingPriceApi = defineEntityApi(
   ProductOfferingPrice,
@@ -308,6 +333,7 @@ export const productOfferingPriceApi = defineEntityApi(
   {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },
-    prepare: price => refuseUnknownPricePer(price),
+    prepare: (price, context) => preparePrice(price, organizationOf(context)),
+    useCases: [setPriceTiers],
   },
 );

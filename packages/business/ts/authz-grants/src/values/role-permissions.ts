@@ -106,6 +106,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${CATALOG_DOMAIN}:product-offering:unpublish`,
     // What one of an offering is (ADR 0082 §3), until it is first published.
     `${CATALOG_DOMAIN}:product-offering:set-sale-unit`,
+    // Where a price steps down by quantity (ADR 0082 §8).
+    `${CATALOG_DOMAIN}:product-offering-price:set-price-tiers`,
     // A specification's lifecycle (ADR 0079 §1): the vendor's own versions,
     // moved by the same person who authors them. `revise` creates the next
     // version and `obsolete` is refused while anything published pins it.
