@@ -35,7 +35,8 @@ const camel = (kebab: string) =>
  * on its button (ADR 0080 §7): the catalog's `useCases` entry under the
  * action's own name, kebab or camel as the catalog wrote it. A `write` is the
  * entity's form title, since a save is the form; a flow recipe that opens the
- * entity (`checkout`) is the same title for the same reason.
+ * entity (`checkout`) is the same title for the same reason. A `read` is the
+ * list a person reads, so it is the entity's plural.
  */
 export const actionTitle = (
   locale: SiteLocale,
@@ -47,6 +48,7 @@ export const actionTitle = (
   const verb = entity.useCases?.[action] ?? entity.useCases?.[camel(action)];
   if (verb !== undefined) return verb;
   if (action === 'write' || action === 'checkout') return entity.form?.newTitle;
+  if (action === 'read') return entity.plural;
   return undefined;
 };
 

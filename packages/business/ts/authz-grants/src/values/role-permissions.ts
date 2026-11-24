@@ -347,6 +347,11 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // Restoring is retiring's other direction, and the operator's alone for the
     // same reason: putting a brand back puts it back for every vendor.
     `${CATALOG_REFERENCE_DOMAIN}:*:restore`,
+    // A vendor's commission terms and the run that settles their ledger are
+    // the operator's alone (ADR 0057): an `admin` who could write the terms
+    // could set their own commission to zero.
+    `${SETTLEMENT_DOMAIN}:agreement:write`,
+    `${SETTLEMENT_DOMAIN}:settlement-run:write`,
     // The operator's own sessions, for the same reason: this is not a capability
     // `*:*:*` should be the only thing granting, because the day somebody
     // narrows that wildcard nobody should discover it by being unable to sign

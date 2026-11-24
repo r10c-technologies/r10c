@@ -3,9 +3,12 @@ import { catalogReferenceCapabilities } from './capabilities/catalog-reference.c
 import { marketplaceCatalogCapabilities } from './capabilities/marketplace-catalog.capabilities.js';
 import { orderManagementCapabilities } from './capabilities/order-management.capabilities.js';
 import { partyManagementCapabilities } from './capabilities/party-management.capabilities.js';
+import { paymentManagementCapabilities } from './capabilities/payment-management.capabilities.js';
 import { productConfigurationManagementCapabilities } from './capabilities/product-configuration-management.capabilities.js';
 import { salesManagementCapabilities } from './capabilities/sales-management.capabilities.js';
+import { settlementManagementCapabilities } from './capabilities/settlement-management.capabilities.js';
 import { shippingOrderManagementCapabilities } from './capabilities/shipping-order-management.capabilities.js';
+import { stockManagementCapabilities } from './capabilities/stock-management.capabilities.js';
 import type { Capability } from './types.js';
 
 /**
@@ -20,7 +23,10 @@ export const CAPABILITIES: readonly Capability[] = [
   ...marketplaceCatalogCapabilities,
   ...orderManagementCapabilities,
   ...partyManagementCapabilities,
+  ...paymentManagementCapabilities,
   ...productConfigurationManagementCapabilities,
   ...salesManagementCapabilities,
+  ...settlementManagementCapabilities,
   ...shippingOrderManagementCapabilities,
+  ...stockManagementCapabilities,
 ];

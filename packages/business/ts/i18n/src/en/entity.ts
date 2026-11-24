@@ -710,6 +710,9 @@ export const entity: EsEntity = {
     },
     label: 'Vendor payout',
     plural: 'Vendor payouts',
+    useCases: {
+      disburse: 'Pay the vendor',
+    },
     fields: {
       id: 'ID',
       runId: 'Settlement run',

@@ -782,8 +782,6 @@ export const r10c: EsR10c = {
           universalShort: 'Universal',
           universalHint:
             'Choose this for chargers, cables and stands. It is not combined with models.',
-          loading: 'Loading phone models…',
-          none: 'No phone models are on file.',
         },
       },
     },

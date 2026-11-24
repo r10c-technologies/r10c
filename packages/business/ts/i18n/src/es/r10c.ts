@@ -834,8 +834,6 @@ export const r10c = {
           universalShort: 'Universal',
           universalHint:
             'Marque esta opción para cargadores, cables y soportes. No se combina con modelos.',
-          loading: 'Cargando modelos de teléfono…',
-          none: 'No hay modelos de teléfono cargados.',
         },
       },
     },

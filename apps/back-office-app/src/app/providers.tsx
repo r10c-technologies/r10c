@@ -39,6 +39,7 @@ import {
   CATALOG_PUSH_TOPICS,
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
+  UniversalFitLabels,
 } from '@r10c/shells-next-marketplace-admin';
 import { ORDER_PUSH_TOPICS, OrderProvider } from '@r10c/shells-next-order';
 import { SalesProvider } from '@r10c/shells-next-sales';
@@ -167,23 +168,27 @@ function ThemedProviders({
                   {/* Every list names its references through the target
                   shell's own adapter, listed once here (entifix 0030). */}
                   <ReferenceLabelsHost registrations={REFERENCE_LABELS}>
-                    <SystemManagementProvider>
-                      <StockProvider>
-                        <OrderProvider>
-                          <FulfilmentProvider>
-                            <SalesProvider scope={scope}>
-                              <SettlementProvider
-                                {...(partyRole === undefined
-                                  ? {}
-                                  : { partyRole })}
-                              >
-                                {children}
-                              </SettlementProvider>
-                            </SalesProvider>
-                          </FulfilmentProvider>
-                        </OrderProvider>
-                      </StockProvider>
-                    </SystemManagementProvider>
+                    {/* The one fitted phone id that is no record, named
+                    before the registry is asked (#296). */}
+                    <UniversalFitLabels>
+                      <SystemManagementProvider>
+                        <StockProvider>
+                          <OrderProvider>
+                            <FulfilmentProvider>
+                              <SalesProvider scope={scope}>
+                                <SettlementProvider
+                                  {...(partyRole === undefined
+                                    ? {}
+                                    : { partyRole })}
+                                >
+                                  {children}
+                                </SettlementProvider>
+                              </SalesProvider>
+                            </FulfilmentProvider>
+                          </OrderProvider>
+                        </StockProvider>
+                      </SystemManagementProvider>
+                    </UniversalFitLabels>
                   </ReferenceLabelsHost>
                 </PendingFlowsProvider>
               </MarketplaceAdminAdaptersProvider>

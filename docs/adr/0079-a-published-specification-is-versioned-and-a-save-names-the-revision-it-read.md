@@ -7,6 +7,7 @@
 - Revised: 2026-11-17 — a missing `revision` answers `400 invalid`, not `invalidBody`, and a status move increments `revision`, as entifix's revision check decides ([entifix ADR 0032](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0032-a-save-names-the-revision-it-read.md))
 - Revised: 2026-11-19 — open questions 3 and 6 answered by the build of §1–§3 (#664): `obsolete` is a person's verb refused while a published offering pins the version, and `specKey` is a member of its own set from the create's `code`; a rebuild restates a publication whatever its pin now stands at
 - Revised: 2026-11-21 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — proposed: the line's copy also holds its unit, `pricePer` and total, so `amount` is the price of `pricePer` units rather than always of one
+- Revised: 2026-11-24 — §4 is built (#649): every entity a person saves through `PUT` declares `revision`. That covers brand, category, dictionary term, device model, configuration, product specification, offering, offering price, sales channel and agreement. Each save is conditional on it in every adapter, so no authored save is an unconditional `replaceOne`. entifix's revision check is Accepted as its ADR 0032.
 - Revised: 2026-11-24 — Accepted on the live fleet (#695): a released version refuses a `PUT` with `409`, two racing releases and two racing revises each land exactly once, and an order line carries the version it was sold under (`specification-versioning.live.spec.ts`)
 
 ## Context
@@ -213,8 +214,9 @@ that joins the verified context a `When(` predicate reads.
    `lifecycleStatus`; seeds and the mock catalog rewritten; lab reset.
 2. **Pins and copies** (M) — the publish guard, the two snapshot members, the
    `OrderItem` members and the `order.*` line; fragment contracts bump.
-3. **Adopting `revision`** (M) — every authored entity, every form and draft,
-   the `staleRevision` copy in both locales, the conflict state on the form.
+3. **Adopting `revision`** (M), **built** — every authored entity, every form
+   and draft, the `staleRevision` copy in both locales, the conflict state on
+   the form.
 4. **Characteristics** (L) — mounting `EntitySpecification` and
    `CharacteristicSpecification`, the designer, values on the offering. This is
    ADR 0014's build and keeps its order of work.
@@ -224,7 +226,8 @@ that joins the verified context a `When(` predicate reads.
 
 **entifix must change, first** ([ADR 0059](0059-entifix-leaves-the-repo.md)):
 
-- **The revision check** (L, breaking) — a declared `revision` member, `save`
+- **The revision check** (L, breaking), **built** (entifix 0.23, its ADR
+  0032 Accepted) — a declared `revision` member, `save`
   conditional on it in the Mongo, SQL, static and REST adapters, a typed
   `StaleRevision` failure under `conflict`, the contract suites, the form's
   conflict state.

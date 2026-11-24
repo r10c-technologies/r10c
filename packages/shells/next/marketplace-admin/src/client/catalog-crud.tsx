@@ -181,6 +181,13 @@ function ProductSetupLink() {
   );
 }
 
+/** Only an active model is one a vendor fits a product to. */
+const ACTIVE_DEVICE_MODELS: FilterGroup<DeviceModel> = {
+  operator: 'and',
+  values: [{ property: 'status', operator: 'eq', value: 'active' }],
+};
+const useActiveDeviceModels = () => ACTIVE_DEVICE_MODELS;
+
 export const productCrud = makeEntityCrud(ProductSpecification, {
   useAdapters: useMarketplaceAdminAdapters,
   basePath: PRODUCT_SURFACE.basePath,
@@ -191,10 +198,6 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   // Hiding it keeps it out of the form without keeping it out of the draft, so
   // an update carries it back — and the operator is not asked to type a value
   // the service overwrites.
-  // `fitsDeviceModelIds` is edited by the guided alta's own picker: entifix has
-  // no control for a list of ids into another record, and the generic form
-  // would offer a text box of raw ids. Hidden keeps it in the draft, so an
-  // update carries it back unchanged.
   // The lifecycle members are the verbs' (ADR 0079 §1): `release`, `revise`,
   // `retire` and `obsolete` move them and the write path restores them from
   // what is stored, so an input for any of them would be a lie about who
@@ -203,7 +206,6 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   hiddenFields: [
     'id',
     'code',
-    'fitsDeviceModelIds',
     'specKey',
     'version',
     'lifecycleStatus',
@@ -257,6 +259,17 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
       repository: 'productCategoryRest',
       labelProperty: 'name',
       searchProperty: 'name',
+    },
+    // A list of references (entifix 0030), edited by name. `universal` is no
+    // record, so it is set in the guided alta, and shown here by name through
+    // `UniversalFitLabels`; listing a model beside it is refused by the service.
+    {
+      field: 'fitsDeviceModelIds',
+      entityConstructor: DeviceModel,
+      repository: 'deviceModelRest',
+      labelProperty: 'name',
+      searchProperty: 'name',
+      useBaseFiltering: useActiveDeviceModels,
     },
   ],
   /**

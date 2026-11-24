@@ -36,6 +36,7 @@
 - Revised: 2026-11-03 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — a hold converts after the checkout's commit point rather than on payment, a restoration can be a `return`, and every counter move announces `stock-item.changed` at the item's version
 - Revised: 2026-11-16 by [ADR 0081](0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) — a hold's expiry may be stated per hold by the coordinator, bounded by stock-service's `maxHoldSeconds`
 - Revised: 2026-11-21 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — proposed: a quantity is an integer in its unit's scale, the counters' conditional write also matches the unit, and a presentation reserves on its base offering
+- Revised: 2026-11-24 — the MVP-1 audit re-run (#646) found the `LockService` this record pointed at gone from entifix. Even the coarse operations a lock was meant for claim their own record with a conditional write (ADR 0057 §9).
 
 ## Trigger
 
@@ -185,9 +186,11 @@ race to resolve.
 
 ### Do not take a distributed lock per decrement
 
-`LockService` (`@entifix/transactions/ports/lock-service.ts`) is for **coarse**
-operations: a catalog publication, a settlement run, an order spanning several
-vendors.
+A distributed lock was meant for **coarse** operations: a catalog publication,
+a settlement run, an order spanning several vendors. Even those claim their own
+record with a conditional write instead
+([ADR 0057](0057-settlement-joins-the-sale-to-its-payment.md) §9), and entifix
+no longer ships a lock service at all.
 
 A Redis `SET NX PX` per product serializes every purchase of a popular item
 through one key. Throughput becomes one lock round-trip, and contention surfaces

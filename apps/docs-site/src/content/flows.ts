@@ -7,6 +7,7 @@ import { SLICES } from '@r10c/slices';
 
 import { SERVICES_FOLDER, workspaceRoot } from './catalog';
 import { docsCopy, type SiteLocale } from './copy';
+import { lifecycleIndex, lifecyclePage,LIFECYCLES } from './lifecycles';
 import { code, href, link, page, section, table } from './markdown';
 
 export const FLOWS_FOLDER = 'flows';
@@ -249,8 +250,13 @@ export const flowsSource = (locale: SiteLocale): DocsSource => {
             return `- ${link(entry.title, href(locale, FLOWS_FOLDER, scenario.id))} — ${entry.description}`;
           })
           .join('\n'),
+        section(
+          words.lifecycles.title,
+          `${words.lifecycles.intro}\n\n${lifecycleIndex(locale, [FLOWS_FOLDER])}`,
+        ),
       ),
     },
     ...scenarios.map(scenario => scenarioPage(locale, scenario)),
+    ...LIFECYCLES.map(lifecycle => lifecyclePage(locale, lifecycle, [])),
   ]);
 };

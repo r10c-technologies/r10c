@@ -10,6 +10,7 @@ import { audienceSource } from './content/audiences';
 import { servicesSource, STORES, storesSource } from './content/catalog';
 import { SITE_LOCALES, type SiteLocale } from './content/copy';
 import { flowsSource } from './content/flows';
+import { GUIDES_LOCALE, verticalGuidesSource } from './content/guides';
 import { href } from './content/markdown';
 import {
   capabilityHref,
@@ -27,6 +28,9 @@ const build = (locale: SiteLocale): DocsSite =>
     baseUrl: `/${locale}`,
     sources: [
       audienceSource(locale),
+      // The guides live in the Spanish tree only (Q26); the English one
+      // links to them from its home and its merchant door.
+      ...(locale === GUIDES_LOCALE ? [verticalGuidesSource()] : []),
       ...capabilitySources(locale),
       flowsSource(locale),
       servicesSource(locale),

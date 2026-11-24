@@ -528,6 +528,17 @@ jobs:
       # No `nx-cache`: the Nx cache stays off, as the assertions keep it.
       - uses: ./.github/actions/setup
       - run: pnpm nx build @r10c/docs-site --skip-nx-cache
+      # The image Cloud Run serves (#686): built and answered here, never
+      # pushed — `docs_deploy.yml` pushes from `main`.
+      - name: Build and answer the site's image
+        run: |
+          docker build -t r10c/docs-site:check apps/docs-site
+          docker run -d --name docs-site -p 8080:8080 r10c/docs-site:check
+          for _ in $(seq 1 20); do curl -fsS http://localhost:8080/health && break; sleep 1; done
+          curl -fsS -o /dev/null http://localhost:8080/es/
+          curl -fsS -o /dev/null http://localhost:8080/es/guides/hardware/
+          curl -fsS -o /dev/null http://localhost:8080/ui/
+          docker rm -f docs-site
 
   # The run's Nx cache, saved for the next run: what this run restored and
   # wrote, pruned to the entries some job actually used, so a cache restored

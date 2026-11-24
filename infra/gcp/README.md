@@ -19,6 +19,7 @@ and tflint on every change, and no CI job holds a GCP or Atlas credential.
 | `secrets.tf`  | one Secret Manager container per secret, by who supplies it; never a value                        | #683  |
 | `registry.tf` | the Artifact Registry repository the up command pushes to, keeping two versions per image         | #685  |
 | `storage.tf`  | the private receipts bucket, and order-service's Workload Identity grant on it                    | #692  |
+| `docs.tf`     | the two documentation sites on Cloud Run (r10c's behind IAP), their images, the deploy federation | #686  |
 | `outputs.tf`  | what the up and down commands and the manifests read                                              | —     |
 
 ## Validate locally
@@ -43,6 +44,12 @@ upgrade is a reviewed change to `.terraform.lock.hcl`.
 - **The size of the fleet pool and Cloud SQL's activation policy.** The up and
   down commands own them (#685), so both are in `ignore_changes`, as is the
   pool's autoscaling.
+- **The documentation sites' real hosts and readers.** `docs_hosts` and
+  `docs_readers` default to placeholders under `.example`; the real values
+  arrive at MVP-7 in a `tfvars` kept out of git. Each host then needs the DNS
+  records `tofu output docs_dns_records` names. Each repository then needs three
+  Actions variables (`DOCS_GCP_PROJECT`, `DOCS_GCP_WIF_PROVIDER`,
+  `DOCS_GCP_DEPLOY_SA`) before its `docs_deploy.yml` deploys anything.
 - **Secret values and database users.** Secret Manager holds the values; the
   up command (`tools/infra`) mints the generated ones, sets the Cloud SQL and
   Atlas users from them, and writes them into the cluster as Kubernetes
