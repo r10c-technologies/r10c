@@ -761,6 +761,53 @@ const bulkPublishHandlers = [
 ];
 
 /**
+ * `draw-on-stock` as the service answers it (ADR 0082 §7): the record at its
+ * new revision, drawing on the base. Anything but the body the stock-source
+ * form sends for a box of twelve plates is refused, so a form that dropped
+ * the base or the factor fails the journey.
+ */
+const drawOnStockHandlers = [
+  http.post(
+    `${SERVICE_URL}/product-offering/:id/draw-on-stock`,
+    async ({ params, request }) => {
+      const body = (await request.json().catch(() => undefined)) as
+        | { readonly stockOfferingId?: unknown; readonly stockFactor?: unknown }
+        | undefined;
+      if (
+        body?.stockOfferingId !== 'offering-unpriced' ||
+        body.stockFactor !== 12
+      )
+        return HttpResponse.json(
+          problemOf(
+            new InvalidBody({
+              reason: 'draw-on-stock names the base and the factor',
+            }),
+          ),
+          {
+            status: 400,
+            headers: { 'content-type': 'application/problem+json' },
+          },
+        );
+      return HttpResponse.json({
+        meta: { type: 'entity', entity: 'product-offering' },
+        data: {
+          id: String(params['id']),
+          name: 'Taza esmaltada',
+          specificationId: 'product-1',
+          status: 'draft',
+          saleUnit: 'UN',
+          quantityStep: 1,
+          quantityMinimum: 1,
+          stockOfferingId: 'offering-unpriced',
+          stockFactor: 12,
+          revision: 1,
+        },
+      });
+    },
+  ),
+];
+
+/**
  * `set-sale-unit` as the service answers it (ADR 0082 §3): the record at its
  * new revision, step and minimum reset to one whole metre. Anything but the
  * body the unit form sends is refused, so a button that posted nothing — what
@@ -1162,6 +1209,7 @@ const base = defineEntifixE2eTest({
     ...offeringMetadataHandlers,
     ...bulkPublishHandlers,
     ...setSaleUnitHandlers,
+    ...drawOnStockHandlers,
     ...priceMetadataHandlers,
     ...setPriceTiersHandlers,
     ...sellHandlers,

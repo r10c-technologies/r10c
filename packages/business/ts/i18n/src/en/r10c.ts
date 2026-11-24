@@ -185,6 +185,8 @@ export const r10c: EsR10c = {
       quantity: '{{quantity}} {{symbol}}',
       // How something not sold one at a time is sold.
       sold: 'From {{minimum}}, in steps of {{step}}',
+      // What one presentation holds of its base (ADR 0082 §7): "Holds 100 m".
+      contains: 'Holds {{quantity}}',
       // A price that steps down by quantity (ADR 0082 §8): the table on the
       // product page, and the note on a line that reached one.
       tiers: {
@@ -700,6 +702,14 @@ export const r10c: EsR10c = {
       saleUnit: {
         resets:
           'The step and the minimum go back to one whole unit of the new unit. Once the offering is published, its unit no longer changes.',
+      },
+      stockSource: {
+        hint: "A box, a roll or a dozen is sold from another offering's stock: each one sold takes this much from it, so the box and the loose units share one balance.",
+        loading: 'Loading your offerings…',
+        none: 'None: it holds its own stock',
+        factor: 'Each one takes',
+        notCounted:
+          'A presentation is sold by the unit. Set this offering’s unit to pieces first.',
       },
       regions: {
         images: 'Images',

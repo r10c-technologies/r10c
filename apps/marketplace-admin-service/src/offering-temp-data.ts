@@ -26,6 +26,12 @@ export interface ProductOfferingRecord {
   saleUnit: string;
   quantityStep: number;
   quantityMinimum: number;
+  /**
+   * A presentation's base and what one takes of it (ADR 0082 §7); absent,
+   * never `undefined`, on an offering that draws on no base.
+   */
+  stockOfferingId?: string;
+  stockFactor?: number;
 }
 
 export interface ProductOfferingPriceRecord {
@@ -63,6 +69,29 @@ export interface ProductOfferingPriceRecord {
  */
 const SEEDED_AT = new Date('2026-01-01T00:00:00.000Z');
 
+const offeringIdOf = (
+  vendor: Pick<SeededVendor, 'idPrefix'>,
+  index: number,
+): string => `${vendor.idPrefix}product-offering-${String(index + 1)}`;
+
+/**
+ * The stock source a presentation is seeded with: its base's positional id,
+ * found by the base's key in the same store (ADR 0082 §7). A key that names
+ * no product throws, because a seed drawing on nothing is a broken seed.
+ */
+const stockSourceOf = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'products'>,
+  drawsOn: { readonly key: string; readonly factor: number } | undefined,
+): Pick<ProductOfferingRecord, 'stockOfferingId' | 'stockFactor'> => {
+  if (drawsOn === undefined) return {};
+  const base = vendor.products.findIndex(one => one.key === drawsOn.key);
+  if (base < 0) throw new Error(`no product ${drawsOn.key} to draw on`);
+  return {
+    stockOfferingId: offeringIdOf(vendor, base),
+    stockFactor: drawsOn.factor,
+  };
+};
+
 /** One seeded store's offerings, one per specification, under its prefix. */
 export const offeringTempDataFor = (
   vendor: Pick<SeededVendor, 'idPrefix' | 'products' | 'slug'>,
@@ -70,7 +99,7 @@ export const offeringTempDataFor = (
   productTempDataFor(vendor).map((specification, index) => {
     const product = vendor.products[index];
     return {
-      id: `${vendor.idPrefix}product-offering-${index + 1}`,
+      id: offeringIdOf(vendor, index),
       // The product's own name: a store sells "Cable THHN #12", not an
       // "offer" of it.
       name: specification.name,
@@ -83,6 +112,7 @@ export const offeringTempDataFor = (
       saleUnit: product.unit,
       quantityStep: product.step,
       quantityMinimum: product.minimum,
+      ...stockSourceOf(vendor, product.drawsOn),
     };
   });
 

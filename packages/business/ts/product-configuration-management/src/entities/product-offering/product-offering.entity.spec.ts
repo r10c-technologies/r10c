@@ -118,6 +118,8 @@ describe('ProductOffering', () => {
       'saleUnit',
       'quantityStep',
       'quantityMinimum',
+      'stockOfferingId',
+      'stockFactor',
       'revision',
     ]);
   });

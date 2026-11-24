@@ -5,7 +5,11 @@ import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
-import { lineTotal, saleTermsOf } from '@r10c/business-ts-sales-vocabulary';
+import {
+  lineTotal,
+  saleTermsOf,
+  stockSourceOf,
+} from '@r10c/business-ts-sales-vocabulary';
 import { configSourceFor, SEEDED_VENDORS } from '@r10c/utils-ts-fleet';
 import { type Db, MongoClient } from 'mongodb';
 
@@ -349,6 +353,8 @@ const pinOf = async (offeringId: string) => {
     specificationVersion: Number(published?.['specificationVersion'] ?? 0),
     saleUnit: terms.saleUnit,
     pricePer: terms.pricePer,
+    // A presentation states its base as the storefront does (ADR 0082 §7).
+    ...(published === null ? undefined : stockSourceOf(published)),
   };
 };
 

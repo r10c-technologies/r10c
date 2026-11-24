@@ -44,10 +44,12 @@ import {
   type SaleUnitPayload,
   SetPriceTiersUC,
   SetSaleUnitUC,
+  SetStockSourceUC,
   SpecificationCommandsTag,
   type SpecificationMove,
   SpecificationReleased,
   startSpecificationSeries,
+  type StockSourcePayload,
   transitionOfferingFor,
   transitionOfferingSelection,
   UnpublishProductOfferingUC,
@@ -277,6 +279,27 @@ const setSaleUnit = verbEndpoint(SetSaleUnitUC, {
     }),
 });
 
+/**
+ * `POST /api/product-offering/:id/draw-on-stock` — the vendor says the
+ * offering is a presentation drawing on a base offering's stock, or that it no
+ * longer is (ADR 0082 §7). Answered with the record at its new revision.
+ */
+const drawOnStock = verbEndpoint(SetStockSourceUC, {
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const offering = yield* SetStockSourceUC.run({
+        organizationId: organizationOf(context),
+        id: request.params?.id as string,
+        payload: request.payload as StockSourcePayload,
+      });
+      return makeEntityEnvelope(
+        ProductOffering,
+        offering,
+        context.links.record(offering.id),
+      );
+    }),
+});
+
 const unpublish = verbEndpoint(UnpublishProductOfferingUC, {
   handler: transitionOne('unpublish'),
   bulk: transitionSelected('unpublish'),
@@ -296,7 +319,7 @@ export const productOfferingApi = defineEntityApi(
     guard: { kind: 'organization' },
     prepare: (offering, context) =>
       preserveOfferingLifecycle(offering, organizationOf(context)),
-    useCases: [publish, unpublish, setSaleUnit],
+    useCases: [publish, unpublish, setSaleUnit, drawOnStock],
   },
 );
 

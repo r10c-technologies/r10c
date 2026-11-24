@@ -61,6 +61,8 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     'POST /api/product-offering/:id/publish',
     'POST /api/product-offering/:id/unpublish',
     'POST /api/product-offering/:id/set-sale-unit',
+    // A presentation drawing on a base offering's stock (ADR 0082 §7).
+    'POST /api/product-offering/:id/draw-on-stock',
     // The same two verbs over a selection, under the same two permissions
     // (#216). One segment where the per-id routes have two, so neither shadows
     // the other.

@@ -268,4 +268,35 @@ export const HARDWARE_PRODUCTS: readonly SampleProduct[] = [
     status: 'draft',
     stock: 12,
   }),
+  // Presentations (ADR 0082 §7), last so every other product keeps its
+  // positional id: each is sold by the piece from its base's stock, so a roll
+  // and loose metres, or a box and loose screws, share one balance.
+  product(
+    {
+      key: 'cable-thhn-12-rollo',
+      name: 'Cable THHN #12 AWG, rojo, rollo de 100 m',
+      description: 'El mismo cable por metro, en rollo cerrado de 100 m.',
+      brand: 'cobrelux',
+      category: 'cables',
+      art: 'roll',
+      amount: 52000,
+      status: 'published',
+      stock: 'none',
+    },
+    { drawsOn: { key: 'cable-thhn-12', factor: 100_000 } },
+  ),
+  product(
+    {
+      key: 'tornillo-madera-8-caja',
+      name: 'Tornillo para madera #8 × 1½", caja de 500',
+      description: 'Los mismos tornillos sueltos, en caja de 500.',
+      brand: 'tornimax',
+      category: 'screws',
+      art: 'box',
+      amount: 3200,
+      status: 'published',
+      stock: 'none',
+    },
+    { drawsOn: { key: 'tornillo-madera-8', factor: 500 } },
+  ),
 ];

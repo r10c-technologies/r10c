@@ -7,6 +7,7 @@ import {
   SALE_UNIT_SYMBOL_KEY,
   type SaleRule,
   type SaleUnit,
+  type StockSource,
 } from '@r10c/business-ts-sales-vocabulary';
 
 /** The slice of a translate function the label needs. */
@@ -67,3 +68,23 @@ export const saleRuleLabel =
       step: label(rule.quantityStep, rule.saleUnit),
     });
   };
+
+/**
+ * What one presentation holds of its base — "Contiene 100 m" — or `undefined`
+ * for an offering that draws on no base (ADR 0082 §7). The factor is the
+ * base's quantity in the base's scale, so it reads as the base is sold.
+ */
+export const presentationLabel =
+  (t: Translate, locale: Locale) =>
+  (offering: {
+    readonly stockFactor?: StockSource['stockFactor'] | undefined;
+    readonly stockUnit?: StockSource['stockUnit'] | undefined;
+  }): string | undefined =>
+    offering.stockFactor === undefined || offering.stockUnit === undefined
+      ? undefined
+      : t('storefront.price.contains', {
+          quantity: quantityLabel(t, locale)(
+            offering.stockFactor,
+            offering.stockUnit,
+          ),
+        });

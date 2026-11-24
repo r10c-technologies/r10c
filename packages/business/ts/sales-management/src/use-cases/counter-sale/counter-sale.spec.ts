@@ -79,6 +79,20 @@ const prices: Record<string, PublishedPrice> = {
     specificationVersion: 1,
     ...ONE_PIECE,
   },
+  // A box of a hundred nails, drawing on the loose ones (ADR 0082 §7).
+  box: {
+    offeringId: 'box',
+    name: 'Caja de 100 clavos',
+    vendorId: 'org-1',
+    amount: 4000,
+    currency: 'GTQ',
+    specificationId: 'spec-box',
+    specificationVersion: 1,
+    stockOfferingId: 'tiered',
+    stockFactor: 100,
+    stockUnit: 'UN',
+    ...ONE_PIECE,
+  },
   theirs: {
     offeringId: 'theirs',
     name: 'Plato',
@@ -240,6 +254,24 @@ describe('sellAtCounter', () => {
       tierFrom: 2,
     });
     expect(input.totals).toEqual([{ currency: 'GTQ', amount: 800 }]);
+  });
+
+  it('states the base a presentation draws on, as published', async () => {
+    const { sold, started } = world();
+
+    await sold('c-open', 'box');
+
+    const input = started[0]?.input as {
+      readonly vendors: readonly {
+        readonly lines: readonly Record<string, unknown>[];
+      }[];
+    };
+    expect(input.vendors[0]?.lines[0]).toMatchObject({
+      offeringId: 'box',
+      stockOfferingId: 'tiered',
+      stockFactor: 100,
+      stockUnit: 'UN',
+    });
   });
 
   it('copies no description onto a line whose specification had none', async () => {

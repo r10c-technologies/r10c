@@ -8,7 +8,13 @@ import {
   readDeviceModelIds,
   readMedia,
 } from '@r10c/business-ts-catalog-contracts';
-import { priceTiersRefusal } from '@r10c/business-ts-sales-vocabulary';
+import {
+  isStockFactor,
+  PRESENTATION_UNIT,
+  priceTiersRefusal,
+  type StockSource,
+  StockSourceInvalid,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Context, Effect, Schema } from 'effect';
 
 import type { ProductOffering } from '../../entities/product-offering';
@@ -290,6 +296,37 @@ export interface OfferingTransitionDecision {
  * Framework-free, like every use case in this repository: both repositories
  * arrive as tags and the caller has already been authorized by the route.
  */
+/**
+ * The stock source a presentation publishes with, `undefined` for an offering
+ * that draws on no base, or the problem that keeps it from being drawn on.
+ *
+ * ⚠️ `load` with a filter, never `get`, for the same reason as the
+ * specification: a base that is gone is a value this decides on.
+ */
+const stockSourceOf = (
+  repository: EntityRepositoryTag['Service'],
+  offering: ProductOffering,
+) =>
+  Effect.gen(function* () {
+    const { stockOfferingId, stockFactor } = offering;
+    if (stockOfferingId === undefined) return undefined;
+    if (offering.saleUnit !== PRESENTATION_UNIT) return 'notCounted' as const;
+    if (!isStockFactor(stockFactor)) return 'factor' as const;
+    const page = yield* repository.load<ProductOffering>({
+      filtering: [{ property: 'id', operator: 'eq', value: stockOfferingId }],
+      pageSize: 1,
+    });
+    const base = page.items[0];
+    if (base === undefined) return 'baseMissing' as const;
+    if (base.stockOfferingId !== undefined)
+      return 'baseIsPresentation' as const;
+    return {
+      stockOfferingId,
+      stockFactor,
+      stockUnit: base.saleUnit,
+    } satisfies StockSource;
+  });
+
 export const transitionOffering = Effect.gen(function* () {
   const { id, transition, vendorId, source, at, restating } =
     yield* TransitionOfferingInputTag;
@@ -369,6 +406,14 @@ export const transitionOffering = Effect.gen(function* () {
     if (refused !== undefined) return yield* refused;
   }
 
+  // A presentation carries its base and the base's unit (ADR 0082 §7): the
+  // coordinator reserves on the base and reads no catalog. `draw-on-stock`
+  // checked the base when it was set, but nothing locks it, so publication
+  // checks it again. A takedown announces whatever it can still name.
+  const stockSource = yield* stockSourceOf(repository, offering);
+  if (typeof stockSource === 'string' && next === 'published')
+    return yield* new StockSourceInvalid({ problem: stockSource });
+
   offering.status = next;
   // ⚠️ Stamped on **both** transitions, and stored rather than only announced.
   // It is the same value the payload carries as `publishedAt` and therefore the
@@ -401,6 +446,8 @@ export const transitionOffering = Effect.gen(function* () {
     ...(tiers === undefined || tiers.length === 0
       ? {}
       : { tiers: tiers.map(({ from, amount }) => ({ from, amount })) }),
+    // Absent, never `undefined`, on an offering that draws on no base.
+    ...(typeof stockSource === 'object' ? stockSource : {}),
     ...pinOf(offering, specification),
     ...merchandisingOf(specification),
   };

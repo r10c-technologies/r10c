@@ -1,3 +1,4 @@
+export * from './draw-on-stock';
 export * from './offering-flows';
 export * from './publish-product-offering';
 export * from './set-price-tiers';

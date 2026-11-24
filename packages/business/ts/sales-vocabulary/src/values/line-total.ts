@@ -1,4 +1,5 @@
 import { oneWholeUnit, type SaleUnit } from './sale-unit';
+import { PRESENTATION_UNIT } from './stock-source';
 
 /** How many whole units a price buys (ADR 0082 §5). */
 export const PricePers = [1, 100, 1000] as const;
@@ -62,3 +63,33 @@ export const lineTotal = ({
  */
 export const amountPerThousand = ({ amount, pricePer }: UnitPrice): number =>
   safe(counted(amount) * (1000n / BigInt(pricePer)));
+
+/** What a presentation's line takes from its base's stock is computed from. */
+export interface StockTerms {
+  readonly quantity: number;
+  readonly saleUnit: SaleUnit;
+  readonly stockFactor: number;
+}
+
+/**
+ * How many scaled base quantities a presentation's line draws:
+ * `quantity × stockFactor` (ADR 0082 §7). A presentation is sold in `UN`,
+ * whose scale is zero, so the quantity is a plain count.
+ *
+ * ⚠️ **The coordinator calls it once and the line copies the answer.** A
+ * cancellation or a return restores what was copied, so a factor edited later
+ * corrupts no past order.
+ */
+export const stockQuantityOf = ({
+  quantity,
+  saleUnit,
+  stockFactor,
+}: StockTerms): number => {
+  if (saleUnit !== PRESENTATION_UNIT)
+    throw new RangeError(
+      `a presentation is sold in ${PRESENTATION_UNIT}, not ${saleUnit}`,
+    );
+  if (stockFactor <= 0)
+    throw new RangeError(`${String(stockFactor)} is not a factor`);
+  return safe(counted(quantity) * counted(stockFactor));
+};

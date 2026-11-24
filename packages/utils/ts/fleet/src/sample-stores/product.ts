@@ -23,7 +23,7 @@ export const product = (
   rest: Partial<
     Pick<
       SampleProduct,
-      'unit' | 'step' | 'minimum' | 'pricePer' | 'fits' | 'tiers'
+      'unit' | 'step' | 'minimum' | 'pricePer' | 'fits' | 'tiers' | 'drawsOn'
     >
   > = {},
 ): SampleProduct => ({

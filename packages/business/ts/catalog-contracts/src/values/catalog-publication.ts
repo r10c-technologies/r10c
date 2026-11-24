@@ -12,6 +12,8 @@ import {
   type SaleTerms,
   SaleTermsFields,
   saleTermsOf,
+  type SaleUnit,
+  stockSourceOf,
 } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
@@ -98,6 +100,16 @@ export interface CatalogPublication extends SaleTerms {
    * never `[]`, when the price has none; `tieredPrice` is what reads it.
    */
   readonly tiers?: readonly PriceTier[];
+  /**
+   * A presentation's base and what one of it takes from the base's stock, in
+   * the base's unit (ADR 0082 §7). The coordinator reserves
+   * `quantity × stockFactor` of `stockUnit` on `stockOfferingId`, and the
+   * order line copies what it took. All three or none: absent, never
+   * `undefined`, on an offering that draws on no base.
+   */
+  readonly stockOfferingId?: string;
+  readonly stockFactor?: number;
+  readonly stockUnit?: SaleUnit;
   /**
    * A hint, not a promise — the checkout reservation is the truth (ADR 0009,
    * ADR 0010).
@@ -290,6 +302,17 @@ const tiersOf = (value: unknown): Pick<CatalogPublication, 'tiers'> => {
   return tiers === undefined ? {} : { tiers };
 };
 
+/**
+ * The stock source a payload states, folded like the tiers: a partial one is
+ * absent rather than poison. A presentation that lost it reserves on its own
+ * id, where no stock is held, so the checkout refuses it rather than selling
+ * stock nobody counted.
+ */
+const stockOf = (
+  raw: Readonly<Record<string, unknown>>,
+): Pick<CatalogPublication, 'stockOfferingId' | 'stockFactor' | 'stockUnit'> =>
+  stockSourceOf(raw) ?? {};
+
 const optionalString = (value: unknown): string | undefined =>
   typeof value === 'string' && value !== '' ? value : undefined;
 
@@ -327,6 +350,7 @@ export const readCatalogPublication = (
         media: readMedia(raw['media']),
         fitsDeviceModelIds: readDeviceModelIds(raw['fitsDeviceModelIds']),
         ...tiersOf(raw['tiers']),
+        ...stockOf(raw),
         ...terms,
       })),
     ),

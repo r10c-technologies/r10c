@@ -223,6 +223,8 @@ export const errors = {
   pricePerInvalid: 'Un precio es por 1, 100 o 1000 unidades.',
   priceTiersInvalid:
     'Cada precio por volumen empieza en una cantidad que el producto vende, mayor que su mínimo y que la del anterior, y cuesta menos que el precio anterior. Un precio tiene como máximo cinco.',
+  stockSourceInvalid:
+    'Una presentación se vende por unidad y toma un número entero de unidades de su base. Su base es otra oferta tuya que no es a su vez una presentación, y una presentación nunca es base de otra.',
   saleUnitFixed:
     'Esta oferta ya se publicó, así que su unidad no puede cambiar. Crea otra oferta para venderla en otra unidad.',
 };

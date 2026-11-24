@@ -57,6 +57,8 @@ export class ProductOffering implements Entity {
   #saleUnit: SaleUnit = DEFAULT_SALE_UNIT;
   #quantityStep = oneWholeUnit(DEFAULT_SALE_UNIT);
   #quantityMinimum = oneWholeUnit(DEFAULT_SALE_UNIT);
+  #stockOfferingId?: string;
+  #stockFactor?: number;
   #revision?: number;
   // #endregion
 
@@ -254,6 +256,47 @@ export class ProductOffering implements Entity {
   }
   set quantityMinimum(value: number) {
     this.#quantityMinimum = value;
+  }
+
+  /**
+   * The base offering this one draws its stock from, when it is a
+   * presentation — a box, a roll, a dozen (ADR 0082 §7). It is sold in `UN`
+   * and has no stock of its own: each one sold takes `stockFactor` from the
+   * base's, so a box and loose units compete for one balance.
+   *
+   * ⚠️ **Server-owned.** Only `draw-on-stock` sets it; a save carries the
+   * stored value across. One level: a base draws on nothing, and a presentation
+   * is nobody's base. A plain id in the same tenant catalog, so one vendor.
+   */
+  @accessor({
+    references: { entity: 'product-configuration-management:product-offering' },
+    type: 'string',
+    labelKey: 'entity:product-offering.fields.stockOfferingId',
+    filterable: true,
+  })
+  get stockOfferingId(): string | undefined {
+    return this.#stockOfferingId;
+  }
+  set stockOfferingId(value: string | undefined) {
+    this.#stockOfferingId = value;
+  }
+
+  /**
+   * How many of the base's scaled quantities one of this takes: a 100 m roll
+   * of a cable stocked in metres is `100000`. Server-owned with
+   * `stockOfferingId`; effective at the next publication.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-offering.fields.stockFactor',
+    sortable: false,
+    filterable: false,
+  })
+  get stockFactor(): number | undefined {
+    return this.#stockFactor;
+  }
+  set stockFactor(value: number | undefined) {
+    this.#stockFactor = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

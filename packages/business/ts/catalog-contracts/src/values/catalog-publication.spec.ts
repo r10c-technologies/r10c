@@ -165,6 +165,23 @@ describe('readCatalogPublication', () => {
     ).not.toHaveProperty('tiers');
   });
 
+  it('reads a presentation’s stock source, and folds a partial one to none', () => {
+    const stock = {
+      stockOfferingId: 'o-base',
+      stockFactor: 100_000,
+      stockUnit: 'M',
+    } as const;
+
+    expect(
+      Effect.runSync(readCatalogPublication({ ...PUBLICATION, ...stock })),
+    ).toEqual({ ...PUBLICATION, ...stock });
+    expect(
+      Effect.runSync(
+        readCatalogPublication({ ...PUBLICATION, ...stock, stockFactor: 0 }),
+      ),
+    ).not.toHaveProperty('stockOfferingId');
+  });
+
   it('survives the round trip through JSON, which is how it actually arrives', () => {
     const wire: unknown = JSON.parse(JSON.stringify(PUBLICATION));
 

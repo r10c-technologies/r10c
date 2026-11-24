@@ -181,7 +181,8 @@ export const transitionOfferingSelection = (input: {
   });
 
 /**
- * ⚠️ **`status` and `saleUnit` are server-owned** (ADR 0047, ADR 0082 §3): a
+ * ⚠️ **`status`, `saleUnit` and the stock source are server-owned** (ADR
+ * 0047, ADR 0082 §3 and §7): a
  * save carries the stored values across, whatever the body said, and a new
  * offering starts `draft`, sold in `UN`. Without this the publish verb would
  * be decoration — a `PUT` could set `published` with no price check and no
@@ -203,10 +204,15 @@ export const preserveOfferingLifecycle = (
       // otherwise: a unit chosen in the same body as a step would leave the
       // step's meaning to whichever field the form happened to send first.
       offering.saleUnit = DEFAULT_SALE_UNIT;
+      // A new offering draws on no base until `draw-on-stock` says so.
+      offering.stockOfferingId = undefined;
+      offering.stockFactor = undefined;
     } else {
       offering.status = stored.value.status;
       offering.statusChangedAt = stored.value.statusChangedAt;
       offering.saleUnit = stored.value.saleUnit;
+      offering.stockOfferingId = stored.value.stockOfferingId;
+      offering.stockFactor = stored.value.stockFactor;
     }
     if (!isSellableRule(offering)) {
       return yield* new SaleRuleInvalid({

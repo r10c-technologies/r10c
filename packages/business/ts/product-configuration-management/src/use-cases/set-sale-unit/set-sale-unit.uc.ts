@@ -1,7 +1,12 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { EntityRepositoryFactoryTag } from '@entifix/business';
 import { type EntityId, NotFound, useCase } from '@entifix/core';
-import { defaultSaleRule, SaleUnits } from '@r10c/business-ts-sales-vocabulary';
+import {
+  defaultSaleRule,
+  PRESENTATION_UNIT,
+  SaleUnits,
+  StockSourceInvalid,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
 import { ProductOffering } from '../../entities/product-offering';
@@ -33,6 +38,8 @@ export type SaleUnitPayload = typeof SaleUnitPayload.Type;
  * whole unit of the new one in the same write, so `500` can never be read as
  * half a metre after it was written as five hundred pieces.
  *
+ * A presentation stays in `UN` ({@link StockSourceInvalid}).
+ *
  * Legal only while the offering was **never published**; afterwards it is
  * {@link SaleUnitFixed}. One conditional write on that status and on the
  * revision the vendor read, so a publish or a save landing in between answers
@@ -49,7 +56,7 @@ export type SaleUnitPayload = typeof SaleUnitPayload.Type;
   // surface that holds no such form does not offer the verb (entifix #315).
   form: 'sale-unit',
   availableWhen: { member: 'status', in: NeverPublishedStatuses },
-  errors: [NotFound, SaleUnitFixed, OfferingChanged],
+  errors: [NotFound, SaleUnitFixed, StockSourceInvalid, OfferingChanged],
 })
 export class SetSaleUnitUC {
   static run(input: {
@@ -66,6 +73,12 @@ export class SetSaleUnitUC {
       const id = String(offering.id);
       if (!isNeverPublished(offering.status))
         return yield* new SaleUnitFixed({ id });
+      // A presentation is counted (ADR 0082 §7): its factor is per one.
+      if (
+        offering.stockOfferingId !== undefined &&
+        input.payload.saleUnit !== PRESENTATION_UNIT
+      )
+        return yield* new StockSourceInvalid({ problem: 'notCounted' });
       const read =
         input.payload.revision === undefined
           ? offering.revision

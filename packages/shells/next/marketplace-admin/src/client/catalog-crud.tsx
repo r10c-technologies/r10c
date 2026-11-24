@@ -43,6 +43,7 @@ import {
 } from './offering-regions';
 import { PRICE_TIERS_FORM, PriceTiersForm } from './price-tiers-form';
 import { SALE_UNIT_FORM, SaleUnitForm } from './sale-unit-form';
+import { STOCK_SOURCE_FORM, StockSourceForm } from './stock-source-form';
 
 /**
  * The catalog's five CRUD surfaces, declared rather than written.
@@ -330,7 +331,15 @@ export const productOfferingCrudWith = ({
     // `saleUnit` too (ADR 0082 §3): only `set-sale-unit` changes it, and the
     // save carries the stored unit across, so an input here would offer a
     // choice the write ignores. The step and minimum stay, read in its scale.
-    hiddenFields: ['id', 'status', 'statusChangedAt', 'saleUnit'],
+    hiddenFields: [
+      'id',
+      'status',
+      'statusChangedAt',
+      'saleUnit',
+      // Server-owned: only `draw-on-stock` writes them (ADR 0082 §7).
+      'stockOfferingId',
+      'stockFactor',
+    ],
     // `specificationId` is a plain `string` into the same store, and the picker
     // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
     // `link` and `string`, and `applyEntityLinks` skips a non-`link` descriptor,
@@ -351,7 +360,10 @@ export const productOfferingCrudWith = ({
     ],
     // `set-sale-unit` needs the unit it sets, so it opens this form rather
     // than posting from a button (ADR 0082 §3, entifix #315).
-    verbForms: { [SALE_UNIT_FORM]: SaleUnitForm },
+    verbForms: {
+      [SALE_UNIT_FORM]: SaleUnitForm,
+      [STOCK_SOURCE_FORM]: StockSourceForm,
+    },
     related: [...OFFERING_RELATED_COLUMNS, ...related],
     regions: offering => [
       <OfferingImagesRegion key="images" offering={offering} />,

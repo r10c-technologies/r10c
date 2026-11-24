@@ -4,6 +4,8 @@ import {
   priceTiersOf,
   type SaleTerms,
   saleTermsOf,
+  type StockSource,
+  stockSourceOf,
 } from '@r10c/business-ts-sales-vocabulary';
 import { Context, type Effect } from 'effect';
 
@@ -15,7 +17,7 @@ import { Context, type Effect } from 'effect';
  * line, so the order keeps what was sold after a rename or a new version
  * (#582, ADR 0079 §3).
  */
-export interface PublishedPrice extends SaleTerms {
+export interface PublishedPrice extends SaleTerms, Partial<StockSource> {
   readonly offeringId: string;
   readonly name: string;
   readonly description?: string;
@@ -79,6 +81,9 @@ export const publishedPriceOf = (
   const description = record?.['description'];
   const tiers = priceTiersOf(record?.['tiers']);
   const terms = saleTermsOf(record);
+  // A presentation's base rides the sale's line, so the coordinator reserves
+  // on it (ADR 0082 §7).
+  const stock = record === undefined ? undefined : stockSourceOf(record);
   return terms !== undefined &&
     typeof vendorId === 'string' &&
     typeof name === 'string' &&
@@ -98,6 +103,7 @@ export const publishedPriceOf = (
         specificationVersion,
         ...terms,
         ...(tiers === undefined ? {} : { tiers }),
+        ...stock,
         ...(typeof description === 'string' && description !== ''
           ? { description }
           : {}),

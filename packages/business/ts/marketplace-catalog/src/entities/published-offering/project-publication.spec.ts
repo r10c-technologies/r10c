@@ -38,6 +38,18 @@ describe('projectPublication', () => {
     });
   });
 
+  it('copies a presentation’s base, factor and the base’s unit', () => {
+    const stock = {
+      stockOfferingId: 'o-base',
+      stockFactor: 100_000,
+      stockUnit: 'M',
+    } as const;
+
+    expect(projectPublication({ ...PUBLICATION, ...stock }, AT)).toMatchObject(
+      stock,
+    );
+  });
+
   it('derives the key a list orders prices quoted per hundred by', () => {
     // Q7.50 the hundred is Q75.00 the thousand: it ranks below Q0.10 each.
     expect(projectPublication(PUBLICATION, AT).amountPerThousand).toBe(7500);

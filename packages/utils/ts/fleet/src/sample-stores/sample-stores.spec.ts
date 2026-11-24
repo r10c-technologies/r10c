@@ -135,6 +135,22 @@ describe('the sample stores', () => {
     ).toBe(true);
   });
 
+  it('sell each presentation by the piece from a base in its own store, one level deep', () => {
+    const presentations = everyProduct.filter(
+      ({ item }) => item.drawsOn !== undefined,
+    );
+    expect(presentations.length).toBeGreaterThan(0);
+    for (const { vendor, item } of presentations) {
+      const base = vendor.products.find(one => one.key === item.drawsOn?.key);
+      expect(base, `${item.key} draws on a product of its store`).toBeDefined();
+      expect(base?.drawsOn).toBeUndefined();
+      expect(item.unit).toBe('UN');
+      expect(item.stock).toBe('none');
+      expect(Number.isSafeInteger(item.drawsOn?.factor)).toBe(true);
+      expect(item.drawsOn?.factor).toBeGreaterThan(0);
+    }
+  });
+
   it('fit every phone accessory to at least one seeded model', () => {
     for (const item of PHONE_ACCESSORIES_STORE.products) {
       expect(item.fits?.length).toBeGreaterThan(0);

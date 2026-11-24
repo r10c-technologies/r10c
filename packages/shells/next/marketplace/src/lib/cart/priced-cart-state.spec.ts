@@ -70,6 +70,29 @@ describe('pricedCartOf', () => {
     });
   });
 
+  it('states the base a presentation draws on, and none for a plain offering', () => {
+    const roll = Object.assign(offering('roll', 'v-1', 400_000), {
+      stockOfferingId: 'cable',
+      stockFactor: 100_000,
+      stockUnit: 'M',
+    });
+
+    const [drawn, plain] = pricedCartOf([
+      { line: { offeringId: 'roll', quantity: 2 }, offering: roll },
+      {
+        line: { offeringId: 'o-2', quantity: 1 },
+        offering: offering('o-2', 'v-1', 9),
+      },
+    ]).priced;
+
+    expect(drawn).toMatchObject({
+      stockOfferingId: 'cable',
+      stockFactor: 100_000,
+      stockUnit: 'M',
+    });
+    expect(plain).not.toHaveProperty('stockOfferingId');
+  });
+
   it('copies the description and the version each line is sold under', () => {
     const pinned = Object.assign(offering('o-1', 'v-1', 500), {
       description: 'Esmaltada a mano.',

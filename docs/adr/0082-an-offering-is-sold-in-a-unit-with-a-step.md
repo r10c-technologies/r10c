@@ -6,6 +6,7 @@
 - Revised: 2026-11-23 — §2: only the offering defaults to `UN`; a stock record, an order line and a shipping line state their unit and a body naming none is refused. §3: the cart refuses rather than rounds and a line made invalid blocks the review and the checkout. §4: the ledger tells `unitMismatch` from a first-movement race and from too little stock. §6: the coordinator also overwrites the group's totals, and the order write refuses a line whose `lineTotal` disagrees with its terms. Consequences: what was built, and the check that fails a new multiplication (#672).
 - Revised: 2026-11-23 by the sample-stores build (#676) — the three sample stores sell by the metre, the pound, the hundred, the yard, the litre and the pair. The shoemaking-supplies store sells faux leather and linings by the yard and **no natural leather**, which waits on the merchant calls (#644) this record's trigger names; the hardware store sells no cement.
 - Revised: 2026-11-23 by the price-tiers build (#674) — §8 is built. A price holds at most five tiers, a tier at the offering's minimum is refused because it is the base price, and the tiers are written by a `set-price-tiers` verb with its own form: a tier's quantity is in the offering's unit and its amount in the price's currency, neither of which lives on the row, so the generic save carries the stored tiers across and refuses a base lowered to or below one. A publication checks them again, since the unit can change before it. `tieredPrice` is the one place a tier is chosen; the storefront and the till call it on the projection, and the order line and the order events carry the `tierFrom` that priced it.
+- Revised: 2026-11-24 by the presentations build (#673) — §7 is built. The snapshot also carries the base's unit, `stockUnit`, read at publication, because the ledger refuses a hold in another unit and the coordinator reads no catalog. The coordinator states `stockQuantity` with `stockQuantityOf`, beside `lineTotal` in the vocabulary, and drops the caller's factor; the order line and the shipping line copy the base, its unit and that quantity, and a cancellation or a return restores exactly them. A `draw-on-stock` verb with its own form sets the source in any status, effective at the next publication, which checks the base again; a presentation's unit cannot leave `UN`. A presentation holds no stock row of its own.
 - Area: business
 - Read when: multiplying a price by a quantity, selling by the metre, yard or box, or pricing below a centavo — a quantity is a scaled integer, a line's total is computed once, and a sale never grows after it is placed
 
@@ -293,6 +294,19 @@ product page's table; and `tierFrom` on the checkout line, the order line, the
 order events and the buyer's receipt. The coordinator still computes every
 line's total from the amount it is handed, so a tier never meets a quantity
 anywhere but `lineTotal`.
+
+**Built for #673:** `StockSource`, `stockSourceOf` and `StockSourceInvalid`
+in the vocabulary, and `stockQuantityOf` in `line-total.ts`, the one file the
+multiplication check allows; `stockOfferingId` and `stockFactor` on the
+offering, written only by `draw-on-stock`; the three members on the snapshot,
+the projection and the published price the till reads; `stockOfferingId`,
+`stockUnit` and `stockQuantity` on the checkout line, the order line and the
+shipping line, so `stock.reserve` and `stock.restore` move the base under the
+presentation's own line key; a "holds 100 m" line on the product page; and two
+presentations in the hardware sample store. Nothing stops a vendor recording a
+movement against a presentation's own id by hand: the stock slice cannot read
+the catalog, and such a row is never reserved, since every sale of the
+presentation reserves on its base.
 
 **Costs accepted:**
 

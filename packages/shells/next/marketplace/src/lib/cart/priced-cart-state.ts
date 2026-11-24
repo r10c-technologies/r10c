@@ -1,5 +1,9 @@
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { lineTotal, tieredPrice } from '@r10c/business-ts-sales-vocabulary';
+import {
+  lineTotal,
+  stockSourceOf,
+  tieredPrice,
+} from '@r10c/business-ts-sales-vocabulary';
 
 import { type MoneyTotal, totalsByCurrency } from '../catalog/money';
 import { type CartRefusal, heldLineRefusal } from './cart-quantity';
@@ -68,6 +72,12 @@ const pricedLineOf = (
       saleUnit: offering.saleUnit,
     }),
     currency: offering.currency,
+    // A presentation draws on its base's stock (ADR 0082 §7).
+    ...stockSourceOf({
+      stockOfferingId: offering.stockOfferingId,
+      stockFactor: offering.stockFactor,
+      stockUnit: offering.stockUnit,
+    }),
   };
 };
 

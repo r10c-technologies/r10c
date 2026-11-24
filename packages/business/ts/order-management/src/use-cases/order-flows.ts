@@ -320,10 +320,18 @@ export const cancellationInput = (
   orderId: String(order.id),
   vendorId: order.vendorId,
   paymentMethod: order.paymentMethod,
+  // A presentation's line puts back what it took from its base (ADR 0082 §7).
   lines: order.items.map(line => ({
     offeringId: line.offeringId,
     unit: line.saleUnit,
     quantity: line.quantity,
+    ...(line.stockOfferingId === undefined
+      ? {}
+      : {
+          stockOfferingId: line.stockOfferingId,
+          stockUnit: line.stockUnit,
+          stockQuantity: line.stockQuantity,
+        }),
   })),
   shipped: order.channel === undefined || order.channel.type === 'storefront',
   ...(order.buyerId === undefined ? {} : { buyerId: order.buyerId }),

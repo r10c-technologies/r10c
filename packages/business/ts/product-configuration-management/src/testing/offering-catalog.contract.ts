@@ -208,6 +208,50 @@ export const describeOfferingCatalogContract = (
       );
     });
 
+    it('sets a stock source at the revision it was read at, once, whatever the status', async () => {
+      const catalog = await make();
+      const read = Object.assign(moved('pending-review'), {
+        stockOfferingId: 'o-seeded',
+        stockFactor: 100,
+      });
+
+      expect(await run(catalog.setStockSource('acme', read))).toBe('committed');
+      expect(await run(catalog.setStockSource('acme', read))).toBe('changed');
+    });
+
+    it('stops an offering drawing on a base at the revision it was read at', async () => {
+      const catalog = await make();
+      const cleared = Object.assign(moved('draft'), {
+        stockOfferingId: undefined,
+        stockFactor: undefined,
+      });
+
+      expect(await run(catalog.setStockSource('acme', cleared))).toBe(
+        'committed',
+      );
+    });
+
+    it('sets the stock source of a seeded offering, which has no revision yet', async () => {
+      const catalog = await make();
+      const seeded = Object.assign(new ProductOffering('A box', 'spec-1'), {
+        id: 'o-seeded',
+        stockOfferingId: 'o-1',
+        stockFactor: 12,
+      });
+
+      expect(await run(catalog.setStockSource('acme', seeded))).toBe(
+        'committed',
+      );
+    });
+
+    it('answers changed for a stock source on an offering the organization does not hold', async () => {
+      const catalog = await make();
+
+      expect(await run(catalog.setStockSource('other', moved('draft')))).toBe(
+        'changed',
+      );
+    });
+
     it('sets a price’s tiers at the revision it was read at, once', async () => {
       const catalog = await make();
 

@@ -72,6 +72,9 @@ export class PublishedOffering implements Entity {
   #quantityMinimum = oneWholeUnit(DEFAULT_SALE_UNIT);
   #pricePer: PricePer = DEFAULT_PRICE_PER;
   #tiers?: readonly PriceTier[];
+  #stockOfferingId?: string;
+  #stockFactor?: number;
+  #stockUnit?: SaleUnit;
   #amountPerThousand = 0;
   // The epoch, so a record written before this member existed compares as
   // older than every real publication rather than as newer than all of them.
@@ -298,6 +301,56 @@ export class PublishedOffering implements Entity {
   }
   set quantityMinimum(value: number) {
     this.#quantityMinimum = value;
+  }
+
+  /**
+   * A presentation's base offering, how much of the base's stock one of it
+   * takes, and the base's unit, as published (ADR 0082 §7). The sale's line
+   * carries all three, so the coordinator reserves on the base; the product
+   * page says what one holds. Absent on an offering that draws on no base.
+   */
+  @accessor({
+    references: { entity: 'marketplace-catalog:published-offering' },
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.stockOfferingId',
+    filterable: true,
+  })
+  get stockOfferingId(): string | undefined {
+    return this.#stockOfferingId;
+  }
+  set stockOfferingId(value: string | undefined) {
+    this.#stockOfferingId = value;
+  }
+
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:published-offering.fields.stockFactor',
+    sortable: false,
+    filterable: false,
+    scaled: {
+      unitMember: 'stockUnit',
+      units: SALE_UNIT_SCALES,
+      unitLabelKey: SALE_UNIT_SYMBOL_KEY,
+    },
+  })
+  get stockFactor(): number | undefined {
+    return this.#stockFactor;
+  }
+  set stockFactor(value: number | undefined) {
+    this.#stockFactor = value;
+  }
+
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:published-offering.fields.stockUnit',
+    enumValues: SaleUnits,
+    enumLabelKey: SALE_UNIT_NAME_KEY,
+  })
+  get stockUnit(): SaleUnit | undefined {
+    return this.#stockUnit;
+  }
+  set stockUnit(value: SaleUnit | undefined) {
+    this.#stockUnit = value;
   }
 
   /** A hint, not a promise. The checkout reservation is the truth. */

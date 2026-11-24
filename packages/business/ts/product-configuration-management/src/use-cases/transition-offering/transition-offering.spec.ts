@@ -98,7 +98,12 @@ const repositoryOf = (...rows: ProductOffering[]) => {
         ? Effect.succeed(row as unknown as TEntity)
         : Effect.fail(new NotFound({ entity: 'offering' }));
     },
-    load: vi.fn(),
+    // Only a presentation's base is loaded, by id.
+    load: (request: { filtering: { value: unknown }[] }) => {
+      const row = byId.get(String(request.filtering[0]?.value));
+      const items = row === undefined ? [] : [row];
+      return Effect.succeed({ items, total: items.length });
+    },
     save: <TEntity extends Entity>(entity: TEntity) => {
       saved.push(entity as unknown as ProductOffering);
       return Effect.succeed(entity);
@@ -364,6 +369,73 @@ describe('the tiers a price holds', () => {
     );
 
     expect('tiers' in event.data).toBe(false);
+  });
+});
+
+describe('a presentation', () => {
+  const presentation = (status: OfferingStatus = 'draft') =>
+    Object.assign(offering('box', status), {
+      stockOfferingId: 'base',
+      stockFactor: 100_000,
+    });
+  const base = (overrides: Partial<ProductOffering> = {}) =>
+    Object.assign(offering('base', 'published'), { saleUnit: 'M' }, overrides);
+
+  it('publishes its base, its factor and the base’s unit', () => {
+    const event = publicationOf(
+      run([base(), presentation()], 'box', 'publish').exit,
+    );
+
+    expect(event.data).toMatchObject({
+      stockOfferingId: 'base',
+      stockFactor: 100_000,
+      stockUnit: 'M',
+    });
+  });
+
+  it('publishes no stock source for an offering that draws on no base', () => {
+    const event = publicationOf(
+      run([offering('1', 'draft')], '1', 'publish').exit,
+    );
+
+    expect('stockOfferingId' in event.data).toBe(false);
+  });
+
+  it.each([
+    ['baseMissing', () => [presentation()]],
+    [
+      'baseIsPresentation',
+      () => [
+        base({ stockOfferingId: 'other', stockFactor: 2 }),
+        presentation(),
+      ],
+    ],
+    [
+      'notCounted',
+      () => [base(), Object.assign(presentation(), { saleUnit: 'M' })],
+    ],
+    [
+      'factor',
+      () => [base(), Object.assign(presentation(), { stockFactor: 0 })],
+    ],
+  ] as const)('refuses a publication whose source is %s', (problem, rows) => {
+    const records = rows();
+    const { exit } = run([...records], 'box', 'publish');
+
+    expect(failureOf(exit)).toMatchObject({
+      code: 'stockSourceInvalid',
+      problem,
+    });
+    expect(records.at(-1)?.status).toBe('draft');
+  });
+
+  it('takes a presentation down without its base, naming none', () => {
+    const event = publicationOf(
+      run([presentation('published')], 'box', 'unpublish').exit,
+    );
+
+    expect(event.name).toBe(CATALOG_UNPUBLISHED);
+    expect('stockOfferingId' in event.data).toBe(false);
   });
 });
 

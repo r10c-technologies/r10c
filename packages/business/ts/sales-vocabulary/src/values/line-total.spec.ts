@@ -6,6 +6,7 @@ import {
   isPricePer,
   lineTotal,
   PricePers,
+  stockQuantityOf,
 } from './line-total.js';
 import { quantityLimit } from './sale-rule.js';
 import { oneWholeUnit, SaleUnits } from './sale-unit.js';
@@ -111,5 +112,31 @@ describe('amountPerThousand', () => {
     [750, 1000, 750],
   ] as const)('%i per %i orders as %i', (amount, pricePer, key) => {
     expect(amountPerThousand({ amount, pricePer })).toBe(key);
+  });
+});
+
+describe('stockQuantityOf', () => {
+  it('draws the factor once per presentation sold', () => {
+    expect(
+      stockQuantityOf({ quantity: 3, saleUnit: 'UN', stockFactor: 100_000 }),
+    ).toBe(300_000);
+  });
+
+  it('refuses a presentation sold in anything but UN', () => {
+    expect(() =>
+      stockQuantityOf({ quantity: 3, saleUnit: 'M', stockFactor: 100 }),
+    ).toThrow(RangeError);
+  });
+
+  it.each([0, -5])('refuses a factor of %i', stockFactor => {
+    expect(() =>
+      stockQuantityOf({ quantity: 3, saleUnit: 'UN', stockFactor }),
+    ).toThrow(RangeError);
+  });
+
+  it('refuses a quantity it cannot count', () => {
+    expect(() =>
+      stockQuantityOf({ quantity: 1.5, saleUnit: 'UN', stockFactor: 2 }),
+    ).toThrow(RangeError);
   });
 });
