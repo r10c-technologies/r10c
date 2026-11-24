@@ -42,6 +42,7 @@ import {
   statSync,
 } from 'node:fs';
 import { createServer } from 'node:http';
+import { gunzipSync } from 'node:zlib';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,6 +82,16 @@ function authorized(header, token) {
  * Serve `dir` as an Nx HTTP remote cache. Resolves once listening, with the
  * bound port and a `close`.
  */
+/** Whether an entry decompresses whole. */
+function intact(file) {
+  try {
+    gunzipSync(readFileSync(file));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function serve({ dir, journal, token, port = 0, host = '127.0.0.1' }) {
   mkdirSync(dir, { recursive: true });
   const record = (kind, hash) => appendFileSync(journal, `${kind} ${hash}\n`);
@@ -103,6 +114,17 @@ export function serve({ dir, journal, token, port = 0, host = '127.0.0.1' }) {
 
     if (req.method === 'GET') {
       if (!existsSync(file)) {
+        res.writeHead(404).end();
+        return;
+      }
+      // An entry is a gzipped tarball. One that does not decompress — cut
+      // short on its way into the cache — would fail the whole Nx run with
+      // "Failed to read entry from tarball", and every rerun restores the
+      // same cache and fails again. So it is dropped and answered as a miss:
+      // Nx runs the task, and the entry it writes back replaces it.
+      if (!intact(file)) {
+        rmSync(file, { force: true });
+        console.error(`dropped a corrupt entry: ${hash}`);
         res.writeHead(404).end();
         return;
       }

@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { journalEntries, prune, serve, stage } from './nx-remote-cache.mjs';
@@ -46,7 +47,7 @@ describe('serve', () => {
   });
 
   it('stores a PUT and serves it back byte for byte', async () => {
-    const body = Buffer.from('tarball bytes');
+    const body = gzipSync('tarball bytes');
     const put = await fetch(url('222'), { method: 'PUT', headers: auth, body });
     assert.equal(put.status, 200);
 
@@ -54,6 +55,25 @@ describe('serve', () => {
     assert.equal(get.status, 200);
     assert.deepEqual(Buffer.from(await get.arrayBuffer()), body);
     assert.equal(readFileSync(journal, 'utf8'), 'W 222\nR 222\n');
+  });
+
+  it('drops an entry that does not decompress, and answers it as a miss', async () => {
+    const whole = gzipSync('tarball bytes');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, '444'), whole.subarray(0, whole.length - 8));
+
+    const get = await fetch(url('444'), { headers: auth });
+    assert.equal(get.status, 404);
+    assert.equal(existsSync(join(dir, '444')), false);
+    assert.equal(existsSync(journal), false);
+
+    // The task runs again and writes the entry back.
+    const put = await fetch(url('444'), {
+      method: 'PUT',
+      headers: auth,
+      body: whole,
+    });
+    assert.equal(put.status, 200);
   });
 
   it('refuses to overwrite an entry, and journals it as used', async () => {
