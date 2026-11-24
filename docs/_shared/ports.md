@@ -596,10 +596,12 @@ open `EventSource` kills it for good; a stream nearing its token's `exp` is sent
 margin and the drain window — are configuration rows.
 
 **The documentation site is `3220`, and it is no origin.** `apps/docs-site`
-is a static export — files, built from the registers, with no server behind it
-in any environment — so it takes neither a `300N` nor the edge. Its `dev` and
-its `serve-static` (which serves `out/` the way a static host does) both bind
-`3220`, outside every range above.
+is a static export: files, built from the registers. It sits behind no
+application server, so it takes neither a `300N` nor the edge. Its `dev` and its
+`serve-static` both bind `3220`, outside every range above. `serve-static`
+serves `out/` the way a static host does, and the same dependency-free script
+serves the site in its container on Cloud Run, outside the cluster and behind
+IAP ([ADR 0083](../adr/0083-the-fleet-runs-on-gcp-on-demand.md) §3, #686).
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

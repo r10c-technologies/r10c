@@ -588,10 +588,12 @@ Full design in
 ## Deliberately out of scope
 
 A real payment acquirer (today a simulated adapter behind the payment provider
-port) · a real tax certifier (the fiscal document will be issued through a
-simulated adapter, [ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md),
-not built) · a real courier integration (the vendor records delivery,
-refusal and return by hand) · filing a tax return · returns after delivery and
+port) · a real tax certifier (the fiscal document is issued and annulled
+through a simulated certifier behind the `FiscalCertifier` port,
+[ADR 0078](adr/0078-a-new-module-joins-through-complete-events-and-starts-from-a-snapshot.md) §6)
+· a real courier integration (the vendor records delivery, refusal and return
+by hand, and the lab simulates the courier's delivered report) · paying a
+vendor's payout out to their account (a run computes it; nothing moves it) · filing a tax return · returns after delivery and
 RMA · search relevance · recommendations · the dedicated operator bastion app ·
 anything CRM or analytics.
 
