@@ -409,7 +409,7 @@ export const app = {
       title: 'Guías por vertical',
       description:
         'De abrir la tienda a cobrar la comisión, para cada tipo de comercio del MVP.',
-      inSpanish: '',
+      inSpanish: '(en español, el idioma de los comerciantes a quienes sirven)',
     },
     verticals: {
       hardware: 'Ferretería',

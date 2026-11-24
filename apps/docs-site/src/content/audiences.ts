@@ -90,10 +90,13 @@ const operator = (locale: SiteLocale) => {
   );
 };
 
-/** The guides, one per vertical, always in the Spanish tree (Q26). */
+/**
+ * The guides, one per vertical, always in the Spanish tree (Q26). Only a
+ * tree in another language says so — a Spanish reader is already home.
+ */
 const guideLinks = (locale: SiteLocale) => {
   const copy = docsCopy(locale);
-  const note = copy.guides.inSpanish === '' ? '' : ` ${copy.guides.inSpanish}`;
+  const note = locale === GUIDES_LOCALE ? '' : ` ${copy.guides.inSpanish}`;
   return section(
     copy.guides.title,
     `${copy.guides.description}${note}\n\n${VERTICALS.map(
