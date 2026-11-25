@@ -19,6 +19,26 @@ export const CATALOG_IMPORT_URL = '/api/admin/catalog-import/import';
 const PAGE_SIZE = 500;
 
 /**
+ * Every name a record may be cited by: its name, or — a category's being
+ * localized — its name in each locale, all standing for the one id.
+ */
+export const citedAs = (record: {
+  readonly id?: unknown;
+  readonly name?: unknown;
+}): ImportReference[] => {
+  const { name } = record;
+  const names =
+    typeof name === 'string'
+      ? [name]
+      : name !== null && typeof name === 'object'
+        ? Object.values(name).filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [];
+  return names.map(text => ({ id: String(record.id), name: text }));
+};
+
+/**
  * Every active record of one reference list, by name: the brands, categories
  * and phone models a sheet may cite. A retired one is not offered by any
  * picker, so a sheet naming it is refused the same way.
@@ -35,8 +55,7 @@ const activeNames = (repository: Context<EntityRepositoryTag>) =>
         page,
         pageSize: PAGE_SIZE,
       });
-      for (const item of items)
-        names.push({ id: String(item.id), name: String(item.name ?? '') });
+      for (const item of items) names.push(...citedAs(item));
       if (items.length < PAGE_SIZE) return names;
     }
   }).pipe(Effect.provide(repository));

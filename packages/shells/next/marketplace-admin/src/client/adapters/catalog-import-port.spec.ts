@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   CATALOG_IMPORT_URL,
+  citedAs,
   makeCatalogImportPort,
   readImportTable,
 } from './catalog-import-port.js';
@@ -114,7 +115,23 @@ describe('the reference names', () => {
     const references = await port.references();
 
     expect(references.brands).toHaveLength(501);
-    expect(references.categories).toEqual([{ id: 'c-1', name: '' }]);
+    // A record with no name is cited by nothing.
+    expect(references.categories).toEqual([]);
+  });
+});
+
+describe('the names a record is cited by', () => {
+  it('reads a plain name, every locale of a localized one, and nothing else', () => {
+    expect(citedAs({ id: 'b-1', name: 'Truper' })).toEqual([
+      { id: 'b-1', name: 'Truper' },
+    ]);
+    expect(
+      citedAs({ id: 'c-1', name: { es: 'Tornillería', en: 'Screws', fr: 1 } }),
+    ).toEqual([
+      { id: 'c-1', name: 'Tornillería' },
+      { id: 'c-1', name: 'Screws' },
+    ]);
+    expect(citedAs({ id: 'x', name: null })).toEqual([]);
   });
 });
 

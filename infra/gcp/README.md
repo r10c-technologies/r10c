@@ -8,19 +8,20 @@ What runs **inside** the cluster is [`infra/cluster/`](../cluster/README.md).
 (#702). CI runs `tofu fmt -check`, `tofu validate` with the backend disabled
 and tflint on every change, and no CI job holds a GCP or Atlas credential.
 
-| File          | Declares                                                                                          | Issue |
-| ------------- | ------------------------------------------------------------------------------------------------- | ----- |
-| `versions.tf` | OpenTofu and provider pins, the `gcs` backend (bucket passed at `init`)                           | #678  |
-| `project.tf`  | the project's APIs                                                                                | #678  |
-| `network.tf`  | the VPC, Cloud NAT on one reserved address, the edge's address, private services access           | #678  |
-| `gke.tf`      | the zonal Standard cluster and its fleet pool, scaled to zero when down                           | #678  |
-| `sql.tf`      | one Cloud SQL Postgres instance: `postgres` (configuration), `workflow`, `zitadel`; backups, PITR | #679  |
-| `atlas.tf`    | the Atlas project, a Flex cluster in GCP `us-central1`, the access list holding the NAT address   | #680  |
-| `secrets.tf`  | one Secret Manager container per secret, by who supplies it; never a value                        | #683  |
-| `registry.tf` | the Artifact Registry repository the up command pushes to, keeping two versions per image         | #685  |
-| `storage.tf`  | the private receipts bucket, and order-service's Workload Identity grant on it                    | #692  |
-| `docs.tf`     | the two documentation sites on Cloud Run (r10c's behind IAP), their images, the deploy federation | #686  |
-| `outputs.tf`  | what the up and down commands and the manifests read                                              | —     |
+| File          | Declares                                                                                           | Issue |
+| ------------- | -------------------------------------------------------------------------------------------------- | ----- |
+| `versions.tf` | OpenTofu and provider pins, the `gcs` backend (bucket passed at `init`)                            | #678  |
+| `project.tf`  | the project's APIs                                                                                 | #678  |
+| `network.tf`  | the VPC, Cloud NAT on one reserved address, the edge's address, private services access            | #678  |
+| `gke.tf`      | the zonal Standard cluster and its fleet pool, scaled to zero when down                            | #678  |
+| `sql.tf`      | one Cloud SQL Postgres instance: `postgres` (configuration), `workflow`, `zitadel`; backups, PITR  | #679  |
+| `atlas.tf`    | the Atlas project, a Flex cluster in GCP `us-central1`, the access list holding the NAT address    | #680  |
+| `secrets.tf`  | one Secret Manager container per secret, by who supplies it; never a value                         | #683  |
+| `registry.tf` | the Artifact Registry repository the up command pushes to, keeping two versions per image          | #685  |
+| `storage.tf`  | the private receipts bucket, and order-service's Workload Identity grant on it                     | #692  |
+| `docs.tf`     | the two documentation sites on Cloud Run (r10c's behind IAP), their images, the deploy federation  | #686  |
+| `grafana.tf`  | the flow's alerts, dashboard, contact point and policy on Grafana Cloud, read from the lab's files | #706  |
+| `outputs.tf`  | what the up and down commands and the manifests read                                               | —     |
 
 ## Validate locally
 

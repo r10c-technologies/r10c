@@ -168,5 +168,27 @@ export const brandSeed = Array.from({ length: 20 }, (_, index) => {
     name: `${baseName} ${Math.floor(index / BASE_NAMES.length) + 1}`,
     description: `Products manufactured by ${baseName} (#${number})`,
     website: `https://www.${slug}.example.com`,
+    // Stated, as the service stores it: the import resolves names among the
+    // active brands only (ADR 0084 §3).
+    status: 'active',
   };
 });
+
+/**
+ * One import already on file, as the import verb leaves its record (ADR
+ * 0084): two rows written, one refused, so the record page shows its
+ * rejections.
+ */
+export const catalogImportSeed = [
+  {
+    id: 'catalog-import-1',
+    fileName: 'catalogo-ferreteria.csv',
+    mode: 'draft',
+    status: 'partial',
+    importedAt: '2026-11-25T10:00:00.000Z',
+    rowCount: 3,
+    createdCount: 2,
+    rejectedCount: 1,
+    rejections: [{ rowNumber: 4, code: 'importDuplicate', column: 'name' }],
+  },
+];
