@@ -12,10 +12,12 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       '/catalog/product',
       '/catalog/product-offering',
       '/catalog/product-offering-price',
+      '/catalog/catalog-import',
       '/catalog/product-brand',
       '/catalog/product-category',
       '/catalog/device-model',
       '/wizards/product-setup',
+      '/wizards/import-catalog',
     ]);
   });
 
@@ -26,12 +28,15 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       'product-configuration-management:product-specification:read',
       'product-configuration-management:product-offering:read',
       'product-configuration-management:product-offering-price:read',
+      'product-configuration-management:catalog-import:read',
       'catalog-reference:product-brand:read',
       'catalog-reference:product-category:read',
       'catalog-reference:device-model:read',
       // `write`, because the flow's whole purpose is to create the record.
       // Offering it to someone who may only read is offering a dead end.
       'product-configuration-management:product-specification:write',
+      // The import ends in its verb, not a save: the verb's own permission.
+      'product-configuration-management:catalog-import:import',
     ]);
   });
 
@@ -40,10 +45,12 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       'master:product-specification',
       'master:product-offering',
       'master:product-offering-price',
+      'master:catalog-import',
       'master:product-brand',
       'master:product-category',
       'master:device-model',
       'wizard:product-setup',
+      'wizard:catalog-import',
     ]);
   });
 
@@ -54,11 +61,13 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
       true,
       true,
       true,
+      true,
       undefined,
       undefined,
       undefined,
-      // The wizard authors a record in the same tenant-plane domain, so it
-      // carries the same gate the products catalog does.
+      // The wizards author records in the same tenant-plane domain, so they
+      // carry the same gate the products catalog does.
+      true,
       true,
     ]);
   });

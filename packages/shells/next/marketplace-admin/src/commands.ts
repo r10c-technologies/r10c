@@ -3,6 +3,7 @@ import {
   NEW_COMMAND_PAGE,
   permissionForEntity,
 } from '@entifix/authz';
+import { extractMetaEntity } from '@entifix/core';
 import { CATALOG_NEW_SLUG } from '@entifix/next-shell/server';
 
 import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from './catalog-surfaces';
@@ -28,7 +29,11 @@ import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from './catalog-surfaces';
  * is for.
  */
 export const MARKETPLACE_ADMIN_COMMANDS: GuardedCommand[] =
-  MARKETPLACE_ADMIN_CATALOG_SURFACES.map(surface => ({
+  // Only what a person creates: a catalog import is written by its verb, and
+  // its list offers no "New" (ADR 0084).
+  MARKETPLACE_ADMIN_CATALOG_SURFACES.filter(
+    surface => extractMetaEntity(surface.entityConstructor).creatable,
+  ).map(surface => ({
     key: `new:${surface.entityKey}`,
     // The entity's own "new" form title — "Nuevo producto", "Nueva marca" —
     // rather than a verb interpolated with the label, because Spanish inflects

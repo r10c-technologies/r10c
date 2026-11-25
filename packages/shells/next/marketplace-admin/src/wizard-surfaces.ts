@@ -1,10 +1,19 @@
 import {
   type Permission,
   permissionForEntity,
+  permissionForUseCase,
   screenAddress,
 } from '@entifix/authz';
-import type { Entity, EntityConstructor } from '@entifix/core';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import type {
+  Entity,
+  EntityConstructor,
+  UseCaseConstructor,
+} from '@entifix/core';
+import {
+  CatalogImport,
+  ImportCatalogUC,
+  ProductSpecification,
+} from '@r10c/business-ts-product-configuration-management';
 
 /**
  * One guided screen, declared once for everything that has to name it.
@@ -34,11 +43,19 @@ export interface WizardSurface<TEntity extends Entity = Entity> {
   readonly navLabelKey: string;
   /** Gate the nav item on the organization's provisioning (ADR 0007). */
   readonly entitled?: boolean;
+  /**
+   * The verb the flow ends in, when it ends in a verb rather than a save: its
+   * own permission guards the flow, since that is the only one the route
+   * behind it checks.
+   */
+  readonly useCase?: UseCaseConstructor;
 }
 
 /** The `write` permission guarding a flow, derived from the entity it creates. */
 export const permissionForWizard = (surface: WizardSurface): Permission =>
-  permissionForEntity(surface.entityConstructor, 'write');
+  surface.useCase === undefined
+    ? permissionForEntity(surface.entityConstructor, 'write')
+    : permissionForUseCase(surface.useCase);
 
 /**
  * A flow's workspace address.
@@ -70,7 +87,22 @@ export const PRODUCT_SETUP_SURFACE: WizardSurface<ProductSpecification> = {
   entitled: true,
 };
 
+/**
+ * A vendor's catalog loaded from a sheet (ADR 0084). It ends in the `import`
+ * verb, never a save, so the verb's permission is what guards it.
+ */
+export const CATALOG_IMPORT_SURFACE: WizardSurface<CatalogImport> = {
+  key: 'catalog-import',
+  entityConstructor: CatalogImport,
+  basePath: '/wizards/import-catalog',
+  icon: '⇪',
+  navLabelKey: 'r10c:marketplaceAdmin.wizard.catalogImport.title',
+  entitled: true,
+  useCase: ImportCatalogUC,
+};
+
 /** Every guided screen this shell contributes, in the order they appear. */
 export const MARKETPLACE_ADMIN_WIZARD_SURFACES: readonly WizardSurface[] = [
   PRODUCT_SETUP_SURFACE,
+  CATALOG_IMPORT_SURFACE,
 ];

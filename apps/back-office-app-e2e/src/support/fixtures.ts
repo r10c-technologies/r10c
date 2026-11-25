@@ -32,6 +32,7 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
+  CatalogImport,
   ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
@@ -56,6 +57,7 @@ import {
 
 import {
   brandSeed,
+  catalogImportSeed,
   categorySeed,
   deviceModelSeed,
   productSeed,
@@ -116,6 +118,9 @@ export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
 export const DEVICE_MODEL_URL = `${REFERENCE_SERVICE_URL}/device-model`;
 export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
+export const CATALOG_IMPORT_URL = `${SERVICE_URL}/catalog-import`;
+/** The import verb, posted by the wizard through the catalog's proxy. */
+export const CATALOG_IMPORT_VERB_URL = `${APP_URL}/api/admin/catalog-import/import`;
 
 /**
  * The configuration values the REST adapters need in order to build their URLs.
@@ -855,6 +860,52 @@ const setSaleUnitHandlers = [
  * The price screen's affordance document, with the verb the entity declares —
  * `set-price-tiers` — so its button renders as the service would offer it.
  */
+/** What each catalog import did, read-only (ADR 0084). */
+const catalogImports = entityBackendHandlers(CatalogImport, {
+  baseUrl: CATALOG_IMPORT_URL,
+  seed: catalogImportSeed,
+});
+
+/**
+ * The import's affordance document: it is read, and written only by its verb,
+ * which its wizard opens — so no Save, no Delete and no "New".
+ */
+const catalogImportMetadataHandlers = [
+  http.get(`${APP_URL}/api/admin/catalog-import/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'catalog-import' },
+      data: { actions: ['read'], useCases: [] },
+    }),
+  ),
+];
+
+/**
+ * The import verb as the service answers it: the record, under the request's
+ * key, every row written. A spec that needs to see the body overrides it.
+ */
+const catalogImportVerbHandlers = [
+  http.post(CATALOG_IMPORT_VERB_URL, async ({ request }) => {
+    const body = (await request.json()) as {
+      fileName: string;
+      mode: string;
+      rows: unknown[];
+    };
+    return HttpResponse.json({
+      meta: { type: 'entity', entity: 'catalog-import' },
+      data: {
+        ...catalogImportSeed[0],
+        fileName: body.fileName,
+        mode: body.mode,
+        status: 'completed',
+        rowCount: body.rows.length,
+        createdCount: body.rows.length,
+        rejectedCount: 0,
+        rejections: undefined,
+      },
+    });
+  }),
+];
+
 const priceMetadataHandlers = [
   http.get(`${APP_URL}/api/admin/product-offering-price/$metadata`, () =>
     HttpResponse.json({
@@ -1277,6 +1328,9 @@ const base = defineEntifixE2eTest({
     ...categories.handlers,
     ...deviceModels.handlers,
     ...products.handlers,
+    ...catalogImports.handlers,
+    ...catalogImportMetadataHandlers,
+    ...catalogImportVerbHandlers,
     ...stockItems.handlers,
     ...stockMovements.handlers,
     ...reservations.handlers,

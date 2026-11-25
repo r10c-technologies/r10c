@@ -1,13 +1,16 @@
 import { NEW_COMMAND_PAGE } from '@entifix/authz';
+import { extractMetaEntity } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from './catalog-surfaces';
 import { MARKETPLACE_ADMIN_COMMANDS } from './commands';
 
 describe('MARKETPLACE_ADMIN_COMMANDS', () => {
-  it('derives one create command per surface, so a sixth entity needs no line', () => {
+  it('derives one create command per creatable surface, so a sixth entity needs no line', () => {
     expect(MARKETPLACE_ADMIN_COMMANDS).toHaveLength(
-      MARKETPLACE_ADMIN_CATALOG_SURFACES.length,
+      MARKETPLACE_ADMIN_CATALOG_SURFACES.filter(
+        surface => extractMetaEntity(surface.entityConstructor).creatable,
+      ).length,
     );
     expect(MARKETPLACE_ADMIN_COMMANDS.map(c => c.key)).toEqual([
       'new:product-specification',
@@ -62,8 +65,9 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
     const entitled = MARKETPLACE_ADMIN_COMMANDS.filter(
       c => c.entitled === true,
     ).map(c => c.key);
+    // A catalog import is entitled but written by its verb alone: no command.
     const surfaces = MARKETPLACE_ADMIN_CATALOG_SURFACES.filter(
-      s => s.entitled === true,
+      s => s.entitled === true && s.entityKey !== 'catalog-import',
     ).map(s => `new:${s.entityKey}`);
 
     expect(entitled).toEqual(surfaces);

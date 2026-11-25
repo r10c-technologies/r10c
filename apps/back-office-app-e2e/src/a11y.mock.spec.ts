@@ -52,6 +52,17 @@ const SCREENS = [
     path: '/es/workspace?tab=wizard:product-setup',
     ready: { role: 'button', name: 'Continuar' },
   },
+  // A catalog from a sheet (ADR 0084): the wizard, and what each import did.
+  {
+    screen: 'asistentes-catalog-import',
+    path: '/es/workspace?tab=wizard:catalog-import',
+    ready: { role: 'button', name: 'Continuar' },
+  },
+  {
+    screen: 'definiciones-catalog-import-list',
+    path: '/es/catalog/catalog-import',
+    ready: { record: 'catalogo-ferreteria.csv' },
+  },
   {
     screen: 'consultas-commission-entries',
     path: '/es/settlement/commission-entry',

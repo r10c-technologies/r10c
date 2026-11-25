@@ -1,5 +1,6 @@
 import { entityApi } from '@entifix/service-shell';
 import {
+  catalogImportApi,
   productOfferingApi,
   productOfferingPriceApi,
   productSpecificationApi,
@@ -25,6 +26,7 @@ export const endpoints = [
   entityApi(productSpecificationApi),
   entityApi(productOfferingApi),
   entityApi(productOfferingPriceApi),
+  entityApi(catalogImportApi),
 ] as const;
 
 /** How this slice's endpoints answer and log a failure (ADR 0064). */

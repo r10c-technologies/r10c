@@ -96,6 +96,13 @@ const adapters = (): MarketplaceAdminAdapters => {
     productOfferingWriter: writer(offerings),
     productOfferingPriceRest: prices,
     productOfferingPriceWriter: writer(prices),
+    catalogImportRest: specs,
+    catalogImport: {
+      readTable: () => Promise.resolve([]),
+      references: () =>
+        Promise.resolve({ brands: [], categories: [], deviceModels: [] }),
+      submit: () => Promise.resolve({ ok: false, code: 'unexpected' }),
+    },
     publishedVendorRest: specs,
     referenceMetadata: real.referenceMetadata,
     catalogMetadata: real.catalogMetadata,

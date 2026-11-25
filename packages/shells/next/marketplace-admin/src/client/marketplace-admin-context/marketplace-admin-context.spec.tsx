@@ -46,6 +46,13 @@ const adapters: MarketplaceAdminAdapters = {
   productOfferingRest: repository(),
   productOfferingWriter: settledWriter(repository()),
   productOfferingPriceRest: repository(),
+  catalogImportRest: repository(),
+  catalogImport: {
+    readTable: () => Promise.resolve([]),
+    references: () =>
+      Promise.resolve({ brands: [], categories: [], deviceModels: [] }),
+    submit: () => Promise.resolve({ ok: false, code: 'unexpected' }),
+  },
   publishedVendorRest: repository(),
   productOfferingPriceWriter: settledWriter(repository()),
   referenceMetadata: real.referenceMetadata,

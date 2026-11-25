@@ -19,7 +19,7 @@ import {
   SpecificationCommandsTag,
 } from '@r10c/business-ts-product-configuration-management';
 import { Effect, Layer, Option } from 'effect';
-import type { Db } from 'mongodb';
+import type { ClientSession, Db } from 'mongodb';
 
 import { atRevision } from './at-revision.js';
 
@@ -49,6 +49,40 @@ const store = <A>(run: () => Promise<A>) =>
   });
 
 /**
+ * The organization's next specification code, drawn inside `session`: the
+ * `$inc` commits with whatever the unit writes, so two draws racing on one
+ * counter conflict and one reruns, and a unit that fails spends none. The
+ * create and the catalog import (ADR 0084) draw from this one counter.
+ */
+export const drawSpecificationCode = (db: Db, session: ClientSession) =>
+  Effect.gen(function* () {
+    const counter = yield* store(() =>
+      db
+        .collection<Counter>(COUNTERS_COLLECTION)
+        .findOneAndUpdate(
+          { _id: COUNTER },
+          { $inc: { value: 1 } },
+          { upsert: true, returnDocument: 'after', session },
+        ),
+    );
+    // An upserting `findOneAndUpdate` answers the document it wrote.
+    const next = (counter as Counter).value;
+    return `${CODE_PREFIX}-${String(next).padStart(3, '0')}`;
+  });
+
+/**
+ * The one index that makes a version number unique within its series: two
+ * revises racing on one key both read version `n` and both write `n + 1`, and
+ * this is what refuses the second.
+ */
+export const ensureSpecificationIndexes = (db: Db) =>
+  store(() =>
+    db
+      .collection(SPECIFICATION_COLLECTION)
+      .createIndex({ specKey: 1, version: 1 }, { unique: true }),
+  ).pipe(Effect.asVoid);
+
+/**
  * Writes the specification with the next code of its organization's counter,
  * in one unit of work: the `$inc` and the record commit together, so two
  * creates racing on one counter conflict and one reruns, and a failed write
@@ -64,19 +98,11 @@ const createIn = (
     unit =>
       Effect.gen(function* () {
         const { session } = unit.handle;
-        const counter = yield* store(() =>
-          unit.handle.db
-            .collection<Counter>(COUNTERS_COLLECTION)
-            .findOneAndUpdate(
-              { _id: COUNTER },
-              { $inc: { value: 1 } },
-              { upsert: true, returnDocument: 'after', session },
-            ),
+        specification.code = yield* drawSpecificationCode(
+          unit.handle.db,
+          session,
         );
-        // An upserting `findOneAndUpdate` answers the document it wrote.
-        const next = (counter as Counter).value;
         specification.id ??= globalThis.crypto.randomUUID();
-        specification.code = `${CODE_PREFIX}-${String(next).padStart(3, '0')}`;
         // The first version of a series: the key is the code it was drawn
         // with, and every later version copies both (ADR 0079 §1).
         specification.specKey = specification.code;
@@ -135,11 +161,7 @@ export const MongoSpecificationCommandsLayer = Layer.effect(
       Effect.gen(function* () {
         const db = yield* resolver.forOrganization(organizationId);
         if (indexed.indexOf(db.databaseName) === -1) {
-          yield* store(() =>
-            db
-              .collection(SPECIFICATION_COLLECTION)
-              .createIndex({ specKey: 1, version: 1 }, { unique: true }),
-          );
+          yield* ensureSpecificationIndexes(db);
           indexed.push(db.databaseName);
         }
         return db;

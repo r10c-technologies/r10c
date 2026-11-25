@@ -35,9 +35,19 @@ describe('ROLE_PERMISSIONS', () => {
     const granted = ROLE_PERMISSIONS.admin;
     expect(
       granted.some(permission =>
-        permissionMatches(permission, `${CATALOG_DOMAIN}:product:write`),
+        permissionMatches(
+          permission,
+          `${CATALOG_DOMAIN}:product-specification:write`,
+        ),
       ),
     ).toBe(true);
+    // Named per entity: a catalog import is written by its verb alone, so no
+    // grant offers a Save or a Delete its routes do not serve (ADR 0084).
+    expect(
+      granted.some(permission =>
+        permissionMatches(permission, `${CATALOG_DOMAIN}:catalog-import:write`),
+      ),
+    ).toBe(false);
     expect(
       granted.some(permission =>
         permissionMatches(permission, `${AUTHN_DOMAIN}:user-identity:write`),

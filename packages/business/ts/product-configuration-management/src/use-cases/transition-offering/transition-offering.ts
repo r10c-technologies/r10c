@@ -327,6 +327,52 @@ const stockSourceOf = (
     } satisfies StockSource;
   });
 
+/**
+ * What an offering on sale announces, from the records it is made of: its
+ * price, its pinned specification's merchandising and its stock source. Pure,
+ * so the transition and the import (ADR 0084) build one payload one way.
+ */
+export const offeringPublication = (input: {
+  readonly offering: ProductOffering;
+  readonly specification: ProductSpecification | undefined;
+  readonly price: ProductOfferingPrice;
+  readonly vendorId: string;
+  readonly at: Date;
+  readonly stockSource?: StockSource;
+}): CatalogPublication => {
+  const { offering, specification, price, vendorId, at, stockSource } = input;
+  const tiers = price.tiers;
+  return {
+    offeringId: String(offering.id),
+    vendorId,
+    name: offering.name,
+    amount: price.amount,
+    currency: price.currency,
+    // Nothing computes availability yet: the `stock` slice is `planned`, and M2
+    // is what gives this member a source. `true` rather than `false` because
+    // the storefront's badge is a hint and the checkout reservation is the
+    // truth — publishing everything as unavailable would make the hint say
+    // nothing while looking like it says something.
+    availableHint: true,
+    publishedAt: at.toISOString(),
+    // What the price buys and how a buyer may ask for it (ADR 0082). The save
+    // rules already refused a rule that sells nothing and a basis other than
+    // 1, 100 or 1000, so these are copied as stored.
+    saleUnit: offering.saleUnit,
+    quantityStep: offering.quantityStep,
+    quantityMinimum: offering.quantityMinimum,
+    pricePer: price.pricePer,
+    // Absent, never `[]`, when the price has none (ADR 0049).
+    ...(tiers === undefined || tiers.length === 0
+      ? {}
+      : { tiers: tiers.map(({ from, amount }) => ({ from, amount })) }),
+    // Absent, never `undefined`, on an offering that draws on no base.
+    ...(stockSource ?? {}),
+    ...pinOf(offering, specification),
+    ...merchandisingOf(specification),
+  };
+};
+
 export const transitionOffering = Effect.gen(function* () {
   const { id, transition, vendorId, source, at, restating } =
     yield* TransitionOfferingInputTag;
@@ -422,35 +468,14 @@ export const transitionOffering = Effect.gen(function* () {
   // comment for what a re-stamped `now` would do to the projection's ordering.
   offering.statusChangedAt = at;
 
-  const publication: CatalogPublication = {
-    offeringId: String(id),
+  const publication = offeringPublication({
+    offering,
+    specification,
+    price,
     vendorId,
-    name: offering.name,
-    amount: price.amount,
-    currency: price.currency,
-    // Nothing computes availability yet: the `stock` slice is `planned`, and M2
-    // is what gives this member a source. `true` rather than `false` because
-    // the storefront's badge is a hint and the checkout reservation is the
-    // truth — publishing everything as unavailable would make the hint say
-    // nothing while looking like it says something.
-    availableHint: true,
-    publishedAt: at.toISOString(),
-    // What the price buys and how a buyer may ask for it (ADR 0082). The save
-    // rules already refused a rule that sells nothing and a basis other than
-    // 1, 100 or 1000, so these are copied as stored.
-    saleUnit: offering.saleUnit,
-    quantityStep: offering.quantityStep,
-    quantityMinimum: offering.quantityMinimum,
-    pricePer: price.pricePer,
-    // Absent, never `[]`, when the price has none (ADR 0049).
-    ...(tiers === undefined || tiers.length === 0
-      ? {}
-      : { tiers: tiers.map(({ from, amount }) => ({ from, amount })) }),
-    // Absent, never `undefined`, on an offering that draws on no base.
-    ...(typeof stockSource === 'object' ? stockSource : {}),
-    ...pinOf(offering, specification),
-    ...merchandisingOf(specification),
-  };
+    at,
+    ...(typeof stockSource === 'object' ? { stockSource } : {}),
+  });
 
   return {
     offering,

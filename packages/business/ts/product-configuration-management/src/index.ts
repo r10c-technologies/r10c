@@ -23,6 +23,7 @@
  *
  * ODA analogue: Product Catalog Management (TMFC001), Product Configurator (TMFC027)
  */
+export * from './entities/catalog-import';
 export * from './entities/characteristic-specification';
 export * from './entities/entity-specification';
 export * from './entities/product-offering';

@@ -1,7 +1,9 @@
 import type { MongoClientTag } from '@entifix/mongo';
 import { startTenantOutboxRelay } from '@entifix/mongo/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
+import { CatalogImportLimitTag } from '@r10c/business-ts-product-configuration-management';
 import {
+  MongoCatalogImportCommandsLayer,
   MongoOfferingCatalogLayer,
   MongoSpecificationCommandsLayer,
 } from '@r10c/implementation-catalog-mongo';
@@ -54,6 +56,12 @@ export const marketplaceAdminComposition =
       const { store } = configuration;
 
       const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
+      // The rows one catalog import takes (ADR 0084 §5), read at boot like
+      // every other dial: a seed without it stops here, not at a vendor's
+      // first sheet.
+      const importLimit = Layer.succeed(CatalogImportLimitTag, {
+        maxRows: yield* store.in('catalog').getNumber('importMaxRows'),
+      });
 
       const connections = Layer.mergeAll(
         // The pool only. This service owns no single named database: every catalog
@@ -100,12 +108,15 @@ export const marketplaceAdminComposition =
             startTenantOutboxRelay({ onOutcome: logMechanismOutcome }),
           ),
         ),
-        // The catalog store's two non-save writes, over the same connections.
+        // The catalog store's writes that are not a save, over the same
+        // connections, and the import's row limit.
         Layer.provideMerge(
           Layer.mergeAll(
             MongoOfferingCatalogLayer,
             MongoSpecificationCommandsLayer,
+            MongoCatalogImportCommandsLayer,
             idempotency,
+            importLimit,
           ),
           connections,
         ),

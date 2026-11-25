@@ -2,6 +2,7 @@ export * from './catalog-push-topics';
 export * from './catalog-surfaces';
 export * from './client/adapters/create-client-adapters';
 export * from './client/catalog-crud';
+export * from './client/catalog-import-wizard';
 export { UniversalFitLabels } from './client/device-model-fits';
 export * from './client/marketplace-admin-context';
 export * from './client/product-setup-wizard';

@@ -12,6 +12,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import {
+  CatalogImport,
   ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
@@ -230,10 +231,26 @@ export const PRODUCT_CATEGORY_SURFACE = catalogSurface(ProductCategory, {
  * place: the back office has no screen for it, so there is no `basePath` to
  * declare and both a nav entry and a search result would have nowhere to go.
  */
+/**
+ * What each catalog import did (ADR 0084): read-only, written by the import
+ * verb alone, named by its file.
+ */
+export const CATALOG_IMPORT_LIST_SURFACE = catalogSurface(CatalogImport, {
+  entityKey: 'catalog-import',
+  basePath: '/catalog/catalog-import',
+  icon: '⇪',
+  navLabelKey: 'r10c:marketplaceAdmin.nav.catalogImports',
+  entitled: true,
+  service: 'marketplace-admin',
+  searchProperty: 'fileName',
+  labelProperty: 'fileName',
+});
+
 export const MARKETPLACE_ADMIN_CATALOG_SURFACES: readonly CatalogSurface[] = [
   PRODUCT_SURFACE,
   PRODUCT_OFFERING_SURFACE,
   PRODUCT_OFFERING_PRICE_SURFACE,
+  CATALOG_IMPORT_LIST_SURFACE,
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
   DEVICE_MODEL_SURFACE,

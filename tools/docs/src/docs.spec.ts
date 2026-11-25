@@ -1709,6 +1709,43 @@ describe('The dashboard charts the metrics the fleet declares', () => {
     expect(thresholds.length).toBeGreaterThan(0);
     expect(rules.match(/type:\s*reduce/g)).toHaveLength(thresholds.length);
   });
+
+  it('alerts only on metrics the fleet declares', () => {
+    const known = new Set(declared());
+    // Each rule's query, its label sets and function calls taken out: what
+    // is left with an underscore is a metric name.
+    const exprs = [
+      ...read(ALERTS).matchAll(/expr: (?:>-\n((?:\s{16,}.*\n)+)|(.+)\n)/g),
+    ].map(match => match[1] ?? match[2] ?? '');
+    const named = exprs.flatMap(expr =>
+      [
+        ...expr
+          .replace(/\{[^}]*\}/g, ' ')
+          .replace(/[a-z_]+\s*\(/g, ' ')
+          .matchAll(/\b([a-z][a-z0-9]*_[a-z0-9_]+)\b/g),
+      ].map(match => match[1]),
+    );
+
+    expect(exprs).toHaveLength(6);
+    expect(named.length).toBeGreaterThanOrEqual(6);
+    expect(
+      [...new Set(named)].filter(name => !known.has(name)),
+      `${ALERTS} alerts on a metric nothing declares: it evaluates to no ` +
+        'data, and `noDataState: OK` makes that silence look healthy.',
+    ).toEqual([]);
+  });
+
+  it('gives the cloud stack the very rules and dashboard the lab provisions', () => {
+    // One source, two stacks (#706): `infra/gcp/grafana.tf` reads both files
+    // and rewrites only the lab's datasource uid, so a rule added to the lab
+    // reaches the cloud by the next apply, with no second copy to forget.
+    const cloud = read('infra/gcp/grafana.tf');
+
+    expect(cloud).toContain('r10c-alerts.yaml');
+    expect(cloud).toContain('r10c-bus-outbox.json');
+    expect(cloud).toMatch(/cloud_uid\s*=\s*\{\s*prometheus\s*=/);
+    expect(cloud).not.toMatch(/expr\s*=/);
+  });
 });
 
 /* ------------------------------------------------------------------ edge */

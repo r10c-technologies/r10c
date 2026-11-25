@@ -800,6 +800,39 @@ export const entity: EsEntity = {
       available: 'Available',
     },
   },
+  'catalog-import': {
+    label: 'Catalog import',
+    plural: 'Catalog imports',
+    fields: {
+      id: 'ID',
+      fileName: 'File',
+      mode: 'Mode',
+      status: 'Result',
+      importedAt: 'Imported',
+      rowCount: 'Rows',
+      createdCount: 'Created',
+      rejectedCount: 'Rejected',
+      rejections: 'Rejected rows',
+    },
+    rejection: {
+      rowNumber: 'Row',
+      code: 'Reason',
+      column: 'Column',
+    },
+    values: {
+      mode: {
+        draft: 'As drafts',
+        publish: 'Published',
+      },
+      status: {
+        completed: 'Complete',
+        partial: 'With rejected rows',
+      },
+    },
+    useCases: {
+      import: 'Import catalog',
+    },
+  },
   'product-offering-price': {
     form: {
       editTitle: 'Edit price',

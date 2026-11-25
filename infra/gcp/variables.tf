@@ -87,3 +87,15 @@ variable "docs_repositories" {
     entifix = "r10c-technologies/entifix"
   }
 }
+
+variable "grafana_prometheus_uid" {
+  description = "The Grafana Cloud stack's Prometheus data source uid, which the lab's `prometheus` is rewritten to (grafana.tf)."
+  type        = string
+  default     = "grafanacloud-prom"
+}
+
+variable "alert_email" {
+  description = "Where the flow's alerts are sent (#706). A placeholder under `.example` (RFC 2606) until MVP-7."
+  type        = string
+  default     = "operator@r10c.example"
+}

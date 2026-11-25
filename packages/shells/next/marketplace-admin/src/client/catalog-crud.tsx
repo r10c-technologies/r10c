@@ -20,6 +20,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import {
+  CatalogImport,
   ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
@@ -27,6 +28,7 @@ import {
 import type { ReactNode } from 'react';
 
 import {
+  CATALOG_IMPORT_LIST_SURFACE,
   DEVICE_MODEL_SURFACE,
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
@@ -34,7 +36,11 @@ import {
   PRODUCT_OFFERING_SURFACE,
   PRODUCT_SURFACE,
 } from '../catalog-surfaces';
-import { PRODUCT_SETUP_SURFACE } from '../wizard-surfaces';
+import {
+  CATALOG_IMPORT_SURFACE,
+  PRODUCT_SETUP_SURFACE,
+  type WizardSurface,
+} from '../wizard-surfaces';
 import type { MarketplaceAdminAdapters } from './client-types';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 import {
@@ -166,7 +172,13 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
  * locale — an unprefixed one still resolves through the proxy, at the cost
  * of a round trip per click.
  */
-function ProductSetupLink() {
+function WizardLaunch({
+  surface,
+  labelKey,
+}: {
+  readonly surface: WizardSurface;
+  readonly labelKey: string;
+}) {
   const translateKey = useTranslateKey();
   const withLocale = useLocaleHref();
 
@@ -174,9 +186,9 @@ function ProductSetupLink() {
     <ButtonLink
       variant="secondary"
       size="sm"
-      href={withLocale(PRODUCT_SETUP_SURFACE.basePath)}
+      href={withLocale(surface.basePath)}
     >
-      {translateKey('r10c:marketplaceAdmin.wizard.productSetup.launch')}
+      {translateKey(labelKey)}
     </ButtonLink>
   );
 }
@@ -232,7 +244,15 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
    */
   toolbar: (
     <EntityTableToolbar>
-      <ProductSetupLink />
+      <WizardLaunch
+        surface={PRODUCT_SETUP_SURFACE}
+        labelKey="r10c:marketplaceAdmin.wizard.productSetup.launch"
+      />
+      {/* A whole catalog at once, from a sheet (ADR 0084). */}
+      <WizardLaunch
+        surface={CATALOG_IMPORT_SURFACE}
+        labelKey="r10c:marketplaceAdmin.wizard.catalogImport.title"
+      />
     </EntityTableToolbar>
   ),
   // `brandId`/`categoryId` are plain `string` members, not `link`s: a typed
@@ -426,6 +446,28 @@ export const productOfferingPriceCrud = makeEntityCrud(ProductOfferingPrice, {
   ],
 });
 
+/**
+ * What each catalog import did (ADR 0084), newest first. Nothing here writes:
+ * the import verb is reached through its wizard, which the toolbar opens.
+ */
+export const catalogImportCrud = makeEntityCrud(CatalogImport, {
+  useAdapters: useMarketplaceAdminAdapters,
+  basePath: CATALOG_IMPORT_LIST_SURFACE.basePath,
+  catalogKey: CATALOG_IMPORT_LIST_SURFACE.entityKey,
+  repository: 'catalogImportRest',
+  metadata: 'catalogMetadata',
+  hiddenFields: ['id'],
+  initialSorting: { 0: { property: 'importedAt', type: 'desc' } },
+  toolbar: (
+    <EntityTableToolbar>
+      <WizardLaunch
+        surface={CATALOG_IMPORT_SURFACE}
+        labelKey="r10c:marketplaceAdmin.wizard.catalogImport.title"
+      />
+    </EntityTableToolbar>
+  ),
+});
+
 export const DeviceModelListClientPage = deviceModelCrud.ListPage;
 export const DeviceModelSingleViewClientPage = deviceModelCrud.SingleViewPage;
 export const ProductBrandListClientPage = productBrandCrud.ListPage;
@@ -442,6 +484,9 @@ export const ProductOfferingPriceListClientPage =
   productOfferingPriceCrud.ListPage;
 export const ProductOfferingPriceSingleViewClientPage =
   productOfferingPriceCrud.SingleViewPage;
+export const CatalogImportListClientPage = catalogImportCrud.ListPage;
+export const CatalogImportSingleViewClientPage =
+  catalogImportCrud.SingleViewPage;
 
 /**
  * The catalog's generated screens, as a list the workspace registry walks.
@@ -463,4 +508,5 @@ export const MARKETPLACE_ADMIN_CRUDS = [
   productBrandCrud,
   productCategoryCrud,
   deviceModelCrud,
+  catalogImportCrud,
 ] as const;

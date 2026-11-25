@@ -1,4 +1,5 @@
 export * from './draw-on-stock';
+export * from './import-catalog';
 export * from './offering-flows';
 export * from './publish-product-offering';
 export * from './set-price-tiers';

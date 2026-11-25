@@ -689,6 +689,7 @@ export const r10c: EsR10c = {
       categories: 'Categories',
       offerings: 'Product offerings',
       offeringPrices: 'Offering prices',
+      catalogImports: 'Catalog imports',
       guided: 'Catalog',
     },
     /**
@@ -746,6 +747,43 @@ export const r10c: EsR10c = {
       },
     },
     wizard: {
+      catalogImport: {
+        title: 'Import catalog',
+        steps: {
+          mode: 'Mode',
+          file: 'File',
+          preview: 'Review',
+        },
+        mode: {
+          question: 'How should the imported products be left?',
+          draft: 'As drafts',
+          draftHint:
+            'They stay in design and unpublished, to be reviewed before they go on sale.',
+          publish: 'Published',
+          publishHint:
+            'Each product is released and its offering goes on sale in the store as soon as it is imported.',
+        },
+        file: {
+          prompt:
+            'Choose a CSV or Excel sheet with one product per row. The first row holds the template’s headers.',
+          label: 'Catalog sheet',
+          template: 'Download the template',
+          reading: 'Reading the sheet…',
+          read: '{{file}}: {{ready}} rows ready, {{rejected}} with problems.',
+          unreadable: 'This file could not be read. Save it as CSV or as Excel (.xlsx).',
+          required: 'Choose a sheet with at least one product that can be imported.',
+        },
+        preview: {
+          prompt: 'Review what will be imported before confirming.',
+          ready: 'Rows to import: {{count}}',
+          rejected: 'Rows that will not be imported: {{count}}',
+          mode: 'Mode: {{mode}}',
+          row: 'Row',
+          column: 'Column',
+          reason: 'Reason',
+          failed: 'The import did not complete.',
+        },
+      },
       productSetup: {
         title: 'New product',
         launch: 'Guided new product',

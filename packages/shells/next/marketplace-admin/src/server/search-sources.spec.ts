@@ -9,11 +9,12 @@ import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from './search-sources';
  * quietly reports a group it could not reach.
  */
 describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
-  it('declares the catalog’s six searchable records, in order', () => {
+  it('declares the catalog’s seven searchable records, in order', () => {
     expect(MARKETPLACE_ADMIN_SEARCH_SOURCES.map(source => source.key)).toEqual([
       'product-specification',
       'product-offering',
       'product-offering-price',
+      'catalog-import',
       'product-brand',
       'product-category',
       'device-model',
@@ -27,6 +28,7 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
       'entity:product-specification.plural',
       'entity:product-offering.plural',
       'entity:product-offering-price.plural',
+      'entity:catalog-import.plural',
       'entity:product-brand.plural',
       'entity:product-category.plural',
       'entity:device-model.plural',
@@ -39,6 +41,7 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
     ['product-specification', '/catalog/product/x-1'],
     ['product-offering', '/catalog/product-offering/x-1'],
     ['product-offering-price', '/catalog/product-offering-price/x-1'],
+    ['catalog-import', '/catalog/catalog-import/x-1'],
     ['product-brand', '/catalog/product-brand/x-1'],
     ['product-category', '/catalog/product-category/x-1'],
     ['device-model', '/catalog/device-model/x-1'],
@@ -62,7 +65,7 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
   });
 
   it('asks the tenant service for specifications and the platform one for the vocabulary', () => {
-    const [specification, offering, price, brand, category] =
+    const [specification, offering, price, , brand, category] =
       MARKETPLACE_ADMIN_SEARCH_SOURCES;
 
     // Two services since ADR 0022, which is also why the tenant-plane three can

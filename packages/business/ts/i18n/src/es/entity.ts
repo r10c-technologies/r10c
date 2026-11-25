@@ -846,6 +846,39 @@ export const entity = {
       available: 'Disponible',
     },
   },
+  'catalog-import': {
+    label: 'Importación de catálogo',
+    plural: 'Importaciones de catálogo',
+    fields: {
+      id: 'ID',
+      fileName: 'Archivo',
+      mode: 'Modo',
+      status: 'Resultado',
+      importedAt: 'Importada',
+      rowCount: 'Filas',
+      createdCount: 'Creados',
+      rejectedCount: 'Rechazados',
+      rejections: 'Filas rechazadas',
+    },
+    rejection: {
+      rowNumber: 'Fila',
+      code: 'Motivo',
+      column: 'Columna',
+    },
+    values: {
+      mode: {
+        draft: 'Como borradores',
+        publish: 'Publicados',
+      },
+      status: {
+        completed: 'Completa',
+        partial: 'Con filas rechazadas',
+      },
+    },
+    useCases: {
+      import: 'Importar catálogo',
+    },
+  },
   'product-offering-price': {
     form: {
       editTitle: 'Editar precio',

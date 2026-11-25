@@ -43,8 +43,9 @@
     }
   },
   "devDependencies": {
+    "@entifix/testing-unit": "catalog:",
     "@r10c/business-ts-i18n": "workspace:*",
-    "@entifix/testing-unit": "catalog:"
+    "@types/papaparse": "5.5.2"
   },
   "dependencies": {
     "@entifix/authz": "catalog:",
@@ -60,6 +61,8 @@
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@r10c/business-ts-product-configuration-management": "workspace:*",
     "@r10c/business-ts-sales-vocabulary": "workspace:*",
-    "effect": "4.0.7"
+    "effect": "4.0.7",
+    "papaparse": "5.7.1",
+    "read-excel-file": "9.3.20"
   }
 }
