@@ -16,7 +16,9 @@
     "entifix:registry": "nx run @r10c/source:entifix-registry",
     "entifix:status": "nx run @r10c/source:entifix-status",
     "infra:up": "node tools/infra.mjs up",
-    "infra:down": "node tools/infra.mjs down"
+    "infra:down": "node tools/infra.mjs down",
+    "infra:forward": "node tools/infra.mjs forward",
+    "infra:cost": "node tools/infra.mjs cost"
   },
   "engines": {
     "node": "26.4",

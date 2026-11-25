@@ -33,15 +33,18 @@ const isSource = (file: string) =>
   !/\.d\.ts$/.test(file) &&
   !/\.(spec|test|stories)\.tsx?$/.test(file);
 
+/**
+ * Build output and installed packages, never scanned: a container build copies
+ * every workspace module's `src` into an app's `dist/workspace_modules`, and a
+ * scan that descended there read each package once per service.
+ */
+const NOT_SOURCE = ['node_modules', 'dist', 'out-tsc', '.next', 'testing'];
+
 const walk = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
-      return ['node_modules', 'dist', 'out-tsc', '.next', 'testing'].includes(
-        entry.name,
-      )
-        ? []
-        : walk(path);
+      return NOT_SOURCE.includes(entry.name) ? [] : walk(path);
     }
     return isSource(path) ? [path] : [];
   });
@@ -49,7 +52,7 @@ const walk = (dir: string): string[] =>
 /** Every `src` directory under `root`, at any depth, outside e2e apps. */
 const sourceRoots = (root: string): string[] =>
   readdirSync(root, { withFileTypes: true }).flatMap(entry => {
-    if (!entry.isDirectory() || entry.name === 'node_modules') return [];
+    if (!entry.isDirectory() || NOT_SOURCE.includes(entry.name)) return [];
     if (entry.name.endsWith('-e2e')) return [];
     const path = join(root, entry.name);
     return entry.name === 'src' ? [path] : sourceRoots(path);

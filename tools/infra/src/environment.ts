@@ -8,6 +8,7 @@
 import type { Io } from './io.js';
 import type { Image, Target } from './overlay.js';
 import {
+  MONGO_OPERATOR,
   MONGO_SERVICES,
   mongoPasswordOf,
   SQL_USERS,
@@ -72,6 +73,7 @@ export interface TofuOutputs {
   readonly edge_address: string;
   readonly evidence_bucket: string;
   readonly secret_prefix: string;
+  readonly billing_dataset: string;
 }
 
 export const readOutputs = (io: Io): TofuOutputs => {
@@ -227,8 +229,9 @@ export const gcp = (io: Io, nodes: number): Environment => {
       // to a database-name prefix, and the tenant plane is a database per
       // organization, so every user reads and writes any database: what a
       // user per service buys is attribution and a rotation that touches one
-      // service, not isolation (ADR 0083 §4, revised).
-      for (const service of MONGO_SERVICES) {
+      // service, not isolation (ADR 0083 §4, revised). The operator's user
+      // is the same role, for the live pass against a cluster (#704).
+      for (const service of [...MONGO_SERVICES, MONGO_OPERATOR]) {
         const known = io.run(
           [
             'atlas',

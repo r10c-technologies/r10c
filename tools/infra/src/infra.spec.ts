@@ -11,9 +11,20 @@ import {
 import { FLEET } from '@r10c/slices';
 import { describe, expect, it } from 'vitest';
 
+import {
+  type Census,
+  censusLines,
+  diffCensus,
+  durableQueues,
+  expiries,
+  podManifest,
+  summary,
+} from './census.js';
 import { dryRunAnswer, parse } from './cli.js';
 import { down, type Fleet, secretDocument, up } from './commands.js';
+import { cost, costQuery, costRows, costTable } from './cost.js';
 import { gcp, lab } from './environment.js';
+import { forward } from './forward.js';
 import type { Io, RunOptions } from './io.js';
 import { documents, stages, substitute } from './manifests.js';
 import {
@@ -48,6 +59,7 @@ const FLEET_RUN: Fleet = {
   projects: [...inputs.services, ...inputs.apps].map(({ project }) => project),
   names,
   deployments: ['order-service'],
+  services: inputs.services,
 };
 
 const tfList = (name: string): string[] => {
@@ -228,25 +240,82 @@ const recorder = () => {
 const DESTRUCTIVE =
   /\b(delete|destroy|drop|remove|rm)\b|--delete|activation-policy=NEVER/i;
 
+/** A recorder whose lab has been brought up once, so its secrets exist. */
+const upInLab = () => {
+  const recorded = recorder();
+  up(recorded.io, lab(recorded.io, '/repo'), {
+    repoRoot: '/repo',
+    fleet: FLEET_RUN,
+    sha: 'abc',
+  });
+  return recorded;
+};
+
 describe('down', () => {
   it('deletes nothing but the Gateway, in the cloud and in the lab', () => {
-    for (const make of [(io: Io) => gcp(io, 2), (io: Io) => lab(io, '/repo')]) {
-      const { io, commands } = recorder();
-      down(io, make(io));
+    for (const target of ['gcp', 'lab'] as const) {
+      const { io, commands } = target === 'gcp' ? recorder() : upInLab();
+      commands.length = 0;
+      down(io, target === 'gcp' ? gcp(io, 2) : lab(io, '/repo'), '/repo');
       const destructive = commands
         .map(({ argv }) => argv.join(' '))
         .filter(line => DESTRUCTIVE.test(line));
       expect(
-        destructive.filter(line => !line.includes('activation-policy=NEVER')),
+        destructive.filter(
+          line =>
+            !line.includes('activation-policy=NEVER') &&
+            // The census's own pod and the Secret it read from: made by the
+            // census, holding nothing the fleet keeps.
+            !/delete (pod|secret) r10c-census /.test(line),
+        ),
       ).toEqual([
         'kubectl -n r10c delete gateway r10c-edge --ignore-not-found',
       ]);
     }
   });
 
+  it('counts what the fleet holds before it stops anything, and keeps the count', () => {
+    const { io, commands, files } = upInLab();
+    commands.length = 0;
+    down(io, lab(io, '/repo'), '/repo');
+    const lines = commands.map(({ argv }) => argv.join(' '));
+    const counted = lines.findIndex(line => line.includes('rabbitmqctl'));
+    const gateway = lines.findIndex(line => line.includes('delete gateway'));
+    const stopped = lines.findIndex(line => line.includes('--replicas=0'));
+    expect(counted).toBeGreaterThan(-1);
+    expect(counted).toBeLessThan(gateway);
+    expect(gateway).toBeLessThan(stopped);
+    const census = JSON.parse(
+      files.get('/repo/infra/.overlay/lab/census.json') ?? '{}',
+    ) as Census;
+    expect(census.mongo).toEqual({ order: { 'product-order': 1 } });
+    expect(census.queues).toEqual(['order-service.payment-captured']);
+    // The lab keeps receipts inside the pod, declared gone with it.
+    expect(census.objects).toBeUndefined();
+  });
+
+  it('keeps the last census when the fleet is already down', () => {
+    const { io, commands, files } = upInLab();
+    files.set('/repo/infra/.overlay/lab/census.json', 'kept');
+    const run = io.run;
+    const downAlready: Io = {
+      ...io,
+      run: (argv, options) =>
+        argv.includes('gateway') && argv.includes('get')
+          ? { ok: true, stdout: '' }
+          : run(argv, options),
+    };
+    commands.length = 0;
+    down(downAlready, lab(downAlready, '/repo'), '/repo');
+    expect(commands.some(({ argv }) => argv.includes('r10c-census'))).toBe(
+      false,
+    );
+    expect(files.get('/repo/infra/.overlay/lab/census.json')).toBe('kept');
+  });
+
   it('stops Cloud SQL rather than deleting it, after the nodes', () => {
     const { io, commands } = recorder();
-    down(io, gcp(io, 2));
+    down(io, gcp(io, 2), '/repo');
     const lines = commands.map(({ argv }) => argv.join(' '));
     const nodes = lines.findIndex(line => line.includes('--num-nodes=0'));
     const autoscaling = lines.findIndex(line =>
@@ -309,6 +378,237 @@ describe('up', () => {
   });
 });
 
+describe('the census', () => {
+  const at = (takenAt: number, over: Partial<Census> = {}): Census => ({
+    takenAt,
+    mongo: { order: { 'product-order': 3, outbox: 2 }, tenant_a: { offer: 5 } },
+    sql: { config: { 'public.configuration': 9 }, workflow: {} },
+    redis: { forever: null, later: 10_000, soon: 1_500 },
+    queues: ['a', 'b'],
+    objects: 4,
+    ...over,
+  });
+
+  it('finds nothing lost when everything is still there, or more of it', () => {
+    expect(diffCensus(at(1000), at(2000))).toEqual([]);
+    expect(
+      diffCensus(
+        at(1000),
+        at(2000, {
+          mongo: {
+            order: { 'product-order': 4, outbox: 2, extra: 1 },
+            tenant_a: { offer: 5 },
+            tenant_b: { offer: 1 },
+          },
+          queues: ['a', 'b', 'c'],
+          objects: 6,
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('names every loss: a database, a collection, a count, a queue, a receipt', () => {
+    expect(
+      diffCensus(
+        at(1000),
+        at(2000, {
+          mongo: { order: { 'product-order': 2 } },
+          sql: { config: {}, workflow: {} },
+          queues: ['a'],
+          objects: 3,
+        }),
+      ),
+    ).toEqual([
+      'mongo order.product-order: 3 → 2',
+      'mongo order.outbox: gone (held 2)',
+      'mongo tenant_a: the database is gone',
+      'postgres config.public.configuration: gone (held 9)',
+      'rabbitmq b: the queue is gone',
+      'payment-evidence: 4 → 3 objects',
+    ]);
+  });
+
+  it('counts a key gone before its expiry as lost, and one past it as expired', () => {
+    // At 2000 `soon` (1500) was due; `forever` and `later` were not.
+    expect(diffCensus(at(1000), at(2000, { redis: {} }))).toEqual([
+      'redis: 2 keys gone before they were due to expire',
+    ]);
+    expect(
+      diffCensus(
+        at(1000),
+        at(2000, { redis: { forever: null, later: 10_000 } }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('reads Redis TTLs as instants, and only durable queues', () => {
+    expect(expiries({ a: -1, b: 500 }, 1000)).toEqual({ a: null, b: 1500 });
+    expect(
+      durableQueues(
+        '[{"name":"z","durable":true},{"name":"push","durable":false},{"name":"a","durable":true}]',
+      ),
+    ).toEqual(['a', 'z']);
+    expect(durableQueues('')).toEqual([]);
+    expect(censusLines('noise\nCENSUS {"a":1}\npod deleted')).toEqual([
+      '{"a":1}',
+    ]);
+  });
+
+  it('gives the pod its credentials by Secret reference, never by value', () => {
+    const pod = podManifest('r10c', 'redis.r10c.svc.cluster.local');
+    expect(pod).toContain('secretKeyRef');
+    expect(pod).not.toMatch(/mongodb:\/\/|postgres:\/\/|redis:\/\//);
+  });
+
+  it('says which engine answered what, when one answers no count', () => {
+    const { io } = upInLab();
+    const run = io.run;
+    const refused: Io = {
+      ...io,
+      run: (argv, options) =>
+        argv.includes('logs') && argv.at(-1) === 'redis'
+          ? { ok: true, stdout: 'CENSUS NOAUTH Authentication required.' }
+          : run(argv, options),
+    };
+    expect(() => down(refused, lab(refused, '/repo'), '/repo')).toThrow(
+      'the census read no Redis keys: NOAUTH Authentication required.',
+    );
+  });
+
+  it('says what it counted in one line', () => {
+    expect(summary(at(1000))).toBe(
+      '10 documents in 3 collections, 9 rows, 3 keys, 2 durable queues, 4 receipts',
+    );
+  });
+
+  it('fails an up that holds less than the last down counted', () => {
+    const { io, files } = upInLab();
+    files.set(
+      '/repo/infra/.overlay/lab/census.json',
+      JSON.stringify(at(1000, { mongo: { order: { 'product-order': 5 } } })),
+    );
+    expect(() =>
+      up(io, lab(io, '/repo'), {
+        repoRoot: '/repo',
+        fleet: FLEET_RUN,
+        sha: 'abc',
+      }),
+    ).toThrow(/mongo order\.product-order: 5 → 1/);
+  });
+
+  it('passes an up that holds all of it', () => {
+    const { io, files } = upInLab();
+    files.set(
+      '/repo/infra/.overlay/lab/census.json',
+      JSON.stringify(
+        at(1000, {
+          mongo: { order: { 'product-order': 1 } },
+          sql: { config: {}, workflow: {} },
+          redis: {},
+          queues: [],
+          objects: undefined,
+        }),
+      ),
+    );
+    expect(() =>
+      up(io, lab(io, '/repo'), {
+        repoRoot: '/repo',
+        fleet: FLEET_RUN,
+        sha: 'abc',
+      }),
+    ).not.toThrow();
+  });
+});
+
+describe('the bill', () => {
+  it('sums each day per service, net of credits, from the standard export', () => {
+    const sql = costQuery('r10c-demo', 'billing_export', 7);
+    expect(sql).toContain('`r10c-demo.billing_export.gcp_billing_export_v1_*`');
+    expect(sql).toContain('UNNEST(credits)');
+    expect(sql).toContain('INTERVAL 7 DAY');
+  });
+
+  it('prints a line a day, its total first, and drops what cost under a cent', () => {
+    const rows = costRows(dryRunAnswer(['bq', 'query']));
+    expect(costTable(rows)).toBe(
+      [
+        '2026-12-01     $0.74  Cloud SQL $0.41 · Networking $0.33',
+        '2026-12-02     $6.12  Compute Engine $6.12',
+      ].join('\n'),
+    );
+    expect(costTable(costRows(''))).toMatch(/no charges yet/);
+  });
+
+  it('reads the dataset tofu declares, and only reads', () => {
+    const { io, commands } = recorder();
+    const logged: string[] = [];
+    cost(
+      { ...io, log: line => logged.push(line) },
+      {
+        project_id: 'r10c-demo',
+        billing_dataset: 'billing_export',
+      },
+      3,
+    );
+    expect(commands.map(({ argv }) => argv.slice(0, 2).join(' '))).toEqual([
+      'bq query',
+    ]);
+    expect(logged.join('\n')).toContain('Compute Engine $6.12');
+  });
+});
+
+describe('forward', () => {
+  it('holds a port-forward per service on its own port, and the broker API', () => {
+    const { io, commands, files } = upInLab();
+    commands.length = 0;
+    forward(io, lab(io, '/repo'), '/repo', inputs.services);
+    const forwards = commands
+      .map(({ argv }) => argv.join(' '))
+      .filter(line => line.includes('port-forward'));
+    expect(forwards).toContain(
+      'kubectl -n r10c port-forward svc/order-service 3105:3105',
+    );
+    expect(forwards).toContain(
+      'kubectl -n r10c port-forward svc/rabbitmq 15672:15672',
+    );
+    expect(forwards).toHaveLength(inputs.services.length + 1);
+    const written = files.get('/repo/infra/.overlay/lab/e2e.env') ?? '';
+    expect(written).toContain("E2E_PROFILE='live'");
+    expect(written).toContain("FLEET_TARGET='cluster'");
+    expect(written).toContain("MAILPIT_API_URL='http://localhost:30826'");
+    expect(written).not.toContain('MONGO_URI');
+    // The values are in the file, never in a command line.
+    const token = /CONFIG_SERVICE_TOKEN='([^']+)'/.exec(written)?.[1] ?? '';
+    expect(token.length).toBeGreaterThan(8);
+    expect(commands.some(({ argv }) => argv.join(' ').includes(token))).toBe(
+      false,
+    );
+  });
+
+  it('reaches Atlas as the operator in the cloud, and reads no mailbox there', () => {
+    const { io, files } = recorder();
+    forward(io, gcp(io, 2), '/repo', inputs.services);
+    const written = files.get('/repo/infra/.overlay/gcp/e2e.env') ?? '';
+    expect(written).toMatch(/MONGO_URI='mongodb\+srv:\/\/operator:/);
+    expect(written).not.toContain('MAILPIT');
+  });
+
+  it('refuses while a dev fleet holds the ports', () => {
+    const { io } = upInLab();
+    const run = io.run;
+    const busy: Io = {
+      ...io,
+      run: (argv, options) =>
+        argv[0] === 'lsof' && argv.includes('-iTCP:3105')
+          ? { ok: true, stdout: '4242' }
+          : run(argv, options),
+    };
+    expect(() =>
+      forward(busy, lab(busy, '/repo'), '/repo', inputs.services),
+    ).toThrow(/ports taken: 3105/);
+  });
+});
+
 describe('the command line', () => {
   it('takes a command and a target', () => {
     expect(parse(['up', '--target', 'lab'])).toEqual({
@@ -316,9 +616,16 @@ describe('the command line', () => {
       target: 'lab',
       dryRun: false,
       nodes: 2,
+      days: 7,
     });
+    expect(parse(['cost', '--target', 'gcp', '--days', '2']).days).toBe(2);
+    expect(parse(['forward', '--target', 'lab']).command).toBe('forward');
     expect(() => parse(['up'])).toThrow('--target');
     expect(() => parse(['sideways', '--target', 'lab'])).toThrow('usage');
+    expect(() => parse(['cost', '--target', 'lab'])).toThrow('bills nothing');
+    expect(() => parse(['cost', '--target', 'gcp', '--days', '0'])).toThrow(
+      '--days',
+    );
   });
 
   it('writes a Secret’s values encoded, never in plain text', () => {

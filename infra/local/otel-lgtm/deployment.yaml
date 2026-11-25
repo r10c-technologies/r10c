@@ -38,6 +38,16 @@ spec:
               value: Admin
             - name: GF_AUTH_DISABLE_LOGIN_FORM
               value: 'true'
+            # The alerts' mail (#706, r10c-notifications.yaml) goes to the
+            # lab's Mailpit, in this namespace, like every other lab mail.
+            - name: GF_SMTP_ENABLED
+              value: 'true'
+            - name: GF_SMTP_HOST
+              value: mailpit:1025
+            - name: GF_SMTP_FROM_ADDRESS
+              value: grafana@r10c.local
+            - name: GF_SMTP_FROM_NAME
+              value: r10c lab alerts
           volumeMounts:
             # The dashboard JSON, at a path the image does not use. Grafana's
             # file provisioner reads only *.json here, so the provider yaml the
@@ -68,6 +78,11 @@ spec:
             - name: dashboards
               mountPath: /otel-lgtm/grafana/conf/provisioning/alerting/r10c-alerts.yaml
               subPath: r10c-alerts.yaml
+              readOnly: true
+            # Who they tell, the same way.
+            - name: dashboards
+              mountPath: /otel-lgtm/grafana/conf/provisioning/alerting/r10c-notifications.yaml
+              subPath: r10c-notifications.yaml
               readOnly: true
           # The image starts five servers in sequence and the OTLP/HTTP receiver
           # is not first. Probing the port the fleet exports to keeps the whole

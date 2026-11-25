@@ -1,0 +1,35 @@
+# Who the flow's alerts tell, and when (#706): the contact point and the
+# notification policy, grafted into Grafana's alerting provisioning directory
+# with `subPath` beside r10c-alerts.yaml, for the reason kustomization.yaml
+# gives. Without this file the lab's rules evaluate and notify nobody.
+#
+# One source, two stacks. infra/gcp/grafana.tf reads the contact point's name
+# and the whole policy tree from here, and replaces only the address: the lab
+# mails Mailpit (GF_SMTP_* in ../deployment.yaml), the cloud mails
+# `var.alert_email`. `@r10c/docs-check` holds the two to that.
+#
+# ⚠️ A provisioned `policies` entry REPLACES the organization's notification
+# policy tree rather than adding a branch to it, and so does
+# `grafana_notification_policy` in the cloud. The lab's Grafana has no other
+# alerts, so the root routes to the operator; a page skips the group wait.
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: r10c operator
+    receivers:
+      - uid: r10c-operator-email
+        type: email
+        settings:
+          addresses: operator@r10c.local
+          singleEmail: true
+policies:
+  - orgId: 1
+    receiver: r10c operator
+    group_by: [alertname]
+    group_wait: 1m
+    repeat_interval: 4h
+    routes:
+      - receiver: r10c operator
+        group_wait: 0s
+        object_matchers:
+          - [severity, '=', page]

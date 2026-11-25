@@ -3,6 +3,13 @@ import { mkdirSync, openSync } from 'node:fs';
 import path from 'node:path';
 
 import { eventually } from './lab';
+import { PROFILE } from './profile';
+
+// A cluster target leaves every file that imports this out
+// (vitest.config.mts); this is the guard should one slip back in, since a pid
+// on a canonical port there is a port-forward, not the service.
+if (!PROFILE.processes)
+  throw new Error(`a ${PROFILE.name} fleet has no local processes to kill`);
 
 /**
  * Killing and restarting fleet processes, by the port each one listens on.

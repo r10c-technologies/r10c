@@ -16,6 +16,9 @@
 locals {
   grafana_source = "${path.module}/../local/otel-lgtm/dashboards"
   alert_groups   = yamldecode(file("${local.grafana_source}/r10c-alerts.yaml")).groups
+  notifications  = yamldecode(file("${local.grafana_source}/r10c-notifications.yaml"))
+  contact        = one(local.notifications.contactPoints)
+  policy         = one(local.notifications.policies)
 
   # A data source uid as the cloud stack names it.
   cloud_uid = { prometheus = var.grafana_prometheus_uid }
@@ -70,30 +73,39 @@ resource "grafana_dashboard" "bus_outbox" {
   )
 }
 
-# Who is told. Email keeps the free tier's own channel; a page and a warning
-# both reach the operator, the page with no wait.
+# Who is told, read from the lab's own file: the contact point's name and the
+# whole policy tree come from r10c-notifications.yaml, and only the address
+# is the cloud's. Email keeps the free tier's own channel; a page and a
+# warning both reach the operator, the page with no wait.
 resource "grafana_contact_point" "operator" {
-  name = "r10c operator"
+  name = local.contact.name
 
   email {
-    addresses = [var.alert_email]
+    addresses    = [var.alert_email]
+    single_email = true
   }
 }
 
 resource "grafana_notification_policy" "r10c" {
   contact_point   = grafana_contact_point.operator.name
-  group_by        = ["alertname"]
-  group_wait      = "1m"
-  repeat_interval = "4h"
+  group_by        = local.policy.group_by
+  group_wait      = local.policy.group_wait
+  repeat_interval = local.policy.repeat_interval
 
-  policy {
-    contact_point = grafana_contact_point.operator.name
-    group_wait    = "0s"
+  dynamic "policy" {
+    for_each = local.policy.routes
+    content {
+      contact_point = policy.value.receiver
+      group_wait    = policy.value.group_wait
 
-    matcher {
-      label = "severity"
-      match = "="
-      value = "page"
+      dynamic "matcher" {
+        for_each = policy.value.object_matchers
+        content {
+          label = matcher.value[0]
+          match = matcher.value[1]
+          value = matcher.value[2]
+        }
+      }
     }
   }
 }

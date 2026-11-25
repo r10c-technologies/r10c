@@ -82,8 +82,7 @@ export interface CatalogSurface<TEntity extends Entity = Entity> {
    */
   readonly reference?: {
     // Any entity: the target is typed by nothing on the surface.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    readonly entityConstructor: EntityConstructor<any>;
+    readonly entityConstructor: EntityConstructor<Entity>;
     readonly service: CatalogService;
   };
 }

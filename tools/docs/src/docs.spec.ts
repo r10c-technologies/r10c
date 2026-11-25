@@ -1443,6 +1443,8 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   const PROVIDER = 'infra/local/otel-lgtm/dashboards/r10c-dashboards.yaml';
   const DEPLOYMENT = 'infra/local/otel-lgtm/deployment.yaml';
   const ALERTS = 'infra/local/otel-lgtm/dashboards/r10c-alerts.yaml';
+  const NOTIFICATIONS =
+    'infra/local/otel-lgtm/dashboards/r10c-notifications.yaml';
   const SOURCES = [
     // The two framework modules are read from the release installed here, which
     // is the code the fleet actually runs; the built JS keeps each declaration
@@ -1648,9 +1650,9 @@ describe('The dashboard charts the metrics the fleet declares', () => {
     );
 
     expect(path).toBeDefined();
-    // The ConfigMap's own directory, the dashboard provider and the alert
-    // rules (#706).
-    expect(mounts).toHaveLength(3);
+    // The ConfigMap's own directory, the dashboard provider, the alert rules
+    // and who they notify (#706).
+    expect(mounts).toHaveLength(4);
     expect(
       mounts,
       `${PROVIDER} provisions from ${path}, which ${DEPLOYMENT} does not ` +
@@ -1735,6 +1737,37 @@ describe('The dashboard charts the metrics the fleet declares', () => {
     ).toEqual([]);
   });
 
+  it('tells someone: a contact point every rule routes to, mailed through Mailpit', () => {
+    const deployment = read(DEPLOYMENT);
+    const notifications = read(NOTIFICATIONS);
+    const mounts = [...deployment.matchAll(/mountPath:\s*(\S+)/g)].map(
+      match => match[1],
+    );
+
+    // A rule with no policy routing it is evaluated, fires, and reaches
+    // nobody — the state the lab was in until this file.
+    expect(mounts).toContain(
+      `${PROVISIONING}/alerting/r10c-notifications.yaml`,
+    );
+    const contact = /contactPoints:[\s\S]*?name:\s*(.+)\n/.exec(
+      notifications,
+    )?.[1];
+    expect(contact).toBeDefined();
+    const receivers = [...notifications.matchAll(/receiver:\s*(.+)\n/g)].map(
+      match => match[1],
+    );
+    expect(receivers.length).toBeGreaterThan(0);
+    expect(
+      new Set(receivers),
+      'every policy must route to the contact point this file declares',
+    ).toEqual(new Set([contact]));
+    // The page route matches what the rules actually label.
+    for (const [, value] of notifications.matchAll(/\[severity, '=', (\w+)\]/g))
+      expect(read(ALERTS)).toContain(`severity: ${value}`);
+    // Grafana mails through the lab's own Mailpit, never a real relay.
+    expect(deployment).toMatch(/GF_SMTP_HOST\s*\n\s*value:\s*mailpit:1025/);
+  });
+
   it('gives the cloud stack the very rules and dashboard the lab provisions', () => {
     // One source, two stacks (#706): `infra/gcp/grafana.tf` reads both files
     // and rewrites only the lab's datasource uid, so a rule added to the lab
@@ -1743,6 +1776,11 @@ describe('The dashboard charts the metrics the fleet declares', () => {
 
     expect(cloud).toContain('r10c-alerts.yaml');
     expect(cloud).toContain('r10c-bus-outbox.json');
+    // Who is told comes from the lab's file too; only the address is the
+    // cloud's own.
+    expect(cloud).toContain('r10c-notifications.yaml');
+    expect(cloud).toMatch(/name\s*=\s*local\.contact\.name/);
+    expect(cloud).not.toMatch(/group_wait\s*=\s*"/);
     expect(cloud).toMatch(/cloud_uid\s*=\s*\{\s*prometheus\s*=/);
     expect(cloud).not.toMatch(/expr\s*=/);
   });

@@ -118,8 +118,9 @@ it('lets exactly one of two racing releases land, and one of two revises', async
 /**
  * #767: the state a version is saved in is declared on the entity and
  * conjoined onto the store's own write, so a save racing a release can never
- * write a released version — whichever lands first, the released record holds
- * the release's content.
+ * write a released version: a release that lands holds exactly the content it
+ * hashed, and one a save overtook is refused rather than freezing an edit it
+ * never read.
  */
 it('never writes a version a release froze, however a save and a release race', async () => {
   for (let round = 0; round < 5; round += 1) {
@@ -134,15 +135,32 @@ it('never writes a version a release froze, however a save and a release race', 
       verb(draft.id, 'release'),
     ]);
 
-    expect(released.status).toBe(200);
-    // The save either landed first, so the release froze the edit, or lost:
-    // to the release's revision, or to the state the store conditions on.
+    // Exactly one may lose, and each says why. A save that lands first moves
+    // the record between the release's read and its write, so the release is
+    // refused `specificationChanged` rather than freezing what it never
+    // hashed — the order the dev fleet's timing hid and a cluster's showed
+    // (#704). Otherwise the release lands, and the save lost to it or was
+    // frozen into it.
+    expect(
+      [saved.status, released.status],
+      JSON.stringify([saved.body, released.body]),
+    ).not.toEqual([409, 409]);
+    expect([200, 409]).toContain(released.status);
+    const stored = (await call('GET', `${KEY}/${draft.id}`)).body['data'];
+    if (released.status === 409) {
+      expect(released.body['code']).toBe('specificationChanged');
+      expect(saved.status).toBe(200);
+      expect(stored).toMatchObject({
+        lifecycleStatus: 'in-design',
+        name: `Edited in the race ${round}`,
+      });
+      continue;
+    }
     expect([200, 409]).toContain(saved.status);
     if (saved.status === 409)
       expect(['staleRevision', 'unavailableInState']).toContain(
         saved.body['code'],
       );
-    const stored = (await call('GET', `${KEY}/${draft.id}`)).body['data'];
     expect(stored.lifecycleStatus).toBe('active');
     expect(stored.name).toBe(
       saved.status === 200

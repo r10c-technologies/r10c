@@ -41,3 +41,14 @@ resource "mongodbatlas_project_ip_access_list" "egress" {
   ip_address = google_compute_address.egress.address
   comment    = "The fleet's Cloud NAT address, its only way out"
 }
+
+# The machines a person runs the live pass against the cluster from (#704),
+# which reads and writes the stores directly as the `operator` user. Empty by
+# default: an operator address is added for a pass and removed after it.
+resource "mongodbatlas_project_ip_access_list" "operator" {
+  for_each = toset(var.operator_cidrs)
+
+  project_id = mongodbatlas_project.fleet.id
+  cidr_block = each.value
+  comment    = "An operator's machine, for the live pass (#704)"
+}

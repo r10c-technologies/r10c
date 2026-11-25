@@ -99,3 +99,26 @@ variable "alert_email" {
   type        = string
   default     = "operator@r10c.example"
 }
+
+variable "billing_account" {
+  description = "The billing account the project is paid by, `XXXXXX-XXXXXX-XXXXXX` (billing.tf). The default is a placeholder; the real id arrives at MVP-7 in a `tfvars` kept out of git."
+  type        = string
+  default     = "000000-000000-000000"
+}
+
+variable "monthly_budget_usd" {
+  description = "The month's spend, in USD, the budget's 50/90/100 % mails are measured against (#705). About $25–30 a month down plus $0.35 an hour up (docs/DEVELOPING.md)."
+  type        = number
+  default     = 50
+}
+
+variable "operator_cidrs" {
+  description = "Where a person may reach Atlas from, as the `operator` user, for the live pass against the cluster (#704). Empty except during a pass; never `0.0.0.0/0`."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = !contains(var.operator_cidrs, "0.0.0.0/0")
+    error_message = "An operator CIDR names one machine or network, never the whole internet."
+  }
+}

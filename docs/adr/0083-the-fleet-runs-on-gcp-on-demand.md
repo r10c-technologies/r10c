@@ -7,6 +7,7 @@
 - Revised: 2026-11-20 — #692 built the receipts and mail rows: a private bucket in `infra/gcp/storage.tf`, granted by Workload Identity to order-service's own Kubernetes account (every workload now runs as its own), and the SMTP provider's account and STARTTLS rule carried into order-service's rows and re-stated to Zitadel on every seed.
 - Revised: 2026-11-24 — #686: the documentation sites run on GCP after all, as two Cloud Run services that scale to zero beside the cluster and outside it. One cloud means no AWS bill and no NAT on it. r10c's site sits behind IAP on the service itself, without a load balancer. Each repository deploys its own site through Workload Identity Federation. Every real value is still a placeholder.
 - Revised: 2026-11-25 — #706's cloud half: `infra/gcp/grafana.tf` puts the flow's six alert rules, the bus/outbox dashboard, an email contact point and its policy on the Grafana Cloud stack, read from the very files the lab provisions with only the Prometheus uid rewritten. The provider takes its token from whoever applies, as the Atlas provider does.
+- Revised: 2026-11-25 — #704 #705 #706, rehearsed on the lab: down counts every store and the next up fails on any loss (the census), `infra:cost` reads the off-state bill from a billing export with a budget beside it, `infra:forward` runs the live pass against a cluster, and the lab's alerts now mail its Mailpit, with the cloud reading its contact point and policy from the same file.
 - Read when: declaring a cloud resource, choosing what runs managed and what runs in the cluster, writing the up or down command, or wondering whether "nothing runs in production" still holds once a cluster exists — one region, one zonal cluster scaled to zero, and the demo environment is reset like the lab
 
 ## Context
@@ -160,7 +161,8 @@ and not built now.
   the lab's ladder walks.
 - **Persistent volumes use `reclaimPolicy: Retain`.** A deleted claim must
   not take a broker's or Redis's disk with it.
-- The off-state cost is estimated per component by #685 and measured by #705.
+- The off-state cost is estimated per component by #685 and read from the bill by `pnpm run infra:cost` (#705), over a billing export `infra/gcp/billing.tf` declares.
+- **Down counts what the stores hold, and the next up checks it** (#705): a census taken before anything stops, and an up that fails on any loss.
   Cloud SQL still bills storage and its IP while stopped, and a reserved
   address bills while unused. Those are the expected floor, not a leak.
 
