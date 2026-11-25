@@ -1442,6 +1442,7 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   const DASHBOARD = 'infra/local/otel-lgtm/dashboards/r10c-bus-outbox.json';
   const PROVIDER = 'infra/local/otel-lgtm/dashboards/r10c-dashboards.yaml';
   const DEPLOYMENT = 'infra/local/otel-lgtm/deployment.yaml';
+  const ALERTS = 'infra/local/otel-lgtm/dashboards/r10c-alerts.yaml';
   const SOURCES = [
     // The two framework modules are read from the release installed here, which
     // is the code the fleet actually runs; the built JS keeps each declaration
@@ -1647,7 +1648,9 @@ describe('The dashboard charts the metrics the fleet declares', () => {
     );
 
     expect(path).toBeDefined();
-    expect(mounts).toHaveLength(2);
+    // The ConfigMap's own directory, the dashboard provider and the alert
+    // rules (#706).
+    expect(mounts).toHaveLength(3);
     expect(
       mounts,
       `${PROVIDER} provisions from ${path}, which ${DEPLOYMENT} does not ` +
@@ -1678,13 +1681,33 @@ describe('The dashboard charts the metrics the fleet declares', () => {
       ).not.toContain(directory);
     }
 
-    const grafted = mounts.find(mount => mount.startsWith(PROVISIONING));
-    expect(grafted).toBeDefined();
+    const grafted = mounts.filter(mount => mount.startsWith(PROVISIONING));
+    expect(grafted.length).toBeGreaterThan(0);
     expect(
       read(DEPLOYMENT).match(/subPath:\s*(\S+)/g),
-      `${grafted} reaches into the image's provisioning tree, so it must be a ` +
-        '`subPath` mount of one file.',
-    ).toHaveLength(1);
+      `${grafted.join(', ')} reach into the image's provisioning tree, so each ` +
+        'must be a `subPath` mount of one file.',
+    ).toHaveLength(grafted.length);
+  });
+
+  it('grafts the alert rules into the alerting tree, aimed at the provisioned datasource', () => {
+    const mounts = [...read(DEPLOYMENT).matchAll(/mountPath:\s*(\S+)/g)].map(
+      match => match[1],
+    );
+    const rules = read(ALERTS);
+
+    expect(mounts).toContain(`${PROVISIONING}/alerting/r10c-alerts.yaml`);
+    // A rule aimed at a uid nothing provisions errors on every evaluation,
+    // and says so only in the rule's own health.
+    const uids = [...rules.matchAll(/datasourceUid:\s*(\S+)/g)].map(
+      match => match[1],
+    );
+    expect(new Set(uids)).toEqual(new Set(['prometheus', '__expr__']));
+    // Grafana alerts on reduced numbers: a threshold over a time series
+    // errors, so every rule reduces before it compares.
+    const thresholds = rules.match(/type:\s*threshold/g) ?? [];
+    expect(thresholds.length).toBeGreaterThan(0);
+    expect(rules.match(/type:\s*reduce/g)).toHaveLength(thresholds.length);
   });
 });
 

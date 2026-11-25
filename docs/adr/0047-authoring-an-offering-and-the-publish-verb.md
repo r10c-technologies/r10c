@@ -9,6 +9,7 @@
   no price is now refused.
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — a specification create is a plain unit of work answering `200`, its code drawn from a Mongo `$inc` counter
 - Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — `makeEntityCrud` follows the verb's link through a runner adapter rather than taking `runUseCase`, and the publish verbs are derived endpoints
+- Revised: 2026-11-24 — a published offering is unpublished before it is deleted (#767): `ProductOffering` declares `deletableWhen` off sale, so the store refuses the delete `409 unavailableInState` and the form offers no Delete; see "A published offering is not deleted" below
 
 ## Context
 
@@ -107,6 +108,16 @@ not seen.
 
 **Recorded residual:** there is no publish-from-the-list affordance. A verb
 declares one placement, and this is the one worth having first.
+
+### A published offering is not deleted
+
+A delete announces nothing, so deleting a published offering left its
+projection in `published-catalog` selling a record no publication could retract.
+`ProductOffering` declares `deletableWhen: { member: 'status', in: [draft,
+pending-review, unpublished] }`: the store refuses the delete of a published
+one `409 unavailableInState` in the write itself, and its form offers no Delete
+— unpublish it first. Editing stays legal in every status, since
+`published → published` is how an edit reaches the storefront.
 
 ### The transition table, including the two entries that surprise
 

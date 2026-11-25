@@ -54,3 +54,13 @@ export const isNeverPublished = (status: OfferingStatus): boolean =>
 export const isOfferingStatus = (value: unknown): value is OfferingStatus =>
   typeof value === 'string' &&
   (OfferingStatuses as readonly string[]).includes(value);
+
+/**
+ * The statuses an offering may be deleted from: one not on sale. A published
+ * offering is unpublished first — deleting it would leave its projection
+ * selling a record nobody can retract, since a delete announces nothing.
+ */
+export const DeletableOfferingStatuses = [
+  ...NeverPublishedStatuses,
+  'unpublished',
+] as const satisfies readonly OfferingStatus[];

@@ -20,6 +20,8 @@ export const entity: EsEntity = {
     },
   },
   'product-specification': {
+    readOnly:
+      'This version is released and frozen. Create a new version to change it.',
     form: {
       brandEmbedded: 'Brand (embedded)',
       categoryForeign: 'Category (foreign key)',

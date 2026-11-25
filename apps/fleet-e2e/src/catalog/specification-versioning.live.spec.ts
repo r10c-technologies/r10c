@@ -57,7 +57,7 @@ it('refuses a PUT on a released version, and edits one in design', async () => {
     data: { ...seeded, name: 'Renamed after release' },
   });
   expect(refused.status).toBe(409);
-  expect(refused.body['code']).toBe('specificationReleased');
+  expect(refused.body['code']).toBe('unavailableInState');
 
   // A product created through the API starts in design, at revision 1, and
   // its first edit names that revision.
@@ -113,6 +113,79 @@ it('lets exactly one of two racing releases land, and one of two revises', async
   expect(revises.find(one => one.status === 409)?.body['code']).toBe(
     'specificationBeingRevised',
   );
+});
+
+/**
+ * #767: the state a version is saved in is declared on the entity and
+ * conjoined onto the store's own write, so a save racing a release can never
+ * write a released version — whichever lands first, the released record holds
+ * the release's content.
+ */
+it('never writes a version a release froze, however a save and a release race', async () => {
+  for (let round = 0; round < 5; round += 1) {
+    const draft = (await create(`A product raced by a save ${round}`)).body[
+      'data'
+    ];
+    const [saved, released] = await Promise.all([
+      call('PUT', `${KEY}/${draft.id}`, {
+        meta: { type: 'entity', entity: KEY },
+        data: { ...draft, name: `Edited in the race ${round}` },
+      }),
+      verb(draft.id, 'release'),
+    ]);
+
+    expect(released.status).toBe(200);
+    // The save either landed first, so the release froze the edit, or lost:
+    // to the release's revision, or to the state the store conditions on.
+    expect([200, 409]).toContain(saved.status);
+    if (saved.status === 409)
+      expect(['staleRevision', 'unavailableInState']).toContain(
+        saved.body['code'],
+      );
+    const stored = (await call('GET', `${KEY}/${draft.id}`)).body['data'];
+    expect(stored.lifecycleStatus).toBe('active');
+    expect(stored.name).toBe(
+      saved.status === 200
+        ? `Edited in the race ${round}`
+        : `A product raced by a save ${round}`,
+    );
+  }
+});
+
+it('refuses to delete a released version, and deletes one in design', async () => {
+  const released = (await create('A released product to keep')).body['data'];
+  await verb(released.id, 'release');
+  const draft = (await create('A draft to delete')).body['data'];
+
+  const refused = await call('DELETE', `${KEY}/${released.id}`);
+  const deleted = await call('DELETE', `${KEY}/${draft.id}`);
+
+  expect(refused.status).toBe(409);
+  expect(refused.body).toMatchObject({
+    code: 'unavailableInState',
+    member: 'lifecycleStatus',
+    state: 'active',
+  });
+  expect(deleted.status).toBe(200);
+});
+
+/**
+ * A published offering is unpublished before it is deleted (ADR 0047): a
+ * delete announces nothing, so it would stay projected.
+ */
+it('refuses to delete a published offering', async () => {
+  const offering = await sellable(HARDWARE.organizationId);
+  const refused = await call(
+    'DELETE',
+    `product-offering/${offering.offeringId}`,
+  );
+
+  expect(refused.status).toBe(409);
+  expect(refused.body).toMatchObject({
+    code: 'unavailableInState',
+    member: 'status',
+    state: 'published',
+  });
 });
 
 it('refuses to publish an offering pinned to a version in design', async () => {

@@ -40,6 +40,84 @@ export const sourceFiles = (dir: string): string[] => {
   return walk(dir);
 };
 
+/** One `@entity({ … })` in a file, as written. */
+export interface EntityDeclaration {
+  /** Where the decorator starts, so a member can be told which entity it is under. */
+  readonly at: number;
+  /** The options object's source, braces included. */
+  readonly options: string;
+  /** The decorated class, when a class follows the decorator. */
+  readonly className?: string;
+  readonly domain?: string;
+  readonly key?: string;
+}
+
+/**
+ * Every `@entity({ … })` in `text`, its options read by **balancing**
+ * brackets rather than by a pattern that stops at the first `)` — a comment
+ * inside the options naming "(ADR 0079 §1)" would otherwise end the match
+ * early, drop the entity, and leave every check built on it passing while
+ * asserting nothing. Strings and comments are skipped while balancing, so a
+ * bracket inside one is not counted.
+ */
+export const entityDeclarations = (text: string): EntityDeclaration[] => {
+  const found: EntityDeclaration[] = [];
+  const head = '@entity(';
+  let from = 0;
+  for (;;) {
+    const at = text.indexOf(head, from);
+    if (at === -1) return found;
+    let depth = 1;
+    let index = at + head.length;
+    while (index < text.length && depth > 0) {
+      const char = text[index];
+      const next = text[index + 1];
+      if (char === '/' && next === '/') {
+        index = text.indexOf('\n', index);
+        if (index === -1) index = text.length;
+        continue;
+      }
+      if (char === '/' && next === '*') {
+        index = text.indexOf('*/', index + 2) + 2;
+        if (index === 1) index = text.length;
+        continue;
+      }
+      if (char === "'" || char === '"' || char === '`') {
+        index += 1;
+        while (index < text.length && text[index] !== char) {
+          if (text[index] === '\\') index += 1;
+          index += 1;
+        }
+        index += 1;
+        continue;
+      }
+      if (char === '(' || char === '{' || char === '[') depth += 1;
+      else if (char === ')' || char === '}' || char === ']') depth -= 1;
+      index += 1;
+    }
+    const options = text.slice(at + head.length, index - 1).trim();
+    const className = /^\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/.exec(
+      text.slice(index),
+    )?.[1];
+    const domain = /\bdomain:\s*'([^']+)'/.exec(options)?.[1];
+    const key = /\bkey:\s*'([^']+)'/.exec(options)?.[1];
+    found.push({
+      at,
+      options,
+      ...(className === undefined ? {} : { className }),
+      ...(domain === undefined ? {} : { domain }),
+      ...(key === undefined ? {} : { key }),
+    });
+    from = index;
+  }
+};
+
+/** Every `@entity()` declaration in the business layer, file by file. */
+const businessEntityDeclarations = (): EntityDeclaration[] =>
+  sourceFiles(BUSINESS_ROOT).flatMap(file =>
+    entityDeclarations(readFileSync(file, 'utf8')),
+  );
+
 /**
  * The `domain` → entity `key`s of every `@entity()` in the business layer.
  *
@@ -50,14 +128,9 @@ export const sourceFiles = (dir: string): string[] => {
  */
 export const declaredEntityDomains = (): Map<string, string[]> => {
   const found = new Map<string, string[]>();
-  for (const file of sourceFiles(BUSINESS_ROOT)) {
-    const text = readFileSync(file, 'utf8');
-    for (const match of text.matchAll(
-      /@entity\(\{[^)]*?domain:\s*'([^']+)'[^)]*?key:\s*'([^']+)'/gs,
-    )) {
-      const [, domain, key] = match;
-      found.set(domain, [...(found.get(domain) ?? []), key]);
-    }
+  for (const { domain, key } of businessEntityDeclarations()) {
+    if (domain === undefined || key === undefined) continue;
+    found.set(domain, [...(found.get(domain) ?? []), key]);
   }
   return found;
 };
@@ -71,13 +144,9 @@ export const declaredEntityDomains = (): Map<string, string[]> => {
  */
 export const declaredEntityClasses = (): Map<string, string> => {
   const found = new Map<string, string>();
-  for (const file of sourceFiles(BUSINESS_ROOT)) {
-    const text = readFileSync(file, 'utf8');
-    for (const match of text.matchAll(
-      /@entity\(\{[^)]*?key:\s*'([^']+)'[^)]*?\}\)\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/gs,
-    )) {
-      found.set(match[2], match[1]);
-    }
+  for (const { className, key } of businessEntityDeclarations()) {
+    if (className === undefined || key === undefined) continue;
+    found.set(className, key);
   }
   return found;
 };
@@ -89,13 +158,10 @@ export const declaredEntityClasses = (): Map<string, string> => {
  */
 export const declaredEntityResources = (): Map<string, string> => {
   const found = new Map<string, string>();
-  for (const file of sourceFiles(BUSINESS_ROOT)) {
-    const text = readFileSync(file, 'utf8');
-    for (const match of text.matchAll(
-      /@entity\(\{[^)]*?domain:\s*'([^']+)'[^)]*?key:\s*'([^']+)'[^)]*?\}\)\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/gs,
-    )) {
-      found.set(match[3], `${match[1]}:${match[2]}`);
-    }
+  for (const { className, domain, key } of businessEntityDeclarations()) {
+    if (className === undefined || domain === undefined || key === undefined)
+      continue;
+    found.set(className, `${domain}:${key}`);
   }
   return found;
 };
@@ -113,11 +179,11 @@ export const declaredFilterableMembers = (): Map<string, Set<string>> => {
   const found = new Map<string, Set<string>>();
   for (const file of sourceFiles(BUSINESS_ROOT)) {
     const text = readFileSync(file, 'utf8');
-    const entities = [
-      ...text.matchAll(
-        /@entity\(\{[^)]*?domain:\s*'([^']+)'[^)]*?key:\s*'([^']+)'/gs,
-      ),
-    ].map(match => ({ at: match.index, resource: `${match[1]}:${match[2]}` }));
+    const entities = entityDeclarations(text).flatMap(({ at, domain, key }) =>
+      domain === undefined || key === undefined
+        ? []
+        : [{ at, resource: `${domain}:${key}` }],
+    );
     if (entities.length === 0) continue;
     for (const match of text.matchAll(
       /@accessor\(\{((?:[^{}]|\{[^{}]*\})*)\}\)\s*get\s+(\w+)\(/gs,

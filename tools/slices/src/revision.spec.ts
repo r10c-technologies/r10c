@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { BUSINESS_ROOT, sourceFiles } from './source-scan.js';
+import {
+  BUSINESS_ROOT,
+  entityDeclarations,
+  sourceFiles,
+} from './source-scan.js';
 
 /**
  * The revision check names which records it protects (ADR 0079 §4, entifix
@@ -65,10 +69,9 @@ const entities = () => {
   const found = new Map<string, boolean>();
   for (const file of sourceFiles(BUSINESS_ROOT)) {
     const text = readFileSync(file, 'utf8');
-    for (const match of text.matchAll(
-      /@entity\(\{[^)]*?\}\)\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/gs,
-    )) {
-      found.set(match[1], /type:\s*'revision'/.test(text));
+    for (const { className } of entityDeclarations(text)) {
+      if (className !== undefined)
+        found.set(className, /type:\s*'revision'/.test(text));
     }
   }
   return found;

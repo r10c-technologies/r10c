@@ -1,5 +1,5 @@
 import { EntityRepositoryFactoryTag } from '@entifix/business';
-import { type EntityId, NotFound } from '@entifix/core';
+import { type EntityId, NotFound, UnavailableInState } from '@entifix/core';
 import { Effect } from 'effect';
 
 import { ProductOffering } from '../../entities/product-offering';
@@ -12,7 +12,6 @@ import {
 import {
   SpecificationBeingRevised,
   SpecificationChanged,
-  SpecificationReleased,
   SpecificationStillPinned,
 } from './specification-failures';
 import { decideSpecificationMove } from './specification-lifecycle.uc';
@@ -131,7 +130,8 @@ export const reviseSpecificationFor = (input: {
 
 /**
  * Delete a version that is still in design. A released one is kept forever —
- * orders name it — so it answers {@link SpecificationReleased}.
+ * orders name it — so a delete that loses to a release answers
+ * `UnavailableInState`, as the shell does for one it saw coming (ADR 0029 §7).
  */
 export const removeSpecificationFor = (input: {
   readonly organizationId: string;
@@ -144,9 +144,10 @@ export const removeSpecificationFor = (input: {
       return yield* new NotFound({ entity: 'product-specification' });
     }
     if (outcome === 'changed') {
-      return yield* new SpecificationReleased({
-        id: input.id,
-        standing: 'released',
+      return yield* new UnavailableInState({
+        entity: 'product-specification',
+        member: 'lifecycleStatus',
+        allowed: ['in-design'],
       });
     }
     return input.id;
@@ -180,11 +181,10 @@ export const startSpecificationSeries = (
 };
 
 /**
- * ⚠️ **A `PUT` reaches only a version in design**, and carries the lifecycle
- * across from what is stored, whatever the body said (ADR 0079 §1). A release
- * landing between this read and the save has moved the `revision`, so the
- * save itself is refused `staleRevision` — the window this read leaves is
- * closed by the revision check, not by hope.
+ * ⚠️ **A `PUT` carries the lifecycle across from what is stored**, whatever
+ * the body said (ADR 0079 §1). Which versions it reaches is the entity's
+ * `writableWhen`: the store refuses a version out of design in the same write
+ * that would save it, so a release landing after this read loses nothing.
  */
 export const preserveSpecificationLifecycle = (
   specification: ProductSpecification,
@@ -197,12 +197,6 @@ export const preserveSpecificationLifecycle = (
     const stored = yield* specifications.get<ProductSpecification>(
       specification.id,
     );
-    if (stored.lifecycleStatus !== 'in-design') {
-      return yield* new SpecificationReleased({
-        id: String(specification.id),
-        standing: String(stored.lifecycleStatus),
-      });
-    }
     for (const member of SERVER_OWNED) {
       (specification as unknown as Record<string, unknown>)[member] =
         stored[member];

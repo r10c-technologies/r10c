@@ -9,6 +9,7 @@
 - Revised: 2026-11-21 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — proposed: the line's copy also holds its unit, `pricePer` and total, so `amount` is the price of `pricePer` units rather than always of one
 - Revised: 2026-11-24 — §4 is built (#649): every entity a person saves through `PUT` declares `revision`. That covers brand, category, dictionary term, device model, configuration, product specification, offering, offering price, sales channel and agreement. Each save is conditional on it in every adapter, so no authored save is an unconditional `replaceOne`. entifix's revision check is Accepted as its ADR 0032.
 - Revised: 2026-11-24 — Accepted on the live fleet (#695): a released version refuses a `PUT` with `409`, two racing releases and two racing revises each land exactly once, and an order line carries the version it was sold under (`specification-versioning.live.spec.ts`)
+- Revised: 2026-11-24 by [entifix ADR 0029](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0029-a-verb-declares-the-states-it-is-legal-from.md) §6–§7 (#767) — §1's "edit and delete only in design" is declared on `ProductSpecification` (`writableWhen`, `deletableWhen`) instead of checked in a `prepare`: the store refuses a `PUT` or `DELETE` of a released version `409 unavailableInState` in the write itself, the form renders it read-only with the reason, and New version opens the draft it wrote. `specificationReleased` is gone.
 
 ## Context
 
@@ -79,9 +80,15 @@ segments, as publication is
 released.
 
 ⚠️ **Hiding the verb is not the rule.**
-[entifix 0029](https://github.com/r10c-technologies/entifix/blob/v0.22.4/docs/adr/0029-a-verb-declares-the-states-it-is-legal-from.md)
-hides an illegal verb and says itself that this is presentation. The rule is the
-handler's conditional write on `lifecycleStatus: 'in-design'`.
+[entifix 0029](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0029-a-verb-declares-the-states-it-is-legal-from.md)
+hides an illegal verb and says itself that this is presentation. The rule for a
+verb is its handler's conditional write on `lifecycleStatus`. The rule for
+`update` and `delete` is the entity's own declaration —
+`writableWhen`/`deletableWhen: { member: 'lifecycleStatus', in: ['in-design'] }`
+— which the store conjoins onto the write that would change the record, so a
+release landing between a read and a save still loses nothing (`409
+unavailableInState`). The same declaration renders a released version
+read-only, with the reason the form states (#767).
 
 It binds `ProductSpecification`, `EntitySpecification` and
 `CharacteristicSpecification`, and it is the only lifecycle on file:

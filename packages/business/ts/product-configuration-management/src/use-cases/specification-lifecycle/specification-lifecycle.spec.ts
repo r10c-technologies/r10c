@@ -15,7 +15,6 @@ import {
   SPECIFICATION_BEING_REVISED,
   SPECIFICATION_CHANGED,
   SPECIFICATION_NOT_TRANSITIONABLE,
-  SPECIFICATION_RELEASED,
   SPECIFICATION_STILL_PINNED,
 } from './specification-failures.js';
 import {
@@ -447,7 +446,7 @@ describe('deleting a version', () => {
       removeSpecificationFor({ organizationId: 'acme', id: 's-1' }),
     );
 
-    expect(codeOf(exit)).toBe(SPECIFICATION_RELEASED);
+    expect(codeOf(exit)).toBe('unavailableInState');
   });
 
   it('answers nothing by that id as not found', async () => {
@@ -517,13 +516,13 @@ describe('a save', () => {
     });
   });
 
-  it('refuses an edit of a released version', async () => {
+  it('carries a released version’s stored state onto the edit, for the store to refuse', async () => {
     const exit = await world({
       specifications: [version('s-1', 'active')],
     }).exit(
       preserveSpecificationLifecycle(version('s-1', 'in-design'), 'acme'),
     );
 
-    expect(codeOf(exit)).toBe(SPECIFICATION_RELEASED);
+    expect(valueOf(exit)).toMatchObject({ lifecycleStatus: 'active' });
   });
 });
