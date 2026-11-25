@@ -23,15 +23,16 @@ import { expect, test } from './support/fixtures';
  * marker, and closing one lost the edit with no confirmation (#131).
  *
  * Mock-only because it is about the browser's state machine, not the service:
- * the seeded `product-1` is a fixture either profile could serve, but the
- * assertions are all client-side.
+ * the seeded `product-4` — in design, so its form is editable; a released
+ * version is read-only (ADR 0079 §1) — is a fixture either profile could
+ * serve, but the assertions are all client-side.
  */
 
-const PRODUCT_TAB = 'master:product-specification:product-1';
+const PRODUCT_TAB = 'master:product-specification:product-4';
 // The tab's × is hidden from assistive technology since entifix 0.19.0 (the
 // APG tabs pattern: Delete on the focused tab is its keyboard equivalent), so
 // a pointer reaches it by its title rather than by a role.
-const CLOSE_PRODUCT = 'Cerrar Producto #product-1';
+const CLOSE_PRODUCT = 'Cerrar Producto #product-4';
 const BRAND_TAB = 'master:product-brand:product-brand-1';
 const CLOSE_BRAND = 'Cerrar Marca #product-brand-1';
 
@@ -80,8 +81,8 @@ const openDirtyTab = async (page: Page) => {
   await page.goto(`/workspace?tab=${PRODUCT_TAB}`);
 
   const name = page.getByLabel('Nombre');
-  await expect(name).toHaveValue('Widget');
-  await name.fill('Widget renamed');
+  await expect(name).toHaveValue('Gizmo');
+  await name.fill('Gizmo renamed');
 
   // The strip's dirty marker is what says the draft actually landed, rather
   // than the keystroke merely reaching the input.
@@ -102,11 +103,11 @@ test('keeps a dirty tab and its draft when the discard is cancelled', async ({
 
   await expect(dialog).toBeHidden();
   await expect(
-    page.getByRole('tab', { name: /Producto #product-1/ }),
+    page.getByRole('tab', { name: /Producto #product-4/ }),
   ).toBeVisible();
   // The edit survives too — a tab that stayed while its draft was dropped
   // would satisfy the assertion above and still have lost the work.
-  await expect(page.getByLabel('Nombre')).toHaveValue('Widget renamed');
+  await expect(page.getByLabel('Nombre')).toHaveValue('Gizmo renamed');
 });
 
 test('closes a dirty tab and drops its draft when the discard is confirmed', async ({
@@ -122,14 +123,14 @@ test('closes a dirty tab and drops its draft when the discard is confirmed', asy
     .click();
 
   await expect(
-    page.getByRole('tab', { name: /Producto #product-1/ }),
+    page.getByRole('tab', { name: /Producto #product-4/ }),
   ).toBeHidden();
 
   // Reopening the same address gets the stored record, not the abandoned edit:
   // the draft is keyed by that address in IndexedDB, so a surviving one would
   // come straight back.
   await page.goto(`/workspace?tab=${PRODUCT_TAB}`);
-  await expect(page.getByLabel('Nombre')).toHaveValue('Widget');
+  await expect(page.getByLabel('Nombre')).toHaveValue('Gizmo');
 });
 
 /**
