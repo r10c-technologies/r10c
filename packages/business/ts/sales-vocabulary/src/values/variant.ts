@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 
 /**
  * The dimensions a product's variants differ along
- * ([ADR 0085](../../../../../../docs/adr/0085-a-variant-is-an-offering-of-one-product.md)).
+ * ([ADR 0085](../../../../../../docs/adr/0085-variants-are-offerings.md)).
  *
  * A closed list rather than vendor-authored names: an axis is labelled on the
  * storefront through the catalog, and two vendors' `color` are then one

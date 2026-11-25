@@ -1,4 +1,5 @@
-import type { SeededVendor } from '@r10c/utils-ts-fleet';
+import { variantKeyOf } from '@r10c/business-ts-sales-vocabulary';
+import { sampleMediaPath, type SeededVendor } from '@r10c/utils-ts-fleet';
 
 import { productTempDataFor } from './product-temp-data';
 
@@ -32,6 +33,10 @@ export interface ProductOfferingRecord {
    */
   stockOfferingId?: string;
   stockFactor?: number;
+  /** Which variant of its product it is (ADR 0085). */
+  variantValues?: { axis: string; value: string }[];
+  /** A variant's own picture, over its specification's. */
+  media?: { url: string; alt: string }[];
 }
 
 export interface ProductOfferingPriceRecord {
@@ -92,18 +97,37 @@ const stockSourceOf = (
   };
 };
 
-/** One seeded store's offerings, one per specification, under its prefix. */
+/**
+ * The row whose specification a product row's offering pins: its own, or —
+ * for a variant joining another row's product — that row's (ADR 0085). A key
+ * that names no product throws, for the reason `stockSourceOf` does.
+ */
+const specificationRowOf = (
+  vendor: Pick<SeededVendor, 'products'>,
+  index: number,
+): number => {
+  const of = vendor.products[index]?.variant?.of;
+  if (of === undefined) return index;
+  const base = vendor.products.findIndex(one => one.key === of);
+  if (base < 0) throw new Error(`no product ${of} to be a variant of`);
+  return base;
+};
+
+/**
+ * One seeded store's offerings, one per product row, under its prefix. A
+ * variant pins its product's specification and shows its own picture.
+ */
 export const offeringTempDataFor = (
   vendor: Pick<SeededVendor, 'idPrefix' | 'products' | 'slug'>,
 ): ProductOfferingRecord[] =>
-  productTempDataFor(vendor).map((specification, index) => {
-    const product = vendor.products[index];
+  vendor.products.map((product, index) => {
+    const specificationId = `${vendor.idPrefix}product-${String(specificationRowOf(vendor, index) + 1)}`;
     return {
       id: offeringIdOf(vendor, index),
       // The product's own name: a store sells "Cable THHN #12", not an
       // "offer" of it.
-      name: specification.name,
-      specificationId: specification.id,
+      name: product.name,
+      specificationId,
       status: product.status,
       // Without this the seeded `published` offerings carry no moment, the
       // walk reports them `unstamped`, and a fresh lab still serves an empty
@@ -113,8 +137,40 @@ export const offeringTempDataFor = (
       quantityStep: product.step,
       quantityMinimum: product.minimum,
       ...stockSourceOf(vendor, product.drawsOn),
+      ...(product.variant === undefined
+        ? {}
+        : {
+            variantValues: product.variant.values.map(one => ({ ...one })),
+            media: [
+              { url: sampleMediaPath(vendor, product), alt: product.name },
+            ],
+          }),
     };
   });
+
+/**
+ * The combinations the seeded variants hold, as the catalog cell claims them
+ * (ADR 0085): one slot per variant, keyed by its product's series.
+ */
+export const variantSlotTempDataFor = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'products' | 'slug'>,
+): { slot: string; offeringId: string }[] => {
+  const specifications = productTempDataFor(vendor);
+  return vendor.products.flatMap((product, index) => {
+    if (product.variant === undefined) return [];
+    const base = specifications.find(
+      one =>
+        one.id ===
+        `${vendor.idPrefix}product-${String(specificationRowOf(vendor, index) + 1)}`,
+    );
+    return [
+      {
+        slot: `${String(base?.specKey)}|${variantKeyOf(product.variant.values)}`,
+        offeringId: offeringIdOf(vendor, index),
+      },
+    ];
+  });
+};
 
 /**
  * One price per offering, in **minor units** — `amount` is an integer number of

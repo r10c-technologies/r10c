@@ -7,7 +7,7 @@
 - Revised: 2026-11-20 by the receipt build (#689 #692): the seller's attach is the verb's own path, `POST /api/product-order/:id/attach-payment-evidence`; the storefront reads a buyer's receipt through a same-origin route holding the nonce; the count rides in a counter beside the array; the same file attached twice answers the first; the bucket cell is reached by Workload Identity and the lab's directory is `tmp/payment-evidence`
 - Revised: 2026-11-23 by the sample-stores build (#676): §10's dictionaries seed one generic row each beside `other` — `bank-link`, a bank's link served from a reserved `example.com` host, and `national`, a parcel service whose tracking page is an `example.com` address — still no real name
 - Area: business
-- Read when: a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date
+- Read when: a buyer pays off-platform or a file is stored — the order status arbitrates
 - Revised: 2026-11-24 — Accepted on the live fleet (#691): confirm against expiry and withdrawal leaves one winner with one `Payment` or one release; attach against withdrawal leaves the file store holding exactly what the order lists, with no orphan to sweep; and the MVP flow runs end to end in the three verticals — link, card and cash on delivery, each to delivery, its FEL document and its ledger line
 
 ## Context

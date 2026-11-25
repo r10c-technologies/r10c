@@ -46,6 +46,8 @@ import {
 import { type PriceTierRowView, PriceTiers } from '../catalog/price-tiers';
 import { readProduct } from '../catalog/product-read';
 import { SampleStoreNote } from '../catalog/sample-store-note';
+import { variantChoices } from '../catalog/variant-choices';
+import { VariantPicker } from '../catalog/variant-picker';
 import { imageHosts, imageLoaderFor } from '../media/image-hosts';
 import { storePaths } from '../routing/paths';
 import { StoreLink } from '../routing/store-link';
@@ -164,7 +166,8 @@ async function ProductContent({
   const product = await readProduct(offeringId);
   // Unpublished between the check and this render: still a miss.
   if (!product) notFound();
-  const { offering, brandName, sellerName, ships, sampleStore } = product;
+  const { offering, brandName, sellerName, ships, sampleStore, siblings } =
+    product;
 
   // The trail ends at the offering's own category, so it is also the
   // category line below: one vocabulary read, not two (ADR 0062).
@@ -285,6 +288,17 @@ async function ProductContent({
                 </StatusTag>
               )}
             </Cluster>
+
+            <VariantPicker
+              axes={variantChoices(offering, siblings)}
+              locale={locale}
+              labels={{
+                label: t('storefront.product.variant.label'),
+                axis: axis => t(`storefront.product.variant.axis.${axis}`),
+                unavailable: value =>
+                  t('storefront.product.variant.unavailable', { value }),
+              }}
+            />
 
             {contains === undefined ? null : (
               <Text muted data-testid="presentation-contains">

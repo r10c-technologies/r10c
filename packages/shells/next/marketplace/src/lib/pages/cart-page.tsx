@@ -36,6 +36,7 @@ import type { CheckoutOutcome } from '../cart/checkout-action';
 import { readPricedCart } from '../cart/priced-cart';
 import { runRead } from '../catalog/catalog-reads';
 import { quantityLabel, saleRuleLabel } from '../catalog/price-basis';
+import { variantLabel } from '../catalog/variant-choices';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -65,6 +66,11 @@ export async function CartPage({
   readonly notice?: CartNotice;
 }) {
   const t = getServerTFor(locale, 'r10c');
+  const variantOf = (offering: PublishedOffering) =>
+    variantLabel(
+      axis => t(`storefront.product.variant.axis.${axis}`),
+      offering.variantValues,
+    );
   const tErrors = getServerTFor(locale, 'errors');
   // i18next 27's `TFunction` is not assignable to a plain translate
   // signature, so the labels get the call they declare.
@@ -209,6 +215,11 @@ export async function CartPage({
                       <Cluster justify="between" gap="s">
                         <Stack gap="3xs">
                           <Text weight="semibold">{offering.name}</Text>
+                          {variantOf(offering) === undefined ? null : (
+                            <Text muted data-testid="cart-variant">
+                              {variantOf(offering)}
+                            </Text>
+                          )}
                           {/* A form per line, so a quantity changes with no script:
                             the server writes the cookie and renders the totals. */}
                           <form

@@ -35,7 +35,7 @@ export type VariantPayload = typeof VariantPayload.Type;
 /**
  * Make an offering one variant of its product — the black case, the size-40
  * sole — or a product of its own again
- * ([ADR 0085](../../../../../../../docs/adr/0085-a-variant-is-an-offering-of-one-product.md)).
+ * ([ADR 0085](../../../../../../../docs/adr/0085-variants-are-offerings.md)).
  *
  * The product is the offering's specification **series**, so a revised
  * version keeps its variants together. Every variant of one product varies

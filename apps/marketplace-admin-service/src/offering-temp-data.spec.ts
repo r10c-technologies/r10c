@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   offeringPriceTempDataFor,
   offeringTempDataFor,
+  variantSlotTempDataFor,
 } from './offering-temp-data';
 import { productTempDataFor } from './product-temp-data';
 
@@ -127,5 +128,41 @@ describe('the seeded catalog', () => {
         specification => 'fitsDeviceModelIds' in specification,
       ),
     ).toBe(false);
+  });
+
+  it('seeds a product in variants, each pinning its product with its own picture', () => {
+    const [, phones] = SEEDED_VENDORS;
+    const offerings = offeringTempDataFor(phones);
+    const cases = offerings.filter(
+      offering => offering.specificationId === offerings[0]?.specificationId,
+    );
+
+    expect(cases.map(offering => offering.variantValues?.[0]?.value)).toEqual([
+      'negro',
+      'azul',
+      'rosa',
+    ]);
+    expect(new Set(cases.map(one => one.media?.[0]?.url)).size).toBe(3);
+    // A variant joining another row's product seeds no specification of its own.
+    expect(productTempDataFor(phones)).toHaveLength(offerings.length - 2);
+    expect(variantSlotTempDataFor(phones)).toEqual([
+      { slot: 'P-0001|color=negro', offeringId: cases[0]?.id },
+      { slot: 'P-0001|color=azul', offeringId: cases[1]?.id },
+      { slot: 'P-0001|color=rosa', offeringId: cases[2]?.id },
+    ]);
+  });
+
+  it('refuses a variant of a product the store does not hold', () => {
+    const [, phones] = SEEDED_VENDORS;
+    const broken = {
+      ...phones,
+      products: [
+        {
+          ...phones.products[0],
+          variant: { values: [], of: 'nothing' },
+        },
+      ],
+    } as typeof phones;
+    expect(() => offeringTempDataFor(broken)).toThrow(/no product nothing/);
   });
 });

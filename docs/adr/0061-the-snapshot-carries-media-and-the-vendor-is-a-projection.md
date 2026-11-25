@@ -6,6 +6,7 @@
 - Read when: rendering a product image or a seller's name on the storefront — media is a reference the vendor authored, and a vendor's name is its own projection
 - Amends: [ADR 0049](0049-the-publication-snapshot-carries-what-the-storefront-renders.md) — the snapshot gains an optional `media` member.
 - Amends: [ADR 0022](0022-v1-marketplace-module-boundaries.md) — one domain (`marketplace-vendor`), one entity (`PublishedVendor`) and one store (`published-vendor`) join the inventory; slices and deployments are unchanged.
+- Revised: 2026-11-25 by [ADR 0085](0085-variants-are-offerings.md) — an offering may hold its own pictures, checked by the same `mediaRefusal` on its save; the snapshot carries them over its specification's, so a variant shows its own colour.
 - Revised: 2026-11-23 by the sample-stores build (#676) — one URL that is not `https` is accepted: `/samples/<store>/<product>.svg`, a drawing the platform generates and each of its apps serves from its own origin, matched whole so nothing else rides along. It is what the lab's sample stores show, so a reset lab fetches no picture from anybody else's host.
 - Revised: 2026-11-22 by [ADR 0082](0082-an-offering-is-sold-in-a-unit-with-a-step.md) — the card's `unitPrice` role is filled: it says what the price buys when that is not one piece ("por 100 u."), from the closed sale-unit vocabulary ADR 0082 decided rather than ADR 0014's dictionary. A price per net quantity of a packaged good ("Q 12.50 / kg" for a 400 g jar) is still unbuilt.
 

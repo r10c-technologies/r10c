@@ -1,4 +1,5 @@
 import { MongoClientTag } from '@entifix/mongo';
+import { VARIANT_SLOT_COLLECTION } from '@r10c/implementation-catalog-mongo';
 import { revised, seedCollection } from '@r10c/shells-effect-service';
 import type { SeededVendor } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
@@ -6,6 +7,7 @@ import { Effect } from 'effect';
 import {
   offeringPriceTempDataFor,
   offeringTempDataFor,
+  variantSlotTempDataFor,
 } from './offering-temp-data';
 import { productTempDataFor } from './product-temp-data';
 
@@ -51,5 +53,12 @@ export const seedCatalog = (tenantDbName: string, vendor: SeededVendor) =>
       db,
       'product-offering-price',
       revised(offeringPriceTempDataFor(vendor)),
+    );
+    // The combinations the seeded variants hold, claimed as `set-variant`
+    // claims them (ADR 0085), so a vendor's first edit meets them.
+    yield* seedCollection(
+      db,
+      VARIANT_SLOT_COLLECTION,
+      variantSlotTempDataFor(vendor),
     );
   });

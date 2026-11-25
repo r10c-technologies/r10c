@@ -77,7 +77,7 @@ export interface OfferingCatalog {
   /**
    * Records an offering's variant at the revision it was read at, and claims
    * its combination in the product's series in the same write
-   * ([ADR 0085](../../../../../../docs/adr/0085-a-variant-is-an-offering-of-one-product.md)).
+   * ([ADR 0085](../../../../../../docs/adr/0085-variants-are-offerings.md)).
    * `taken` when another offering of the organization holds the slot — the
    * guard two concurrent `set-variant`s on siblings meet, which reading the
    * siblings first cannot be. No slot clears the variant and frees the one it

@@ -28,6 +28,7 @@ import { reviewedTotalsOf } from '../cart/priced-cart-state';
 import { runRead } from '../catalog/catalog-reads';
 import { totalsByCurrency } from '../catalog/money';
 import { quantityLabel } from '../catalog/price-basis';
+import { variantLabel } from '../catalog/variant-choices';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -130,7 +131,15 @@ export async function CheckoutReviewPage({
                   <HeadingTwo>{seller}</HeadingTwo>
                   <ul className="m-0 flex list-none flex-col gap-2xs p-0">
                     {part.lines.map(line => {
-                      const name = offerings.get(line.offeringId)?.name;
+                      const offering = offerings.get(line.offeringId);
+                      const variant = variantLabel(
+                        axis => t(`storefront.product.variant.axis.${axis}`),
+                        offering?.variantValues,
+                      );
+                      const name =
+                        variant === undefined
+                          ? offering?.name
+                          : `${String(offering?.name)} (${variant})`;
                       return (
                         <li key={line.offeringId}>
                           <Cluster justify="between" gap="s">

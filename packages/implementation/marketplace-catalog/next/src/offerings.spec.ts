@@ -80,12 +80,15 @@ describe('loadOfferings', () => {
     );
   });
 
-  it('matches a search term against the name', async () => {
-    const { load } = run(loadOfferings({ search: 'Taza' }));
+  it('matches every word of a search term against the search text', async () => {
+    const { load } = run(loadOfferings({ search: 'Taza azul' }));
 
     expect(load).toHaveBeenCalledWith(
       expect.objectContaining({
-        filtering: [{ property: 'name', operator: 'like', value: 'Taza' }],
+        filtering: [
+          { property: 'searchText', operator: 'like', value: 'Taza' },
+          { property: 'searchText', operator: 'like', value: 'azul' },
+        ],
       }),
     );
   });

@@ -8,7 +8,7 @@ import {
 /**
  * One row of a `variantValues` composition — a **value**, not an entity: it
  * has no id and is never addressed apart from the offering that holds it
- * ([ADR 0085](../../../../../../docs/adr/0085-a-variant-is-an-offering-of-one-product.md)).
+ * ([ADR 0085](../../../../../../docs/adr/0085-variants-are-offerings.md)).
  *
  * Declared here rather than in either domain for the reason `MediaReference`
  * is: `ProductOffering` records it and `PublishedOffering` projects it.

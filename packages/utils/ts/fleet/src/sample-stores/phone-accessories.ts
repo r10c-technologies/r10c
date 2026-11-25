@@ -47,7 +47,12 @@ export const PHONE_ACCESSORY_PRODUCTS: readonly SampleProduct[] = [
       status: 'published',
       stock: 30,
     },
-    { fits: A15 },
+    // The first of three colours (ADR 0085); the other two close the list.
+    {
+      fits: A15,
+      variant: { values: [{ axis: 'color', value: 'negro' }] },
+      tone: '#2b2b2b',
+    },
   ),
   product(
     {
@@ -300,5 +305,36 @@ export const PHONE_ACCESSORY_PRODUCTS: readonly SampleProduct[] = [
       stock: 10,
     },
     { fits: A35 },
+  ),
+  // The silicone case's other colours (ADR 0085): offerings of its product,
+  // each with its own price row and stock. Appended, because a product's
+  // position is its id.
+  ...(
+    [
+      ['azul', 'Funda de silicón Galaxy A15, azul', '#1f5fbf', 18],
+      ['rosa', 'Funda de silicón Galaxy A15, rosa', '#d9468f', 'sold-out'],
+    ] as const
+  ).map(([value, name, tone, stock]) =>
+    product(
+      {
+        key: `funda-silicon-a15-${value}`,
+        name,
+        description: 'Interior de microfibra, bordes elevados.',
+        brand: 'kinetik',
+        category: 'cases',
+        art: 'case',
+        amount: 6500,
+        status: 'published',
+        stock,
+      },
+      {
+        fits: A15,
+        variant: {
+          values: [{ axis: 'color', value }],
+          of: 'funda-silicon-a15',
+        },
+        tone,
+      },
+    ),
   ),
 ];

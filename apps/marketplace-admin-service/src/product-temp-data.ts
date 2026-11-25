@@ -65,7 +65,10 @@ const SEEDED_RELEASE = new Date('2026-01-01T00:00:00.000Z');
 export const productTempDataFor = (
   vendor: Pick<SeededVendor, 'idPrefix' | 'products' | 'slug'>,
 ): ProductSpecificationRecord[] =>
-  vendor.products.map((product, index) => {
+  vendor.products.flatMap((product, index) => {
+    // A variant joining another row's product seeds no specification: its
+    // offering pins that row's (ADR 0085). Numbering stays positional.
+    if (product.variant?.of !== undefined) return [];
     const number = index + 1;
     const code = `P-${String(number).padStart(4, '0')}`;
     return {

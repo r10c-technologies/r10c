@@ -315,7 +315,7 @@ export class ProductOffering implements Entity {
    * What makes this offering one **variant** of its product: the colour, the
    * size, the finish or the capacity it is sold in, beside the product's
    * other offerings in the same specification series
-   * ([ADR 0085](../../../../../../../docs/adr/0085-a-variant-is-an-offering-of-one-product.md)).
+   * ([ADR 0085](../../../../../../../docs/adr/0085-variants-are-offerings.md)).
    * Each variant is a whole offering — its own price, stock row and order
    * line — so nothing downstream of the catalog learns the word.
    *

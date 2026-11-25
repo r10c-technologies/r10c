@@ -50,6 +50,7 @@ import {
 import { PRICE_TIERS_FORM, PriceTiersForm } from './price-tiers-form';
 import { SALE_UNIT_FORM, SaleUnitForm } from './sale-unit-form';
 import { STOCK_SOURCE_FORM, StockSourceForm } from './stock-source-form';
+import { VARIANT_FORM, VariantForm } from './variant-form';
 
 /**
  * The catalog's five CRUD surfaces, declared rather than written.
@@ -372,6 +373,8 @@ export const productOfferingCrudWith = ({
       // Server-owned: only `draw-on-stock` writes them (ADR 0082 §7).
       'stockOfferingId',
       'stockFactor',
+      // Server-owned: only `set-variant` writes it (ADR 0085).
+      'variantValues',
     ],
     // `specificationId` is a plain `string` into the same store, and the picker
     // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
@@ -396,6 +399,7 @@ export const productOfferingCrudWith = ({
     verbForms: {
       [SALE_UNIT_FORM]: SaleUnitForm,
       [STOCK_SOURCE_FORM]: StockSourceForm,
+      [VARIANT_FORM]: VariantForm,
     },
     related: [...OFFERING_RELATED_COLUMNS, ...related],
     regions: offering => [
