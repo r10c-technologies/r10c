@@ -69,8 +69,6 @@ export const errors: EsErrors = {
     'This offering uses a product version that is not active. Release the product, or point the offering at its active version.',
   specificationNotTransitionable:
     'This product version cannot make that change from where it stands.',
-  specificationReleased:
-    'This product version is released and frozen. Create a new version to change it.',
   specificationBeingRevised:
     'This product already has a version in design. Finish or delete it first.',
   specificationStillPinned:
@@ -128,6 +126,8 @@ export const errors: EsErrors = {
   duplicateKey: 'A record with that value already exists.',
   staleRevision:
     'This record changed since you opened it. Review the current version before saving again.',
+  unavailableInState:
+    'This record no longer takes that change from where it stands. Reload to see where it is.',
   declined: 'The request was declined.',
   contention: 'Another operation got there first. Try again.',
   overloaded: 'The service is overloaded. Try again in a moment.',

@@ -283,7 +283,7 @@ describe('a product specification version', () => {
     );
 
     expect(res.status).toBe(409);
-    expect(res.data.code).toBe('specificationReleased');
+    expect(res.data.code).toBe('unavailableInState');
   });
 
   it('opens the next version, releases it, and retires the one it replaces', async () => {
@@ -315,6 +315,6 @@ describe('a product specification version', () => {
       '/api/product-specification/product-4',
     );
     expect(removed.status).toBe(409);
-    expect(removed.data.code).toBe('specificationReleased');
+    expect(removed.data.code).toBe('unavailableInState');
   });
 });

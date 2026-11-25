@@ -28,6 +28,8 @@ export const entity = {
     },
   },
   'product-specification': {
+    readOnly:
+      'Esta versión está publicada y no se modifica. Crea una versión nueva para cambiarla.',
     form: {
       brandEmbedded: 'Marca (incrustada)',
       categoryForeign: 'Categoría (clave foránea)',

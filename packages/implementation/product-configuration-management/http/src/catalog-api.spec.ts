@@ -3,7 +3,11 @@ import {
   EntityRepositoryFactoryTag,
   IdempotencyKeyTag,
 } from '@entifix/business';
-import { makeEntityEnvelope, toWireSelection } from '@entifix/core';
+import {
+  describeEntityStateRules,
+  makeEntityEnvelope,
+  toWireSelection,
+} from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { EventSourceTag } from '@entifix/transactions';
 import {
@@ -257,7 +261,7 @@ describe('a specification version', () => {
     });
   });
 
-  it('is edited only while in design, its lifecycle carried across', async () => {
+  it('carries the lifecycle across, so the store refuses a version out of design', async () => {
     const run = world();
     const body = (id: string) =>
       Object.assign(new ProductSpecification('', 'Renamed'), {
@@ -268,7 +272,7 @@ describe('a specification version', () => {
     const edited = await run(
       productSpecificationApi.options.prepare(body('spec-draft'), updating),
     );
-    const refused = await run(
+    const released = await run(
       productSpecificationApi.options.prepare(body('spec-1'), updating),
     );
 
@@ -279,8 +283,15 @@ describe('a specification version', () => {
         lifecycleStatus: 'in-design',
       },
     });
-    expect(refused).toMatchObject({
-      failure: { code: 'specificationReleased', standing: 'active' },
+    // The stored state, not the body's: the entity's `writableWhen` then
+    // refuses it in the write itself (ADR 0029 §7).
+    expect(released).toMatchObject({
+      success: { lifecycleStatus: 'active' },
+    });
+    expect(describeEntityStateRules(ProductSpecification)).toEqual({
+      writableWhen: { member: 'lifecycleStatus', in: ['in-design'] },
+      deletableWhen: { member: 'lifecycleStatus', in: ['in-design'] },
+      readOnlyReasonKey: 'entity:product-specification.readOnly',
     });
   });
 
@@ -337,7 +348,7 @@ describe('a specification version', () => {
       },
     });
     expect(await remove('spec-1')).toMatchObject({
-      failure: { code: 'specificationReleased' },
+      failure: { code: 'unavailableInState', member: 'lifecycleStatus' },
     });
     expect(await remove('spec-draft')).toMatchObject({
       failure: { code: 'notFound' },

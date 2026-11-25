@@ -1,6 +1,14 @@
 import { EntityRepositoryTag } from '@entifix/business';
 import { type EntityWriter, settled } from '@entifix/core';
-import { type Entity, Unavailable } from '@entifix/core';
+import {
+  describeEntityStateRules,
+  describeEntityUseCases,
+  type Entity,
+  type EntityConstructor,
+  type EntityMetadataDocument,
+  type EntityMetadataSource,
+  Unavailable,
+} from '@entifix/core';
 import { ReferenceLabelsHost } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
@@ -94,6 +102,13 @@ let repositories: {
   category: ReturnType<typeof makeInMemoryEntityRepository>;
 };
 
+/**
+ * The catalog's metadata as the service serves it for a product: the grants,
+ * the four lifecycle verbs, and the states a version is saved and deleted in.
+ * `undefined` keeps the real transport, which a spec has no server for.
+ */
+let catalogMetadata: EntityMetadataSource | undefined;
+
 const adapters = (): MarketplaceAdminAdapters => ({
   productRest: Context.make(EntityRepositoryTag, repositories.product),
   productWriter: settledWriter(
@@ -126,7 +141,7 @@ const adapters = (): MarketplaceAdminAdapters => ({
     Context.make(EntityRepositoryTag, repositories.product),
   ),
   referenceMetadata: real.referenceMetadata,
-  catalogMetadata: real.catalogMetadata,
+  catalogMetadata: catalogMetadata ?? real.catalogMetadata,
   productBrandUseCases: real.productBrandUseCases,
   deviceModelUseCases: real.deviceModelUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
@@ -162,6 +177,7 @@ const renderPage = (page: ReactElement) =>
 beforeEach(() => {
   push.mockClear();
   slug = 'new';
+  catalogMetadata = undefined;
   repositories = {
     product: makeInMemoryEntityRepository([makeProduct()] as Entity[]),
     brand: makeInMemoryEntityRepository([makeBrand('b-1', 'Acme')] as Entity[]),
@@ -422,5 +438,57 @@ describe('the product form’s classifications', () => {
     expect(screen.getByTestId('entity-link-value-brandId')).toHaveTextContent(
       'b-404',
     );
+  });
+});
+
+/**
+ * #767: a released version is frozen (ADR 0079 §1), and the page says so
+ * instead of offering a Save the service always refuses.
+ */
+describe('a product version’s state', () => {
+  const served = (): EntityMetadataSource => ({
+    fetchMetadata: <TEntity extends Entity>(
+      entityConstructor: EntityConstructor<TEntity>,
+    ) =>
+      Promise.resolve({
+        actions: ['read', 'write', 'delete'],
+        useCases: describeEntityUseCases(entityConstructor),
+        ...describeEntityStateRules(entityConstructor),
+      } satisfies EntityMetadataDocument),
+  });
+  const inState = (lifecycleStatus: 'in-design' | 'active') => {
+    const product = makeProduct();
+    product.lifecycleStatus = lifecycleStatus;
+    repositories.product = makeInMemoryEntityRepository([product] as Entity[]);
+  };
+
+  it('renders a released version read-only, offering a New version', async () => {
+    inState('active');
+    catalogMetadata = served();
+    slug = 'p-1';
+
+    renderPage(<ProductSingleViewClientPage />);
+
+    expect(
+      await screen.findByTestId('entity-form-read-only'),
+    ).toHaveTextContent('Esta versión está publicada');
+    expect(screen.queryByRole('textbox', { name: 'Nombre' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Nueva versión' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps a version in design editable', async () => {
+    inState('in-design');
+    catalogMetadata = served();
+    slug = 'p-1';
+
+    renderPage(<ProductSingleViewClientPage />);
+
+    await waitFor(() => expect(nameInput()).toHaveValue('Widget'));
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
+    expect(screen.queryByTestId('entity-form-read-only')).toBeNull();
   });
 });

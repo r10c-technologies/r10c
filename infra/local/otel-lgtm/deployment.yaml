@@ -63,6 +63,11 @@ spec:
             - name: dashboards
               mountPath: /otel-lgtm/grafana/conf/provisioning/dashboards/r10c-dashboards.yaml
               subPath: r10c-dashboards.yaml
+            # The alert rules, grafted the same way into the alerting
+            # provisioning directory (#706).
+            - name: dashboards
+              mountPath: /otel-lgtm/grafana/conf/provisioning/alerting/r10c-alerts.yaml
+              subPath: r10c-alerts.yaml
               readOnly: true
           # The image starts five servers in sequence and the OTLP/HTTP receiver
           # is not first. Probing the port the fleet exports to keeps the whole

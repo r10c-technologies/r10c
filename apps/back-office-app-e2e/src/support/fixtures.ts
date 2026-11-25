@@ -3,7 +3,12 @@
 // which entifix refuses for a locale this process never declared.
 import '@r10c/business-ts-i18n/locales';
 
-import { describeEntityUseCases, problemOf } from '@entifix/core';
+import {
+  describeEntityStateRules,
+  describeEntityUseCases,
+  problemOf,
+  UnavailableInState,
+} from '@entifix/core';
 import {
   configurationHandler,
   entityBackendHandlers,
@@ -998,6 +1003,89 @@ const brandVerbHandlers = [
 ];
 
 /**
+ * A product's affordance document as the service serves it: its four lifecycle
+ * verbs and the states a version is saved and deleted in, so a released one
+ * renders read-only and offers a New version (ADR 0079, #767).
+ */
+const productMetadataHandlers = [
+  http.get(`${APP_URL}/api/admin/product-specification/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'product-specification' },
+      data: {
+        actions: ['read', 'write', 'delete'],
+        useCases: describeEntityUseCases(ProductSpecification),
+        ...describeEntityStateRules(ProductSpecification),
+      },
+    }),
+  ),
+];
+
+/** The id a version's `revise` writes the next one under. */
+export const nextVersionId = (id: string) => `${id}-v2`;
+
+/**
+ * A version's `revise` and an update, answered as the service does: the next
+ * version opens in design beside the released one, and an update reaches only
+ * a version in design — anything else is refused `unavailableInState`, the
+ * refusal the store writes.
+ */
+const productVersionHandlers = [
+  http.post(`${PRODUCT_URL}/:id/revise`, ({ params }) => {
+    const id = String(params['id']);
+    const rows = products.backend.rows();
+    const stored = rows.find(row => row['id'] === id);
+    if (stored === undefined) return new HttpResponse(null, { status: 404 });
+    const next = {
+      ...stored,
+      id: nextVersionId(id),
+      version: Number(stored['version']) + 1,
+      lifecycleStatus: 'in-design',
+      // A new record at its first revision, as the store writes it: without
+      // one, a writer reads the next save as a create.
+      revision: 1,
+    };
+    products.backend.seed([...rows, next]);
+    return HttpResponse.json({
+      meta: { type: 'entity', entity: 'product-specification' },
+      data: next,
+    });
+  }),
+  http.put(`${PRODUCT_URL}/:id`, async ({ params, request }) => {
+    const id = String(params['id']);
+    const rows = products.backend.rows();
+    const stored = rows.find(row => row['id'] === id);
+    if (stored === undefined) return new HttpResponse(null, { status: 404 });
+    if (stored['lifecycleStatus'] !== 'in-design')
+      return HttpResponse.json(
+        problemOf(
+          new UnavailableInState({
+            entity: 'product-specification',
+            member: 'lifecycleStatus',
+            state: String(stored['lifecycleStatus']),
+            allowed: ['in-design'],
+          }),
+        ),
+        {
+          status: 409,
+          headers: { 'content-type': 'application/problem+json' },
+        },
+      );
+    const body = (await request.json()) as { data: Record<string, unknown> };
+    const saved = {
+      ...body.data,
+      id,
+      lifecycleStatus: stored['lifecycleStatus'],
+      revision: Number(stored['revision'] ?? 1) + 1,
+    };
+    products.backend.seed(rows.map(row => (row['id'] === id ? saved : row)));
+    return HttpResponse.json({
+      meta: { type: 'entity', entity: 'product-specification' },
+      data: saved,
+    });
+  }),
+];
+
+/**
  * A specification's create, answered as the service does: the record as
  * stored, under the code it drew.
  *
@@ -1220,6 +1308,8 @@ const base = defineEntifixE2eTest({
     ...fulfilmentMetadataHandlers,
     ...shippingVerbHandlers,
     ...createHandlers,
+    ...productMetadataHandlers,
+    ...productVersionHandlers,
     ...configurations.handlers,
     ...sessionHandlers,
     ...authMetadataHandlers,

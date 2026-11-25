@@ -126,7 +126,9 @@ test('picks a brand through the browse dialog', async ({ page, network }) => {
 });
 
 test('reads stored classifications back as names', async ({ page }) => {
-  await page.goto('/catalog/product/product-1');
+  // A version in design: a released one is read, not edited, and holds no
+  // picker for these values to sit in.
+  await page.goto('/catalog/product/product-4');
 
   // The seeded specification names both by id, and neither lives in the store
   // this page loaded the product from — resolving them is a read through

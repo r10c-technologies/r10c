@@ -88,8 +88,15 @@ const SCREENS = [
   },
   {
     screen: 'definiciones-product-specification',
-    path: '/es/catalog/product/product-1',
+    // A version in design: the form a person edits.
+    path: '/es/catalog/product/product-4',
     ready: { role: 'textbox', name: 'Nombre' },
+  },
+  {
+    // A released version, read-only with the reason and a New version (#767).
+    screen: 'definiciones-product-specification-released',
+    path: '/es/catalog/product/product-1',
+    ready: { role: 'button', name: 'Nueva versión' },
   },
   {
     screen: 'shipment-awaiting-guide',

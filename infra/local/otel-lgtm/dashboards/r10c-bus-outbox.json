@@ -1204,7 +1204,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(increase(entifix_flow_states_total{state=~\"suspended|stranded\",service_name=~\"$service_name\"}[$__range])) or vector(0)",
+          "expr": "sum(entifix_flow_states_total{state=~\"suspended|stranded\",service_name=~\"$service_name\"}) or vector(0)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"

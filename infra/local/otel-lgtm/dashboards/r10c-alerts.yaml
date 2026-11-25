@@ -1,0 +1,219 @@
+# Grafana alert rules for the flow (#706), provisioned beside the dashboard and
+# grafted into Grafana's own provisioning directory with `subPath`, for the
+# reason kustomization.yaml gives. The same rules are what MVP-7 applies to the
+# cloud stack; nothing here names the lab.
+#
+# ⚠️ A counter alert compares the cumulative value with itself 15 minutes ago
+# (`or vector(0)` on both sides), never `increase()`: a series whose first
+# sample is already non-zero — the normal case in a lab whose services restart
+# and push every 60 s — shows no rise to `increase()`, so a real stranding
+# would read as zero. The difference also stops the alert firing forever after
+# one event, as the bare cumulative value would.
+#
+# Each rule is a query (A), its last value per series (B) and a threshold on
+# that (C): Grafana alerts on reduced numbers, and refuses a threshold over a
+# time series — measured, every rule errored before B was there.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: r10c-flow
+    folder: r10c
+    interval: 1m
+    rules:
+      - uid: r10c-flow-stranded
+        title: A flow stranded or suspended
+        condition: C
+        for: 0s
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                (sum(entifix_flow_states_total{state=~"suspended|stranded"}) or vector(0))
+                - (sum(entifix_flow_states_total{state=~"suspended|stranded"} offset 15m) or vector(0))
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: page }
+        annotations:
+          summary: A flow past its commit point cannot go on; a person has to look at it.
+      - uid: r10c-bus-quarantined
+        title: A bus message was quarantined
+        condition: C
+        for: 0s
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                (sum(bus_events_quarantined_total) or vector(0))
+                - (sum(bus_events_quarantined_total offset 15m) or vector(0))
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: page }
+        annotations:
+          summary: A message could not be handled and was set aside; its effect has not happened.
+      - uid: r10c-outbox-stuck
+        title: The outbox holds an entry older than five minutes
+        condition: C
+        for: 5m
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(outbox_oldest_pending_age_seconds) or vector(0)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [300] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: warn }
+        annotations:
+          summary: Writes are committing but their events are not leaving; a downstream slice is falling behind.
+      - uid: r10c-outbox-quarantined
+        title: The outbox quarantined an entry
+        condition: C
+        for: 0s
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(outbox_quarantined_entries_ratio) or vector(0)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: page }
+        annotations:
+          summary: An event will never be published without a person.
+      - uid: r10c-breaker-open
+        title: A participant's breaker has been open for five minutes
+        condition: C
+        for: 5m
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              # 1 open, 3 forced open (0 closed, 2 half-open, 4 disabled).
+              expr: max by (key) (entifix_breaker_state_ratio == 1 or entifix_breaker_state_ratio == 3)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: warn }
+        annotations:
+          summary: 'Flows calling {{ $labels.key }} are being refused while it recovers.'
+      - uid: r10c-consumer-paused
+        title: A consumer has been paused for five minutes
+        condition: C
+        for: 5m
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(bus_consumer_paused_ratio) or vector(0)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: warn }
+        annotations:
+          summary: A subscription waits on an open breaker; its queue is growing.

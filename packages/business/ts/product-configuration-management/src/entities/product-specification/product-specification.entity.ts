@@ -42,6 +42,11 @@ import {
   key: 'product-specification',
   labelKey: 'entity:product-specification.label',
   pluralKey: 'entity:product-specification.plural',
+  // A version is edited and deleted only in design (ADR 0079 §1): the form
+  // reads one outside it, and the store refuses the write that would change it.
+  writableWhen: { member: 'lifecycleStatus', in: ['in-design'] },
+  deletableWhen: { member: 'lifecycleStatus', in: ['in-design'] },
+  readOnlyReasonKey: 'entity:product-specification.readOnly',
 })
 export class ProductSpecification implements Entity {
   // #region properties

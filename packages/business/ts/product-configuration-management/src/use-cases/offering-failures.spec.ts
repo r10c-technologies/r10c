@@ -6,7 +6,6 @@ import {
   SpecificationBeingRevised,
   SpecificationChanged,
   SpecificationNotTransitionable,
-  SpecificationReleased,
   SpecificationStillPinned,
 } from './specification-lifecycle/specification-failures.js';
 import {
@@ -53,7 +52,6 @@ describe('the specification refusals', () => {
         standing: 'retired',
         move: 'release',
       }),
-      new SpecificationReleased({ id: 's-1', standing: 'active' }),
       new SpecificationBeingRevised({ specKey: 'product-001' }),
       new SpecificationStillPinned({ id: 's-1' }),
       new SpecificationChanged({ id: 's-1' }),
@@ -67,7 +65,6 @@ describe('the specification refusals', () => {
     expect(refusals.every(isFailure)).toBe(true);
     expect(refusals.map(refusal => [refusal.code, refusal.category])).toEqual([
       ['specificationNotTransitionable', 'conflict'],
-      ['specificationReleased', 'conflict'],
       ['specificationBeingRevised', 'conflict'],
       ['specificationStillPinned', 'conflict'],
       ['specificationChanged', 'conflict'],
@@ -75,7 +72,6 @@ describe('the specification refusals', () => {
     ]);
     expect(refusals.map(refusal => refusal.message)).toEqual([
       "a specification version that is 'retired' cannot release",
-      "this version is 'active' and frozen; revise it to change it",
       "'product-001' already has a version in design; finish or delete it first",
       'a published offering still sells this version; move or unpublish it first',
       'another change to this specification landed first; reload it and try again',

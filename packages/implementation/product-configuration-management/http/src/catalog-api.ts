@@ -47,7 +47,6 @@ import {
   SetStockSourceUC,
   SpecificationCommandsTag,
   type SpecificationMove,
-  SpecificationReleased,
   startSpecificationSeries,
   type StockSourcePayload,
   transitionOfferingFor,
@@ -112,10 +111,12 @@ const revise = verbEndpoint(ReviseProductSpecificationUC, {
  * wrote rather than drawing another code. The media rule runs before anything
  * is written, on create and on update.
  *
- * ⚠️ **A version is edited and deleted only in design** (ADR 0079 §1): the
- * update's `prepare` refuses a released one and carries the lifecycle across
- * from what is stored, and the delete is one conditional write. Only the four
- * verbs move `lifecycleStatus`.
+ * ⚠️ **A version is edited and deleted only in design** (ADR 0079 §1), as the
+ * entity's `writableWhen`/`deletableWhen` declare: the shell refuses the
+ * update in its own conditional write and checks the delete before this
+ * override's, which is conditional too. The update's `prepare` carries the
+ * lifecycle across from what is stored. Only the four verbs move
+ * `lifecycleStatus`.
  */
 export const productSpecificationApi = defineEntityApi(
   ProductSpecification,
@@ -139,12 +140,7 @@ export const productSpecificationApi = defineEntityApi(
         ),
         specification,
       ),
-    errors: [
-      MediaNotHttps,
-      MediaAltMissing,
-      DeviceModelUniversalNotAlone,
-      SpecificationReleased,
-    ],
+    errors: [MediaNotHttps, MediaAltMissing, DeviceModelUniversalNotAlone],
     useCases: [release, revise, retire, obsolete],
     override: {
       create: {
@@ -182,7 +178,7 @@ export const productSpecificationApi = defineEntityApi(
       },
       // A conditional delete: a repeat answers `404`, never a second effect.
       delete: {
-        errors: [NotFound, SpecificationReleased],
+        errors: [NotFound],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
             const id = yield* removeSpecificationFor({

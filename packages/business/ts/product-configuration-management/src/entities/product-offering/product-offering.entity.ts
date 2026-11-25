@@ -11,6 +11,7 @@ import {
 } from '@r10c/business-ts-sales-vocabulary';
 
 import {
+  DeletableOfferingStatuses,
   type OfferingStatus,
   OfferingStatuses,
   OfferingStatusTones,
@@ -46,6 +47,9 @@ import {
   key: 'product-offering',
   labelKey: 'entity:product-offering.label',
   pluralKey: 'entity:product-offering.plural',
+  // Edited in any status — a published offering is edited and published
+  // again (ADR 0047) — but deleted only off sale: unpublish first.
+  deletableWhen: { member: 'status', in: [...DeletableOfferingStatuses] },
 })
 export class ProductOffering implements Entity {
   // #region properties

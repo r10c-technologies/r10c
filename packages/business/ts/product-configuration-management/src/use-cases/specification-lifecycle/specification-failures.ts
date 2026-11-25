@@ -8,7 +8,6 @@ import { Schema } from 'effect';
  */
 export const SPECIFICATION_NOT_TRANSITIONABLE =
   'specificationNotTransitionable';
-export const SPECIFICATION_RELEASED = 'specificationReleased';
 export const SPECIFICATION_BEING_REVISED = 'specificationBeingRevised';
 export const SPECIFICATION_STILL_PINNED = 'specificationStillPinned';
 export const SPECIFICATION_CHANGED = 'specificationChanged';
@@ -21,21 +20,6 @@ export class SpecificationNotTransitionable extends Failure.conflict<Specificati
   {
     message: ({ standing, move }) =>
       `a specification version that is '${standing}' cannot ${move}`,
-  },
-) {}
-
-/**
- * An edit or a delete aimed at a version that left `in-design`. ⚠️ The rule,
- * not a hidden button: a released version is never edited, and never deleted
- * because orders name it (ADR 0079 §1). The fix is `revise`.
- */
-export class SpecificationReleased extends Failure.conflict<SpecificationReleased>()(
-  'SpecificationReleased',
-  SPECIFICATION_RELEASED,
-  { id: Schema.String, standing: Schema.String },
-  {
-    message: ({ standing }) =>
-      `this version is '${standing}' and frozen; revise it to change it`,
   },
 ) {}
 

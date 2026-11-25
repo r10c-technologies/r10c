@@ -121,6 +121,19 @@ export const productSeed = [
     brandId: 'product-brand-3',
     categoryId: 'product-category-3',
   },
+  // A version still in design, so a spec that edits a product edits one the
+  // service would let it save: a released one is read-only (ADR 0079 §1).
+  {
+    id: 'product-4',
+    code: 'P-4',
+    specKey: 'P-4',
+    version: 1,
+    lifecycleStatus: 'in-design',
+    name: 'Gizmo',
+    description: 'A gizmo',
+    brandId: 'product-brand-1',
+    categoryId: 'product-category-1',
+  },
 ];
 
 /**

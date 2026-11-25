@@ -81,8 +81,6 @@ export const errors = {
     'Esta oferta usa una versión del producto que no está activa. Lanza el producto o apunta la oferta a su versión activa.',
   specificationNotTransitionable:
     'Esta versión del producto no admite ese cambio en su estado actual.',
-  specificationReleased:
-    'Esta versión del producto ya está lanzada y congelada. Crea una nueva versión para cambiarla.',
   specificationBeingRevised:
     'Este producto ya tiene una versión en diseño. Termínala o elimínala primero.',
   specificationStillPinned:
@@ -153,6 +151,8 @@ export const errors = {
   duplicateKey: 'Ya existe un registro con ese valor.',
   staleRevision:
     'Este registro cambió desde que lo abriste. Revisa la versión actual antes de guardar de nuevo.',
+  unavailableInState:
+    'Este registro ya no admite ese cambio en su estado actual. Recarga para ver dónde está.',
   declined: 'La solicitud fue rechazada.',
   contention: 'Otra operación se cruzó con esta. Inténtalo de nuevo.',
   overloaded: 'El servicio está saturado. Inténtalo de nuevo en un momento.',
