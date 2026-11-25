@@ -13,6 +13,9 @@ import {
 import { UserDetailPage, UsersPage } from '@r10c/shells-next-auth';
 import { FULFILMENT_CRUDS } from '@r10c/shells-next-fulfilment';
 import {
+  CATALOG_IMPORT_LIST_SURFACE,
+  CATALOG_IMPORT_SURFACE,
+  CatalogImportWizard,
   MARKETPLACE_ADMIN_CRUDS,
   PRODUCT_SETUP_SURFACE,
   PRODUCT_SURFACE,
@@ -54,6 +57,18 @@ const CATALOG_CRUDS = MARKETPLACE_ADMIN_CRUDS.map(crud =>
  * that specification's own tab when it is done — where the next step, offering
  * it, starts with it already chosen (#564).
  */
+function CatalogImportTab({ step }: { readonly step: string | undefined }) {
+  const nav = useTabEntityNav('master');
+  return (
+    <CatalogImportWizard
+      {...(step === undefined ? {} : { step })}
+      onFinished={({ id }) =>
+        nav.toEntity(CATALOG_IMPORT_LIST_SURFACE.entityKey, id)
+      }
+    />
+  );
+}
+
 function ProductSetupTab({ step }: { readonly step: string | undefined }) {
   const nav = useTabEntityNav('master');
   return (
@@ -197,6 +212,11 @@ const wizardKind = wizardTabKind({
   [PRODUCT_SETUP_SURFACE.key]: {
     titleKey: PRODUCT_SETUP_SURFACE.navLabelKey,
     render: step => <ProductSetupTab step={step} />,
+  },
+  // A catalog from a sheet (ADR 0084), landing on the import's own record.
+  [CATALOG_IMPORT_SURFACE.key]: {
+    titleKey: CATALOG_IMPORT_SURFACE.navLabelKey,
+    render: step => <CatalogImportTab step={step} />,
   },
   // The till, addressed `wizard:counter-sale[:<step>]`. It is an Asistente for
   // the taxonomy's own reason — guided, multi-step, and it ends — and it owns no

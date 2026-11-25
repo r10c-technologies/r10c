@@ -23,6 +23,11 @@ import {
 } from '@r10c/business-ts-catalog-contracts';
 import { InvalidBody } from '@r10c/business-ts-common';
 import {
+  CatalogImport,
+  CatalogImportLimitTag,
+  type ImportCatalogPayload,
+  ImportCatalogUC,
+  ImportTooLarge,
   moveSpecificationFor,
   ObsoleteProductSpecificationUC,
   type OfferingTransition,
@@ -354,5 +359,52 @@ export const productOfferingPriceApi = defineEntityApi(
     guard: { kind: 'organization' },
     prepare: (price, context) => preparePrice(price, organizationOf(context)),
     useCases: [setPriceTiers],
+  },
+);
+
+/**
+ * `POST /api/catalog-import/import` — a vendor's catalog from a sheet the
+ * browser already parsed (ADR 0084). Answered with the import's record: what
+ * was created and which rows were refused, with their codes.
+ *
+ * The `Idempotency-Key` is the import's id and the root of every row's
+ * claim, so a resubmitted sheet resumes rather than doubling the catalog.
+ */
+const importCatalog = verbEndpoint(ImportCatalogUC, {
+  idempotent: 'unit',
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const key = Option.getOrElse(
+        yield* Effect.serviceOption(IdempotencyKeyTag),
+        () => globalThis.crypto.randomUUID(),
+      );
+      const record = yield* ImportCatalogUC.run({
+        organizationId: organizationOf(context),
+        key,
+        source: yield* EventSourceTag,
+        at: new Date(),
+        maxRows: (yield* CatalogImportLimitTag).maxRows,
+        payload: request.payload as ImportCatalogPayload,
+      });
+      return makeEntityEnvelope(
+        CatalogImport,
+        record,
+        context.links.record(record.id),
+      );
+    }),
+});
+
+/**
+ * A vendor's catalog imports, read-only: the import verb writes every record,
+ * and nothing edits or deletes one — it is the account of what a sheet did.
+ */
+export const catalogImportApi = defineEntityApi(
+  CatalogImport,
+  entityKey(CatalogImport, 'catalog-import'),
+  {
+    verbs: ['list', 'get'],
+    guard: { kind: 'organization' },
+    errors: [ImportTooLarge],
+    useCases: [importCatalog],
   },
 );

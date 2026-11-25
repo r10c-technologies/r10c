@@ -735,6 +735,7 @@ export const r10c = {
       categories: 'Categorías',
       offerings: 'Ofertas comerciales',
       offeringPrices: 'Precios de oferta',
+      catalogImports: 'Importaciones de catálogo',
       // La sección Asistentes. El *nombre del nivel* ("Asistentes") sale de
       // `nav.screenType.wizard`; esto nombra el grupo dentro de él.
       guided: 'Catálogo',
@@ -798,6 +799,43 @@ export const r10c = {
       },
     },
     wizard: {
+      catalogImport: {
+        title: 'Importar catálogo',
+        steps: {
+          mode: 'Modo',
+          file: 'Archivo',
+          preview: 'Revisión',
+        },
+        mode: {
+          question: '¿Cómo deben quedar los productos importados?',
+          draft: 'Como borradores',
+          draftHint:
+            'Quedan en diseño y sin publicar, para revisarlos antes de ponerlos a la venta.',
+          publish: 'Publicados',
+          publishHint:
+            'Cada producto queda liberado y su oferta a la venta en la tienda en cuanto se importa.',
+        },
+        file: {
+          prompt:
+            'Elija una hoja CSV o Excel con un producto por fila. La primera fila lleva los encabezados de la plantilla.',
+          label: 'Hoja del catálogo',
+          template: 'Descargar la plantilla',
+          reading: 'Leyendo la hoja…',
+          read: '{{file}}: {{ready}} filas listas, {{rejected}} con problemas.',
+          unreadable: 'No se pudo leer este archivo. Guárdelo como CSV o como Excel (.xlsx).',
+          required: 'Elija una hoja con al menos un producto que se pueda importar.',
+        },
+        preview: {
+          prompt: 'Revise lo que se importará antes de confirmar.',
+          ready: 'Filas que se importarán: {{count}}',
+          rejected: 'Filas que no se importarán: {{count}}',
+          mode: 'Modo: {{mode}}',
+          row: 'Fila',
+          column: 'Columna',
+          reason: 'Motivo',
+          failed: 'La importación no se completó.',
+        },
+      },
       productSetup: {
         title: 'Nuevo producto',
         launch: 'Nuevo producto guiado',

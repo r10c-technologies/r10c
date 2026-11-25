@@ -227,4 +227,17 @@ export const errors = {
     'Una presentación se vende por unidad y toma un número entero de unidades de su base. Su base es otra oferta tuya que no es a su vez una presentación, y una presentación nunca es base de otra.',
   saleUnitFixed:
     'Esta oferta ya se publicó, así que su unidad no puede cambiar. Crea otra oferta para venderla en otra unidad.',
+  importTooLarge:
+    'Esta hoja tiene más filas de las que se importan de una vez. Divídela en varias hojas más pequeñas.',
+  importColumnUnknown:
+    'La hoja tiene una columna que no conocemos. Usa los encabezados de la plantilla.',
+  importColumnMissing:
+    'A la hoja le falta una columna obligatoria: cada producto necesita al menos su nombre y su precio.',
+  importCellInvalid:
+    'Esta celda no se pudo leer. Revisa que tenga el formato de la plantilla.',
+  importReferenceUnresolved:
+    'Este nombre no coincide con ninguno del catálogo. Revisa cómo está escrito o créalo primero.',
+  importDuplicate:
+    'Ya existe un producto con este nombre, en tu catálogo o en una fila anterior de la hoja. La importación solo crea productos nuevos.',
+  importEmpty: 'La hoja no tiene ningún producto bajo sus encabezados.',
 };

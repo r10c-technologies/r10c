@@ -196,4 +196,17 @@ export const errors: EsErrors = {
     "A presentation is sold by the unit and takes a whole number of its base's units. Its base is another offering of yours that is not itself a presentation, and a presentation is never another one's base.",
   saleUnitFixed:
     'This offering was already published, so its unit cannot change. Create another offering to sell it in another unit.',
+  importTooLarge:
+    'This sheet has more rows than one import takes. Split it into several smaller sheets.',
+  importColumnUnknown:
+    'The sheet has a column we do not know. Use the headers from the template.',
+  importColumnMissing:
+    'The sheet is missing a required column: every product needs at least its name and its price.',
+  importCellInvalid:
+    'This cell could not be read. Check that it follows the template’s format.',
+  importReferenceUnresolved:
+    'This name matches nothing in the catalog. Check its spelling, or create it first.',
+  importDuplicate:
+    'A product with this name already exists, in your catalog or on an earlier row of the sheet. An import only creates new products.',
+  importEmpty: 'The sheet has no products under its headers.',
 };

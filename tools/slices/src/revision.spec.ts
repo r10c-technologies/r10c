@@ -49,6 +49,8 @@ const EXCLUDED: Readonly<Record<string, string>> = {
   Refund: 'an append-only record',
   CommissionEntry: 'an append-only ledger',
   SettlementRun: 'written by a sweep',
+  // Written once by the import verb, under the import's own key (ADR 0084).
+  CatalogImport: 'an append-only record',
   VendorPayout: 'written by a sweep',
   // Projections, ordered by the event's version.
   PublishedOffering: 'a projection',

@@ -131,4 +131,20 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
       status: 'implemented',
       verticals: 'all',
     },
+    // ADR 0084 (Discussion #615): a vendor's catalog loaded from a sheet,
+    // each row through the rules a form save meets, as drafts or on sale.
+    {
+      id: 'product-configuration-management:catalog-import:import',
+      oda: 'TMFC001',
+      entities: [
+        'product-configuration-management:catalog-import',
+        'product-configuration-management:product-specification',
+        'product-configuration-management:product-offering',
+        'product-configuration-management:product-offering-price',
+      ],
+      permissions: ['product-configuration-management:catalog-import:import'],
+      screens: ['wizard:catalog-import', 'master:catalog-import'],
+      status: 'implemented',
+      verticals: 'all',
+    },
   ];

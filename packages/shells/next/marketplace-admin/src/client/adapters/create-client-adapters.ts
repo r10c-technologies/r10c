@@ -18,6 +18,7 @@ import {
 } from '@r10c/business-ts-catalog-reference';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import {
+  CatalogImport,
   ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
@@ -25,6 +26,7 @@ import {
 import { Context } from 'effect';
 
 import type { MarketplaceAdminAdapters } from '../client-types';
+import { makeCatalogImportPort } from './catalog-import-port';
 
 /**
  * Where every adapter below resolves its URL, bound when each is built — the
@@ -202,6 +204,18 @@ const productOfferingPriceWriter = buildEntityRestAdapterWrite(
   CATALOG_SERVICE,
 );
 
+/** What each catalog import did, read-only (ADR 0084). */
+const catalogImportRest = createRestRepositoryContext(
+  CatalogImport,
+  CATALOG_SERVICE,
+);
+
+const catalogImport = makeCatalogImportPort({
+  brands: productBrandRest,
+  categories: productCategoryRest,
+  deviceModels: deviceModelRest,
+});
+
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {
     deviceModelWriter,
@@ -216,6 +230,8 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productRest,
     productOfferingRest,
     productOfferingPriceRest,
+    catalogImportRest,
+    catalogImport,
     publishedVendorRest,
     referenceMetadata,
     catalogMetadata,

@@ -136,6 +136,13 @@ const adapters = (): MarketplaceAdminAdapters => ({
     EntityRepositoryTag,
     repositories.product,
   ),
+  catalogImportRest: Context.make(EntityRepositoryTag, repositories.product),
+  catalogImport: {
+    readTable: () => Promise.resolve([]),
+    references: () =>
+      Promise.resolve({ brands: [], categories: [], deviceModels: [] }),
+    submit: () => Promise.resolve({ ok: false, code: 'unexpected' }),
+  },
   publishedVendorRest: Context.make(EntityRepositoryTag, repositories.product),
   productOfferingPriceWriter: settledWriter(
     Context.make(EntityRepositoryTag, repositories.product),

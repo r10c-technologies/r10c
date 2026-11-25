@@ -39,6 +39,7 @@ const CONFIGURATION = fleetConfigurationOf({
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
+  catalog: configurationRows({ importMaxRows: 500 }),
 });
 
 const seed = () => Effect.void;

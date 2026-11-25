@@ -16,11 +16,12 @@ import {
 } from './catalog-surfaces';
 
 describe('the catalog surfaces', () => {
-  it('declares the six the back office serves, in nav order', () => {
+  it('declares the seven the back office serves, in nav order', () => {
     expect(MARKETPLACE_ADMIN_CATALOG_SURFACES.map(s => s.entityKey)).toEqual([
       'product-specification',
       'product-offering',
       'product-offering-price',
+      'catalog-import',
       'product-brand',
       'product-category',
       'device-model',

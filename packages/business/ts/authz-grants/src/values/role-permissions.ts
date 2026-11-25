@@ -117,6 +117,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${CATALOG_DOMAIN}:product-specification:revise`,
     `${CATALOG_DOMAIN}:product-specification:retire`,
     `${CATALOG_DOMAIN}:product-specification:obsolete`,
+    // Loading the vendor's own catalog from a sheet (ADR 0084): every row is
+    // written through the same rules a form save meets, into the vendor's own
+    // tenant database, so it widens nothing `write` and `publish` do not.
+    `${CATALOG_DOMAIN}:catalog-import:import`,
     // The platform vocabulary an offering is classified in: **read only**.
     // marketplace-service serves these reads to anonymous storefront traffic,
     // so granting them here is not a privilege — it only lets the nav name the

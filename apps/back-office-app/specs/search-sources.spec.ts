@@ -16,6 +16,7 @@ describe('SEARCH_SOURCES', () => {
       'product-specification',
       'product-offering',
       'product-offering-price',
+      'catalog-import',
       'product-brand',
       'product-category',
       'device-model',

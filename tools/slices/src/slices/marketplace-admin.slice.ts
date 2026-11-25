@@ -73,6 +73,12 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     'GET /api/product-offering-price/$metadata',
     // A price's volume tiers (ADR 0082 §8), a verb with its own form.
     'POST /api/product-offering-price/:id/set-price-tiers',
+    // A catalog loaded from a sheet (ADR 0084): one unbound verb that writes
+    // every record, and reads of what each import did. No save, no delete.
+    'GET /api/catalog-import',
+    'GET /api/catalog-import/:id',
+    'GET /api/catalog-import/$metadata',
+    'POST /api/catalog-import/import',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   // The `marketplace` slice consumes both to write the `published-catalog`

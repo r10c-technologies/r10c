@@ -383,6 +383,15 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'maxAttempts',
     value: '5',
   },
+  // The most rows one catalog import takes (ADR 0084 §5): a sheet past it is
+  // refused whole, before any row is written. Every row is its own unit of
+  // work answered in the same request, so this is what bounds that request.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'catalog',
+    key: 'importMaxRows',
+    value: '500',
+  },
   {
     service: 'auth-service',
     group_name: 'mongo',

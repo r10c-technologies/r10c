@@ -159,6 +159,7 @@ headers and run `node tools/sync-docs.mjs`.
 - [0079](docs/adr/0079-a-published-specification-is-versioned-and-a-save-names-the-revision-it-read.md) **A published specification is versioned, an instance pins its version, and a save names the revision it read** — read when editing a specification something points at, two people saving one record, or a tenant needing its own field or step — a released version is never edited, an order line is a copy, and a stale `revision` answers `409`.
 - [0081](docs/adr/0081-an-order-waits-for-a-payment-the-seller-confirms-and-a-receipt-is-a-file.md) **An order waits for a payment the seller confirms, and a receipt is a file** — read when a buyer pays off-platform or a file is stored — wait after the commit point, the order status arbitrates, a receipt has a deletion date.
 - [0082](docs/adr/0082-an-offering-is-sold-in-a-unit-with-a-step.md) _(Proposed)_ **An offering is sold in a unit with a step, and a product may reference what it fits** — read when multiplying a price by a quantity, selling by the metre, yard or box, or pricing below a centavo — a quantity is a scaled integer, a line's total is computed once, and a sale never grows after it is placed.
+- [0084](docs/adr/0084-a-catalog-import-is-a-record-and-a-row-is-one-unit-of-work.md) _(Proposed)_ **A catalog import is a record, and a row is one unit** — read when bulk-loading records — a row is one claimed unit.
 
 **Entities and the framework**
 
