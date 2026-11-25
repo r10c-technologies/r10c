@@ -18,6 +18,7 @@ import {
   isPricePer,
   isSellableRule,
   priceTiersRefusal,
+  VariantInvalid,
 } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Option, Schema } from 'effect';
 
@@ -26,10 +27,12 @@ import { ProductOfferingPrice } from '../../entities/product-offering-price';
 import { ProductSpecification } from '../../entities/product-specification';
 import { OfferingCatalogTag } from '../../ports/offering-catalog';
 import type { OfferingTransition } from '../../values/offering-transition';
+import { refuseSpecificationMedia } from '../../values/specification-media';
 import {
   PricePerInvalid,
   SaleRuleInvalid,
 } from '../set-sale-unit/sale-unit-failures';
+import { seriesOf } from '../set-variant/series';
 import {
   OfferingPriceRepositoryTag,
   OfferingSpecificationRepositoryTag,
@@ -181,8 +184,8 @@ export const transitionOfferingSelection = (input: {
   });
 
 /**
- * ⚠️ **`status`, `saleUnit` and the stock source are server-owned** (ADR
- * 0047, ADR 0082 §3 and §7): a
+ * ⚠️ **`status`, `saleUnit`, the stock source and the variant are
+ * server-owned** (ADR 0047, ADR 0082 §3 and §7, ADR 0085): a
  * save carries the stored values across, whatever the body said, and a new
  * offering starts `draft`, sold in `UN`. Without this the publish verb would
  * be decoration — a `PUT` could set `published` with no price check and no
@@ -204,16 +207,33 @@ export const preserveOfferingLifecycle = (
       // otherwise: a unit chosen in the same body as a step would leave the
       // step's meaning to whichever field the form happened to send first.
       offering.saleUnit = DEFAULT_SALE_UNIT;
-      // A new offering draws on no base until `draw-on-stock` says so.
+      // A new offering draws on no base until `draw-on-stock` says so, and
+      // is no variant until `set-variant` says so (ADR 0085).
       offering.stockOfferingId = undefined;
       offering.stockFactor = undefined;
+      offering.variantValues = undefined;
     } else {
       offering.status = stored.value.status;
       offering.statusChangedAt = stored.value.statusChangedAt;
       offering.saleUnit = stored.value.saleUnit;
       offering.stockOfferingId = stored.value.stockOfferingId;
       offering.stockFactor = stored.value.stockFactor;
+      offering.variantValues = stored.value.variantValues;
+      // A variant belongs to its product: pinning another version of the same
+      // series keeps it, moving it to another product would leave a colour
+      // nobody else's axes agree with (ADR 0085).
+      if (
+        (stored.value.variantValues?.length ?? 0) > 0 &&
+        stored.value.specificationId !== offering.specificationId &&
+        (yield* seriesOf(organizationId, stored.value.specificationId)) !==
+          (yield* seriesOf(organizationId, offering.specificationId))
+      ) {
+        return yield* new VariantInvalid({ problem: 'productChanged' });
+      }
     }
+    // An offering's own pictures enter here, so the `https` and alt-text rule
+    // is kept here (ADR 0061).
+    yield* refuseSpecificationMedia(offering);
     if (!isSellableRule(offering)) {
       return yield* new SaleRuleInvalid({
         saleUnit: offering.saleUnit,

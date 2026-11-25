@@ -58,4 +58,37 @@ describe('projectPublication', () => {
         .amountPerThousand,
     ).toBe(10_000);
   });
+
+  it('groups a variant by its series, and derives the words it is searched by', () => {
+    const projected = projectPublication(
+      {
+        ...PUBLICATION,
+        code: 'product-9',
+        description: 'Suave y resistente.',
+        specKey: 'funda-a15',
+        variantValues: [{ axis: 'color', value: 'negro' }],
+      },
+      AT,
+    );
+
+    expect(projected.variantGroup).toBe('funda-a15');
+    expect(projected.variantValues).toEqual([
+      { axis: 'color', value: 'negro' },
+    ]);
+    expect(projected.searchText).toBe(
+      `${PUBLICATION.name} product-9 negro Suave y resistente.`,
+    );
+  });
+
+  it('puts an offering that is no variant in no group', () => {
+    const projected = projectPublication(
+      { ...PUBLICATION, specKey: 'funda-a15' },
+      AT,
+    );
+
+    expect(projected.variantGroup).toBeUndefined();
+    expect(projected.searchText).toBe(
+      [PUBLICATION.name, PUBLICATION.code, PUBLICATION.description].join(' '),
+    );
+  });
 });

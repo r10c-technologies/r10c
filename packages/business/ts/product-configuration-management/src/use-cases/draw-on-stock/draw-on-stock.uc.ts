@@ -73,6 +73,9 @@ export class SetStockSourceUC {
       if (stockOfferingId !== undefined || stockFactor !== undefined) {
         if (offering.saleUnit !== PRESENTATION_UNIT)
           return yield* refuse('notCounted');
+        // A variant holds its own stock (ADR 0085).
+        if ((offering.variantValues?.length ?? 0) > 0)
+          return yield* refuse('isVariant');
         if (!isStockFactor(stockFactor)) return yield* refuse('factor');
         if (stockOfferingId === undefined || stockOfferingId.length === 0)
           return yield* refuse('baseMissing');

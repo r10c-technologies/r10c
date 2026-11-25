@@ -73,6 +73,20 @@ export const entity: EsEntity = {
       amount: 'Price',
     },
   },
+  'variant-value': {
+    fields: {
+      axis: 'Attribute',
+      value: 'Value',
+    },
+    values: {
+      axis: {
+        color: 'Colour',
+        size: 'Size',
+        finish: 'Finish',
+        capacity: 'Capacity',
+      },
+    },
+  },
   'media-reference': {
     fields: {
       url: 'Image URL',
@@ -367,6 +381,9 @@ export const entity: EsEntity = {
       quantityMinimum: 'Minimum quantity',
       stockOfferingId: 'Draws its stock from',
       stockFactor: 'Base units per one',
+      variantGroup: 'Product it is a variant of',
+      variantValues: 'Variant',
+      searchText: 'Search text',
       stockUnit: 'Base unit',
       availableHint: 'Availability hint',
       publishedAt: 'Published at',
@@ -775,6 +792,8 @@ export const entity: EsEntity = {
       quantityMinimum: 'Minimum quantity',
       stockOfferingId: 'Draws its stock from',
       stockFactor: 'Base units per one',
+      variantValues: 'Variant',
+      media: 'Own pictures',
     },
     values: {
       status: {
@@ -788,6 +807,7 @@ export const entity: EsEntity = {
       publish: 'Publish',
       setSaleUnit: 'Set the sale unit',
       drawOnStock: 'Sell a presentation from the same stock',
+      setVariant: 'Set the variant',
       publishConfirm:
         'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',
       unpublish: 'Unpublish',

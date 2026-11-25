@@ -23,6 +23,10 @@ import {
   ProductOffering,
   ProductOfferingPrice,
 } from '@r10c/business-ts-product-configuration-management';
+import {
+  variantKeyOf,
+  variantValuesOf,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -30,6 +34,23 @@ import { atRevision } from './at-revision.js';
 
 export const OFFERING_COLLECTION = envelopeEntityName(ProductOffering);
 export const PRICE_COLLECTION = envelopeEntityName(ProductOfferingPrice);
+
+/**
+ * One document per variant combination a product's offerings hold: its
+ * `slot`, `<series>|<key>`, unique, and the offering holding it (ADR 0085). Written in the same
+ * transaction as the offering, so two siblings claiming one colour at once
+ * leave one winner; a save replaces the offering whole and could not carry a
+ * claim on the offering itself.
+ */
+export const VARIANT_SLOT_COLLECTION = `${OFFERING_COLLECTION}-variant-slot`;
+
+/** A slot another live variant holds. */
+class SlotTaken {
+  readonly _tag = 'SlotTaken';
+}
+
+/** Mongo's duplicate-key code: the losing insert of a race on one slot. */
+const DUPLICATE_KEY = 11000;
 
 /** The stored record moved under this transition: the compare-and-set missed. */
 class OfferingMoved {
@@ -69,6 +90,15 @@ export const MongoOfferingCatalogLayer = Layer.effect(
         const db = yield* resolver.forOrganization(organizationId);
         if (indexed.indexOf(db.databaseName) === -1) {
           yield* ensureOutboxIndexes(db);
+          // The slot's uniqueness is what makes the loser of a race on one
+          // combination lose (ADR 0085).
+          yield* Effect.tryPromise({
+            try: () =>
+              db
+                .collection(VARIANT_SLOT_COLLECTION)
+                .createIndex({ slot: 1 }, { unique: true }),
+            catch: mongoUnitFault,
+          });
           indexed.push(db.databaseName);
         }
         return db;
@@ -173,6 +203,95 @@ export const MongoOfferingCatalogLayer = Layer.effect(
           return written.matchedCount === 0
             ? ('changed' as const)
             : ('committed' as const);
+        }),
+
+      setVariant: (organizationId, offering, slot) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          const id = String(offering.id);
+          const values = variantValuesOf(offering.variantValues);
+          const outcome = yield* units.forDatabase(db).run(unit =>
+            Effect.gen(function* () {
+              const session = { session: unit.handle.session };
+              const slots = unit.handle.db.collection<{
+                slot: string;
+                offeringId: string;
+              }>(VARIANT_SLOT_COLLECTION);
+              const offerings = unit.handle.db.collection(OFFERING_COLLECTION);
+              const slotId =
+                slot === undefined ? undefined : `${slot.series}|${slot.key}`;
+              if (slotId !== undefined && slot !== undefined) {
+                const held = yield* Effect.tryPromise({
+                  try: () => slots.findOne({ slot: slotId }, session),
+                  catch: mongoUnitFault,
+                });
+                if (held !== null && held.offeringId !== id) {
+                  // Taken only while its holder still is that variant: a
+                  // deleted offering, or one moved to another combination
+                  // by a path that did not free it, leaves a claim nobody
+                  // holds, and it passes to the next taker.
+                  const holder = yield* Effect.tryPromise({
+                    try: () =>
+                      offerings.findOne({ id: held.offeringId }, session),
+                    catch: mongoUnitFault,
+                  });
+                  const holds = variantValuesOf(holder?.['variantValues']);
+                  if (holds !== undefined && variantKeyOf(holds) === slot.key)
+                    return yield* Effect.fail(new SlotTaken());
+                }
+              }
+              // The revision is moved in the same write, never restated
+              // (entifix 0032 §6); no variant is no member, never `[]`.
+              const written = yield* Effect.tryPromise({
+                try: () =>
+                  offerings.updateOne(
+                    { id: offering.id, ...atRevision(offering.revision) },
+                    {
+                      ...(values === undefined
+                        ? { $unset: { variantValues: '' } }
+                        : {
+                            $set: {
+                              variantValues: values.map(({ axis, value }) => ({
+                                axis,
+                                value,
+                              })),
+                            },
+                          }),
+                      ...bumpRevision.mongo,
+                    },
+                    session,
+                  ),
+                catch: mongoUnitFault,
+              });
+              if (written.matchedCount === 0)
+                return yield* Effect.fail(new OfferingMoved());
+              yield* Effect.tryPromise({
+                // An offering holds at most one combination, so one delete
+                // frees whatever it held.
+                try: () => slots.deleteOne({ offeringId: id }, session),
+                catch: mongoUnitFault,
+              });
+              if (slotId !== undefined) {
+                yield* Effect.tryPromise({
+                  try: () =>
+                    slots.replaceOne(
+                      { slot: slotId },
+                      { slot: slotId, offeringId: id },
+                      { ...session, upsert: true },
+                    ),
+                  catch: error =>
+                    (error as { code?: unknown }).code === DUPLICATE_KEY
+                      ? new SlotTaken()
+                      : mongoUnitFault(error),
+                });
+              }
+            }),
+          );
+          if (outcome._tag === 'committed') return 'committed' as const;
+          return outcome._tag === 'aborted' &&
+            outcome.reason instanceof SlotTaken
+            ? ('taken' as const)
+            : ('changed' as const);
         }),
 
       setPriceTiers: (organizationId, price) =>

@@ -3293,6 +3293,9 @@ importers:
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../../business/ts/product-configuration-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -3718,6 +3721,9 @@ importers:
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../../business/ts/product-configuration-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23

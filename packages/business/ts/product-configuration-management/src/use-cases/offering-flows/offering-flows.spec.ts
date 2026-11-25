@@ -14,9 +14,11 @@ import { ProductSpecification } from '../../entities/product-specification/produ
 import {
   type OfferingCatalog,
   OfferingCatalogTag,
+  type VariantSlot,
 } from '../../ports/offering-catalog.js';
 import { SetStockSourceUC } from '../draw-on-stock/draw-on-stock.uc.js';
 import { SetSaleUnitUC } from '../set-sale-unit/set-sale-unit.uc.js';
+import { SetVariantUC } from '../set-variant/set-variant.uc.js';
 import {
   OFFERING_CHANGED,
   preparePrice,
@@ -66,6 +68,7 @@ interface Stores {
   readonly commit?: 'committed' | 'changed';
   readonly unitWrite?: 'committed' | 'changed';
   readonly stockWrite?: 'committed' | 'changed';
+  readonly variantWrite?: 'committed' | 'changed' | 'taken';
   readonly reannounce?: 'announced' | 'revived' | 'alreadyAnnounced';
   readonly offeringsDown?: boolean;
   readonly organizations?: string[];
@@ -78,6 +81,11 @@ const world = (stores: Stores = {}) => {
     revision: number | undefined;
     stockOfferingId: string | undefined;
     stockFactor: number | undefined;
+  }[] = [];
+  const variantWrites: {
+    revision: number | undefined;
+    variantValues: ProductOffering['variantValues'];
+    slot: VariantSlot | undefined;
   }[] = [];
   const announced: CatalogEvent[] = [];
   const offerings = makeInMemoryEntityRepository(stores.offerings ?? []);
@@ -112,6 +120,15 @@ const world = (stores: Stores = {}) => {
         });
         return stores.stockWrite ?? 'committed';
       }) as Effect.Effect<'committed' | 'changed'>,
+    setVariant: (_organizationId, written, slot) =>
+      Effect.sync(() => {
+        variantWrites.push({
+          revision: written.revision,
+          variantValues: written.variantValues,
+          slot,
+        });
+        return stores.variantWrite ?? 'committed';
+      }) as Effect.Effect<'committed' | 'changed' | 'taken'>,
     setPriceTiers: () => Effect.die('unused'),
     reannounce: (_organizationId, event) =>
       Effect.sync(() => {
@@ -150,7 +167,15 @@ const world = (stores: Stores = {}) => {
       EntityRepositoryFactoryTag | OfferingCatalogTag | TenantDirectoryTag
     >,
   ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
-  return { run, committed, announced, offerings, unitWrites, stockWrites };
+  return {
+    run,
+    committed,
+    announced,
+    offerings,
+    unitWrites,
+    stockWrites,
+    variantWrites,
+  };
 };
 
 const SOURCE = 'marketplace-admin';
@@ -688,6 +713,16 @@ describe('SetStockSourceUC', () => {
       { stockOfferingId: 'base', stockFactor: 12 },
     ],
     [
+      'isVariant',
+      [
+        base,
+        offering('box', 'draft', {
+          variantValues: [{ axis: 'color', value: 'negro' }],
+        }),
+      ],
+      { stockOfferingId: 'base', stockFactor: 12 },
+    ],
+    [
       'isBase',
       [
         base,
@@ -853,6 +888,7 @@ describe('rebuildEveryPublication', () => {
                 commitTransition: () => Effect.die('unused'),
                 setSaleUnit: () => Effect.die('unused'),
                 setStockSource: () => Effect.die('unused'),
+                setVariant: () => Effect.die('unused'),
                 setPriceTiers: () => Effect.die('unused'),
                 reannounce: () => Effect.die('unused'),
               }),
@@ -863,5 +899,274 @@ describe('rebuildEveryPublication', () => {
     );
 
     expect(failure).toBeInstanceOf(Unavailable);
+  });
+});
+
+describe('SetVariantUC', () => {
+  /** Two versions of one product, `mug`, and another product, `cup`. */
+  const specifications = [
+    Object.assign(new ProductSpecification(), {
+      id: 'spec-1',
+      name: 'Mug',
+      specKey: 'mug',
+      version: 1,
+    }),
+    Object.assign(new ProductSpecification(), {
+      id: 'spec-2',
+      name: 'Mug',
+      specKey: 'mug',
+      version: 2,
+    }),
+    Object.assign(new ProductSpecification(), {
+      id: 'spec-3',
+      name: 'Cup',
+      specKey: 'cup',
+      version: 1,
+    }),
+    // Predates versioning: its own id is its series.
+    Object.assign(new ProductSpecification(), { id: 'spec-old', name: 'Old' }),
+  ];
+  const black = [{ axis: 'color' as const, value: 'Negro ' }];
+  const blue = [{ axis: 'color' as const, value: 'azul' }];
+  const variant = (
+    variantValues?: readonly { axis: 'color' | 'size'; value: string }[],
+    revision?: number,
+    id = 'o-1',
+  ) =>
+    SetVariantUC.run({
+      organizationId: 'acme',
+      id,
+      payload: { variantValues, revision },
+    });
+
+  it('records a variant in canonical form, claiming its combination in the series', async () => {
+    const w = world({
+      specifications,
+      offerings: [offering('o-1', 'draft', { revision: 3 })],
+    });
+
+    const set = await w.run(variant(black, 3));
+
+    expect(set.variantValues).toEqual([{ axis: 'color', value: 'Negro' }]);
+    expect(set.revision).toBe(4);
+    expect(w.variantWrites).toEqual([
+      {
+        revision: 3,
+        variantValues: [{ axis: 'color', value: 'Negro' }],
+        slot: { series: 'mug', key: 'color=negro' },
+      },
+    ]);
+  });
+
+  it('keys an unversioned product by its own id, and starts a seeded offering at 1', async () => {
+    const w = world({
+      specifications,
+      offerings: [offering('o-1', 'draft', { specificationId: 'spec-old' })],
+    });
+
+    const set = await w.run(variant(blue));
+
+    expect(set.revision).toBe(1);
+    expect(w.variantWrites[0]?.slot).toEqual({
+      series: 'spec-old',
+      key: 'color=azul',
+    });
+  });
+
+  it.each([[[]], [undefined]])(
+    'clears a variant with no values (%j), claiming nothing',
+    async values => {
+      const w = world({
+        specifications,
+        offerings: [
+          offering('o-1', 'draft', { variantValues: black }),
+          // A sibling holding an empty list is no variant to agree with.
+          offering('o-2', 'draft', { variantValues: [] }),
+        ],
+      });
+
+      const set = await w.run(variant(values));
+
+      expect(set.variantValues).toBeUndefined();
+      expect(w.variantWrites[0]?.slot).toBeUndefined();
+    },
+  );
+
+  it('ignores a sibling holding an empty list', async () => {
+    const w = world({
+      specifications,
+      offerings: [
+        offering('o-1', 'draft'),
+        offering('o-2', 'draft', { variantValues: [] }),
+      ],
+    });
+
+    await w.run(variant([{ axis: 'size', value: '40' }]));
+
+    expect(w.variantWrites).toHaveLength(1);
+  });
+
+  it('accepts a sibling on another version of the same product', async () => {
+    const w = world({
+      specifications,
+      offerings: [
+        offering('o-1', 'draft'),
+        offering('o-2', 'draft', {
+          specificationId: 'spec-2',
+          variantValues: blue,
+        }),
+        // Another product's black does not collide.
+        offering('o-3', 'draft', {
+          specificationId: 'spec-3',
+          variantValues: black,
+        }),
+      ],
+    });
+
+    await w.run(variant(black));
+
+    expect(w.variantWrites).toHaveLength(1);
+  });
+
+  it.each([
+    ['axis', [offering('o-1', 'draft')], [{ axis: 'flavour', value: 'x' }]],
+    [
+      'presentation',
+      [offering('o-1', 'draft', { stockOfferingId: 'b', stockFactor: 2 })],
+      black,
+    ],
+    [
+      'axesMismatch',
+      [
+        offering('o-1', 'draft'),
+        offering('o-2', 'draft', { variantValues: blue }),
+      ],
+      [{ axis: 'size', value: '40' }],
+    ],
+    [
+      'combinationTaken',
+      [
+        offering('o-1', 'draft'),
+        offering('o-2', 'draft', {
+          specificationId: 'spec-2',
+          variantValues: [{ axis: 'color', value: 'negro' }],
+        }),
+      ],
+      black,
+    ],
+  ] as const)('refuses %s', async (problem, offerings, values) => {
+    const w = world({ specifications, offerings: [...offerings] });
+
+    const failure = await w.run(Effect.flip(variant(values as typeof black)));
+
+    expect(failure).toMatchObject({ code: 'variantInvalid', problem });
+    expect(w.variantWrites).toEqual([]);
+  });
+
+  it('refuses a combination a concurrent sibling claimed first', async () => {
+    const w = world({
+      specifications,
+      offerings: [offering('o-1', 'draft')],
+      variantWrite: 'taken',
+    });
+
+    const failure = await w.run(Effect.flip(variant(black)));
+
+    expect(failure).toMatchObject({ problem: 'combinationTaken' });
+  });
+
+  it('answers a stale revision as the offering having changed', async () => {
+    const w = world({
+      specifications,
+      offerings: [offering('o-1', 'draft')],
+      variantWrite: 'changed',
+    });
+
+    const failure = await w.run(Effect.flip(variant(black, 7)));
+
+    expect(failure).toMatchObject({ code: OFFERING_CHANGED });
+  });
+});
+
+describe('preserveOfferingLifecycle and the variant', () => {
+  const specifications = [
+    Object.assign(new ProductSpecification(), { id: 'spec-1', specKey: 'mug' }),
+    Object.assign(new ProductSpecification(), { id: 'spec-2', specKey: 'mug' }),
+    Object.assign(new ProductSpecification(), { id: 'spec-3', specKey: 'cup' }),
+  ];
+  const stored = offering('o-1', 'draft', {
+    variantValues: [{ axis: 'color', value: 'negro' }],
+  });
+
+  it('carries the stored variant across a save, whatever the body said', async () => {
+    const w = world({ specifications, offerings: [stored] });
+    const body = offering('o-1', 'draft', { variantValues: undefined });
+
+    const saved = await w.run(preserveOfferingLifecycle(body, 'acme'));
+
+    // Read through the getters: a composition row is a class instance.
+    expect(
+      saved.variantValues?.map(({ axis, value }) => ({ axis, value })),
+    ).toEqual([{ axis: 'color', value: 'negro' }]);
+  });
+
+  it('lets a variant pin another version of its own product', async () => {
+    const w = world({ specifications, offerings: [stored] });
+
+    const saved = await w.run(
+      preserveOfferingLifecycle(
+        offering('o-1', 'draft', { specificationId: 'spec-2' }),
+        'acme',
+      ),
+    );
+
+    expect(saved.specificationId).toBe('spec-2');
+  });
+
+  it('refuses moving a variant to another product', async () => {
+    const w = world({ specifications, offerings: [stored] });
+
+    const failure = await w.run(
+      Effect.flip(
+        preserveOfferingLifecycle(
+          offering('o-1', 'draft', { specificationId: 'spec-3' }),
+          'acme',
+        ),
+      ),
+    );
+
+    expect(failure).toMatchObject({ problem: 'productChanged' });
+  });
+
+  it('starts a new offering as no variant', async () => {
+    const w = world({ specifications });
+
+    const saved = await w.run(
+      preserveOfferingLifecycle(
+        offering('o-new', 'draft', {
+          variantValues: [{ axis: 'color', value: 'x' }],
+        }),
+        'acme',
+      ),
+    );
+
+    expect(saved.variantValues).toBeUndefined();
+  });
+
+  it('refuses an offering picture that is not https', async () => {
+    const w = world({ specifications });
+
+    const failure = await w.run(
+      Effect.flip(
+        preserveOfferingLifecycle(
+          offering('o-new', 'draft', {
+            media: [{ url: 'http://x.test/a.png', alt: 'Taza' }],
+          }),
+          'acme',
+        ),
+      ),
+    );
+
+    expect(failure).toMatchObject({ code: 'mediaNotHttps' });
   });
 });

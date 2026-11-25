@@ -1,4 +1,5 @@
 import { catalogPublishedEvent } from '@r10c/business-ts-catalog-contracts';
+import { variantKeyOf } from '@r10c/business-ts-sales-vocabulary';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -44,6 +45,22 @@ const moved = (status: ProductOffering['status'], revision = 1) =>
     status,
     revision,
   });
+
+/** The seeded offering, as a verb read it: no revision yet. */
+const seeded = () =>
+  Object.assign(new ProductOffering('A mug', 'spec-1'), { id: 'o-seeded' });
+
+/** An offering as `set-variant` decided it: one colour. */
+const asVariant = (offering: ProductOffering, color: string) =>
+  Object.assign(offering, {
+    variantValues: [{ axis: 'color' as const, value: color }],
+  });
+
+/** The slot that colour claims in the `mug` series. */
+const slotOf = (color: string) => ({
+  series: 'mug',
+  key: variantKeyOf([{ axis: 'color', value: color }]),
+});
 
 const announcement = (publishedAt: string) =>
   catalogPublishedEvent(
@@ -250,6 +267,103 @@ export const describeOfferingCatalogContract = (
       expect(await run(catalog.setStockSource('other', moved('draft')))).toBe(
         'changed',
       );
+    });
+
+    it('records a variant at the revision it was read at, once', async () => {
+      const catalog = await make();
+      const read = asVariant(moved('draft', 1), 'negro');
+
+      expect(await run(catalog.setVariant('acme', read, slotOf('negro')))).toBe(
+        'committed',
+      );
+      expect(await run(catalog.setVariant('acme', read, slotOf('negro')))).toBe(
+        'changed',
+      );
+    });
+
+    it('refuses a combination another offering of the series holds', async () => {
+      const catalog = await make();
+      await run(
+        catalog.setVariant(
+          'acme',
+          asVariant(moved('draft', 1), 'negro'),
+          slotOf('negro'),
+        ),
+      );
+
+      expect(
+        await run(
+          catalog.setVariant(
+            'acme',
+            asVariant(seeded(), 'negro'),
+            slotOf('negro'),
+          ),
+        ),
+      ).toBe('taken');
+      // The loser wrote nothing: it can still take another combination.
+      expect(
+        await run(
+          catalog.setVariant(
+            'acme',
+            asVariant(seeded(), 'azul'),
+            slotOf('azul'),
+          ),
+        ),
+      ).toBe('committed');
+    });
+
+    it('frees a combination when its offering clears or moves its variant', async () => {
+      const catalog = await make();
+      await run(
+        catalog.setVariant(
+          'acme',
+          asVariant(moved('draft', 1), 'negro'),
+          slotOf('negro'),
+        ),
+      );
+      // Moves o-1 to blue, which frees black.
+      await run(
+        catalog.setVariant(
+          'acme',
+          asVariant(moved('draft', 2), 'azul'),
+          slotOf('azul'),
+        ),
+      );
+
+      expect(
+        await run(
+          catalog.setVariant(
+            'acme',
+            asVariant(seeded(), 'negro'),
+            slotOf('negro'),
+          ),
+        ),
+      ).toBe('committed');
+      // And clearing frees what it held.
+      await run(catalog.setVariant('acme', moved('draft', 3), undefined));
+      expect(
+        await run(
+          catalog.setVariant(
+            'acme',
+            asVariant(Object.assign(seeded(), { revision: 1 }), 'azul'),
+            slotOf('azul'),
+          ),
+        ),
+      ).toBe('committed');
+    });
+
+    it('answers changed for a variant on an offering the organization does not hold', async () => {
+      const catalog = await make();
+
+      expect(
+        await run(
+          catalog.setVariant(
+            'other',
+            asVariant(moved('draft'), 'negro'),
+            slotOf('negro'),
+          ),
+        ),
+      ).toBe('changed');
     });
 
     it('sets a price’s tiers at the revision it was read at, once', async () => {

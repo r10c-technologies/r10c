@@ -4,6 +4,7 @@ import {
   MediaReference,
   type MediaReferenceValue,
   PriceTierRow,
+  VariantValueEntry,
 } from '@r10c/business-ts-catalog-contracts';
 import {
   DEFAULT_PRICE_PER,
@@ -16,6 +17,7 @@ import {
   SALE_UNIT_SYMBOL_KEY,
   type SaleUnit,
   SaleUnits,
+  type VariantValue,
 } from '@r10c/business-ts-sales-vocabulary';
 
 /**
@@ -92,6 +94,9 @@ export class PublishedOffering implements Entity {
   #categoryId?: string;
   #media?: readonly MediaReferenceValue[];
   #fitsDeviceModelIds?: readonly string[];
+  #variantGroup?: string;
+  #variantValues?: readonly VariantValue[];
+  #searchText?: string;
   // #endregion
 
   // #region constructors
@@ -554,6 +559,60 @@ export class PublishedOffering implements Entity {
   }
   set fitsDeviceModelIds(value: readonly string[] | undefined) {
     this.#fitsDeviceModelIds = value;
+  }
+
+  /**
+   * The product this offering is a variant of: its specification series
+   * (ADR 0085). Every variant of one product holds the same value, so the
+   * product page reads its siblings by `vendorId` and this. Absent on an
+   * offering that is no variant.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.variantGroup',
+    filterable: true,
+  })
+  get variantGroup(): string | undefined {
+    return this.#variantGroup;
+  }
+  set variantGroup(value: string | undefined) {
+    this.#variantGroup = value;
+  }
+
+  /** The colour, size, finish or capacity it is, in the axis order. */
+  @accessor({
+    type: 'composition',
+    childType: () => VariantValueEntry,
+    labelKey: 'entity:published-offering.fields.variantValues',
+  })
+  get variantValues(): readonly VariantValue[] | undefined {
+    return this.#variantValues;
+  }
+  set variantValues(value: readonly VariantValue[] | undefined) {
+    this.#variantValues = value;
+  }
+
+  /**
+   * What a storefront search matches each word against: the name, the code,
+   * the description and the variant's values, derived at projection (#774).
+   * One member, so a search of several words is one `like` per word, all
+   * against it — "funda negra" finds the black case whose name says only
+   * "funda". Not the brand's or the category's name: the snapshot carries
+   * their ids (ADR 0061), and they are facets.
+   *
+   * `filterable` because it is the allowlist the search is checked against;
+   * not `hidden`, which would drop it from serialization.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.searchText',
+    filterable: true,
+  })
+  get searchText(): string | undefined {
+    return this.#searchText;
+  }
+  set searchText(value: string | undefined) {
+    this.#searchText = value;
   }
   // #endregion
 }

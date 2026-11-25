@@ -84,6 +84,20 @@ export const entity = {
       amount: 'Precio',
     },
   },
+  'variant-value': {
+    fields: {
+      axis: 'Atributo',
+      value: 'Valor',
+    },
+    values: {
+      axis: {
+        color: 'Color',
+        size: 'Talla',
+        finish: 'Acabado',
+        capacity: 'Capacidad',
+      },
+    },
+  },
   'media-reference': {
     fields: {
       url: 'URL de la imagen',
@@ -401,6 +415,9 @@ export const entity = {
       quantityMinimum: 'Cantidad mínima',
       stockOfferingId: 'Toma su inventario de',
       stockFactor: 'Unidades base por cada una',
+      variantGroup: 'Producto del que es variante',
+      variantValues: 'Variante',
+      searchText: 'Texto de búsqueda',
       stockUnit: 'Unidad base',
       availableHint: 'Disponibilidad estimada',
       publishedAt: 'Publicada el',
@@ -821,6 +838,8 @@ export const entity = {
       quantityMinimum: 'Cantidad mínima',
       stockOfferingId: 'Toma su inventario de',
       stockFactor: 'Unidades base por cada una',
+      variantValues: 'Variante',
+      media: 'Imágenes propias',
     },
     values: {
       status: {
@@ -834,6 +853,7 @@ export const entity = {
       publish: 'Publicar',
       setSaleUnit: 'Definir unidad de venta',
       drawOnStock: 'Vender una presentación del mismo inventario',
+      setVariant: 'Definir variante',
       publishConfirm:
         'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',
       unpublish: 'Retirar',

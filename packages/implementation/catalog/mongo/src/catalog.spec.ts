@@ -33,6 +33,7 @@ import {
   MongoOfferingCatalogLayer,
   OFFERING_COLLECTION,
   PRICE_COLLECTION,
+  VARIANT_SLOT_COLLECTION,
 } from './offering-catalog.js';
 import {
   COUNTERS_COLLECTION,
@@ -436,5 +437,64 @@ describe('a specification version', () => {
         revision: 1,
       }),
     ]);
+  });
+});
+
+describe('a variant slot', () => {
+  const SLOT = 'mug|color=negro';
+  const black = () =>
+    Object.assign(new ProductOffering('A mug', 'spec-1'), {
+      id: 'o-1',
+      revision: 1,
+      variantValues: [{ axis: 'color' as const, value: 'negro' }],
+    });
+  const claim = (w: ReturnType<typeof world>) =>
+    w.run(
+      Effect.flatMap(OfferingCatalogTag, catalog =>
+        catalog.setVariant('acme', black(), {
+          series: 'mug',
+          key: 'color=negro',
+        }),
+      ),
+    );
+
+  it.each([
+    ['an offering since deleted', []],
+    [
+      'an offering since moved to another colour',
+      [
+        {
+          id: 'o-2',
+          variantValues: [{ axis: 'color', value: 'azul' }],
+        },
+      ],
+    ],
+  ])('passes to the next taker when held by %s', async (_, others) => {
+    const w = world({
+      [OFFERING_COLLECTION]: [{ id: 'o-1', revision: 1 }, ...others],
+      [VARIANT_SLOT_COLLECTION]: [{ slot: SLOT, offeringId: 'o-2' }],
+    });
+
+    expect(await claim(w)).toBe('committed');
+    expect(w.fake.read(VARIANT_SLOT_COLLECTION)).toEqual([
+      expect.objectContaining({ offeringId: 'o-1' }),
+    ]);
+  });
+
+  it('answers taken when a concurrent claim inserted first', async () => {
+    const w = world({ [OFFERING_COLLECTION]: [{ id: 'o-1', revision: 1 }] });
+    w.fake.failOn(
+      'replaceOne',
+      Object.assign(new Error('dup'), { code: 11000 }),
+    );
+
+    expect(await claim(w)).toBe('taken');
+  });
+
+  it('fails as the store when the claim cannot be written', async () => {
+    const w = world({ [OFFERING_COLLECTION]: [{ id: 'o-1', revision: 1 }] });
+    w.fake.failOn('replaceOne', new Error('down'));
+
+    await expect(claim(w)).rejects.toMatchObject({ _tag: 'Unavailable' });
   });
 });

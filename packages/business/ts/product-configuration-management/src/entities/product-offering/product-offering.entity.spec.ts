@@ -120,6 +120,8 @@ describe('ProductOffering', () => {
       'quantityMinimum',
       'stockOfferingId',
       'stockFactor',
+      'variantValues',
+      'media',
       'revision',
     ]);
   });

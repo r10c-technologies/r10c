@@ -116,6 +116,19 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
       status: 'implemented',
       verticals: ['hardware', 'shoemaking-supplies'],
     },
+    // ADR 0085 (#772): a product is sold in variants, each an offering of
+    // the same specification series with its own price and stock.
+    {
+      id: 'product-configuration-management:product-offering:set-variant',
+      oda: 'TMFC001',
+      entities: ['product-configuration-management:product-offering'],
+      permissions: [
+        'product-configuration-management:product-offering:set-variant',
+      ],
+      screens: ['master:product-offering'],
+      status: 'implemented',
+      verticals: ['phone-accessories', 'shoemaking-supplies'],
+    },
     // ADR 0082 §8 (#674): a price steps down by quantity, for the whole line.
     {
       id: 'product-configuration-management:product-offering-price:set-price-tiers',
