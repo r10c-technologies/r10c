@@ -31,7 +31,12 @@ export interface Background {
 
 export interface Io {
   readonly run: (argv: readonly string[], options?: RunOptions) => RunResult;
-  /** A process kept running beside the next steps: a port-forward. */
+  /**
+   * A process kept running beside the next steps: a port-forward. It is
+   * dialled again whenever it exits, until stopped: `kubectl port-forward`
+   * holds one pod, so a broker restarted or a deployment rolled would
+   * otherwise leave its port dead for the rest of the run.
+   */
   readonly background: (argv: readonly string[]) => Background;
   readonly log: (message: string) => void;
   readonly write: (path: string, text: string) => void;
@@ -75,8 +80,24 @@ export const realIo = (cwd: string): Io => ({
   background: argv => {
     const [command = '', ...args] = argv;
     console.log(`  $ ${shown(argv)} &`);
-    const child = spawn(command, args, { cwd, stdio: 'ignore' });
-    return { stop: () => child.kill() };
+    let stopped = false;
+    let child = spawn(command, args, { cwd, stdio: 'ignore' });
+    const redial = () => {
+      if (stopped) return;
+      setTimeout(() => {
+        if (stopped) return;
+        console.log(`  $ ${shown(argv)} & (again)`);
+        child = spawn(command, args, { cwd, stdio: 'ignore' });
+        child.on('exit', redial);
+      }, 1000);
+    };
+    child.on('exit', redial);
+    return {
+      stop: () => {
+        stopped = true;
+        child.kill();
+      },
+    };
   },
   log: message => {
     console.log(message);

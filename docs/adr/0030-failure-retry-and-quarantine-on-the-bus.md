@@ -30,6 +30,7 @@
 - Revised: 2026-10-28 by [ADR 0067](0067-a-breaker-and-bulkhead-per-participant.md) — a consumer pauses its prefetch while the breaker of a participant its handler calls is open
 - Revised: 2026-10-29 — the envelope reader is `decodeEnvelope` since entifix 0.11.0, and it decodes `data` through the registry; the poison rule is unchanged
 - Revised: 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md) — the `broadcast` consumer is realtime-service, one queue per replica, not the transaction slice's stream
+- Revised: 2026-11-25 — the outbox relay spends an attempt only on a failure about the entry; a bus that is unreachable, slow or pushing back holds the aggregate and counts nothing (entifix #330). A broker down two minutes on the lab cluster had quarantined every event committed meanwhile (#704)
 
 ## Context
 
@@ -220,6 +221,14 @@ marked quarantined and **skipped**, so the head of the line moves. The publisher
 side and the consumer side then have the same three outcomes — delivered,
 retrying, quarantined — rather than one having a vocabulary and the other having
 an infinite loop.
+
+An attempt counts only when the failure is about the **entry**. A broker that
+is unreachable, slow or pushing back says nothing about it, so the relay holds
+the aggregate and spends nothing (entifix #330): counting an outage quarantined
+every event committed during a two-minute broker stop on the lab cluster, and a
+quarantined entry is never sent. A long outage shows as the outbox's age, which
+`r10c-alerts.yaml` warns on, and `catalog/broker-outage.live.spec.ts` stops the
+broker longer than the old window to hold the line.
 
 ### Graceful shutdown is part of message handling
 

@@ -38,6 +38,8 @@ locals {
     "mongo-sales-service-password",
     "mongo-fulfilment-service-password",
     "mongo-realtime-service-password",
+    # And one for a person, from `operator_cidrs` (atlas.tf, #704).
+    "mongo-operator-password",
   ]
 
   # Written by Zitadel at its first init, read back by the up command and kept

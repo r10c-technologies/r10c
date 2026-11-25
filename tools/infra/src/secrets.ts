@@ -19,6 +19,14 @@ export const MONGO_SERVICES = [
   'realtime-service',
 ] as const;
 
+/**
+ * The Atlas user a person reaches the stores as, from a machine in
+ * `operator_cidrs` (infra/gcp/atlas.tf): the live pass against a cluster
+ * (#704) reads and writes through it, so what it does is never attributed to a
+ * service. In the lab, Mongo's own admin plays the part.
+ */
+export const MONGO_OPERATOR = 'operator';
+
 /** The Postgres users the fleet connects as, beside Zitadel's own. */
 export const SQL_USERS = ['config-service', 'transaction-service'] as const;
 
@@ -43,6 +51,7 @@ export const GENERATED_SECRETS = [
   'zitadel-masterkey',
   'zitadel-admin-password',
   ...MONGO_SERVICES.map(mongoPasswordOf),
+  mongoPasswordOf(MONGO_OPERATOR),
 ] as const;
 
 /** Written by Zitadel at its first init, and kept so the next up reuses them. */

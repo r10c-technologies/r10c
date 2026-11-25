@@ -17,6 +17,7 @@ import {
   startCheckout,
   vendorBearer,
 } from '../support/lab';
+import { MAILBOX, mailsFor, mailText } from '../support/mail';
 
 /**
  * Selling in a unit that is not a piece, on the real fleet (ADR 0082): the
@@ -64,9 +65,6 @@ const stockOf = async (offeringId: string) => {
 
 const key = () => `"${randomBytes(16).toString('hex')}"`;
 
-/** Mailpit's API, where every mail the lab sends lands. */
-const MAILPIT = process.env['MAILPIT_API_URL'] ?? 'http://localhost:30826';
-
 /** The demo vendor's catalog, as the back office calls it. */
 const admin = async (
   method: 'GET' | 'POST' | 'PUT',
@@ -95,131 +93,127 @@ const offering = async (id: string) =>
     any
   >;
 
-it('sells 3.5 m by card at its line total, end to end', async () => {
-  const cable = await published(METRE);
-  expect(cable).toMatchObject({
-    saleUnit: 'M',
-    quantityStep: 500,
-    quantityMinimum: 1000,
-    pricePer: 1,
-    currency: 'GTQ',
-  });
-  const amount = Number(cable['amount']);
-  const expected = lineTotal({
-    amount,
-    quantity: 3500,
-    saleUnit: 'M',
-    pricePer: 1,
-  });
-  const before = await stockOf(METRE);
-  expect(before['unit']).toBe('M');
-
-  const checkout = await startCheckout([
-    {
-      vendorId: HARDWARE.organizationId,
-      paymentMethod: 'card',
-      lines: [{ offeringId: METRE, quantity: 3500, amount }],
-    },
-  ]);
-  expect(checkout.status, JSON.stringify(checkout.problem)).toBe(202);
-  expect(
-    (await settled(checkout.flowId, { capability: checkout.capability })).state,
-  ).toBe('completed');
-
-  const [order] = await ordersOf(checkout.flowId);
-  const orderId = String(order?.['id']);
-  expect(order?.['items']).toMatchObject([
-    {
-      offeringId: METRE,
+// End to end includes the receipt mail, so it needs a mailbox to read.
+it.runIf(MAILBOX !== undefined)(
+  'sells 3.5 m by card at its line total, end to end',
+  async () => {
+    const cable = await published(METRE);
+    expect(cable).toMatchObject({
       saleUnit: 'M',
-      quantity: 3500,
+      quantityStep: 500,
+      quantityMinimum: 1000,
       pricePer: 1,
-      lineTotal: expected,
-    },
-  ]);
-  expect(order?.['totalAmount']).toBe(expected);
+      currency: 'GTQ',
+    });
+    const amount = Number(cable['amount']);
+    const expected = lineTotal({
+      amount,
+      quantity: 3500,
+      saleUnit: 'M',
+      pricePer: 1,
+    });
+    const before = await stockOf(METRE);
+    expect(before['unit']).toBe('M');
 
-  // The capture took the line total, never 3500 × the metre's price.
-  const [allocation] = await (
-    await mongo('payment')
-  )
-    .collection('payment-allocation')
-    .find({ orderId })
-    .toArray();
-  expect(Number(allocation?.['captured'])).toBe(expected);
+    const checkout = await startCheckout([
+      {
+        vendorId: HARDWARE.organizationId,
+        paymentMethod: 'card',
+        lines: [{ offeringId: METRE, quantity: 3500, amount }],
+      },
+    ]);
+    expect(checkout.status, JSON.stringify(checkout.problem)).toBe(202);
+    expect(
+      (await settled(checkout.flowId, { capability: checkout.capability }))
+        .state,
+    ).toBe('completed');
 
-  // The hold converted to a sale of exactly 3.5 m, in metres.
-  const after = await eventually(
-    () => stockOf(METRE),
-    item => Number(item['onHand']) === Number(before['onHand']) - 3500,
-    { timeoutMs: 30_000, what: 'the sale of 3.5 m on the ledger' },
-  );
-  expect(after).toMatchObject({ unit: 'M', reserved: before['reserved'] });
+    const [order] = await ordersOf(checkout.flowId);
+    const orderId = String(order?.['id']);
+    expect(order?.['items']).toMatchObject([
+      {
+        offeringId: METRE,
+        saleUnit: 'M',
+        quantity: 3500,
+        pricePer: 1,
+        lineTotal: expected,
+      },
+    ]);
+    expect(order?.['totalAmount']).toBe(expected);
 
-  // The commission is priced on the line total.
-  const [entry] = await eventually(
-    async () =>
-      (await mongo('settlement'))
-        .collection('commission-entry')
-        .find({ orderId, kind: 'sale' })
-        .toArray(),
-    rows => rows.length === 1,
-    { timeoutMs: 60_000, what: 'the sale’s commission line' },
-  );
-  expect(entry).toMatchObject({
-    saleAmount: expected,
-    commissionAmount: Math.round((expected * AGREEMENT_BASIS_POINTS) / 10_000),
-  });
+    // The capture took the line total, never 3500 × the metre's price.
+    const [allocation] = await (
+      await mongo('payment')
+    )
+      .collection('payment-allocation')
+      .find({ orderId })
+      .toArray();
+    expect(Number(allocation?.['captured'])).toBe(expected);
 
-  // The FEL sweep certifies the order as placed. The simulated certifier
-  // signs no amounts, so what is checked is that the document is issued for
-  // an order whose total and IVA come from the line total (ADR 0078 §6).
-  const certified = await eventually(
-    async () =>
-      (await mongo('order'))
-        .collection('product-order')
-        .findOne({ id: orderId }),
-    row => typeof row?.['fiscalAuthorization'] === 'string',
-    { timeoutMs: 90_000, what: 'the measured order’s FEL document' },
-  );
-  expect(certified?.['totalAmount']).toBe(expected);
-  expect(certified?.['taxAmount']).toBe(
-    expected - Math.round((expected * 10_000) / 11_200),
-  );
+    // The hold converted to a sale of exactly 3.5 m, in metres.
+    const after = await eventually(
+      () => stockOf(METRE),
+      item => Number(item['onHand']) === Number(before['onHand']) - 3500,
+      { timeoutMs: 30_000, what: 'the sale of 3.5 m on the ledger' },
+    );
+    expect(after).toMatchObject({ unit: 'M', reserved: before['reserved'] });
 
-  // The receipt mail states the metres and the line's total, never 3500.
-  const group = await (
-    await mongo('order')
-  )
-    .collection('checkout-group')
-    .findOne({ id: checkout.flowId });
-  const number = String(group?.['number']);
-  const mail = await eventually(
-    async () => {
-      const found = (await (
-        await fetch(
-          `${MAILPIT}/api/v1/search?query=${encodeURIComponent(number)}`,
-        )
-      ).json()) as { messages?: { ID: string }[] };
-      const [first] = found.messages ?? [];
-      return first === undefined
-        ? undefined
-        : ((await (
-            await fetch(`${MAILPIT}/api/v1/message/${first.ID}`)
-          ).json()) as { Text?: string });
-    },
-    message => message !== undefined,
-    { timeoutMs: 60_000, what: `the receipt mail for ${number}` },
-  );
-  expect(mail?.Text).toContain('3.5 m');
-  expect(mail?.Text).not.toContain('3500');
-  expect(mail?.Text).toContain(
-    new Intl.NumberFormat('es-GT', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(expected / 100),
-  );
-});
+    // The commission is priced on the line total.
+    const [entry] = await eventually(
+      async () =>
+        (await mongo('settlement'))
+          .collection('commission-entry')
+          .find({ orderId, kind: 'sale' })
+          .toArray(),
+      rows => rows.length === 1,
+      { timeoutMs: 60_000, what: 'the sale’s commission line' },
+    );
+    expect(entry).toMatchObject({
+      saleAmount: expected,
+      commissionAmount: Math.round(
+        (expected * AGREEMENT_BASIS_POINTS) / 10_000,
+      ),
+    });
+
+    // The FEL sweep certifies the order as placed. The simulated certifier
+    // signs no amounts, so what is checked is that the document is issued for
+    // an order whose total and IVA come from the line total (ADR 0078 §6).
+    const certified = await eventually(
+      async () =>
+        (await mongo('order'))
+          .collection('product-order')
+          .findOne({ id: orderId }),
+      row => typeof row?.['fiscalAuthorization'] === 'string',
+      { timeoutMs: 90_000, what: 'the measured order’s FEL document' },
+    );
+    expect(certified?.['totalAmount']).toBe(expected);
+    expect(certified?.['taxAmount']).toBe(
+      expected - Math.round((expected * 10_000) / 11_200),
+    );
+
+    // The receipt mail states the metres and the line's total, never 3500.
+    const group = await (
+      await mongo('order')
+    )
+      .collection('checkout-group')
+      .findOne({ id: checkout.flowId });
+    const number = String(group?.['number']);
+    const [first] = await eventually(
+      () => mailsFor(number),
+      found => found.length > 0,
+      { timeoutMs: 60_000, what: `the receipt mail for ${number}` },
+    );
+    const text = await mailText(String(first?.ID));
+    expect(text).toContain('3.5 m');
+    expect(text).not.toContain('3500');
+    expect(text).toContain(
+      new Intl.NumberFormat('es-GT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(expected / 100),
+    );
+  },
+);
 
 it('charges a part priced per hundred by the hundred', async () => {
   const part = await published(PER_HUNDRED);

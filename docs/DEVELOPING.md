@@ -494,6 +494,19 @@ Down deletes the Gateway — its load balancer is what bills while idle, and the
 address stays reserved — turns the pool's autoscaling off, resizes it to zero
 and stops Cloud SQL. Every disk, database, secret and image stays.
 
+**Down counts, and the next up checks the count** (#705). Before it stops
+anything, down runs one pod in the cluster that counts the documents in every
+Mongo collection, the rows in every `configuration` and `workflow` table, each
+Redis key with when it expires, and the broker's durable queues, plus the
+receipt bucket's objects from your machine. It saves the result to
+`infra/.overlay/<target>/census.json`. The last step of the next up counts again and
+**fails** if anything is missing: a database, a collection, a table or a
+queue gone, a count lower, or a Redis key gone before it was due to expire.
+A key that expired while the fleet was down is not a loss. The pod reads its
+connection strings from a Secret that up applies over stdin and deletes
+afterwards, and the census holds only counts and hashed key names. A down on a
+fleet that is already down keeps the census it has.
+
 ### Rolling back, resetting, rotating
 
 - **Roll back**: check out the commit you want and run up. The registry keeps
@@ -511,8 +524,7 @@ NOTHING`, so a changed seed reaches the cloud only this way.
 
 Read on 2026-11-20. **Live** figures were read on the vendor's pricing page
 that day; **list** figures are GCP list prices the pages would not render for,
-recalled rather than read. #705 measures the real off-state bill and replaces
-both.
+recalled rather than read. The bill itself is read with `infra:cost`, below.
 
 | Component                                      | While up                             | While down                             | Source          |
 | ---------------------------------------------- | ------------------------------------ | -------------------------------------- | --------------- |
@@ -530,6 +542,22 @@ both.
 
 So about **$0.35 an hour while up** and **about $25–30 a month while down**,
 most of it the reserved addresses and Atlas's floor.
+
+#### Reading the bill
+
+```sh
+pnpm run infra:cost -- --target gcp --days 7   # net cost per day, per service
+```
+
+`infra/gcp/billing.tf` declares the BigQuery dataset `billing_export` and a
+budget on the billing account (`billing_account`, `monthly_budget_usd`; mails
+at 50, 90 and 100 %). Turning the export on is the one step the API does not
+offer: in the console, **Billing → Billing export → Standard usage cost →
+Edit settings**, pick the project and `billing_export`. The export fills
+within a day. `infra:cost` sums each day's charges net of credits (the GKE
+credit arrives as one), so **the off-state cost is a day read whole**: run
+down, wait a full UTC day, then `infra:cost -- --days 2`. Atlas bills outside
+Google Cloud; its floor is on Atlas's own invoice.
 
 The free tiers the telemetry is sized to: Grafana Cloud allows 10k active
 metric series, 50 GB of logs and 50 GB of traces a month with 14 days'
@@ -556,6 +584,13 @@ Grafana. It writes into the lab's Mongo, so follow it with
 `pnpm run back-office:dev:reset`. Its secrets are in `infra/.overlay/lab/`,
 gitignored. Not rehearsed, because the lab has neither: Cloud SQL's TLS and
 Atlas's SRV connection.
+
+⚠️ **To start the rehearsal over, also delete its disks inside minikube.**
+`kubectl delete namespace r10c` and the `retained` PVs leave minikube's
+hostpath directories (`minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/r10c`).
+A fresh namespace then gets a new broker Secret, but the broker reopens its
+old data directory and its old default user, and every service fails to
+start with AMQP `invalid credentials` (measured 2026-11-25).
 
 ## Adding a project
 
@@ -1326,6 +1361,34 @@ again**.
 | `fanout`             | fifty streams through the edge — two vendors' members, ten capability holders — under a checkout burst on both vendors   | no frame outside its audience; every member hears its own burst, every holder its flow                                                                                             |
 | `restart`            | realtime-service SIGTERMed under thirty streams, a checkout while it is down                                             | every stream drained with a `retry:` inside the dial and not all alike; every reconnect `200`; the missed flow caught up                                                           |
 | `reauth`             | a stream on a 70 s token                                                                                                 | `event: reauth` inside the margin before `exp`, nothing after                                                                                                                      |
+| `broker-outage`      | the broker stopped for 100 s (past the old five-sweep window), a publication written meanwhile, the broker back          | the entry is never quarantined, and the storefront shows the offering once the broker returns                                                                                      |
+
+**Against a cluster** (#704), the same suite runs with `FLEET_TARGET=cluster`,
+which `e2e.env` sets beside `E2E_PROFILE=live`:
+
+```sh
+pnpm run dev-ports:free                      # the forwards take the canonical ports
+pnpm run infra:forward -- --target lab       # or gcp; holds the forwards until Ctrl-C
+# in another shell:
+set -a; . infra/.overlay/lab/e2e.env; set +a
+pnpm nx e2e fleet-e2e
+```
+
+`infra:forward` holds a `kubectl port-forward` per service on its own port, and
+one for the broker's management API on `15672`. It writes what the pass needs
+to `e2e.env`: the fleet token, the broker's credentials, `EDGE_URL` pointed at
+realtime-service, and either Mailpit (lab) or the Atlas `operator` user's
+URI (cloud, from an address in `operator_cidrs`). The profile leaves out
+`runner-kill`, `restart` and `fanout`, which kill local processes by port.
+The tests that read a mail's content run only where there is a mailbox, so in
+the cloud they report skipped, and a real inbox is checked by hand.
+
+A `kubectl port-forward` holds one pod, so each forward is dialled again
+whenever it exits: `broker-outage` restarts the broker mid-pass, and without
+the re-dial every later spec reading the management API failed with `other
+side closed`. The pass consumes its data as it does locally — the sale-unit
+race publishes the hardware store's drafts — so a second pass on the same
+cluster needs fresh data, not a rerun.
 
 **The first measured data point** (2026-11-04, one laptop, the whole fleet in
 `dev`): the suite runs in about a minute. realtime-service held fifty streams at

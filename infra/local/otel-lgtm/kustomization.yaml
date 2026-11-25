@@ -24,3 +24,4 @@ configMapGenerator:
       - dashboards/r10c-dashboards.yaml
       - dashboards/r10c-bus-outbox.json
       - dashboards/r10c-alerts.yaml
+      - dashboards/r10c-notifications.yaml

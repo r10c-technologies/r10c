@@ -92,3 +92,8 @@ output "docs_dns_records" {
   description = "The records each documentation host needs, as Cloud Run's domain mapping states them."
   value       = { for key, mapping in google_cloud_run_domain_mapping.docs : key => mapping.status[0].resource_records }
 }
+
+output "billing_dataset" {
+  description = "The dataset Cloud Billing exports into, which `pnpm run infra:cost` reads (#705)."
+  value       = google_bigquery_dataset.billing.dataset_id
+}

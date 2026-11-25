@@ -8,6 +8,7 @@
  * balancer — and its one `delete` is the Gateway, which the next up applies
  * again. The spec fails on any other destructive verb on the way down.
  */
+import { type Census, diffCensus, summary, takeCensus } from './census.js';
 import type { Environment } from './environment.js';
 import type { Io } from './io.js';
 import {
@@ -38,6 +39,11 @@ export interface Fleet {
   readonly names: ReadonlySet<string>;
   /** The fleet's `Deployment`s, waited on one by one. */
   readonly deployments: readonly string[];
+  /** Each service and its canonical port, as `forward` reaches it (#704). */
+  readonly services: readonly {
+    readonly project: string;
+    readonly port: number;
+  }[];
 }
 
 export interface Run {
@@ -166,6 +172,24 @@ const postgresUrl = (
   database: string,
 ): string =>
   `postgres://${user}:${encodeURIComponent(value(env, sqlPasswordOf(user)))}@${env.sqlHost}:5432/${database}${env.sqlOptions}`;
+
+/** Where the census pod connects: one service's Mongo user reads every database. */
+const censusSources = (env: Environment) => ({
+  namespace: NAMESPACE,
+  mongoUri: env.mongoUri(
+    'order-service',
+    value(env, mongoPasswordOf('order-service')),
+  ),
+  configUrl: postgresUrl(env, 'config-service', env.databases.config),
+  workflowUrl: postgresUrl(env, 'transaction-service', env.databases.workflow),
+  redisHost: `redis.${NAMESPACE}.svc.cluster.local`,
+  redisPassword: value(env, 'redis-password'),
+  bucket: env.objectStore.engine === 'gcs' ? env.objectStore.bucket : undefined,
+});
+
+/** Where `down` leaves its census for the next `up` to compare against. */
+export const censusPath = (repoRoot: string, env: Environment) =>
+  `${repoRoot}/infra/.overlay/${env.target}/census.json`;
 
 /** What the platform reads before the identity provider exists. */
 const platformSecrets = (env: Environment): string => {
@@ -612,11 +636,47 @@ export const up = (io: Io, env: Environment, run: Run) => {
 
   step(io, 'smoke test');
   smoke(io, env);
+
+  step(io, 'census: nothing lost since the last down');
+  const saved = io.read(censusPath(run.repoRoot, env));
+  const now = takeCensus(io, censusSources(env));
+  if (saved === undefined)
+    io.log('  no census from a down to compare against: a first up');
+  else {
+    const before = JSON.parse(saved) as Census;
+    const losses = diffCensus(before, now);
+    if (losses.length > 0)
+      throw new Error(
+        `the census at down (${new Date(before.takenAt).toISOString()}) held what this up no longer does:\n  ${losses.join('\n  ')}`,
+      );
+  }
+  io.log(`  ${summary(now)}`);
   io.log(`\n✓ up: https://${hosts(env.domain).storefront}`);
 };
 
-export const down = (io: Io, env: Environment) => {
+export const down = (io: Io, env: Environment, repoRoot: string) => {
   env.kubeCheck();
+  // The census first, while every store still answers. A fleet already down
+  // has no Gateway — the one thing down deletes — and keeps the census the
+  // down that stopped it took.
+  step(io, 'census: what the next up must still hold');
+  const running =
+    kubectl(
+      io,
+      '-n',
+      NAMESPACE,
+      'get',
+      'gateway',
+      GATEWAY,
+      '--ignore-not-found',
+      '-o',
+      'name',
+    ).stdout.trim() !== '';
+  if (running) {
+    const census = takeCensus(io, censusSources(env));
+    io.write(censusPath(repoRoot, env), `${JSON.stringify(census, null, 2)}\n`);
+    io.log(`  ${summary(census)}`);
+  } else io.log('  the fleet is already down; its census is kept');
   step(io, 'the edge’s load balancer');
   // The one delete on the way down: the Gateway holds no data, and with it
   // goes the forwarding rule that bills while idle. The address is

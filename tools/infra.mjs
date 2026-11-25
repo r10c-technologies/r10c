@@ -5,6 +5,8 @@
  *   pnpm run infra:up -- --target lab            # the minikube rehearsal
  *   pnpm run infra:up -- --target gcp --dry-run  # print every step, run none
  *   pnpm run infra:down -- --target gcp
+ *   pnpm run infra:forward -- --target lab       # the live pass's ports (#704)
+ *   pnpm run infra:cost -- --target gcp --days 7 # the bill, per day (#705)
  *
  * A root script, as `generate-cluster.mjs` is, because it composes three
  * tools — the services from `tools/slices`, the apps from `tools/edge`, the
@@ -47,6 +49,7 @@ try {
     ),
     names,
     deployments,
+    services: inputs.services,
   });
 } catch (error) {
   console.error(

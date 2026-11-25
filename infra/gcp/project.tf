@@ -19,6 +19,10 @@ locals {
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "sts.googleapis.com",
+    # What it costs (billing.tf, #705): the billing export's dataset and the
+    # budget on the billing account.
+    "bigquery.googleapis.com",
+    "billingbudgets.googleapis.com",
   ]
 }
 
