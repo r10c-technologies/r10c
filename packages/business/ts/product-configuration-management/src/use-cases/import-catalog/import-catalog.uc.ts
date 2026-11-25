@@ -220,6 +220,16 @@ export class ImportCatalogUC {
               other.name.trim().toLowerCase() === row.name.trim().toLowerCase(),
           )
         ) {
+          // ⚠️ The product may be this very row, written by another attempt
+          // at the same sheet between the claim read above and this one: its
+          // claim commits with its records, so a product seen here has a
+          // claim to be seen too. Measured — ten attempts at once refused
+          // three rows of their own sheet as duplicates without this read.
+          const raced = yield* commands.claimed(organizationId, rowKey);
+          if (raced !== undefined) {
+            written.push(raced);
+            continue;
+          }
           reject(row.rowNumber, IMPORT_DUPLICATE, 'name');
           continue;
         }

@@ -8,6 +8,15 @@ import { type Role } from './role-ladder';
  * rename surfaces as one edit rather than as silently dead grants.
  */
 export const CATALOG_DOMAIN = 'product-configuration-management';
+
+/** The catalog records a person authors and saves: every one but the import. */
+const CATALOG_AUTHORED = [
+  'product-specification',
+  'product-offering',
+  'product-offering-price',
+  'entity-specification',
+  'characteristic-specification',
+] as const;
 export const CATALOG_REFERENCE_DOMAIN = 'catalog-reference';
 export const SALES_DOMAIN = 'sales-management';
 export const STOCK_DOMAIN = 'stock-management';
@@ -85,8 +94,15 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   // Catalog authoring plus user management, bounded by the role-assignment rule.
   admin: [
     `${CATALOG_DOMAIN}:*:read`,
-    `${CATALOG_DOMAIN}:*:write`,
-    `${CATALOG_DOMAIN}:*:delete`,
+    // The records a vendor authors, ⚠️ **named per entity, deliberately not
+    // `${CATALOG_DOMAIN}:*:write`**, for stock's reason below. The served
+    // `$metadata` offers Save and Delete from these grants, so a wildcard
+    // would offer them on a `CatalogImport` — a record only its verb writes,
+    // whose routes are reads (ADR 0084) — and each would answer `404`.
+    ...CATALOG_AUTHORED.flatMap(entity => [
+      `${CATALOG_DOMAIN}:${entity}:write` as const,
+      `${CATALOG_DOMAIN}:${entity}:delete` as const,
+    ]),
     // Two use-case verbs on the vendor's own offering, not CRUD. Putting a
     // record in front of buyers and taking it down again are acts that a
     // generic `write` was standing in for; naming them is what lets the form

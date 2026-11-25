@@ -272,6 +272,35 @@ describe('refusing rows', () => {
   });
 });
 
+describe('two attempts at one sheet at once', () => {
+  it('replays a row another attempt wrote after this one first looked', async () => {
+    const { commands, run } = world([stored('Product 2', 'in-design')]);
+    // As if a concurrent attempt committed row 2 — its product, which the
+    // name check now sees, and its claim — just after this attempt's first
+    // claim read.
+    let reads = 0;
+    const claimed = commands.claimed;
+    (commands as { claimed: typeof claimed }).claimed = (
+      organizationId,
+      key,
+    ) => {
+      reads += 1;
+      return reads === 1
+        ? Effect.succeed(undefined)
+        : Effect.succeed({
+            outcome: 'replayed' as const,
+            specificationId: 's-raced',
+            offeringId: 'o-raced',
+          });
+    };
+
+    const record = valueOf(await run({ rows: [row(2)] }));
+
+    expect(record).toMatchObject({ createdCount: 1, rejectedCount: 0 });
+    expect(commands.state.rows).toHaveLength(0);
+  });
+});
+
 describe('importing the same sheet again', () => {
   it('replays every row the key wrote and answers the first record', async () => {
     const { commands, run } = world();

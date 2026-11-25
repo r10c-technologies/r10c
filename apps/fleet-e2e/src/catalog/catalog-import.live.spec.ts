@@ -168,3 +168,23 @@ it('refuses a sheet past the cap before writing a row', async () => {
   expect(answered.body['code']).toBe('importTooLarge');
   expect(await named(`Importado ${run} `)).toBe(0);
 });
+
+it('serves an import read-only: no Save or Delete is ever offered', async () => {
+  const res = await fetch(
+    `${FLEET.marketplaceAdmin}/api/catalog-import/$metadata`,
+    {
+      headers: {
+        authorization: await vendorBearer(HARDWARE.organizationId),
+      },
+    },
+  );
+  const document = (await res.json()) as {
+    data: { actions: string[]; useCases: { key: string }[] };
+  };
+
+  expect(res.status).toBe(200);
+  expect(document.data.actions).toEqual(['read']);
+  expect(document.data.useCases.map(useCase => useCase.key)).toEqual([
+    'import',
+  ]);
+});
