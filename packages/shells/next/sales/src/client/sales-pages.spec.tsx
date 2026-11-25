@@ -1,12 +1,12 @@
 import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
-import { type EntityWriter, settled } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
+import { settledWriter } from '@r10c/testing-cells/writer';
 import { render, screen, waitFor } from '@testing-library/react';
-import { Context, Effect } from 'effect';
+import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,21 +19,6 @@ import {
   SalesChannelListClientPage,
   SalesChannelSingleViewClientPage,
 } from './sales-crud.js';
-
-/**
- * A writer that settles every write through the spec's own in-memory
- * repository, as a write that commits in one unit does (ADR 0073).
- */
-const settledWriter = (
-  context: Context.Context<EntityRepositoryTag>,
-): EntityWriter => {
-  const repository = Context.get(context, EntityRepositoryTag);
-  return {
-    save: entity => Effect.map(repository.save(entity), settled),
-    delete: entityOrId =>
-      Effect.as(repository.delete(entityOrId), settled(undefined)),
-  };
-};
 
 /** The transports the shell really composes, so metadata reads behave as in production. */
 const real = createClientAdapters();

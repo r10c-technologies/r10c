@@ -1,6 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
-import { type EntityWriter, settled } from '@entifix/core';
 import { useDraftsState } from '@entifix/next-shell';
 import {
   EntifixQueryProvider,
@@ -11,9 +10,10 @@ import {
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
+import { settledWriter } from '@r10c/testing-cells/writer';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Context, Effect } from 'effect';
+import { Context } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createClientAdapters } from './adapters/create-client-adapters.js';
@@ -28,21 +28,6 @@ import {
   readLines,
 } from './counter-sale-wizard.js';
 import { SalesProvider } from './sales-context.js';
-
-/**
- * A writer that settles every write through the spec's own in-memory
- * repository, as a write that commits in one unit does (ADR 0073).
- */
-const settledWriter = (
-  context: Context.Context<EntityRepositoryTag>,
-): EntityWriter => {
-  const repository = Context.get(context, EntityRepositoryTag);
-  return {
-    save: entity => Effect.map(repository.save(entity), settled),
-    delete: entityOrId =>
-      Effect.as(repository.delete(entityOrId), settled(undefined)),
-  };
-};
 
 /** The transports the shell really composes, so metadata reads behave as in production. */
 const real = createClientAdapters();

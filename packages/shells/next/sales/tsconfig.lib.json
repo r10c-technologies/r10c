@@ -39,6 +39,9 @@
       "path": "../../../business/ts/marketplace-catalog/tsconfig.lib.json"
     },
     {
+      "path": "../../../testing/cells"
+    },
+    {
       "path": "../../../business/ts/i18n/tsconfig.lib.json"
     }
   ]

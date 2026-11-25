@@ -1,5 +1,4 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import { type EntityWriter, settled } from '@entifix/core';
 import {
   describeEntityStateRules,
   describeEntityUseCases,
@@ -17,6 +16,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import { inMemoryEntity } from '@r10c/testing-cells/writer';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context, Effect } from 'effect';
@@ -34,21 +34,6 @@ import {
 } from './catalog-crud.js';
 import type { MarketplaceAdminAdapters } from './client-types.js';
 import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/marketplace-admin-context.js';
-
-/**
- * A writer that settles every write through the spec's own in-memory
- * repository, as a write that commits in one unit does (ADR 0073).
- */
-const settledWriter = (
-  context: Context.Context<EntityRepositoryTag>,
-): EntityWriter => {
-  const repository = Context.get(context, EntityRepositoryTag);
-  return {
-    save: entity => Effect.map(repository.save(entity), settled),
-    delete: entityOrId =>
-      Effect.as(repository.delete(entityOrId), settled(undefined)),
-  };
-};
 
 /** The transports the shell really composes, so metadata reads behave as in production. */
 const real = createClientAdapters();
@@ -109,53 +94,28 @@ let repositories: {
  */
 let catalogMetadata: EntityMetadataSource | undefined;
 
-const adapters = (): MarketplaceAdminAdapters => ({
-  productRest: Context.make(EntityRepositoryTag, repositories.product),
-  productWriter: settledWriter(
-    Context.make(EntityRepositoryTag, repositories.product),
-  ),
-  deviceModelRest: Context.make(EntityRepositoryTag, repositories.brand),
-  deviceModelWriter: settledWriter(
-    Context.make(EntityRepositoryTag, repositories.brand),
-  ),
-  productBrandRest: Context.make(EntityRepositoryTag, repositories.brand),
-  productBrandWriter: settledWriter(
-    Context.make(EntityRepositoryTag, repositories.brand),
-  ),
-  productCategoryRest: Context.make(EntityRepositoryTag, repositories.category),
-  productCategoryWriter: settledWriter(
-    Context.make(EntityRepositoryTag, repositories.category),
-  ),
-  // Neither page under test reads an offering; the keys exist because the
-  // adapter set is one object and a partial one would not type.
-  productOfferingRest: Context.make(EntityRepositoryTag, repositories.product),
-  productOfferingWriter: settledWriter(
-    Context.make(EntityRepositoryTag, repositories.product),
-  ),
-  productOfferingPriceRest: Context.make(
-    EntityRepositoryTag,
-    repositories.product,
-  ),
-  catalogImportRest: Context.make(EntityRepositoryTag, repositories.product),
-  catalogImport: {
-    readTable: () => Promise.resolve([]),
-    references: () =>
-      Promise.resolve({ brands: [], categories: [], deviceModels: [] }),
-    submit: () => Promise.resolve({ ok: false, code: 'unexpected' }),
-  },
-  publishedVendorRest: Context.make(EntityRepositoryTag, repositories.product),
-  productOfferingPriceWriter: settledWriter(
-    Context.make(EntityRepositoryTag, repositories.product),
-  ),
-  referenceMetadata: real.referenceMetadata,
-  catalogMetadata: catalogMetadata ?? real.catalogMetadata,
-  productBrandUseCases: real.productBrandUseCases,
-  deviceModelUseCases: real.deviceModelUseCases,
-  productCategoryUseCases: real.productCategoryUseCases,
-  productOfferingUseCases: real.productOfferingUseCases,
-  productOfferingPriceUseCases: real.productOfferingPriceUseCases,
-  productUseCases: real.productUseCases,
-});
+const adapters = (): MarketplaceAdminAdapters => {
+  const product = inMemoryEntity(repositories.product);
+  const brand = inMemoryEntity(repositories.brand);
+  const category = inMemoryEntity(repositories.category);
+  const offerings = inMemoryEntity();
+  return {
+    ...real,
+    productRest: product.rest,
+    productWriter: product.writer,
+    deviceModelRest: brand.rest,
+    deviceModelWriter: brand.writer,
+    productBrandRest: brand.rest,
+    productBrandWriter: brand.writer,
+    productCategoryRest: category.rest,
+    productCategoryWriter: category.writer,
+    // A product's page lists its offerings; none is seeded.
+    productOfferingRest: offerings.rest,
+    productOfferingWriter: offerings.writer,
+    productOfferingPriceRest: offerings.rest,
+    catalogMetadata: catalogMetadata ?? real.catalogMetadata,
+  };
+};
 
 /**
  * A list names a reference through the host's registry since entifix 0.21.0

@@ -8,6 +8,10 @@
     "./mongo": {
       "@r10c/source": "./src/mongo.ts",
       "default": "./src/mongo.ts"
+    },
+    "./writer": {
+      "@r10c/source": "./src/writer.ts",
+      "default": "./src/writer.ts"
     }
   },
   "nx": {
@@ -18,6 +22,8 @@
     "sourceRoot": "packages/testing/cells/src"
   },
   "dependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
     "@entifix/mongo": "catalog:",
     "@entifix/testing-unit": "catalog:",
     "@entifix/transactions": "catalog:",

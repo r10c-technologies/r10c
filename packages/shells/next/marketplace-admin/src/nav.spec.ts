@@ -1,75 +1,96 @@
+import { extractMetaEntity, extractMetaUseCaseBinding } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
+import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from './catalog-surfaces';
 import { MARKETPLACE_ADMIN_NAV } from './nav';
+import { MARKETPLACE_ADMIN_WIZARD_SURFACES } from './wizard-surfaces';
 
-const items = MARKETPLACE_ADMIN_NAV.flatMap(section => section.items);
+/**
+ * Every expectation below is **derived** from the two surface tables, and the
+ * spec asserts the rule of each derivation rather than restating its output.
+ * The tables' own order is asserted once, in `catalog-surfaces.spec.ts`; a new
+ * surface is then one line there and none here (#773).
+ */
+const [catalog, wizards] = MARKETPLACE_ADMIN_NAV;
+const catalogItems = catalog?.items ?? [];
+const wizardItems = wizards?.items ?? [];
+
+/** A domain is tenant-plane when an organization is provisioned for it. */
+const TENANT_DOMAINS = new Set(['product-configuration-management']);
 
 describe('MARKETPLACE_ADMIN_NAV', () => {
-  it('offers one item per declared surface, in order', () => {
-    // Derived, not written: adding a `CatalogSurface` adds the nav entry, which
-    // is the half that used to be forgotten and left a screen unreachable.
-    expect(items.map(item => item.href)).toEqual([
-      '/catalog/product',
-      '/catalog/product-offering',
-      '/catalog/product-offering-price',
-      '/catalog/catalog-import',
-      '/catalog/product-brand',
-      '/catalog/product-category',
-      '/catalog/device-model',
-      '/wizards/product-setup',
-      '/wizards/import-catalog',
-    ]);
+  it('offers one item per declared surface, in the tables’ order', () => {
+    // Adding a surface adds its nav entry: the half that used to be forgotten
+    // and left a screen unreachable.
+    expect(catalogItems.map(item => item.href)).toEqual(
+      MARKETPLACE_ADMIN_CATALOG_SURFACES.map(surface => surface.basePath),
+    );
+    expect(wizardItems.map(item => item.href)).toEqual(
+      MARKETPLACE_ADMIN_WIZARD_SURFACES.map(surface => surface.basePath),
+    );
   });
 
-  it('guards each item with the permission its own entity derives', () => {
-    // Two domains, neither written out here. A hand-typed domain string could
-    // name something the route behind it does not check.
-    expect(items.map(item => item.permission)).toEqual([
-      'product-configuration-management:product-specification:read',
-      'product-configuration-management:product-offering:read',
-      'product-configuration-management:product-offering-price:read',
-      'product-configuration-management:catalog-import:read',
-      'catalog-reference:product-brand:read',
-      'catalog-reference:product-category:read',
-      'catalog-reference:device-model:read',
-      // `write`, because the flow's whole purpose is to create the record.
-      // Offering it to someone who may only read is offering a dead end.
-      'product-configuration-management:product-specification:write',
-      // The import ends in its verb, not a save: the verb's own permission.
-      'product-configuration-management:catalog-import:import',
-    ]);
+  it('guards a list with the read permission its own entity derives', () => {
+    // A hand-typed domain string could name something the route behind it
+    // does not check.
+    expect(catalogItems.map(item => item.permission)).toEqual(
+      MARKETPLACE_ADMIN_CATALOG_SURFACES.map(surface => {
+        const { domain, key } = extractMetaEntity(surface.entityConstructor);
+        return `${String(domain)}:${String(key)}:read`;
+      }),
+    );
+  });
+
+  it('guards a wizard with the write or the verb it ends in, never a read', () => {
+    // Offering a flow whose whole purpose is to create to someone who may only
+    // read is offering a dead end.
+    expect(wizardItems.map(item => item.permission)).toEqual(
+      MARKETPLACE_ADMIN_WIZARD_SURFACES.map(surface => {
+        const { domain, key } = extractMetaEntity(surface.entityConstructor);
+        const action =
+          surface.useCase === undefined
+            ? 'write'
+            : extractMetaUseCaseBinding(surface.useCase).key;
+        return `${String(domain)}:${String(key)}:${action}`;
+      }),
+    );
+    expect(wizardItems.some(item => item.permission?.endsWith(':read'))).toBe(
+      false,
+    );
   });
 
   it('addresses every item’s workspace tab under its own screen type', () => {
-    expect(items.map(item => item.workspace)).toEqual([
-      'master:product-specification',
-      'master:product-offering',
-      'master:product-offering-price',
-      'master:catalog-import',
-      'master:product-brand',
-      'master:product-category',
-      'master:device-model',
-      'wizard:product-setup',
-      'wizard:catalog-import',
-    ]);
+    expect(catalogItems.map(item => item.workspace)).toEqual(
+      MARKETPLACE_ADMIN_CATALOG_SURFACES.map(
+        surface => `master:${surface.entityKey}`,
+      ),
+    );
+    expect(wizardItems.map(item => item.workspace)).toEqual(
+      MARKETPLACE_ADMIN_WIZARD_SURFACES.map(surface => `wizard:${surface.key}`),
+    );
   });
 
   it('entitlement-gates the tenant-plane surfaces and nothing else', () => {
     // Nobody is provisioned for `catalog-reference`, so gating brands or
-    // categories would hide the platform's own vocabulary from every vendor.
-    expect(items.map(item => item.entitled)).toEqual([
-      true,
-      true,
-      true,
-      true,
-      undefined,
-      undefined,
-      undefined,
-      // The wizards author records in the same tenant-plane domain, so they
-      // carry the same gate the products catalog does.
-      true,
-      true,
-    ]);
+    // categories would hide the platform's own vocabulary from every vendor;
+    // the wizards author records in the tenant-plane domain, so they are gated.
+    const gated = (surface: {
+      entityConstructor: Parameters<typeof extractMetaEntity>[0];
+    }) =>
+      TENANT_DOMAINS.has(
+        String(extractMetaEntity(surface.entityConstructor).domain),
+      )
+        ? true
+        : undefined;
+
+    expect(catalogItems.map(item => item.entitled)).toEqual(
+      MARKETPLACE_ADMIN_CATALOG_SURFACES.map(gated),
+    );
+    expect(wizardItems.map(item => item.entitled)).toEqual(
+      MARKETPLACE_ADMIN_WIZARD_SURFACES.map(gated),
+    );
+    // The rule must split the table, or it proves nothing.
+    expect(new Set(catalogItems.map(item => item.entitled)).size).toBe(2);
   });
 
   it('types its sections as Definiciones and Asistentes', () => {

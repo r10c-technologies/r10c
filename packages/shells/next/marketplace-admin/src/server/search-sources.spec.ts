@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from '../catalog-surfaces';
 import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from './search-sources';
 
 /**
@@ -9,50 +10,34 @@ import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from './search-sources';
  * quietly reports a group it could not reach.
  */
 describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
-  it('declares the catalog’s seven searchable records, in order', () => {
-    expect(MARKETPLACE_ADMIN_SEARCH_SOURCES.map(source => source.key)).toEqual([
-      'product-specification',
-      'product-offering',
-      'product-offering-price',
-      'catalog-import',
-      'product-brand',
-      'product-category',
-      'device-model',
-    ]);
+  it('declares one source per catalog surface, in the table’s order', () => {
+    // Derived (#773): the table's order is asserted once, in
+    // `catalog-surfaces.spec.ts`; a new surface is searchable for free.
+    expect(MARKETPLACE_ADMIN_SEARCH_SOURCES.map(source => source.key)).toEqual(
+      MARKETPLACE_ADMIN_CATALOG_SURFACES.map(surface => surface.entityKey),
+    );
   });
 
   it('labels each group with the entity’s own plural key', () => {
     expect(
       MARKETPLACE_ADMIN_SEARCH_SOURCES.map(source => source.labelKey),
-    ).toEqual([
-      'entity:product-specification.plural',
-      'entity:product-offering.plural',
-      'entity:product-offering-price.plural',
-      'entity:catalog-import.plural',
-      'entity:product-brand.plural',
-      'entity:product-category.plural',
-      'entity:device-model.plural',
-    ]);
+    ).toEqual(
+      MARKETPLACE_ADMIN_CATALOG_SURFACES.map(
+        surface => `entity:${surface.entityKey}.plural`,
+      ),
+    );
   });
 
-  it.each([
-    // `product`, not `product-specification` — the route segment and the entity
-    // key differ, and they have drifted apart once already.
-    ['product-specification', '/catalog/product/x-1'],
-    ['product-offering', '/catalog/product-offering/x-1'],
-    ['product-offering-price', '/catalog/product-offering-price/x-1'],
-    ['catalog-import', '/catalog/catalog-import/x-1'],
-    ['product-brand', '/catalog/product-brand/x-1'],
-    ['product-category', '/catalog/product-category/x-1'],
-    ['device-model', '/catalog/device-model/x-1'],
-  ])('routes a %s result to a page this host serves', (key, expected) => {
+  it.each(
+    MARKETPLACE_ADMIN_CATALOG_SURFACES.map(s => [s.entityKey, s] as const),
+  )('routes a %s result to the page its surface serves', (key, surface) => {
     const source = MARKETPLACE_ADMIN_SEARCH_SOURCES.find(
       candidate => candidate.key === key,
     );
 
     expect(source?.url('acme', 5, 'es')).toContain(`/api/${key}?`);
-    // One option is enough to prove the href builder; the mapping itself is
-    // covered where it lives.
+    // The route, never the entity key: `product-specification` lives at
+    // `/catalog/product`, and the two have drifted apart once already.
     expect(
       source?.read(
         {
@@ -61,7 +46,7 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
         },
         'es',
       )?.items[0]?.href,
-    ).toBe(expected);
+    ).toBe(`${surface.basePath}/x-1`);
   });
 
   it('asks the tenant service for specifications and the platform one for the vocabulary', () => {

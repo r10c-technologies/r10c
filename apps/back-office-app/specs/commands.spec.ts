@@ -1,4 +1,6 @@
 import { NEW_COMMAND_PAGE } from '@entifix/authz';
+import { AUTH_COMMANDS } from '@r10c/shells-next-auth/server';
+import { MARKETPLACE_ADMIN_COMMANDS } from '@r10c/shells-next-marketplace-admin/server';
 
 import { COMMANDS, visibleCommands } from '../src/lib/commands';
 import type { NavPrincipal } from '../src/lib/nav-principal';
@@ -22,16 +24,12 @@ const keys = (principal: NavPrincipal): string[] =>
   visibleCommands(principal, identity).map(command => command.key);
 
 describe('the back office command list', () => {
-  it('concatenates every mounted shell’s contribution', () => {
-    expect(COMMANDS.map(command => command.key)).toEqual([
-      'new:product-specification',
-      'new:product-offering',
-      'new:product-offering-price',
-      'new:product-brand',
-      'new:product-category',
-      'new:device-model',
-      'new:user-identity',
-    ]);
+  it('concatenates every mounted shell’s contribution, catalog first', () => {
+    // Each shell's spec asserts its own list; what only the host sees is the
+    // order the shells are mounted in (#773).
+    expect(COMMANDS.map(command => command.key)).toEqual(
+      [...MARKETPLACE_ADMIN_COMMANDS, ...AUTH_COMMANDS].map(c => c.key),
+    );
   });
 
   it('puts every create command on the page the opener descends into', () => {
@@ -41,15 +39,9 @@ describe('the back office command list', () => {
   });
 
   it('names a write permission, never a read one — the command opens a form', () => {
-    expect(COMMANDS.map(command => command.permission)).toEqual([
-      'product-configuration-management:product-specification:write',
-      'product-configuration-management:product-offering:write',
-      'product-configuration-management:product-offering-price:write',
-      'catalog-reference:product-brand:write',
-      'catalog-reference:product-category:write',
-      'catalog-reference:device-model:write',
-      'authn:user-identity:write',
-    ]);
+    expect(
+      COMMANDS.every(command => command.permission.endsWith(':write')),
+    ).toBe(true);
   });
 });
 
