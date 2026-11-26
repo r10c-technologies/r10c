@@ -273,6 +273,7 @@ export const r10c = {
       filtersSummary_other: 'Filtrar ({{count}})',
       sort: 'Ordenar',
       sorts: {
+        relevance: 'Más relevantes',
         priceAsc: 'Precio: menor a mayor',
         priceDesc: 'Precio: mayor a menor',
         newest: 'Más recientes',

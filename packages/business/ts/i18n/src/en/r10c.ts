@@ -254,6 +254,7 @@ export const r10c: EsR10c = {
       filtersSummary_other: 'Filter ({{count}})',
       sort: 'Sort',
       sorts: {
+        relevance: 'Most relevant',
         priceAsc: 'Price: low to high',
         priceDesc: 'Price: high to low',
         newest: 'Newest',

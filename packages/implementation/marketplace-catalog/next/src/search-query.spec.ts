@@ -5,6 +5,7 @@ import '@r10c/business-ts-i18n/locales';
 import { describe, expect, it } from 'vitest';
 
 import {
+  defaultSort,
   everyWord,
   hiddenSearchFields,
   MAX_SEARCH_WORDS,
@@ -15,6 +16,7 @@ import {
   searchQuery,
   searchRequest,
   searchWords,
+  sortsFor,
 } from './search-query.js';
 
 const flat: SearchContext = { subtreeOf: id => [id] };
@@ -256,5 +258,33 @@ describe('everyWord', () => {
   it('keeps the first words of a pasted line, and none of a blank one', () => {
     expect(searchWords('a b c d e f g h')).toHaveLength(MAX_SEARCH_WORDS);
     expect(searchWords('   ')).toEqual([]);
+  });
+});
+
+describe('the relevance order', () => {
+  it('is the default while a term is searched, and the name otherwise', () => {
+    expect(defaultSort('funda')).toBe('relevance');
+    expect(defaultSort('  ')).toBe('name');
+    expect(defaultSort(undefined)).toBe('name');
+  });
+
+  it('is offered only with a term to weigh', () => {
+    expect(sortsFor('funda')).toContain('relevance');
+    expect(sortsFor(undefined)).not.toContain('relevance');
+    expect(sortsFor(undefined)).toContain('name');
+  });
+
+  it('sorts best first and breaks ties by name', () => {
+    const request = searchRequest(
+      parseSearch({ q: 'funda', sort: 'relevance' }, 'es'),
+      flat,
+    );
+
+    expect(request.sorting).toEqual([
+      {
+        0: { property: '$relevance', type: 'desc' },
+        1: { property: 'name', type: 'asc' },
+      },
+    ]);
   });
 });
