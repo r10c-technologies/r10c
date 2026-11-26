@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { SalesChannel } from '../../entities/sales-channel/index.js';
 import {
   counterBuyerTax,
+  mergedLines,
   sellAtCounter,
   validateSalesChannel,
 } from './counter-sale.js';
@@ -274,6 +275,19 @@ describe('sellAtCounter', () => {
       tierFrom: 2,
     });
     expect(input.totals).toEqual([{ currency: 'GTQ', amount: 800 }]);
+  });
+
+  it('sells a repeated offering as one line of the summed quantity', async () => {
+    expect(
+      mergedLines([
+        { offeringId: 'a', quantity: 1 },
+        { offeringId: 'b', quantity: 2 },
+        { offeringId: 'a', quantity: 3 },
+      ]),
+    ).toEqual([
+      { offeringId: 'a', quantity: 4 },
+      { offeringId: 'b', quantity: 2 },
+    ]);
   });
 
   it('states what a kit holds, as published', async () => {

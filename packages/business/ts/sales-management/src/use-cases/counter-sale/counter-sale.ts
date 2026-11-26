@@ -141,6 +141,31 @@ export const counterBuyerTax = (
  * forbidden: the id is the store's key, and a 403 would make the route an
  * oracle for which channels exist elsewhere.
  */
+/**
+ * The till's lines with each offering once, its quantities summed, in the
+ * order each first appeared. Two lines of one offering would compose to two
+ * holds with one step name and one idempotency key, so the second would
+ * answer the first's hold (ADR 0086 §4); one line of the sum is what was sold.
+ * The sum is then checked against the terms like any other quantity.
+ */
+export const mergedLines = <
+  TLine extends { readonly offeringId: string; readonly quantity: number },
+>(
+  lines: readonly TLine[],
+): TLine[] => {
+  const byOffering = new Map<string, TLine>();
+  for (const line of lines) {
+    const seen = byOffering.get(line.offeringId);
+    byOffering.set(
+      line.offeringId,
+      seen === undefined
+        ? line
+        : { ...seen, quantity: seen.quantity + line.quantity },
+    );
+  }
+  return [...byOffering.values()];
+};
+
 export const sellAtCounter = (input: {
   readonly organizationId: string;
   readonly channelId: string;
@@ -166,7 +191,7 @@ export const sellAtCounter = (input: {
 
     const prices = yield* PublishedPriceReaderTag;
     const priced: PricedLine[] = [];
-    for (const line of sale.lines) {
+    for (const line of mergedLines(sale.lines)) {
       const price = yield* prices.priceOf(line.offeringId);
       if (price === undefined) {
         return yield* new InvalidBody({

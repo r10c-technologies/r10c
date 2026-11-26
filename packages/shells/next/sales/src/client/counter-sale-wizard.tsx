@@ -5,6 +5,7 @@ import {
   assertWizardDefinition,
   emptyWizardState,
   type EntityRowDraft,
+  type FilterGroup,
   type Locale,
   newRowKey,
   readStepDraft,
@@ -52,7 +53,11 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COUNTER_SALE_SURFACE } from '../sales-surfaces';
-import { useSalesAdapters, useSalesScope } from './sales-context';
+import {
+  useSalesAdapters,
+  useSalesScope,
+  useSalesVendor,
+} from './sales-context';
 
 /**
  * The till's step graph.
@@ -227,6 +232,69 @@ const totalOf = (
  * The offerings the till can pick from, one per id. The projection can answer
  * the same offering twice, and a select listing it twice reads as two products.
  */
+/**
+ * What the till's product list reads: the vendor's own published offerings,
+ * narrowed by every word typed — a name, a code — as the storefront search
+ * matches them (#774). Without a vendor, the words alone.
+ */
+export const tillFiltering = (
+  vendorId: string | undefined,
+  search: string,
+): FilterGroup<PublishedOffering> | undefined => {
+  const words = search
+    .trim()
+    .split(/\s+/)
+    .filter(word => word !== '');
+  const values = [
+    ...(vendorId === undefined
+      ? []
+      : [
+          {
+            property: 'vendorId' as const,
+            operator: 'eq' as const,
+            value: vendorId,
+          },
+        ]),
+    ...words.map(word => ({
+      property: 'searchText' as const,
+      operator: 'like' as const,
+      value: word,
+    })),
+  ];
+  return values.length === 0 ? undefined : { operator: 'and', values };
+};
+
+/**
+ * What Enter on the search picks: the one product the words found — what a
+ * scanner typing a code and Enter means. Several or none pick nothing, and
+ * the list stays for the vendor to choose from.
+ */
+export const scanPick = <T extends { readonly offeringId: string }>(
+  items: readonly T[],
+): T | undefined => {
+  const found = uniqueOfferings(items);
+  return found.length === 1 ? found[0] : undefined;
+};
+
+/**
+ * The lines with one more of an offering: added to its line when the sale
+ * already holds it, a new line otherwise — so the till never sends one
+ * offering on two lines, which the checkout refuses (ADR 0086 §4).
+ */
+export const withLine = <
+  TLine extends { readonly offeringId: string; readonly quantity: number },
+>(
+  lines: readonly TLine[],
+  line: TLine,
+): TLine[] =>
+  lines.some(one => one.offeringId === line.offeringId)
+    ? lines.map(one =>
+        one.offeringId === line.offeringId
+          ? { ...one, quantity: one.quantity + line.quantity }
+          : one,
+      )
+    : [...lines, line];
+
 export const uniqueOfferings = <T extends { readonly offeringId: string }>(
   items: readonly T[],
 ): T[] =>
@@ -313,11 +381,14 @@ export function CounterSaleWizard({
     queryKey: ['sales-channel', 'counter-sale'],
   });
 
+  const vendorId = useSalesVendor();
+  const [search, setSearch] = useState('');
   const offerings = useDataLoading<PublishedOffering, EntityRepositoryTag>({
     uc: loadUCFactory<PublishedOffering>(),
     ctx: adapters.publishedOfferingRest,
     initialPageSize: 50,
-    queryKey: ['published-offering', 'counter-sale'],
+    baseFiltering: tillFiltering(vendorId, search),
+    queryKey: ['published-offering', 'counter-sale', vendorId, search],
   });
 
   // A retired channel takes no sale, and the route refuses one, so offering it
@@ -479,17 +550,16 @@ export function CounterSaleWizard({
     if (picked === undefined || pendingRefusal !== undefined) return;
     const offering = picked;
     const quantity = pendingQuantity;
-    setLines([
-      ...lines,
-      {
+    setLines(
+      withLine(lines, {
         key: newRowKey(),
         offeringId: offering.offeringId,
         name: offering.name,
         amount: offering.amount,
         currency: offering.currency,
         quantity,
-      },
-    ]);
+      }),
+    );
     setPendingOffering('');
     setPendingQuantity(Number.NaN);
   };
@@ -650,6 +720,23 @@ export function CounterSaleWizard({
       {activeStep === 'lines' && (
         <Stack>
           <Text>{translateKey('r10c:sales.counterSale.linesHint')}</Text>
+          <Cluster>
+            <label htmlFor="counter-sale-search">
+              {translateKey('r10c:sales.counterSale.search')}
+            </label>
+            <TextInput
+              id="counter-sale-search"
+              type="search"
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              onKeyDown={event => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                const found = scanPick(offerings.items);
+                if (found !== undefined) pick(found.offeringId);
+              }}
+            />
+          </Cluster>
           <Cluster>
             <label htmlFor="counter-sale-offering">
               {translateKey('r10c:sales.counterSale.offering')}

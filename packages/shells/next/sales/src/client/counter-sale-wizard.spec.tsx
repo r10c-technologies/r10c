@@ -26,6 +26,9 @@ import {
   previewOf,
   quantityTextOf,
   readLines,
+  scanPick,
+  tillFiltering,
+  withLine,
 } from './counter-sale-wizard.js';
 import { SalesProvider } from './sales-context.js';
 
@@ -118,6 +121,7 @@ const publishedOffering = () => {
   offering.quantityStep = 1;
   offering.quantityMinimum = 1;
   offering.pricePer = 1;
+  offering.searchText = 'Café de altura';
   return offering;
 };
 
@@ -131,6 +135,17 @@ const cable = () =>
     saleUnit: 'M',
     quantityStep: 500,
     quantityMinimum: 1000,
+    searchText: 'Cable THHN',
+  });
+
+/** Another vendor's product, which this till never lists. */
+const theirs = () =>
+  Object.assign(publishedOffering(), {
+    id: 'published-theirs',
+    offeringId: 'theirs',
+    vendorId: 'other-organization',
+    name: 'Café ajeno',
+    searchText: 'Café ajeno',
   });
 
 const adapters = (
@@ -153,6 +168,7 @@ const adapters = (
       // The projection answering the same offering twice: the picker lists it once.
       Object.assign(publishedOffering(), { id: 'published-1-again' }),
       cable(),
+      theirs(),
     ] as Entity[]),
   ),
   metadata: real.metadata,
@@ -164,17 +180,23 @@ let flows: PendingFlowStore;
 const renderTill = ({
   channels,
   scope,
+  vendorId = 'demo-organization',
   ...props
 }: {
   step?: string;
   onFinished?: () => void;
   channels?: () => SalesChannel[];
   scope?: string;
+  vendorId?: string;
 } = {}) =>
   render(
     <EntifixQueryProvider>
       <PendingFlowStoreProvider store={flows}>
-        <SalesProvider adapters={adapters(channels)} scope={scope}>
+        <SalesProvider
+          adapters={adapters(channels)}
+          scope={scope}
+          vendorId={vendorId}
+        >
           <CounterSaleWizard {...props} />
         </SalesProvider>
       </PendingFlowStoreProvider>
@@ -894,5 +916,63 @@ describe('currencyOf', () => {
 
   it('answers empty for an empty till, rather than a currency nobody chose', () => {
     expect(currencyOf([])).toBe('');
+  });
+});
+
+describe('the till’s product list', () => {
+  it('reads the vendor’s own products, narrowed by every word typed', () => {
+    expect(tillFiltering('v-1', ' cable  thhn ')).toEqual({
+      operator: 'and',
+      values: [
+        { property: 'vendorId', operator: 'eq', value: 'v-1' },
+        { property: 'searchText', operator: 'like', value: 'cable' },
+        { property: 'searchText', operator: 'like', value: 'thhn' },
+      ],
+    });
+    expect(tillFiltering(undefined, '')).toBeUndefined();
+  });
+
+  it('picks on Enter only the one product the words found', () => {
+    expect(scanPick([cable()])?.offeringId).toBe('cable');
+    expect(scanPick([cable(), publishedOffering()])).toBeUndefined();
+    expect(scanPick([])).toBeUndefined();
+  });
+
+  it('adds to the line a sale already holds, and a new line otherwise', () => {
+    const one = { offeringId: 'a', quantity: 1 };
+
+    expect(withLine([one], { offeringId: 'a', quantity: 2 })).toEqual([
+      { offeringId: 'a', quantity: 3 },
+    ]);
+    expect(
+      withLine([one, { offeringId: 'b', quantity: 1 }], {
+        offeringId: 'b',
+        quantity: 1,
+      }),
+    ).toEqual([one, { offeringId: 'b', quantity: 2 }]);
+    expect(withLine([one], { offeringId: 'c', quantity: 1 })).toHaveLength(2);
+  });
+
+  it('lists none of another vendor’s products, and a scan picks the one it names', async () => {
+    const user = userEvent.setup();
+    renderTill();
+    await user.click(await channelChoice('Mostrador principal'));
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+    const picker = await screen.findByRole('combobox', { name: 'Producto' });
+    await waitFor(() => expect(picker).toBeEnabled());
+
+    expect(
+      screen.queryByRole('option', { name: 'Café ajeno' }),
+    ).not.toBeInTheDocument();
+
+    const search = screen.getByRole('searchbox', {
+      name: 'Buscar o escanear un producto',
+    });
+    // Two products answer nothing typed: Enter picks neither.
+    await user.type(search, '{Enter}');
+    expect(picker).toHaveValue('');
+    await user.type(search, 'thhn{Enter}');
+
+    await waitFor(() => expect(picker).toHaveValue('cable'));
   });
 });

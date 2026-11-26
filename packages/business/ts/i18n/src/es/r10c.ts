@@ -704,6 +704,7 @@ export const r10c = {
       counterSale: 'Vender en mostrador',
     },
     counterSale: {
+      search: 'Buscar o escanear un producto',
       title: 'Venta en mostrador',
       steps: {
         channel: 'Canal',

@@ -661,6 +661,7 @@ export const r10c: EsR10c = {
       counterSale: 'Sell at the counter',
     },
     counterSale: {
+      search: 'Search or scan a product',
       title: 'Counter sale',
       steps: {
         channel: 'Channel',
