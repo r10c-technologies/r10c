@@ -224,9 +224,11 @@ export const errors = {
   priceTiersInvalid:
     'Cada precio por volumen empieza en una cantidad que el producto vende, mayor que su mínimo y que la del anterior, y cuesta menos que el precio anterior. Un precio tiene como máximo cinco.',
   stockSourceInvalid:
-    'Una presentación se vende por unidad y toma un número entero de unidades de su base. Su base es otra oferta tuya que no es a su vez una presentación, y una presentación nunca es base de otra.',
+    'Una presentación se vende por unidad y toma un número entero de unidades de su base. Su base es otra oferta tuya que no es a su vez una presentación, y una presentación nunca es base de otra. Un kit no toma inventario de una base ni es base de otra.',
   variantInvalid:
-    'Una variante elige hasta tres atributos —color, talla, acabado o capacidad— con un valor corto cada uno. Todas las variantes de un producto usan los mismos atributos y ninguna repite la combinación de otra; una presentación no puede ser variante.',
+    'Una variante elige hasta tres atributos —color, talla, acabado o capacidad— con un valor corto cada uno. Todas las variantes de un producto usan los mismos atributos y ninguna repite la combinación de otra; una presentación o un kit no pueden ser variante.',
+  kitInvalid:
+    'Un kit se vende por unidad y contiene entre uno y diez de sus otros productos, cada uno vendido por unidad y en cantidades enteras. Un kit no es una variante, ni una presentación, ni parte de otro kit, y cada producto que contiene debe estar a la venta.',
   saleUnitFixed:
     'Esta oferta ya se publicó, así que su unidad no puede cambiar. Crea otra oferta para venderla en otra unidad.',
   importTooLarge:

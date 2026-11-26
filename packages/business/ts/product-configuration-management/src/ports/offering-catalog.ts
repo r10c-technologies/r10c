@@ -70,6 +70,18 @@ export interface OfferingCatalog {
     offering: ProductOffering,
   ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
   /**
+   * Write a kit's components and their count — or make it a plain offering
+   * again, when it names none — **only at the revision it was read at**,
+   * moving the revision in the same write (ADR 0086, ADR 0079 §4). A seeded
+   * offering has no revision, and is matched while it still has none.
+   * `changed` means it was saved or moved since, or is not held, and nothing
+   * was written.
+   */
+  readonly setKit: (
+    organizationId: string,
+    offering: ProductOffering,
+  ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
+  /**
    * Put one publication back on the outbox for the rebuild walk (ADR 0050):
    * `alreadyAnnounced` when the outbox holds it, `revived` when it held it
    * quarantined.

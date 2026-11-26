@@ -73,6 +73,15 @@ export const entity: EsEntity = {
       amount: 'Price',
     },
   },
+  'kit-component': {
+    fields: {
+      offeringId: 'Product',
+      quantity: 'Quantity',
+      stockOfferingId: 'Takes stock from',
+      stockUnit: 'Stock unit',
+      stockQuantity: 'Stock per kit',
+    },
+  },
   'variant-value': {
     fields: {
       axis: 'Attribute',
@@ -794,6 +803,8 @@ export const entity: EsEntity = {
       stockOfferingId: 'Draws its stock from',
       stockFactor: 'Base units per one',
       variantValues: 'Variant',
+      kitComponents: 'Kit contents',
+      kitSize: 'Products in the kit',
       media: 'Own pictures',
     },
     values: {
@@ -808,6 +819,7 @@ export const entity: EsEntity = {
       publish: 'Publish',
       setSaleUnit: 'Set the sale unit',
       drawOnStock: 'Sell a presentation from the same stock',
+      setKit: 'Sell as a kit',
       setVariant: 'Set the variant',
       publishConfirm:
         'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',

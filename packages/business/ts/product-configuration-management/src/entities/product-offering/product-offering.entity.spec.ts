@@ -121,6 +121,8 @@ describe('ProductOffering', () => {
       'stockOfferingId',
       'stockFactor',
       'variantValues',
+      'kitComponents',
+      'kitSize',
       'media',
       'revision',
     ]);

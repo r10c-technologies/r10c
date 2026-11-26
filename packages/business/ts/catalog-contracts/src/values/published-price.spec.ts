@@ -71,6 +71,19 @@ describe('publishedPriceOf', () => {
     expect(publishedPriceOf('o-1', record)).not.toHaveProperty(
       'stockOfferingId',
     );
+    const kitComponents = [
+      {
+        offeringId: 'o-case',
+        quantity: 1,
+        stockOfferingId: 'o-case',
+        stockUnit: 'UN',
+        stockQuantity: 1,
+      },
+    ];
+    expect(publishedPriceOf('o-1', { ...record, kitComponents })).toMatchObject(
+      { kitComponents },
+    );
+    expect(publishedPriceOf('o-1', record)).not.toHaveProperty('kitComponents');
   });
 
   it('omits a blank or absent description rather than copying it', () => {

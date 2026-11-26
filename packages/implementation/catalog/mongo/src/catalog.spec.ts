@@ -498,3 +498,37 @@ describe('a variant slot', () => {
     await expect(claim(w)).rejects.toMatchObject({ _tag: 'Unavailable' });
   });
 });
+
+describe('a kit write', () => {
+  const write = (w: ReturnType<typeof world>, offering: ProductOffering) =>
+    w.run(
+      Effect.flatMap(OfferingCatalogTag, catalog =>
+        catalog.setKit('acme', offering),
+      ),
+    );
+
+  it('stores the components as plain rows beside their count, and clears both', async () => {
+    const w = world({ [OFFERING_COLLECTION]: [{ id: 'o-1', revision: 1 }] });
+    const kit = Object.assign(new ProductOffering('A kit', 'spec-1'), {
+      id: 'o-1',
+      revision: 1,
+      kitComponents: [{ offeringId: 'o-2', quantity: 2 }],
+    });
+
+    expect(await write(w, kit)).toBe('committed');
+    expect(w.fake.read(OFFERING_COLLECTION)).toEqual([
+      expect.objectContaining({
+        kitComponents: [{ offeringId: 'o-2', quantity: 2 }],
+        kitSize: 1,
+        revision: 2,
+      }),
+    ]);
+
+    const plain = Object.assign(kit, { revision: 2, kitComponents: [] });
+    expect(await write(w, plain)).toBe('committed');
+    expect(w.fake.read(OFFERING_COLLECTION)[0]).not.toHaveProperty(
+      'kitComponents',
+    );
+    expect(w.fake.read(OFFERING_COLLECTION)[0]).not.toHaveProperty('kitSize');
+  });
+});

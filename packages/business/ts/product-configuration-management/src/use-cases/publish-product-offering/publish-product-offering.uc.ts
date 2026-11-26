@@ -3,6 +3,7 @@ import { useCase } from '@entifix/core';
 import { InvalidBody, SelectionTooLarge } from '@r10c/business-ts-common';
 import {
   PriceTiersInvalid,
+  KitInvalid,
   StockSourceInvalid,
 } from '@r10c/business-ts-sales-vocabulary';
 
@@ -62,6 +63,7 @@ import {
     SpecificationNotActive,
     PriceTiersInvalid,
     StockSourceInvalid,
+    KitInvalid,
     OfferingChanged,
     InvalidBody,
     SelectionTooLarge,

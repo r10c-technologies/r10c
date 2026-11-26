@@ -29,6 +29,7 @@ export const StockSourceProblems = [
   'baseIsPresentation',
   'isBase',
   'isVariant',
+  'isKit',
 ] as const;
 
 export type StockSourceProblem = (typeof StockSourceProblems)[number];
@@ -38,7 +39,8 @@ export type StockSourceProblem = (typeof StockSourceProblems)[number];
  * `UN`, the factor is not a positive count, the base is the offering itself,
  * missing, or a presentation already, or the offering is already a base for
  * another — one level only — or the offering is a variant of a product, whose
- * stock is its own (ADR 0085).
+ * stock is its own (ADR 0085), or a kit, or the base is one: a kit holds no
+ * stock to draw on, its components do (ADR 0086).
  */
 export class StockSourceInvalid extends Failure.invalid<StockSourceInvalid>()(
   'StockSourceInvalid',

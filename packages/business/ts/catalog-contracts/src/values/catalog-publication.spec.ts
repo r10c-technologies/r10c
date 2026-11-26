@@ -182,6 +182,30 @@ describe('readCatalogPublication', () => {
     ).not.toHaveProperty('stockOfferingId');
   });
 
+  it('reads a kit’s components, and folds a partial list to none', () => {
+    const kitComponents = [
+      {
+        offeringId: 'o-case',
+        quantity: 1,
+        stockOfferingId: 'o-case',
+        stockUnit: 'UN',
+        stockQuantity: 1,
+      },
+    ] as const;
+
+    expect(
+      Effect.runSync(readCatalogPublication({ ...PUBLICATION, kitComponents })),
+    ).toEqual({ ...PUBLICATION, kitComponents });
+    expect(
+      Effect.runSync(
+        readCatalogPublication({
+          ...PUBLICATION,
+          kitComponents: [{ ...kitComponents[0], stockQuantity: 0 }],
+        }),
+      ),
+    ).not.toHaveProperty('kitComponents');
+  });
+
   it('survives the round trip through JSON, which is how it actually arrives', () => {
     const wire: unknown = JSON.parse(JSON.stringify(PUBLICATION));
 

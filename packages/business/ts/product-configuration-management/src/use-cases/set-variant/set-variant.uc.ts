@@ -81,6 +81,8 @@ export class SetVariantUC {
       if (values.length > 0) {
         if (offering.stockOfferingId !== undefined)
           return yield* refuse('presentation');
+        // A kit's stock is its components' (ADR 0086), a variant's its own.
+        if ((offering.kitSize ?? 0) > 0) return yield* refuse('kit');
         const series = yield* seriesOf(
           organizationId,
           offering.specificationId,

@@ -116,6 +116,22 @@ export const productConfigurationManagementCapabilities: readonly Capability[] =
       status: 'implemented',
       verticals: ['hardware', 'shoemaking-supplies'],
     },
+    // ADR 0086 (#778): a kit sells several of a vendor's offerings at one
+    // price, holding each component's stock at checkout.
+    {
+      id: 'product-configuration-management:product-offering:set-kit',
+      oda: 'TMFC001',
+      entities: [
+        'product-configuration-management:product-offering',
+        'stock-management:stock-item',
+      ],
+      permissions: [
+        'product-configuration-management:product-offering:set-kit',
+      ],
+      screens: ['master:product-offering'],
+      status: 'implemented',
+      verticals: ['hardware', 'phone-accessories'],
+    },
     // ADR 0085 (#772): a product is sold in variants, each an offering of
     // the same specification series with its own price and stock.
     {

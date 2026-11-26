@@ -205,6 +205,40 @@ export const MongoOfferingCatalogLayer = Layer.effect(
             : ('committed' as const);
         }),
 
+      setKit: (organizationId, offering) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          // One conditional write at the revision read (ADR 0086, ADR 0079
+          // §4); the components and their count move together, and no kit is
+          // neither member, never `null` or `[]`. Plain values, since a
+          // composition row may arrive as a class instance BSON would not
+          // serialize the way the read expects.
+          const components = offering.kitComponents?.map(
+            ({ offeringId, quantity }) => ({ offeringId, quantity }),
+          );
+          const written = yield* Effect.tryPromise({
+            try: () =>
+              db.collection(OFFERING_COLLECTION).updateOne(
+                { id: offering.id, ...atRevision(offering.revision) },
+                {
+                  ...(components === undefined || components.length === 0
+                    ? { $unset: { kitComponents: '', kitSize: '' } }
+                    : {
+                        $set: {
+                          kitComponents: components,
+                          kitSize: components.length,
+                        },
+                      }),
+                  ...bumpRevision.mongo,
+                },
+              ),
+            catch: mongoUnitFault,
+          });
+          return written.matchedCount === 0
+            ? ('changed' as const)
+            : ('committed' as const);
+        }),
+
       setVariant: (organizationId, offering, slot) =>
         Effect.gen(function* () {
           const db = yield* databaseOf(organizationId);

@@ -84,6 +84,15 @@ export const entity = {
       amount: 'Precio',
     },
   },
+  'kit-component': {
+    fields: {
+      offeringId: 'Producto',
+      quantity: 'Cantidad',
+      stockOfferingId: 'Toma inventario de',
+      stockUnit: 'Unidad de inventario',
+      stockQuantity: 'Inventario por kit',
+    },
+  },
   'variant-value': {
     fields: {
       axis: 'Atributo',
@@ -840,6 +849,8 @@ export const entity = {
       stockOfferingId: 'Toma su inventario de',
       stockFactor: 'Unidades base por cada una',
       variantValues: 'Variante',
+      kitComponents: 'Contenido del kit',
+      kitSize: 'Productos en el kit',
       media: 'Imágenes propias',
     },
     values: {
@@ -854,6 +865,7 @@ export const entity = {
       publish: 'Publicar',
       setSaleUnit: 'Definir unidad de venta',
       drawOnStock: 'Vender una presentación del mismo inventario',
+      setKit: 'Vender como kit',
       setVariant: 'Definir variante',
       publishConfirm:
         'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',

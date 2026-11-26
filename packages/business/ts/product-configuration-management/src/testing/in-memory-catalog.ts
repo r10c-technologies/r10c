@@ -86,6 +86,14 @@ export const makeInMemoryOfferingCatalog = (
         record.revision = (record.revision ?? 0) + 1;
         return 'committed';
       }),
+    setKit: (organizationId, offering) =>
+      Effect.sync(() => {
+        const record = stored.get(`${organizationId}/${String(offering.id)}`);
+        if (record === undefined || record.revision !== offering.revision)
+          return 'changed';
+        record.revision = (record.revision ?? 0) + 1;
+        return 'committed';
+      }),
     setVariant: (organizationId, offering, slot) =>
       Effect.sync(() => {
         const id = String(offering.id);

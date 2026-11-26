@@ -17,6 +17,7 @@ import {
   type VariantSlot,
 } from '../../ports/offering-catalog.js';
 import { SetStockSourceUC } from '../draw-on-stock/draw-on-stock.uc.js';
+import { SetKitUC } from '../set-kit/set-kit.uc.js';
 import { SetSaleUnitUC } from '../set-sale-unit/set-sale-unit.uc.js';
 import { SetVariantUC } from '../set-variant/set-variant.uc.js';
 import {
@@ -69,6 +70,7 @@ interface Stores {
   readonly unitWrite?: 'committed' | 'changed';
   readonly stockWrite?: 'committed' | 'changed';
   readonly variantWrite?: 'committed' | 'changed' | 'taken';
+  readonly kitWrite?: 'committed' | 'changed';
   readonly reannounce?: 'announced' | 'revived' | 'alreadyAnnounced';
   readonly offeringsDown?: boolean;
   readonly organizations?: string[];
@@ -86,6 +88,11 @@ const world = (stores: Stores = {}) => {
     revision: number | undefined;
     variantValues: ProductOffering['variantValues'];
     slot: VariantSlot | undefined;
+  }[] = [];
+  const kitWrites: {
+    revision: number | undefined;
+    kitComponents: ProductOffering['kitComponents'];
+    kitSize: number | undefined;
   }[] = [];
   const announced: CatalogEvent[] = [];
   const offerings = makeInMemoryEntityRepository(stores.offerings ?? []);
@@ -119,6 +126,15 @@ const world = (stores: Stores = {}) => {
           stockFactor: written.stockFactor,
         });
         return stores.stockWrite ?? 'committed';
+      }) as Effect.Effect<'committed' | 'changed'>,
+    setKit: (_organizationId, written) =>
+      Effect.sync(() => {
+        kitWrites.push({
+          revision: written.revision,
+          kitComponents: written.kitComponents,
+          kitSize: written.kitSize,
+        });
+        return stores.kitWrite ?? 'committed';
       }) as Effect.Effect<'committed' | 'changed'>,
     setVariant: (_organizationId, written, slot) =>
       Effect.sync(() => {
@@ -175,6 +191,7 @@ const world = (stores: Stores = {}) => {
     unitWrites,
     stockWrites,
     variantWrites,
+    kitWrites,
   };
 };
 
@@ -1153,6 +1170,40 @@ describe('preserveOfferingLifecycle and the variant', () => {
     expect(saved.variantValues).toBeUndefined();
   });
 
+  it('carries a stored kit across a save, and starts a new offering as none', async () => {
+    const kit = offering('o-kit', 'draft', {
+      kitComponents: [{ offeringId: 'o-1', quantity: 2 }],
+      kitSize: 1,
+    });
+    const w = world({ specifications, offerings: [kit] });
+
+    const saved = await w.run(
+      preserveOfferingLifecycle(
+        offering('o-kit', 'draft', { kitComponents: undefined, kitSize: 9 }),
+        'acme',
+      ),
+    );
+    const fresh = await w.run(
+      preserveOfferingLifecycle(
+        offering('o-new', 'draft', {
+          kitComponents: [{ offeringId: 'o-1', quantity: 1 }],
+          kitSize: 1,
+        }),
+        'acme',
+      ),
+    );
+
+    expect(
+      saved.kitComponents?.map(({ offeringId, quantity }) => ({
+        offeringId,
+        quantity,
+      })),
+    ).toEqual([{ offeringId: 'o-1', quantity: 2 }]);
+    expect(saved.kitSize).toBe(1);
+    expect(fresh.kitComponents).toBeUndefined();
+    expect(fresh.kitSize).toBeUndefined();
+  });
+
   it('refuses an offering picture that is not https', async () => {
     const w = world({ specifications });
 
@@ -1168,5 +1219,221 @@ describe('preserveOfferingLifecycle and the variant', () => {
     );
 
     expect(failure).toMatchObject({ code: 'mediaNotHttps' });
+  });
+});
+
+describe('SetKitUC', () => {
+  const kit = (
+    payload: {
+      components: { offeringId: string; quantity: number }[];
+      revision?: number;
+    },
+    id = 'kit',
+  ) => SetKitUC.run({ organizationId: 'acme', id, payload });
+  const parts = [offering('case', 'published'), offering('film', 'published')];
+
+  it('records the components and their count, and answers the new revision', async () => {
+    const w = world({
+      offerings: [
+        ...parts,
+        offering('kit', 'draft', { revision: 2 }),
+        // A kit whose components were lost names nothing as its component.
+        offering('lost', 'draft', { kitSize: 1 }),
+      ],
+    });
+
+    const set = await w.run(
+      kit({
+        components: [
+          { offeringId: 'case', quantity: 1 },
+          { offeringId: 'film', quantity: 2 },
+        ],
+        revision: 2,
+      }),
+    );
+
+    expect([set.kitSize, set.revision]).toEqual([2, 3]);
+    expect(w.kitWrites).toEqual([
+      {
+        revision: 2,
+        kitComponents: [
+          { offeringId: 'case', quantity: 1 },
+          { offeringId: 'film', quantity: 2 },
+        ],
+        kitSize: 2,
+      },
+    ]);
+  });
+
+  it('makes a kit plain again when it names no component, against the stored revision', async () => {
+    const w = world({
+      offerings: [
+        offering('kit', 'draft', {
+          kitComponents: [{ offeringId: 'case', quantity: 1 }],
+          kitSize: 1,
+          revision: 4,
+        }),
+      ],
+    });
+
+    const set = await w.run(kit({ components: [] }));
+
+    expect(set.revision).toBe(5);
+    expect(w.kitWrites).toEqual([
+      { revision: 4, kitComponents: undefined, kitSize: undefined },
+    ]);
+  });
+
+  it('starts a seeded offering, which has no revision, at revision 1', async () => {
+    const w = world({ offerings: [...parts, offering('kit', 'draft')] });
+
+    const set = await w.run(
+      kit({ components: [{ offeringId: 'case', quantity: 1 }] }),
+    );
+
+    expect(set.revision).toBe(1);
+  });
+
+  it('answers OfferingChanged when the write finds the record moved', async () => {
+    const w = world({
+      offerings: [...parts, offering('kit', 'draft')],
+      kitWrite: 'changed',
+    });
+
+    const failure = await w.run(
+      Effect.flip(kit({ components: [{ offeringId: 'case', quantity: 1 }] })),
+    );
+
+    expect(failure).toMatchObject({ _tag: 'OfferingChanged' });
+  });
+
+  const asKitOf = (id: string, ...components: string[]) =>
+    offering(id, 'published', {
+      kitComponents: components.map(offeringId => ({
+        offeringId,
+        quantity: 1,
+      })),
+      kitSize: components.length,
+    });
+
+  it.each([
+    ['quantity', [], [{ offeringId: 'case', quantity: 0 }]],
+    ['notCounted', [offering('kit', 'draft', { saleUnit: 'M' })], undefined],
+    [
+      'isVariant',
+      [
+        offering('kit', 'draft', {
+          variantValues: [{ axis: 'color', value: 'negro' }],
+        }),
+      ],
+      undefined,
+    ],
+    [
+      'isPresentation',
+      [offering('kit', 'draft', { stockOfferingId: 'case', stockFactor: 2 })],
+      undefined,
+    ],
+    ['componentMissing', [], [{ offeringId: 'ghost', quantity: 1 }]],
+    [
+      'componentIsKit',
+      [asKitOf('bundle', 'film')],
+      [{ offeringId: 'bundle', quantity: 1 }],
+    ],
+    [
+      'componentNotCounted',
+      [offering('cable', 'published', { saleUnit: 'M' })],
+      [{ offeringId: 'cable', quantity: 1 }],
+    ],
+    [
+      'isBase',
+      [offering('box', 'draft', { stockOfferingId: 'kit', stockFactor: 2 })],
+      undefined,
+    ],
+    ['isComponent', [asKitOf('bundle', 'kit')], undefined],
+  ] as const)(
+    'refuses %s and writes nothing',
+    async (problem, extra, components) => {
+      const byId = new Map<string, ProductOffering>();
+      for (const one of [...parts, offering('kit', 'draft'), ...extra])
+        byId.set(String(one.id), one);
+      const w = world({ offerings: [...byId.values()] });
+
+      const failure = await w.run(
+        Effect.flip(
+          kit({
+            components:
+              components === undefined
+                ? [{ offeringId: 'case', quantity: 1 }]
+                : [...components],
+          }),
+        ),
+      );
+
+      expect(failure).toMatchObject({ _tag: 'KitInvalid', problem });
+      expect(w.kitWrites).toEqual([]);
+    },
+  );
+});
+
+describe('the other stock verbs, on a kit', () => {
+  const aKit = offering('kit', 'draft', {
+    kitComponents: [{ offeringId: 'case', quantity: 1 }],
+    kitSize: 1,
+  });
+
+  it('refuses drawing a kit on a base, or anything on a kit', async () => {
+    const w = world({
+      offerings: [aKit, offering('case', 'draft'), offering('box', 'draft')],
+    });
+
+    const asPresentation = await w.run(
+      Effect.flip(
+        SetStockSourceUC.run({
+          organizationId: 'acme',
+          id: 'kit',
+          payload: { stockOfferingId: 'case', stockFactor: 2 },
+        }),
+      ),
+    );
+    const onKit = await w.run(
+      Effect.flip(
+        SetStockSourceUC.run({
+          organizationId: 'acme',
+          id: 'box',
+          payload: { stockOfferingId: 'kit', stockFactor: 2 },
+        }),
+      ),
+    );
+
+    expect([asPresentation, onKit]).toMatchObject([
+      { problem: 'isKit' },
+      { problem: 'isKit' },
+    ]);
+  });
+
+  it('refuses making a kit a variant, or selling it in any unit but UN', async () => {
+    const w = world({ offerings: [aKit] });
+
+    const variant = await w.run(
+      Effect.flip(
+        SetVariantUC.run({
+          organizationId: 'acme',
+          id: 'kit',
+          payload: { variantValues: [{ axis: 'color', value: 'negro' }] },
+        }),
+      ),
+    );
+    const unit = await w.run(
+      Effect.flip(
+        SetSaleUnitUC.run({
+          organizationId: 'acme',
+          id: 'kit',
+          payload: { saleUnit: 'M' },
+        }),
+      ),
+    );
+
+    expect(variant).toMatchObject({ problem: 'kit' });
+    expect(unit).toMatchObject({ _tag: 'KitInvalid', problem: 'notCounted' });
   });
 });

@@ -716,8 +716,7 @@ export const r10c: EsR10c = {
           'The step and the minimum go back to one whole unit of the new unit. Once the offering is published, its unit no longer changes.',
       },
       variant: {
-        hint:
-          'A product’s variants are offerings with their own price and stock: choose what sets this one apart —colour, size, finish or capacity— and its value. Every variant of the product uses the same attributes.',
+        hint: 'A product’s variants are offerings with their own price and stock: choose what sets this one apart —colour, size, finish or capacity— and its value. Every variant of the product uses the same attributes.',
         none: 'This offering is no variant of its product.',
         add: 'Add an attribute',
         remove: 'Remove attribute {{position}}',
@@ -788,8 +787,10 @@ export const r10c: EsR10c = {
           template: 'Download the template',
           reading: 'Reading the sheet…',
           read: '{{file}}: {{ready}} rows ready, {{rejected}} with problems.',
-          unreadable: 'This file could not be read. Save it as CSV or as Excel (.xlsx).',
-          required: 'Choose a sheet with at least one product that can be imported.',
+          unreadable:
+            'This file could not be read. Save it as CSV or as Excel (.xlsx).',
+          required:
+            'Choose a sheet with at least one product that can be imported.',
         },
         preview: {
           prompt: 'Review what will be imported before confirming.',

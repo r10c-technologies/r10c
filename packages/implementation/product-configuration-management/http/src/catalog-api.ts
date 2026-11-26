@@ -49,11 +49,13 @@ import {
   type SaleUnitPayload,
   SetPriceTiersUC,
   SetSaleUnitUC,
+  SetKitUC,
   SetStockSourceUC,
   SetVariantUC,
   SpecificationCommandsTag,
   type SpecificationMove,
   startSpecificationSeries,
+  type KitPayload,
   type StockSourcePayload,
   transitionOfferingFor,
   transitionOfferingSelection,
@@ -305,6 +307,27 @@ const drawOnStock = verbEndpoint(SetStockSourceUC, {
 });
 
 /**
+ * `POST /api/product-offering/:id/set-kit` — the vendor says which of their
+ * offerings one of this holds, and how many of each, or that it is a plain
+ * offering again (ADR 0086). Answered with the record at its new revision.
+ */
+const setKit = verbEndpoint(SetKitUC, {
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const offering = yield* SetKitUC.run({
+        organizationId: organizationOf(context),
+        id: request.params?.id as string,
+        payload: request.payload as KitPayload,
+      });
+      return makeEntityEnvelope(
+        ProductOffering,
+        offering,
+        context.links.record(offering.id),
+      );
+    }),
+});
+
+/**
  * `POST /api/product-offering/:id/set-variant` — the vendor says which colour,
  * size, finish or capacity of its product this offering is (ADR 0085).
  * Answered with the record at its new revision.
@@ -347,7 +370,14 @@ export const productOfferingApi = defineEntityApi(
     // An offering's own pictures and the variant's product are refused on
     // the save (ADR 0061, ADR 0085).
     errors: [MediaNotHttps, MediaAltMissing, VariantInvalid],
-    useCases: [publish, unpublish, setSaleUnit, drawOnStock, setVariant],
+    useCases: [
+      publish,
+      unpublish,
+      setSaleUnit,
+      drawOnStock,
+      setKit,
+      setVariant,
+    ],
   },
 );
 

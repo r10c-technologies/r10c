@@ -212,6 +212,9 @@ export const preserveOfferingLifecycle = (
       offering.stockOfferingId = undefined;
       offering.stockFactor = undefined;
       offering.variantValues = undefined;
+      // Nor a kit until `set-kit` says so (ADR 0086).
+      offering.kitComponents = undefined;
+      offering.kitSize = undefined;
     } else {
       offering.status = stored.value.status;
       offering.statusChangedAt = stored.value.statusChangedAt;
@@ -219,6 +222,8 @@ export const preserveOfferingLifecycle = (
       offering.stockOfferingId = stored.value.stockOfferingId;
       offering.stockFactor = stored.value.stockFactor;
       offering.variantValues = stored.value.variantValues;
+      offering.kitComponents = stored.value.kitComponents;
+      offering.kitSize = stored.value.kitSize;
       // A variant belongs to its product: pinning another version of the same
       // series keeps it, moving it to another product would leave a colour
       // nobody else's axes agree with (ADR 0085).

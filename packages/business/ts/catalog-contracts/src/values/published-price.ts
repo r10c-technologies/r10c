@@ -1,5 +1,7 @@
 import type { Overloaded, UpstreamUnavailable } from '@entifix/core';
 import {
+  type KitStock,
+  kitStockListOf,
   type PriceTier,
   priceTiersOf,
   type SaleTerms,
@@ -31,6 +33,8 @@ export interface PublishedPrice extends SaleTerms, Partial<StockSource> {
   readonly currency: string;
   readonly specificationId: string;
   readonly specificationVersion: number;
+  /** A kit's components and what one kit takes from each (ADR 0086). */
+  readonly kitComponents?: readonly KitStock[];
 }
 
 /**
@@ -84,6 +88,8 @@ export const publishedPriceOf = (
   // A presentation's base rides the sale's line, so the coordinator reserves
   // on it (ADR 0082 §7).
   const stock = record === undefined ? undefined : stockSourceOf(record);
+  // So do a kit's components, one hold each (ADR 0086).
+  const kitComponents = kitStockListOf(record?.['kitComponents']);
   return terms !== undefined &&
     typeof vendorId === 'string' &&
     typeof name === 'string' &&
@@ -104,6 +110,7 @@ export const publishedPriceOf = (
         ...terms,
         ...(tiers === undefined ? {} : { tiers }),
         ...stock,
+        ...(kitComponents === undefined ? {} : { kitComponents }),
         ...(typeof description === 'string' && description !== ''
           ? { description }
           : {}),

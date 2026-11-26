@@ -1,12 +1,14 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 import {
+  KitComponentRow,
   MediaReference,
   type MediaReferenceValue,
   VariantValueEntry,
 } from '@r10c/business-ts-catalog-contracts';
 import {
   DEFAULT_SALE_UNIT,
+  type KitComponent,
   oneWholeUnit,
   SALE_UNIT_NAME_KEY,
   SALE_UNIT_SCALES,
@@ -70,6 +72,8 @@ export class ProductOffering implements Entity {
   #stockOfferingId?: string;
   #stockFactor?: number;
   #variantValues?: readonly VariantValue[];
+  #kitComponents?: readonly KitComponent[];
+  #kitSize?: number;
   #media?: readonly MediaReferenceValue[];
   #revision?: number;
   // #endregion
@@ -333,6 +337,47 @@ export class ProductOffering implements Entity {
   }
   set variantValues(value: readonly VariantValue[] | undefined) {
     this.#variantValues = value;
+  }
+
+  /**
+   * What makes this offering a **kit**: other offerings of the same vendor,
+   * and how many of each one kit holds — a case and its screen protector at
+   * one price
+   * ([ADR 0086](../../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
+   * A kit is sold in `UN` and holds no stock of its own: each one sold takes
+   * its components from theirs, so a kit and a loose component compete for one
+   * balance.
+   *
+   * ⚠️ **Server-owned.** Only `set-kit` writes it; a save carries the stored
+   * value across. Absent is no kit, never `[]`.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => KitComponentRow,
+    labelKey: 'entity:product-offering.fields.kitComponents',
+  })
+  get kitComponents(): readonly KitComponent[] | undefined {
+    return this.#kitComponents;
+  }
+  set kitComponents(value: readonly KitComponent[] | undefined) {
+    this.#kitComponents = value;
+  }
+
+  /**
+   * How many components the kit holds, written with them: the one fact about
+   * a kit a query can ask, since a composition is never filtered. Absent on an
+   * offering that is not a kit. Server-owned with `kitComponents`.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-offering.fields.kitSize',
+    filterable: true,
+  })
+  get kitSize(): number | undefined {
+    return this.#kitSize;
+  }
+  set kitSize(value: number | undefined) {
+    this.#kitSize = value;
   }
 
   /**

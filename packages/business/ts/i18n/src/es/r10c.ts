@@ -768,8 +768,7 @@ export const r10c = {
           'El paso y la cantidad mínima vuelven a una unidad completa de la unidad nueva. Después de publicar la oferta, la unidad ya no cambia.',
       },
       variant: {
-        hint:
-          'Las variantes de un producto son ofertas con su propio precio e inventario: elige en qué se distingue esta —color, talla, acabado o capacidad— y su valor. Todas las variantes del producto usan los mismos atributos.',
+        hint: 'Las variantes de un producto son ofertas con su propio precio e inventario: elige en qué se distingue esta —color, talla, acabado o capacidad— y su valor. Todas las variantes del producto usan los mismos atributos.',
         none: 'Esta oferta no es variante de su producto.',
         add: 'Añadir atributo',
         remove: 'Quitar el atributo {{position}}',
@@ -840,8 +839,10 @@ export const r10c = {
           template: 'Descargar la plantilla',
           reading: 'Leyendo la hoja…',
           read: '{{file}}: {{ready}} filas listas, {{rejected}} con problemas.',
-          unreadable: 'No se pudo leer este archivo. Guárdelo como CSV o como Excel (.xlsx).',
-          required: 'Elija una hoja con al menos un producto que se pueda importar.',
+          unreadable:
+            'No se pudo leer este archivo. Guárdelo como CSV o como Excel (.xlsx).',
+          required:
+            'Elija una hoja con al menos un producto que se pueda importar.',
         },
         preview: {
           prompt: 'Revise lo que se importará antes de confirmar.',

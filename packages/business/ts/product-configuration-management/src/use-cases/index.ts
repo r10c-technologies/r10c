@@ -3,6 +3,7 @@ export * from './import-catalog';
 export * from './offering-flows';
 export * from './publish-product-offering';
 export * from './set-price-tiers';
+export * from './set-kit';
 export * from './set-sale-unit';
 export * from './set-variant';
 export * from './specification-lifecycle';

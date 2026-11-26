@@ -76,6 +76,9 @@ export class SetStockSourceUC {
         // A variant holds its own stock (ADR 0085).
         if ((offering.variantValues?.length ?? 0) > 0)
           return yield* refuse('isVariant');
+        // A kit holds no stock of its own to draw on, nor to be drawn on
+        // (ADR 0086).
+        if ((offering.kitSize ?? 0) > 0) return yield* refuse('isKit');
         if (!isStockFactor(stockFactor)) return yield* refuse('factor');
         if (stockOfferingId === undefined || stockOfferingId.length === 0)
           return yield* refuse('baseMissing');
@@ -90,6 +93,7 @@ export class SetStockSourceUC {
           );
         if (base.stockOfferingId !== undefined)
           return yield* refuse('baseIsPresentation');
+        if ((base.kitSize ?? 0) > 0) return yield* refuse('isKit');
         const drawing = yield* offerings.load<ProductOffering>({
           filtering: [
             { property: 'stockOfferingId', operator: 'eq', value: id },
