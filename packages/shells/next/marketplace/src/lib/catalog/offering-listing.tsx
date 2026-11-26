@@ -23,16 +23,17 @@ import {
 } from '@r10c/implementation-catalog-reference-next';
 import {
   type CountedFacet,
+  defaultSort,
   loadOfferingFacetCounts,
   type OfferingFacetCounts,
   offeringFacets,
   rollUpFacet,
   SEARCH_PAGE_SIZE,
-  SEARCH_SORTS,
   searchHref,
   searchOfferings,
   type SearchSort,
   type SearchState,
+  sortsFor,
 } from '@r10c/implementation-marketplace-catalog-next';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { FacetPanel, NarrowDisclosure } from '@r10c/utils-react-ui';
@@ -46,17 +47,12 @@ import { loadCardNames, OfferingGrid } from './offering-grid';
 
 /** Each order's label in the `storefront.listing.sorts` catalog. */
 const SORT_LABEL = {
+  relevance: 'storefront.listing.sorts.relevance',
   'price-asc': 'storefront.listing.sorts.priceAsc',
   'price-desc': 'storefront.listing.sorts.priceDesc',
   newest: 'storefront.listing.sorts.newest',
   name: 'storefront.listing.sorts.name',
 } as const satisfies Record<SearchSort, string>;
-
-/**
- * The order a listing takes when the address names none. Paging an unsorted
- * read is not stable, so page 2 could repeat a product from page 1.
- */
-const DEFAULT_SORT: SearchSort = 'name';
 
 export interface OfferingListingProps {
   readonly locale: Locale;
@@ -122,7 +118,14 @@ export async function OfferingListing({
     runRead(DeviceModel, loadDeviceModels(), emptyPage<DeviceModel>()),
   ]);
 
-  const sort = (state.sort[0] as SearchSort | undefined) ?? DEFAULT_SORT;
+  const term = state.q[0];
+  // A relevance order needs a term: a stale `?sort=relevance` with none falls
+  // back to the default rather than to every offering tied.
+  const asked = state.sort[0] as SearchSort | undefined;
+  const sort =
+    asked !== undefined && sortsFor(term).includes(asked)
+      ? asked
+      : defaultSort(term);
   const searched: SearchState = {
     ...state,
     sort: [sort],
@@ -284,7 +287,7 @@ export async function OfferingListing({
             <SegmentedNav
               kind="sort"
               label={t('storefront.listing.sort')}
-              items={SEARCH_SORTS.map(value => ({
+              items={sortsFor(term).map(value => ({
                 key: value,
                 label: t(SORT_LABEL[value]),
                 href: searchHref(href, state, { sort: [value] }),

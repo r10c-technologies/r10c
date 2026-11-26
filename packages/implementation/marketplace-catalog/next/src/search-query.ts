@@ -1,8 +1,11 @@
 import {
+  type Entity,
   type EntityLoadRequest,
+  type EntitySorting,
   type FilterGroup,
   type Locale,
   parseScaled,
+  RELEVANCE,
   scaledToDecimal,
 } from '@entifix/core';
 import {
@@ -86,25 +89,59 @@ const perThousand = (price: string): number => toMinorUnits(price) * 1000;
  * value is what the URL carries (`?sort=price-asc`).
  */
 const SORTS = {
+  // How well each offering's name answers the words searched for, best first
+  // (entifix ADR 0033); the name breaks ties, so a page is stable.
+  relevance: [RELEVANCE, 'desc'],
   'price-asc': ['amountPerThousand', 'asc'],
   'price-desc': ['amountPerThousand', 'desc'],
   newest: ['publishedAt', 'desc'],
   name: ['name', 'asc'],
 } as const satisfies Readonly<
-  Record<string, readonly [keyof PublishedOffering, 'asc' | 'desc']>
+  Record<
+    string,
+    readonly [keyof PublishedOffering | typeof RELEVANCE, 'asc' | 'desc']
+  >
 >;
 
 export type SearchSort = keyof typeof SORTS;
 
+/** One order as a request sorts by it; relevance breaks its ties by name. */
+const sortingOf = (
+  property: keyof PublishedOffering | typeof RELEVANCE,
+  type: 'asc' | 'desc',
+  // The codec's own row type: any entity, keyed by any member name.
+): EntitySorting<Entity & Record<string, unknown>>[] =>
+  property === RELEVANCE
+    ? [{ 0: { property, type }, 1: { property: 'name', type: 'asc' } }]
+    : [{ 0: { property, type } }];
+
 /** The orders a sort control offers, in the order it shows them. */
 export const SEARCH_SORTS = Object.keys(SORTS) as readonly SearchSort[];
+
+/**
+ * The order a listing takes when its address names none: by relevance while
+ * a term is searched, by name otherwise. Relevance without a term is every
+ * offering tied, so it is offered only with one; and paging an unsorted read
+ * is not stable, so page 2 could repeat a product from page 1.
+ */
+export const defaultSort = (term: string | undefined): SearchSort =>
+  term === undefined || term.trim() === '' ? 'name' : 'relevance';
+
+/** The orders worth offering for a search with or without a term. */
+export const sortsFor = (term: string | undefined): readonly SearchSort[] =>
+  defaultSort(term) === 'relevance'
+    ? SEARCH_SORTS
+    : SEARCH_SORTS.filter(sort => sort !== 'relevance');
 
 // Every member the codec below names, checked against the allowlist the
 // service applies. The facets check their own members the same way.
 assertQueryable(
   PublishedOffering,
   'sortable',
-  Object.values(SORTS).map(([member]) => member),
+  // Relevance names no member, so no allowlist applies to it.
+  Object.values(SORTS).flatMap(([member]) =>
+    member === RELEVANCE ? [] : [member],
+  ),
 );
 assertQueryable(PublishedOffering, 'filterable', [
   'searchText',
@@ -192,7 +229,7 @@ export const searchQuery = defineUrlQuery<
       sorting: Object.fromEntries(
         Object.entries(SORTS).map(([value, [property, type]]) => [
           value,
-          [{ 0: { property, type } }],
+          sortingOf(property, type),
         ]),
       ),
     },

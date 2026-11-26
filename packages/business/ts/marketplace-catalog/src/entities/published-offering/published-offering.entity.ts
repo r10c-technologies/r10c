@@ -57,6 +57,9 @@ import {
 @entity({
   domain: 'marketplace-catalog',
   key: 'published-offering',
+  // What a record is called, and what a search's relevance weighs each word
+  // against (entifix ADR 0033).
+  labelMember: 'name',
   labelKey: 'entity:published-offering.label',
   pluralKey: 'entity:published-offering.plural',
 })
