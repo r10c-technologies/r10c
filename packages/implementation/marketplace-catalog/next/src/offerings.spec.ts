@@ -5,7 +5,9 @@ import { Context, Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  getKitComponents,
   getOffering,
+  getVariantCounts,
   getVariantSiblings,
   loadOfferings,
   searchOfferings,
@@ -177,6 +179,107 @@ describe('getVariantSiblings', () => {
     );
 
     expect(await result).toEqual([]);
+    expect(load).not.toHaveBeenCalled();
+  });
+});
+
+const over = <A>(
+  rows: PublishedOffering[],
+  read: Effect.Effect<A, unknown, EntityRepositoryTag>,
+) => {
+  const repository = makeInMemoryEntityRepository(rows);
+  const load = vi.spyOn(repository, 'load');
+  const result = Effect.runPromise(
+    read.pipe(
+      Effect.provide(Context.make(EntityRepositoryTag, repository)),
+    ) as Effect.Effect<A>,
+  );
+  return { result, load };
+};
+
+describe('getKitComponents', () => {
+  const kase = offering('case', 'Funda');
+  const film = offering('film', 'Protector');
+
+  it('reads a kit’s published components in the kit’s order, leaving off one taken down', async () => {
+    const { result } = over(
+      [kase, film],
+      getKitComponents({
+        vendorId: 'vendor-1',
+        kitComponents: [
+          {
+            offeringId: 'film',
+            quantity: 2,
+            stockOfferingId: 'film',
+            stockUnit: 'UN',
+            stockQuantity: 2,
+          },
+          {
+            offeringId: 'gone',
+            quantity: 1,
+            stockOfferingId: 'gone',
+            stockUnit: 'UN',
+            stockQuantity: 1,
+          },
+          {
+            offeringId: 'case',
+            quantity: 1,
+            stockOfferingId: 'case',
+            stockUnit: 'UN',
+            stockQuantity: 1,
+          },
+        ],
+      }),
+    );
+
+    expect((await result).map(one => one.offeringId)).toEqual(['film', 'case']);
+  });
+
+  it('reads nothing for an offering that is no kit', async () => {
+    const { result, load } = over(
+      [kase],
+      getKitComponents({ vendorId: 'vendor-1' }),
+    );
+
+    expect(await result).toEqual([]);
+    expect(load).not.toHaveBeenCalled();
+  });
+});
+
+describe('getVariantCounts', () => {
+  const variant = (id: string, group: string) =>
+    Object.assign(offering(id, id), { variantGroup: group });
+
+  it('counts each group on the page in one read', async () => {
+    const { result, load } = over(
+      [
+        variant('a', 'g1'),
+        variant('b', 'g1'),
+        variant('c', 'g2'),
+        offering('d', 'd'),
+      ],
+      getVariantCounts([
+        { variantGroup: 'g1' },
+        { variantGroup: 'g1' },
+        { variantGroup: 'g2' },
+        { variantGroup: undefined },
+      ]),
+    );
+
+    expect([...(await result)]).toEqual([
+      ['g1', 2],
+      ['g2', 1],
+    ]);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads nothing for a page with no variant', async () => {
+    const { result, load } = over(
+      [],
+      getVariantCounts([{ variantGroup: undefined }]),
+    );
+
+    expect((await result).size).toBe(0);
     expect(load).not.toHaveBeenCalled();
   });
 });

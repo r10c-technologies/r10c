@@ -164,3 +164,68 @@ export const getVariantSiblings = (
         ],
         pageSize: VARIANT_SIBLINGS_PAGE,
       }).pipe(Effect.map(page => page.items));
+
+/**
+ * The published offerings a kit holds, in the kit's order (ADR 0086): what
+ * the product page lists as included. A component no longer published is left
+ * off rather than the page; an offering that is no kit reads nothing.
+ */
+export const getKitComponents = (
+  offering: Pick<PublishedOffering, 'vendorId' | 'kitComponents'>,
+): OfferingRead<readonly PublishedOffering[]> => {
+  const ids = (offering.kitComponents ?? []).map(
+    component => component.offeringId,
+  );
+  return ids.length === 0
+    ? Effect.succeed([])
+    : load({
+        filtering: [
+          { property: 'vendorId', operator: 'eq', value: offering.vendorId },
+          { property: 'offeringId', operator: 'in', values: ids },
+        ],
+        pageSize: ids.length,
+      }).pipe(
+        Effect.map(page =>
+          ids.flatMap(id => page.items.filter(item => item.offeringId === id)),
+        ),
+      );
+};
+
+/** The most offerings a listing's variant counts read in one request. */
+export const VARIANT_COUNT_PAGE = 500;
+
+/**
+ * How many published variants each group on a listing page holds, by group
+ * (ADR 0085 §7): one read for the whole page, and none when the page holds no
+ * variant. Paging and facets stay one card per offering; this only says how
+ * many more a card's product comes in.
+ */
+export const getVariantCounts = (
+  offerings: readonly Pick<PublishedOffering, 'variantGroup'>[],
+): OfferingRead<ReadonlyMap<string, number>> => {
+  const groups = [
+    ...new Set(
+      offerings.flatMap(offering =>
+        offering.variantGroup === undefined ? [] : [offering.variantGroup],
+      ),
+    ),
+  ];
+  return groups.length === 0
+    ? Effect.succeed(new Map())
+    : load({
+        filtering: [
+          { property: 'variantGroup', operator: 'in', values: groups },
+        ],
+        pageSize: VARIANT_COUNT_PAGE,
+      }).pipe(
+        Effect.map(page => {
+          const counts = new Map<string, number>();
+          // Every item read is in one of the groups filtered on.
+          for (const item of page.items) {
+            const group = String(item.variantGroup);
+            counts.set(group, (counts.get(group) ?? 0) + 1);
+          }
+          return counts;
+        }),
+      );
+};

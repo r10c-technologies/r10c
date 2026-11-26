@@ -211,6 +211,12 @@ export const r10c: EsR10c = {
         },
       },
       buy: 'Buy',
+      kit: {
+        chip: 'Kit',
+        heading: 'Included in this kit',
+        item: '{{quantity}} × {{name}}',
+      },
+      variantCount: 'Comes in {{count}} versions',
       soldBy: 'Sold by {{seller}}',
       delivery: {
         ships: 'Shipped by the seller',
@@ -720,6 +726,15 @@ export const r10c: EsR10c = {
         none: 'This offering is no variant of its product.',
         add: 'Add an attribute',
         remove: 'Remove attribute {{position}}',
+      },
+      kit: {
+        hint: 'A kit sells several of your products together at one price. Each kit sold takes every product in it from that product’s own stock.',
+        loading: 'Loading your offerings…',
+        pick: 'Choose a product',
+        add: 'Add a product',
+        remove: 'Remove product {{position}}',
+        notCounted:
+          'A kit is sold by the unit. Set this offering’s unit to pieces first.',
       },
       stockSource: {
         hint: "A box, a roll or a dozen is sold from another offering's stock: each one sold takes this much from it, so the box and the loose units share one balance.",

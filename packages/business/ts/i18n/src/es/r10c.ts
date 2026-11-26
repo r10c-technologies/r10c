@@ -221,6 +221,12 @@ export const r10c = {
         },
       },
       buy: 'Comprar',
+      kit: {
+        chip: 'Kit',
+        heading: 'Incluye',
+        item: '{{quantity}} × {{name}}',
+      },
+      variantCount: 'Disponible en {{count}} versiones',
       soldBy: 'Vendido por {{seller}}',
       delivery: {
         ships: 'Envío por el vendedor',
@@ -772,6 +778,15 @@ export const r10c = {
         none: 'Esta oferta no es variante de su producto.',
         add: 'Añadir atributo',
         remove: 'Quitar el atributo {{position}}',
+      },
+      kit: {
+        hint: 'Un kit vende varios de tus productos juntos a un solo precio. Cada kit vendido toma cada producto de su propio inventario.',
+        loading: 'Cargando tus ofertas…',
+        pick: 'Elige un producto',
+        add: 'Agregar un producto',
+        remove: 'Quitar producto {{position}}',
+        notCounted:
+          'Un kit se vende por unidad. Primero define la unidad de esta oferta en piezas.',
       },
       stockSource: {
         hint: 'Una caja, un rollo o una docena se vende del inventario de otra oferta: cada una que se vende toma esta cantidad de ella, así la caja y las sueltas comparten un mismo saldo.',

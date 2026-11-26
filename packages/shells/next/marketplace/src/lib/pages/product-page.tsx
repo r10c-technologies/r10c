@@ -166,8 +166,25 @@ async function ProductContent({
   const product = await readProduct(offeringId);
   // Unpublished between the check and this render: still a miss.
   if (!product) notFound();
-  const { offering, brandName, sellerName, ships, sampleStore, siblings } =
-    product;
+  const {
+    offering,
+    brandName,
+    sellerName,
+    ships,
+    sampleStore,
+    siblings,
+    components,
+  } = product;
+  // What one kit holds, by the kit's own count, named as published
+  // (ADR 0086). A component taken down since is left off the list.
+  const included = (offering.kitComponents ?? []).flatMap(component => {
+    const published = components.find(
+      one => one.offeringId === component.offeringId,
+    );
+    return published === undefined
+      ? []
+      : [{ offering: published, quantity: component.quantity }];
+  });
 
   // The trail ends at the offering's own category, so it is also the
   // category line below: one vocabulary read, not two (ADR 0062).
@@ -304,6 +321,33 @@ async function ProductContent({
               <Text muted data-testid="presentation-contains">
                 {contains}
               </Text>
+            )}
+
+            {included.length === 0 ? null : (
+              <section
+                aria-labelledby="kit-included"
+                data-testid="kit-included"
+              >
+                <Text id="kit-included" className="font-semibold">
+                  {t('storefront.product.kit.heading')}
+                </Text>
+                <ul className="m-0 ps-s">
+                  {included.map(({ offering: part, quantity }) => (
+                    <li key={part.offeringId}>
+                      <StoreLink
+                        locale={locale}
+                        href={storePaths.offering(part.offeringId)}
+                        className="underline underline-offset-2"
+                      >
+                        {t('storefront.product.kit.item', {
+                          quantity,
+                          name: part.name,
+                        })}
+                      </StoreLink>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
 
             <PriceTiers

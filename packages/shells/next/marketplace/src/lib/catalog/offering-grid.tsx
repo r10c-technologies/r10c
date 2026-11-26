@@ -4,13 +4,17 @@ import {
   EmptyState,
   Skeleton,
   Stack,
+  StatusTag,
   SubmitButton,
 } from '@entifix/react-controls/primitives';
 import { ProductBrand } from '@r10c/business-ts-catalog-reference';
-import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { loadBrands } from '@r10c/implementation-catalog-reference-next';
-import { offeringCard } from '@r10c/implementation-marketplace-catalog-next';
+import {
+  getVariantCounts,
+  offeringCard,
+} from '@r10c/implementation-marketplace-catalog-next';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { ProductCard } from '@r10c/utils-react-ui';
 
@@ -35,6 +39,11 @@ export interface CardNames {
    */
   readonly ships: (vendorId: string) => boolean | undefined;
   /**
+   * How many published variants a group holds, read once for the page
+   * (ADR 0085 §7); `undefined` for no group, or when the count failed.
+   */
+  readonly variantCount: (variantGroup: string) => number | undefined;
+  /**
    * Whether either read failed. A grid without seller lines is still a grid,
    * so a failure never drops a card; but the cached component that rendered it
    * keeps that render for seconds rather than the catalog's lifetime, exactly
@@ -56,9 +65,14 @@ export async function loadCardNames(
   const vendorIds = Array.from(
     new Set(offerings.map(offering => offering.vendorId)),
   );
-  const [brands, vendors] = await Promise.all([
+  const [brands, vendors, variants] = await Promise.all([
     runReadOutcome(ProductBrand, loadBrands(), emptyPage<ProductBrand>()),
     runReadOutcome(PublishedVendor, loadVendors(vendorIds), []),
+    runReadOutcome(
+      PublishedOffering,
+      getVariantCounts(offerings),
+      new Map<string, number>(),
+    ),
   ]);
   const brandNames = new Map(
     brands.value.items.map(brand => [String(brand.id), brand.name]),
@@ -73,7 +87,8 @@ export async function loadCardNames(
     brandName: id => brandNames.get(id),
     sellerName: id => sellerNames.get(id),
     ships: id => shipping.get(id),
-    failed: brands.failed || vendors.failed,
+    variantCount: group => variants.value.get(group),
+    failed: brands.failed || vendors.failed || variants.failed,
   };
 }
 
@@ -86,6 +101,36 @@ export async function loadCardNames(
  * - **`listing`**: a page of results, as many columns as fit. A full search
  *   page (24) divides by two, three and four, so it never orphans either.
  */
+/**
+ * What a card says about its product beyond its own price: that it is a kit
+ * (ADR 0086), or how many versions it comes in (ADR 0085 §7). Nothing for a
+ * plain offering, so the card draws no row.
+ */
+export const cardChips = (
+  offering: PublishedOffering,
+  names: Pick<CardNames, 'variantCount'>,
+  labels: {
+    readonly kit: string;
+    readonly variants: (count: number) => string;
+  },
+) => {
+  const count =
+    offering.variantGroup === undefined
+      ? undefined
+      : names.variantCount(offering.variantGroup);
+  const chips = [
+    ...((offering.kitSize ?? 0) > 0 ? [labels.kit] : []),
+    ...(count !== undefined && count > 1 ? [labels.variants(count)] : []),
+  ];
+  return chips.length === 0
+    ? undefined
+    : chips.map(chip => (
+        <StatusTag key={chip} tone="neutral">
+          {chip}
+        </StatusTag>
+      ));
+};
+
 export type OfferingGridLayout = 'strip' | 'listing';
 
 export interface OfferingGridProps {
@@ -156,6 +201,11 @@ export function OfferingGrid({
         });
         return (
           <ProductCard
+            chips={cardChips(offering, names, {
+              kit: t('storefront.product.kit.chip'),
+              variants: count =>
+                t('storefront.product.variantCount', { count }),
+            })}
             key={offering.offeringId}
             titleId={`${idScope}-${offering.offeringId}-title`}
             href={localeHref(locale, storePaths.offering(offering.offeringId))}

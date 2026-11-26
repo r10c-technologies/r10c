@@ -3,6 +3,7 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { getBrand } from '@r10c/implementation-catalog-reference-next';
 import {
+  getKitComponents,
   getOffering,
   getVariantSiblings,
 } from '@r10c/implementation-marketplace-catalog-next';
@@ -32,6 +33,11 @@ export interface ProductRead {
    * which leaves the picker off rather than the page.
    */
   readonly siblings: readonly PublishedOffering[];
+  /**
+   * What a kit includes, as published, in the kit's order (ADR 0086) — empty
+   * for an offering that is no kit, or when they could not be read.
+   */
+  readonly components: readonly PublishedOffering[];
 }
 
 /**
@@ -52,14 +58,16 @@ export const readProduct = cache(
     );
     if (offering === undefined) return undefined;
 
-    const [brand, vendor, siblings] = await Promise.all([
+    const [brand, vendor, siblings, components] = await Promise.all([
       runRead(ProductBrand, getBrand(offering.brandId), undefined),
       runRead(PublishedVendor, getVendor(offering.vendorId), undefined),
       runRead(PublishedOffering, getVariantSiblings(offering), []),
+      runRead(PublishedOffering, getKitComponents(offering), []),
     ]);
     return {
       offering,
       siblings,
+      components,
       ...(brand ? { brandName: brand.name } : {}),
       ...(vendor
         ? {
