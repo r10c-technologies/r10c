@@ -6,6 +6,7 @@ import {
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
 import {
+  kitStockListOf,
   lineTotal,
   saleTermsOf,
   stockSourceOf,
@@ -355,8 +356,12 @@ const pinOf = async (offeringId: string) => {
     specificationVersion: Number(published?.['specificationVersion'] ?? 0),
     saleUnit: terms.saleUnit,
     pricePer: terms.pricePer,
-    // A presentation states its base as the storefront does (ADR 0082 §7).
+    // A presentation states its base as the storefront does (ADR 0082 §7),
+    // and a kit its components (ADR 0086).
     ...(published === null ? undefined : stockSourceOf(published)),
+    ...(published === null
+      ? undefined
+      : { kitComponents: kitStockListOf(published['kitComponents']) }),
   };
 };
 

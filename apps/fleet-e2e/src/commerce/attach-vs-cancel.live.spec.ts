@@ -137,7 +137,9 @@ it(`keeps the file store and the record in step when attach races withdraw, ${St
     const listed = (
       (order?.['paymentEvidence'] ?? []) as { objectKey?: string }[]
     )
-      .flatMap(entry => (entry.objectKey === undefined ? [] : [entry.objectKey]))
+      .flatMap(entry =>
+        entry.objectKey === undefined ? [] : [entry.objectKey],
+      )
       .sort();
     const won = answers.some(
       a => a.orderId === orderId && a.verb === 'attach' && a.status === 200,

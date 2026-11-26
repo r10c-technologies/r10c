@@ -41,7 +41,9 @@ const key = () => `"${randomBytes(16).toString('hex')}"`;
 
 const published = async (offeringId: string) =>
   present(
-    (await (await mongo('marketplace'))
+    (await (
+      await mongo('marketplace')
+    )
       .collection('published-offering')
       .findOne({ offeringId })) ?? undefined,
     `${offeringId} published — reset the lab (pnpm run back-office:dev:reset)`,
@@ -60,14 +62,17 @@ const free = async (offeringId: string) => {
 };
 
 const cancel = async (orderId: string) => {
-  const res = await fetch(`${FLEET.order}/api/product-order/${orderId}/cancel`, {
-    method: 'POST',
-    headers: {
-      authorization: await vendorBearer(HARDWARE.organizationId),
-      'content-type': 'application/json',
+  const res = await fetch(
+    `${FLEET.order}/api/product-order/${orderId}/cancel`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: await vendorBearer(HARDWARE.organizationId),
+        'content-type': 'application/json',
+      },
+      body: '{}',
     },
-    body: '{}',
-  });
+  );
   expect(res.status).toBeLessThan(300);
   return eventually(
     async () =>
