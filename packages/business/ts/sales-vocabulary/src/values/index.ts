@@ -1,3 +1,5 @@
+export * from './kit';
+export * from './kit-component-row';
 export * from './line-total';
 export * from './order-tender';
 export * from './price-basis';
@@ -8,6 +10,5 @@ export * from './sale-rule';
 export * from './sale-terms';
 export * from './sale-unit';
 export * from './sales-channel-type';
-export * from './kit';
 export * from './stock-source';
 export * from './variant';

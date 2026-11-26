@@ -1,14 +1,17 @@
 import { accessor } from '@entifix/core';
-import type {
-  KitComponent,
-  KitStock,
-  SaleUnit,
-} from '@r10c/business-ts-sales-vocabulary';
+
+import type { KitComponent, KitStock } from './kit';
+import type { SaleUnit } from './sale-unit';
 
 /**
+ * Here rather than beside the publication because four domains hold a kit's
+ * rows — the offering authors them, and the projection, the order line and the
+ * shipment line copy them — and a domain may reach the vocabulary but never
+ * another domain.
+ *
  * One row of an offering's `kitComponents` composition as the vendor authors
  * it: another offering of theirs, and how many one kit holds
- * ([ADR 0086](../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
+ * ([ADR 0086](../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
  * A **value**, never addressed apart from the kit that holds it (ADR 0034).
  */
 export class KitComponentRow implements KitComponent {

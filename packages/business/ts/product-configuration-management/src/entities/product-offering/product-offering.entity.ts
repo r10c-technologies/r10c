@@ -1,7 +1,6 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 import {
-  KitComponentRow,
   MediaReference,
   type MediaReferenceValue,
   VariantValueEntry,
@@ -9,6 +8,7 @@ import {
 import {
   DEFAULT_SALE_UNIT,
   type KitComponent,
+  KitComponentRow,
   oneWholeUnit,
   SALE_UNIT_NAME_KEY,
   SALE_UNIT_SCALES,

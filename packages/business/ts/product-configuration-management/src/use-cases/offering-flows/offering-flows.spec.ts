@@ -905,6 +905,7 @@ describe('rebuildEveryPublication', () => {
                 commitTransition: () => Effect.die('unused'),
                 setSaleUnit: () => Effect.die('unused'),
                 setStockSource: () => Effect.die('unused'),
+                setKit: () => Effect.die('unused'),
                 setVariant: () => Effect.die('unused'),
                 setPriceTiers: () => Effect.die('unused'),
                 reannounce: () => Effect.die('unused'),

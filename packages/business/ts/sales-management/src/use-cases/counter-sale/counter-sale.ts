@@ -9,6 +9,8 @@ import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { InvalidBody } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import {
+  type KitStock,
+  kitTakenOf,
   lineTotal,
   type PricePer,
   saleLineRefusal,
@@ -58,6 +60,7 @@ export const validateSalesChannel = (
  * coordinator multiplies and reserves on the base (ADR 0082 §7).
  */
 interface PricedLine extends Partial<StockSource> {
+  readonly kitComponents?: readonly KitStock[];
   readonly offeringId: string;
   /**
    * What it is sold as, from the same projection as its price: the name, the
@@ -208,6 +211,8 @@ export const sellAtCounter = (input: {
               stockFactor: price.stockFactor,
               stockUnit: price.stockUnit,
             }),
+        // A kit holds each component's stock, as published (ADR 0086).
+        ...kitTakenOf(price),
       });
     }
 

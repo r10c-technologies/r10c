@@ -196,6 +196,34 @@ describe('dispatchShipment', () => {
   });
 });
 
+describe('deliveryInput for a kit', () => {
+  it('returns each component a kit’s parcel line took', () => {
+    const shipment = Object.assign(aShipment(), {
+      lines: [
+        Object.assign(new ShippingLine('kit', 'Kit', 2), {
+          unit: 'UN' as const,
+          kitComponents: [
+            {
+              offeringId: 'case',
+              quantity: 1,
+              stockOfferingId: 'case',
+              stockUnit: 'UN' as const,
+              stockQuantity: 2,
+            },
+          ],
+        }),
+      ],
+    });
+
+    expect(deliveryInput(ORG, shipment).lines).toEqual([
+      expect.objectContaining({
+        offeringId: 'kit',
+        kitComponents: [expect.objectContaining({ offeringId: 'case' })],
+      }),
+    ]);
+  });
+});
+
 describe('dispatchShipmentSelection', () => {
   const shipment = (id: string) =>
     Object.assign(aShipment(), { id, orderId: id });

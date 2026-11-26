@@ -117,7 +117,7 @@ export interface CatalogPublication extends SaleTerms {
   /**
    * A kit's components and what one kit takes from each one's stock, read
    * when the kit is published
-   * ([ADR 0086](../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
+   * ([ADR 0086](../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
    * The coordinator reserves each, and the order line copies them. Absent,
    * never `[]`, on an offering that is not a kit; a kit never also draws on
    * a base.

@@ -92,4 +92,25 @@ describe('projectPublication', () => {
       [PUBLICATION.name, PUBLICATION.code, PUBLICATION.description].join(' '),
     );
   });
+
+  it('carries a kit’s components and their count, and none on another offering', () => {
+    const kitComponents = [
+      {
+        offeringId: 'case',
+        quantity: 1,
+        stockOfferingId: 'case',
+        stockUnit: 'UN' as const,
+        stockQuantity: 1,
+      },
+    ];
+
+    const kit = projectPublication({ ...PUBLICATION, kitComponents }, AT);
+    const plain = projectPublication(PUBLICATION, AT);
+
+    expect([kit.kitComponents, kit.kitSize]).toEqual([kitComponents, 1]);
+    expect([plain.kitComponents, plain.kitSize]).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
 });

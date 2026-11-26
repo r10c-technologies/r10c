@@ -47,6 +47,8 @@ export const projectPublication = (
   projected.variantGroup =
     publication.variantValues === undefined ? undefined : publication.specKey;
   projected.variantValues = publication.variantValues;
+  projected.kitComponents = publication.kitComponents;
+  projected.kitSize = publication.kitComponents?.length;
   projected.searchText = searchTextOf(publication);
   return projected;
 };

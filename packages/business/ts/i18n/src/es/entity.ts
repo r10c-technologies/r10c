@@ -427,6 +427,8 @@ export const entity = {
       specKey: 'Serie de la especificación',
       variantGroup: 'Producto del que es variante',
       variantValues: 'Variante',
+      kitComponents: 'Contenido del kit',
+      kitSize: 'Productos en el kit',
       searchText: 'Texto de búsqueda',
       stockUnit: 'Unidad base',
       availableHint: 'Disponibilidad estimada',

@@ -93,6 +93,26 @@ const prices: Record<string, PublishedPrice> = {
     stockUnit: 'UN',
     ...ONE_PIECE,
   },
+  // A hammer and a box of nails at one price (ADR 0086).
+  kit: {
+    offeringId: 'kit',
+    name: 'Kit de martillo',
+    vendorId: 'org-1',
+    amount: 9000,
+    currency: 'GTQ',
+    specificationId: 'spec-kit',
+    specificationVersion: 1,
+    kitComponents: [
+      {
+        offeringId: 'tiered',
+        quantity: 2,
+        stockOfferingId: 'tiered',
+        stockUnit: 'UN',
+        stockQuantity: 2,
+      },
+    ],
+    ...ONE_PIECE,
+  },
   theirs: {
     offeringId: 'theirs',
     name: 'Plato',
@@ -254,6 +274,22 @@ describe('sellAtCounter', () => {
       tierFrom: 2,
     });
     expect(input.totals).toEqual([{ currency: 'GTQ', amount: 800 }]);
+  });
+
+  it('states what a kit holds, as published', async () => {
+    const { sold, started } = world();
+
+    await sold('c-open', 'kit');
+
+    const input = started[0]?.input as {
+      readonly vendors: readonly {
+        readonly lines: readonly Record<string, unknown>[];
+      }[];
+    };
+    expect(input.vendors[0]?.lines[0]).toMatchObject({
+      offeringId: 'kit',
+      kitComponents: [{ offeringId: 'tiered', stockQuantity: 2 }],
+    });
   });
 
   it('states the base a presentation draws on, as published', async () => {

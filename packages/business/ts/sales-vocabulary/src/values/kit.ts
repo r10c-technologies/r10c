@@ -7,7 +7,7 @@ import { PRESENTATION_UNIT } from './stock-source';
 
 /**
  * One component of a kit, as the vendor authors it
- * ([ADR 0086](../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)):
+ * ([ADR 0086](../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)):
  * another offering of the same vendor, and how many of it one kit holds.
  */
 export interface KitComponent {
@@ -170,3 +170,23 @@ export const kitLineStockOf = (
       stockFactor: component.stockQuantity,
     }),
   }));
+
+/**
+ * A line's kit components as plain values, `{}` when it holds none — what a
+ * cancellation or a return states from a stored order or shipment line, whose
+ * rows may be class instances a flow's payload must not carry.
+ */
+export const kitTakenOf = (line: {
+  readonly kitComponents?: readonly KitStock[];
+}): { readonly kitComponents?: readonly KitStock[] } =>
+  line.kitComponents === undefined || line.kitComponents.length === 0
+    ? {}
+    : {
+        kitComponents: line.kitComponents.map(component => ({
+          offeringId: component.offeringId,
+          quantity: component.quantity,
+          stockOfferingId: component.stockOfferingId,
+          stockUnit: component.stockUnit,
+          stockQuantity: component.stockQuantity,
+        })),
+      };

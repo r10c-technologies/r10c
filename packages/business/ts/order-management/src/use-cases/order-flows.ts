@@ -13,6 +13,7 @@ import {
 import {
   isPricePer,
   isSaleUnit,
+  kitTakenOf,
   lineTotal,
 } from '@r10c/business-ts-sales-vocabulary';
 import { Context, Effect, Option } from 'effect';
@@ -320,7 +321,8 @@ export const cancellationInput = (
   orderId: String(order.id),
   vendorId: order.vendorId,
   paymentMethod: order.paymentMethod,
-  // A presentation's line puts back what it took from its base (ADR 0082 §7).
+  // A presentation's line puts back what it took from its base (ADR 0082 §7),
+  // and a kit's what it took from each component (ADR 0086).
   lines: order.items.map(line => ({
     offeringId: line.offeringId,
     unit: line.saleUnit,
@@ -332,6 +334,7 @@ export const cancellationInput = (
           stockUnit: line.stockUnit,
           stockQuantity: line.stockQuantity,
         }),
+    ...kitTakenOf(line),
   })),
   shipped: order.channel === undefined || order.channel.type === 'storefront',
   ...(order.buyerId === undefined ? {} : { buyerId: order.buyerId }),

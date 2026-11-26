@@ -3,9 +3,9 @@ import { EntityRepositoryFactoryTag } from '@entifix/business';
 import { type EntityId, NotFound, useCase } from '@entifix/core';
 import {
   defaultSaleRule,
+  KitInvalid,
   PRESENTATION_UNIT,
   SaleUnits,
-  KitInvalid,
   StockSourceInvalid,
 } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';

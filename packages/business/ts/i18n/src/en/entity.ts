@@ -393,6 +393,8 @@ export const entity: EsEntity = {
       specKey: 'Specification series',
       variantGroup: 'Product it is a variant of',
       variantValues: 'Variant',
+      kitComponents: 'Kit contents',
+      kitSize: 'Products in the kit',
       searchText: 'Search text',
       stockUnit: 'Base unit',
       availableHint: 'Availability hint',

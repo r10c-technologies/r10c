@@ -8,7 +8,8 @@ import {
   kitShapeRefusal,
   kitStockListOf,
   kitStockOf,
-} from './kit';
+  kitTakenOf,
+} from './kit.js';
 
 const one = (offeringId: string, quantity = 1) => ({ offeringId, quantity });
 
@@ -74,7 +75,7 @@ describe('kitLineStockOf', () => {
     ];
 
     expect(
-      kitLineStockOf(3, kit).map(component => component.stockQuantity),
+      kitLineStockOf(3, kit).map(({ stockQuantity }) => stockQuantity),
     ).toEqual([3, 6]);
   });
 });
@@ -106,5 +107,17 @@ describe('KitInvalid', () => {
     expect(failure.code).toBe('kitInvalid');
     expect(failure.message).toBe('kit is refused: componentIsKit');
     expect(isKitQuantity(2)).toBe(true);
+  });
+});
+
+describe('kitTakenOf', () => {
+  it('copies a line’s components as plain values, and nothing for none', () => {
+    const component = kitStockOf(one('case'), undefined);
+
+    expect(kitTakenOf({ kitComponents: [component] })).toEqual({
+      kitComponents: [component],
+    });
+    expect(kitTakenOf({ kitComponents: [] })).toEqual({});
+    expect(kitTakenOf({})).toEqual({});
   });
 });

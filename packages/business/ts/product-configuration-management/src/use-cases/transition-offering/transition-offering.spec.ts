@@ -98,10 +98,14 @@ const repositoryOf = (...rows: ProductOffering[]) => {
         ? Effect.succeed(row as unknown as TEntity)
         : Effect.fail(new NotFound({ entity: 'offering' }));
     },
-    // Only a presentation's base is loaded, by id.
-    load: (request: { filtering: { value: unknown }[] }) => {
-      const row = byId.get(String(request.filtering[0]?.value));
-      const items = row === undefined ? [] : [row];
+    // A presentation's base is loaded by id, a kit's components by `in`.
+    load: (request: {
+      filtering: { value?: unknown; values?: unknown[] }[];
+    }) => {
+      const filter = request.filtering[0];
+      const items = (filter?.values ?? [filter?.value])
+        .map(id => byId.get(String(id)))
+        .filter(row => row !== undefined);
       return Effect.succeed({ items, total: items.length });
     },
     save: <TEntity extends Entity>(entity: TEntity) => {
@@ -892,5 +896,107 @@ describe('the specification the snapshot copies from', () => {
 
     expect(publish(['universal']).fitsDeviceModelIds).toEqual(['universal']);
     expect(Object.keys(publish([]))).not.toContain('fitsDeviceModelIds');
+  });
+});
+
+describe('a kit', () => {
+  const kit = (status: OfferingStatus = 'draft') =>
+    Object.assign(offering('kit', status), {
+      kitComponents: [
+        { offeringId: 'case', quantity: 1 },
+        { offeringId: 'roll', quantity: 2 },
+      ],
+      kitSize: 2,
+    });
+  const kase = (overrides: Partial<ProductOffering> = {}) =>
+    Object.assign(offering('case', 'published'), overrides);
+  const roll = () =>
+    Object.assign(offering('roll', 'published'), {
+      stockOfferingId: 'cable',
+      stockFactor: 100_000,
+    });
+  const cable = () =>
+    Object.assign(offering('cable', 'published'), { saleUnit: 'M' });
+
+  it('publishes what one kit takes from each component, a presentation from its base', () => {
+    const event = publicationOf(
+      run([kase(), roll(), cable(), kit()], 'kit', 'publish').exit,
+    );
+
+    expect(event.data).toMatchObject({
+      kitComponents: [
+        {
+          offeringId: 'case',
+          quantity: 1,
+          stockOfferingId: 'case',
+          stockUnit: 'UN',
+          stockQuantity: 1,
+        },
+        {
+          offeringId: 'roll',
+          quantity: 2,
+          stockOfferingId: 'cable',
+          stockUnit: 'M',
+          stockQuantity: 200_000,
+        },
+      ],
+    });
+    expect('stockOfferingId' in event.data).toBe(false);
+  });
+
+  it('publishes no components for an offering that is not a kit', () => {
+    const event = publicationOf(
+      run([offering('1', 'draft')], '1', 'publish').exit,
+    );
+
+    expect('kitComponents' in event.data).toBe(false);
+  });
+
+  it.each([
+    ['componentMissing', () => [roll(), cable(), kit()]],
+    ['componentMissing', () => [kase(), roll(), kit()]],
+    [
+      'componentIsKit',
+      () => [kase({ kitSize: 1, kitComponents: [] }), roll(), cable(), kit()],
+    ],
+    [
+      'componentNotCounted',
+      () => [kase({ saleUnit: 'M' }), roll(), cable(), kit()],
+    ],
+    [
+      'componentUnpublished',
+      () => [kase({ status: 'draft' }), roll(), cable(), kit()],
+    ],
+    [
+      'notCounted',
+      () => [kase(), roll(), cable(), Object.assign(kit(), { saleUnit: 'M' })],
+    ],
+    [
+      'duplicate',
+      () => [
+        kase(),
+        Object.assign(kit(), {
+          kitComponents: [
+            { offeringId: 'case', quantity: 1 },
+            { offeringId: 'case', quantity: 1 },
+          ],
+        }),
+      ],
+    ],
+  ] as const)('refuses a publication whose kit is %s', (problem, rows) => {
+    const records = rows();
+    const { exit } = run([...records], 'kit', 'publish');
+
+    expect(failureOf(exit)).toMatchObject({ code: 'kitInvalid', problem });
+    expect(records.at(-1)?.status).toBe('draft');
+  });
+
+  it('takes a kit down without its components, naming none', () => {
+    const event = publicationOf(
+      run([kit('published')], 'kit', 'unpublish').exit,
+    );
+
+    expect(event.name).toBe(CATALOG_UNPUBLISHED);
+    expect('kitComponents' in event.data).toBe(false);
   });
 });

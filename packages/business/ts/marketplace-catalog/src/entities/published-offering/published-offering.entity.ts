@@ -9,6 +9,8 @@ import {
 import {
   DEFAULT_PRICE_PER,
   DEFAULT_SALE_UNIT,
+  type KitStock,
+  KitStockRow,
   oneWholeUnit,
   type PricePer,
   type PriceTier,
@@ -100,6 +102,8 @@ export class PublishedOffering implements Entity {
   #specKey?: string;
   #variantGroup?: string;
   #variantValues?: readonly VariantValue[];
+  #kitComponents?: readonly KitStock[];
+  #kitSize?: number;
   #searchText?: string;
   // #endregion
 
@@ -609,6 +613,41 @@ export class PublishedOffering implements Entity {
   }
   set variantValues(value: readonly VariantValue[] | undefined) {
     this.#variantValues = value;
+  }
+
+  /**
+   * A kit's components and what one kit takes from each one's stock
+   * ([ADR 0086](../../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)):
+   * the storefront lists what a kit includes, and a checkout copies them onto
+   * the line, so the coordinator holds each. Absent on an offering that is
+   * not a kit.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => KitStockRow,
+    labelKey: 'entity:published-offering.fields.kitComponents',
+  })
+  get kitComponents(): readonly KitStock[] | undefined {
+    return this.#kitComponents;
+  }
+  set kitComponents(value: readonly KitStock[] | undefined) {
+    this.#kitComponents = value;
+  }
+
+  /**
+   * How many products the kit holds, the one fact about a kit a listing can
+   * filter or show without reading the components. Absent on no kit.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:published-offering.fields.kitSize',
+    filterable: true,
+  })
+  get kitSize(): number | undefined {
+    return this.#kitSize;
+  }
+  set kitSize(value: number | undefined) {
+    this.#kitSize = value;
   }
 
   /**

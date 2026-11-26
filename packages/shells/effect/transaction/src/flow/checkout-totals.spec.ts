@@ -49,6 +49,53 @@ describe('pricedLine', () => {
   );
 });
 
+describe('a kit’s line', () => {
+  /** Three kits of a case and two films, at Q150.00 each. */
+  const KITS = {
+    offeringId: 'kit',
+    saleUnit: 'UN',
+    quantity: 3,
+    amount: 15_000,
+    pricePer: 1,
+    currency: 'GTQ',
+    kitComponents: [
+      {
+        offeringId: 'case',
+        quantity: 1,
+        stockOfferingId: 'case',
+        stockUnit: 'UN',
+        stockQuantity: 1,
+      },
+      {
+        offeringId: 'film',
+        quantity: 2,
+        stockOfferingId: 'film',
+        stockUnit: 'UN',
+        stockQuantity: 2,
+      },
+    ],
+  };
+
+  it('states what the whole line takes from each component, from what one kit takes', () => {
+    expect(pricedLine(KITS)).toMatchObject({
+      lineTotal: 45_000,
+      kitComponents: [
+        { offeringId: 'case', stockQuantity: 3 },
+        { offeringId: 'film', stockQuantity: 6 },
+      ],
+    });
+  });
+
+  it('holds no components for a partial kit, or one not sold by the unit', () => {
+    expect(
+      pricedLine({ ...KITS, kitComponents: [{ offeringId: 'case' }] }),
+    ).not.toHaveProperty('kitComponents');
+    expect(
+      pricedLine({ ...KITS, saleUnit: 'M', quantity: 3000 }),
+    ).not.toHaveProperty('kitComponents');
+  });
+});
+
 describe('a presentation’s line', () => {
   /** Two 100 m rolls of the cable, at Q4,000.00 each. */
   const ROLLS = {

@@ -12,8 +12,8 @@ import {
 import {
   isStockFactor,
   KitInvalid,
-  type KitStock,
   kitShapeRefusal,
+  type KitStock,
   kitStockOf,
   PRESENTATION_UNIT,
   priceTiersRefusal,
@@ -367,7 +367,7 @@ const kitStockOfOffering = (
         {
           property: 'id',
           operator: 'in',
-          value: components.map(component => component.offeringId),
+          values: components.map(component => component.offeringId),
         },
       ],
       pageSize: components.length,

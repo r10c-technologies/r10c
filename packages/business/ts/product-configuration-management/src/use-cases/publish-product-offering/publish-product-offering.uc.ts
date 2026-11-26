@@ -2,8 +2,8 @@ import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
 import { InvalidBody, SelectionTooLarge } from '@r10c/business-ts-common';
 import {
-  PriceTiersInvalid,
   KitInvalid,
+  PriceTiersInvalid,
   StockSourceInvalid,
 } from '@r10c/business-ts-sales-vocabulary';
 

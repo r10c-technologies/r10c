@@ -426,6 +426,39 @@ describe('cancellationInput', () => {
     ]);
   });
 
+  it('puts back each component a kit’s line took', () => {
+    const kit = Object.assign(new OrderItem('kit', 'Kit', 2, 10, 'GTQ'), {
+      saleUnit: 'UN' as const,
+      kitComponents: [
+        {
+          offeringId: 'case',
+          quantity: 1,
+          stockOfferingId: 'case',
+          stockUnit: 'UN' as const,
+          stockQuantity: 2,
+        },
+      ],
+    });
+    const order = Object.assign(anOrder(), { id: 'o-1', items: [kit] });
+
+    expect(cancellationInput(order).lines).toEqual([
+      {
+        offeringId: 'kit',
+        unit: 'UN',
+        quantity: 2,
+        kitComponents: [
+          {
+            offeringId: 'case',
+            quantity: 1,
+            stockOfferingId: 'case',
+            stockUnit: 'UN',
+            stockQuantity: 2,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('ships nothing handed over at a counter, and names no buyer a walk-in lacks', () => {
     const order = Object.assign(new ProductOrder(), {
       id: 'o-2',

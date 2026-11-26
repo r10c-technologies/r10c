@@ -516,6 +516,103 @@ describe('a presentation in a basket (ADR 0082 §7)', () => {
   });
 });
 
+describe('a kit in a basket (ADR 0086)', () => {
+  /** Two kits of a case and two films, beside one case sold loose. */
+  const kitComponents = [
+    {
+      offeringId: 'case',
+      quantity: 1,
+      stockOfferingId: 'case',
+      stockUnit: 'UN' as const,
+      stockQuantity: 2,
+    },
+    {
+      offeringId: 'film',
+      quantity: 2,
+      stockOfferingId: 'film',
+      stockUnit: 'UN' as const,
+      stockQuantity: 4,
+    },
+  ];
+  const kit = { ...line('kit'), kitComponents };
+  const basket = checkout('storefront', [
+    { ...part('v-1', 'card'), lines: [kit, line('case')] },
+  ]);
+
+  it('composes one hold per component, each under the kit’s key, beside the loose one', () => {
+    const reserves = slipSteps(composed(basket)).filter(step =>
+      step.step.endsWith(':stock.reserve'),
+    );
+
+    expect(reserves.map(step => [step.step, step.parameters])).toEqual([
+      [
+        'v-1/card:kit~case:stock.reserve',
+        expect.objectContaining({
+          offeringId: 'case',
+          unit: 'UN',
+          quantity: 2,
+        }),
+      ],
+      [
+        'v-1/card:kit~film:stock.reserve',
+        expect.objectContaining({
+          offeringId: 'film',
+          unit: 'UN',
+          quantity: 4,
+        }),
+      ],
+      [
+        'v-1/card:case:stock.reserve',
+        expect.objectContaining({ offeringId: 'case', unit: 'UN' }),
+      ],
+    ]);
+  });
+
+  it('opens a shipment whose line lists what the kit holds', () => {
+    const shipment = slipSteps(composed(basket)).find(
+      step => step.step === 'v-1/card:fulfilment.open',
+    );
+
+    expect((shipment?.parameters as { lines: unknown[] }).lines[0]).toEqual(
+      expect.objectContaining({ offeringId: 'kit', kitComponents }),
+    );
+  });
+
+  it('puts every component back when the order is cancelled', () => {
+    const start = {
+      ...cancellation('card', false),
+      lines: [
+        { offeringId: 'kit', unit: 'UN' as const, quantity: 2, kitComponents },
+      ],
+    };
+    const restores = slipSteps(
+      Effect.runSync(
+        compose(cancellationRecipe, flowCatalog, coordinator, start, OPTIONS),
+      ),
+    ).filter(step => step.step.endsWith(':stock.restore'));
+
+    expect(restores.map(step => step.step)).toEqual([
+      'v-1/card:kit~case:stock.restore',
+      'v-1/card:kit~film:stock.restore',
+    ]);
+    expect(restores[1]?.parameters).toMatchObject({
+      offeringId: 'film',
+      quantity: 4,
+      cause: 'cancellation',
+    });
+  });
+
+  it('refuses a part that names one offering on two lines, whose holds would share a key', () => {
+    const decode = Schema.decodeUnknownExit(CheckoutStart);
+    const twice = checkout('storefront', [
+      { ...part('v-1', 'card'), lines: [line('case'), line('case')] },
+    ]);
+
+    expect(decode(twice)._tag).toBe('Failure');
+    expect(decode(basket)._tag).toBe('Success');
+  });
+});
+
 const cancellation = (
   paymentMethod: CancellationStart['paymentMethod'],
   shipped: boolean,

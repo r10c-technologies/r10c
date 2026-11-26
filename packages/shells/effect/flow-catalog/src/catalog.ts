@@ -69,11 +69,42 @@ const SHIPPING = 'shipping-order-management';
  * factor, and copied by the order and the shipment, so a cancellation or a
  * return puts back what was taken. Absent on a line that draws on no base.
  */
+const PositiveInt = Schema.Int.check(Schema.isGreaterThan(0));
+
+/**
+ * What a kit's line takes from one component's stock
+ * ([ADR 0086](../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)):
+ * the component, how many one kit holds, and the stock the **whole line**
+ * took — stated by the coordinator from what one kit takes, and copied by the
+ * order and the shipment, so a cancellation or a return puts each back.
+ */
+const KitTaken = openStruct({
+  offeringId: Schema.NonEmptyString,
+  quantity: PositiveInt,
+  stockOfferingId: Schema.NonEmptyString,
+  stockUnit: Schema.Literals(SaleUnits),
+  stockQuantity: PositiveInt,
+});
+
 const StockTaken = {
   stockOfferingId: Schema.optionalKey(Schema.NonEmptyString),
   stockUnit: Schema.optionalKey(Schema.Literals(SaleUnits)),
-  stockQuantity: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThan(0))),
+  stockQuantity: Schema.optionalKey(PositiveInt),
+  // A kit's components, each held on its own stock (ADR 0086). A kit draws on
+  // no base, so a line carries one or the other, never both.
+  kitComponents: Schema.optionalKey(
+    Schema.Array(KitTaken).check(Schema.isMinLength(1)),
+  ),
 };
+
+/**
+ * Whether no two of `lines` would compose to one step: a line is keyed by its
+ * offering, so the same offering twice in one vendor's part would give two
+ * holds one name and one idempotency key, and the second would answer the
+ * first's hold. A caller merges them; one that did not is refused.
+ */
+const distinctOfferings = (lines: readonly { readonly offeringId: string }[]) =>
+  new Set(lines.map(line => line.offeringId)).size === lines.length;
 
 /**
  * One priced line: the offering, what it is sold as, how many in which unit,
@@ -119,7 +150,12 @@ type Line = typeof Line.Type;
 const VendorPart = openStruct({
   vendorId: Schema.NonEmptyString,
   paymentMethod: Schema.Literals(PAYMENT_METHODS),
-  lines: Schema.Array(Line).check(Schema.isMinLength(1)),
+  lines: Schema.Array(Line).check(
+    Schema.isMinLength(1),
+    Schema.makeFilter(distinctOfferings, {
+      message: 'a vendor’s part names each offering on one line',
+    }),
+  ),
   entitlements: Schema.optionalKey(Schema.Array(Schema.String)),
   /**
    * The seller's fiscal identity and the document's sums, **stated by the
@@ -241,11 +277,19 @@ const atCounter = (start: CheckoutStart) => start.channel.type !== 'storefront';
 const holds = (segment: SlipSegment | undefined, entitlement: string) =>
   segment?.entitlements?.includes(entitlement) === true;
 
+/** What one line of a kit took from one component's stock. */
+type KitTaken = typeof KitTaken.Type;
+
 /**
  * One line per offering, keyed by it, for a `perLine` step in its segment.
  * A presentation's line moves its base's stock — the base, in the base's unit,
  * by what the line took (ADR 0082 §7) — and keeps its own key, so a box and
  * loose units of one base are two lines competing for one balance.
+ *
+ * A kit's line is one step **per component**, keyed `<kit>~<component>`
+ * (ADR 0086): each holds, converts, releases and restores on its own, so the
+ * stock fragments never learn the word, and a component also sold loose in
+ * the same basket keeps its own key.
  */
 const linesOf = (
   lines: readonly {
@@ -255,32 +299,50 @@ const linesOf = (
     readonly stockOfferingId?: string;
     readonly stockUnit?: SaleUnit;
     readonly stockQuantity?: number;
+    readonly kitComponents?: readonly KitTaken[];
   }[],
 ) =>
-  lines.map(line => ({
-    key: line.offeringId,
-    parameters:
-      line.stockOfferingId !== undefined &&
-      line.stockUnit !== undefined &&
-      line.stockQuantity !== undefined
-        ? {
-            offeringId: line.stockOfferingId,
-            unit: line.stockUnit,
-            quantity: line.stockQuantity,
-          }
-        : {
-            offeringId: line.offeringId,
-            unit: line.unit,
-            quantity: line.quantity,
+  lines.flatMap(line =>
+    line.kitComponents === undefined
+      ? [ownLineOf(line)]
+      : line.kitComponents.map(component => ({
+          key: `${line.offeringId}~${component.offeringId}`,
+          parameters: {
+            offeringId: component.stockOfferingId,
+            unit: component.stockUnit,
+            quantity: component.stockQuantity,
           },
-  }));
+        })),
+  );
+
+const ownLineOf = (line: Parameters<typeof linesOf>[0][number]) => ({
+  key: line.offeringId,
+  parameters:
+    line.stockOfferingId !== undefined &&
+    line.stockUnit !== undefined &&
+    line.stockQuantity !== undefined
+      ? {
+          offeringId: line.stockOfferingId,
+          unit: line.stockUnit,
+          quantity: line.stockQuantity,
+        }
+      : {
+          offeringId: line.offeringId,
+          unit: line.unit,
+          quantity: line.quantity,
+        },
+});
 
 /** The stock a line took, absent members left absent. */
 const takenOf = (line: {
   readonly stockOfferingId?: string;
   readonly stockUnit?: SaleUnit;
   readonly stockQuantity?: number;
+  readonly kitComponents?: readonly KitTaken[];
 }) => ({
+  ...(line.kitComponents === undefined
+    ? {}
+    : { kitComponents: line.kitComponents }),
   ...(line.stockOfferingId === undefined
     ? {}
     : { stockOfferingId: line.stockOfferingId }),
@@ -655,7 +717,8 @@ const ReturnedLine = openStruct({
   /** The order line's unit: the goods go back in what they were sold in. */
   unit: Schema.Literals(SaleUnits),
   quantity: Schema.Int.check(Schema.isGreaterThan(0)),
-  // What a presentation's line took from its base, as the order copied it.
+  // What a presentation's line took from its base, or a kit's from each
+  // component, as the order copied it.
   ...StockTaken,
 });
 
