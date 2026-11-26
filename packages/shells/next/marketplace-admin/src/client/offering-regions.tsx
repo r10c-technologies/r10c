@@ -1,6 +1,6 @@
 'use client';
 
-import { getUCFactory } from '@entifix/business';
+import { getUCFactory, loadUCFactory } from '@entifix/business';
 import { type Entity, formattingLocale } from '@entifix/core';
 import {
   type CrudContext,
@@ -20,15 +20,19 @@ import {
   useT,
   useTranslateKey,
 } from '@entifix/react-controls';
-import { useEntityRecord } from '@entifix/react-integration';
 import {
-  type ProductOffering,
+  entityQueryScope,
+  useDataLoading,
+  useEntityRecord,
+} from '@entifix/react-integration';
+import {
+  ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
 import { useId } from 'react';
 
-import { PRODUCT_SURFACE } from '../catalog-surfaces';
+import { PRODUCT_OFFERING_SURFACE, PRODUCT_SURFACE } from '../catalog-surfaces';
 import type { MarketplaceAdminAdapters } from './client-types';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 
@@ -209,3 +213,110 @@ export function OfferingImagesRegion({
     </section>
   );
 }
+
+/** The most versions and variants one product's region reads. */
+export const VARIANT_REGION_PAGE = 100;
+
+/**
+ * The other variants of the offering's product (ADR 0085): the vendor's
+ * offerings pinned to any version of the same specification series, each a
+ * link to its own page with the values that tell it apart. Read through the
+ * same store the offering lives in, so no other slice is composed (ADR 0077).
+ * An offering that is no variant shows no region.
+ */
+export function OfferingVariantsRegion({
+  offering,
+}: {
+  readonly offering: ProductOffering;
+}) {
+  return (offering.variantValues?.length ?? 0) > 0 ? (
+    <VariantsRegion offering={offering} />
+  ) : null;
+}
+
+function VariantsRegion({ offering }: { readonly offering: ProductOffering }) {
+  const translateKey = useTranslateKey();
+  const withLocale = useLocaleHref();
+  const adapters = useMarketplaceAdminAdapters();
+  const id = useId();
+  const heading = translateKey(
+    'r10c:marketplaceAdmin.offering.regions.variants',
+  );
+  const { entity: specification } = useEntityRecord<
+    ProductSpecification,
+    CrudContext
+  >({
+    uc: getUCFactory<ProductSpecification>(),
+    ctx: crudContextOf(adapters, 'productRest'),
+    id: offering.specificationId,
+  });
+  const series = specification?.specKey ?? specification?.id;
+  const versions = useDataLoading<ProductSpecification, CrudContext>({
+    uc: loadUCFactory<ProductSpecification>(),
+    ctx: crudContextOf(adapters, 'productRest'),
+    initialPageSize: VARIANT_REGION_PAGE,
+    enabled: series !== undefined,
+    baseFiltering: {
+      operator: 'and',
+      values: [{ property: 'specKey', operator: 'eq', value: String(series) }],
+    },
+    queryKey: [...entityQueryScope(ProductSpecification), 'series', series],
+  });
+  const versionIds = versions.items.map(one => String(one.id));
+  const siblings = useDataLoading<ProductOffering, CrudContext>({
+    uc: loadUCFactory<ProductOffering>(),
+    ctx: crudContextOf(adapters, 'productOfferingRest'),
+    initialPageSize: VARIANT_REGION_PAGE,
+    enabled: versionIds.length > 0,
+    baseFiltering: {
+      operator: 'and',
+      values: [
+        { property: 'specificationId', operator: 'in', values: versionIds },
+      ],
+    },
+    queryKey: [...entityQueryScope(ProductOffering), 'variants', versionIds],
+  });
+  const others = siblings.items.filter(one => one.id !== offering.id);
+  useRegion(id, heading);
+
+  return (
+    <section id={id} aria-labelledby={`${id}-heading`}>
+      <Stack gap="s">
+        <h2
+          id={`${id}-heading`}
+          className="m-0 text-step-1 font-semibold text-content"
+        >
+          {heading}
+        </h2>
+        {others.length === 0 ? (
+          <Text muted>
+            {translateKey('r10c:marketplaceAdmin.offering.variants.alone')}
+          </Text>
+        ) : (
+          <ul className="m-0 ps-s" data-testid="offering-variants">
+            {others.map(one => (
+              <li key={String(one.id)}>
+                <a
+                  className="underline underline-offset-2 focus-ring"
+                  href={withLocale(
+                    `${PRODUCT_OFFERING_SURFACE.basePath}/${String(one.id)}`,
+                  )}
+                >
+                  {variantNameOf(one)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Stack>
+    </section>
+  );
+}
+
+/** An offering named with the values that tell it apart: `Funda (azul)`. */
+export const variantNameOf = (offering: ProductOffering): string => {
+  const values = (offering.variantValues ?? []).map(({ value }) => value);
+  return values.length === 0
+    ? offering.name
+    : `${offering.name} (${values.join(', ')})`;
+};

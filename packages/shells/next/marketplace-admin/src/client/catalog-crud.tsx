@@ -47,6 +47,7 @@ import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 import {
   OFFERING_RELATED_COLUMNS,
   OfferingImagesRegion,
+  OfferingVariantsRegion,
 } from './offering-regions';
 import { PRICE_TIERS_FORM, PriceTiersForm } from './price-tiers-form';
 import { SALE_UNIT_FORM, SaleUnitForm } from './sale-unit-form';
@@ -409,6 +410,7 @@ export const productOfferingCrudWith = ({
     related: [...OFFERING_RELATED_COLUMNS, ...related],
     regions: offering => [
       <OfferingImagesRegion key="images" offering={offering} />,
+      <OfferingVariantsRegion key="variants" offering={offering} />,
       <productOfferingPriceCrud.RelatedList
         key="prices"
         labelKey="r10c:marketplaceAdmin.offering.regions.prices"

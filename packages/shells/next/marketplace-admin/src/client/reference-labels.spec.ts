@@ -20,9 +20,7 @@ describe('CATALOG_REFERENCE_LABELS', () => {
     const referenced = new Set(
       MARKETPLACE_ADMIN_CATALOG_SURFACES.flatMap(surface =>
         extractMetaAccessors(surface.entityConstructor).flatMap(accessor =>
-          accessor.references === undefined
-            ? []
-            : [accessor.references.entity],
+          accessor.references === undefined ? [] : [accessor.references.entity],
         ),
       ),
     );

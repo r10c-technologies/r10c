@@ -17,6 +17,7 @@ import {
 } from './catalog-crud.js';
 import type { MarketplaceAdminAdapters } from './client-types.js';
 import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/marketplace-admin-context.js';
+import { OfferingVariantsRegion, variantNameOf } from './offering-regions.js';
 
 let slug = 'o-1';
 vi.mock('next/navigation', () => ({
@@ -37,17 +38,29 @@ const offering = (id: string, name: string, specificationId: string) =>
     specificationId,
   });
 
+const variant = (id: string, specificationId: string, color: string) =>
+  Object.assign(offering(id, 'Funda', specificationId), {
+    variantValues: [{ axis: 'color' as const, value: color }],
+  });
+
 const adapters = (): MarketplaceAdminAdapters => {
   const specs = inMemoryEntity([
     specification('s-1', [
       { url: 'https://media.test/a.png', alt: 'Una taza azul' },
     ]),
     specification('s-2'),
+    // Two versions of one cased product, and one alone (ADR 0085).
+    Object.assign(specification('s-3'), { specKey: 'funda' }),
+    Object.assign(specification('s-4'), { specKey: 'funda' }),
+    Object.assign(specification('s-5'), { specKey: 'solo' }),
   ]);
   const offerings = inMemoryEntity([
     offering('o-1', 'Taza', 's-1'),
     offering('o-2', 'Plato', 's-2'),
     offering('o-3', 'Suelta', ''),
+    variant('o-4', 's-3', 'negro'),
+    variant('o-5', 's-4', 'azul'),
+    variant('o-6', 's-5', 'rosa'),
   ]);
   const prices = inMemoryEntity([
     Object.assign(new ProductOfferingPrice('o-1', 4500, 'GTQ'), {
@@ -171,5 +184,40 @@ describe('the offering page (#564)', () => {
     renderPage(<crud.SingleViewPage />);
 
     expect(await screen.findByText('Host region for Taza')).toBeInTheDocument();
+  });
+});
+
+describe('the other variants of an offering’s product (ADR 0085)', () => {
+  it('lists the variants pinned to any version of its series, each by its values', async () => {
+    renderPage(
+      <OfferingVariantsRegion offering={variant('o-4', 's-3', 'negro')} />,
+    );
+
+    const list = await screen.findByTestId('offering-variants');
+    expect(
+      within(list).getByRole('link', { name: 'Funda (azul)' }),
+    ).toHaveAttribute('href', expect.stringContaining('o-5'));
+    expect(within(list).queryByText('Funda (negro)')).toBeNull();
+  });
+
+  it('says so when no other variant is in the catalog', async () => {
+    renderPage(
+      <OfferingVariantsRegion offering={variant('o-6', 's-5', 'rosa')} />,
+    );
+
+    expect(
+      await screen.findByText(
+        'Todavía no hay otra variante de este producto en tu catálogo.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows nothing for an offering that is no variant', () => {
+    const { container } = renderPage(
+      <OfferingVariantsRegion offering={offering('o-1', 'Taza', 's-1')} />,
+    );
+
+    expect(container.querySelector('section')).toBeNull();
+    expect(variantNameOf(offering('o-1', 'Taza', 's-1'))).toBe('Taza');
   });
 });

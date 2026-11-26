@@ -722,6 +722,9 @@ export const r10c: EsR10c = {
         resets:
           'The step and the minimum go back to one whole unit of the new unit. Once the offering is published, its unit no longer changes.',
       },
+      variants: {
+        alone: 'No other variant of this product is in your catalog yet.',
+      },
       variant: {
         hint: 'A product’s variants are offerings with their own price and stock: choose what sets this one apart —colour, size, finish or capacity— and its value. Every variant of the product uses the same attributes.',
         none: 'This offering is no variant of its product.',
@@ -748,6 +751,7 @@ export const r10c: EsR10c = {
       regions: {
         images: 'Images',
         prices: 'Prices',
+        variants: 'Other variants',
         stock: 'Stock',
         movements: 'Stock movements',
       },

@@ -774,6 +774,9 @@ export const r10c = {
         resets:
           'El paso y la cantidad mínima vuelven a una unidad completa de la unidad nueva. Después de publicar la oferta, la unidad ya no cambia.',
       },
+      variants: {
+        alone: 'Todavía no hay otra variante de este producto en tu catálogo.',
+      },
       variant: {
         hint: 'Las variantes de un producto son ofertas con su propio precio e inventario: elige en qué se distingue esta —color, talla, acabado o capacidad— y su valor. Todas las variantes del producto usan los mismos atributos.',
         none: 'Esta oferta no es variante de su producto.',
@@ -800,6 +803,7 @@ export const r10c = {
       regions: {
         images: 'Imágenes',
         prices: 'Precios',
+        variants: 'Otras variantes',
         stock: 'Existencias',
         movements: 'Movimientos de inventario',
       },
