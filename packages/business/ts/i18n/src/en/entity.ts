@@ -381,6 +381,7 @@ export const entity: EsEntity = {
       quantityMinimum: 'Minimum quantity',
       stockOfferingId: 'Draws its stock from',
       stockFactor: 'Base units per one',
+      specKey: 'Specification series',
       variantGroup: 'Product it is a variant of',
       variantValues: 'Variant',
       searchText: 'Search text',

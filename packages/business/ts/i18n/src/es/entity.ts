@@ -415,6 +415,7 @@ export const entity = {
       quantityMinimum: 'Cantidad mínima',
       stockOfferingId: 'Toma su inventario de',
       stockFactor: 'Unidades base por cada una',
+      specKey: 'Serie de la especificación',
       variantGroup: 'Producto del que es variante',
       variantValues: 'Variante',
       searchText: 'Texto de búsqueda',

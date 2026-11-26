@@ -124,7 +124,7 @@ const world = (tiers?: { from: number; amount: number }[]) => {
     );
 };
 
-const [publish, unpublish, setSaleUnit, drawOnStock] =
+const [publish, unpublish, setSaleUnit, drawOnStock, setVariant] =
   productOfferingApi.options.useCases;
 const [setPriceTiers] = productOfferingPriceApi.options.useCases;
 const [release, revise, retire, obsolete] =
@@ -448,6 +448,31 @@ describe('an offering', () => {
     expect(drawn).toMatchObject({
       success: {
         data: { id: 'unpriced', stockOfferingId: 'priced', stockFactor: 12 },
+      },
+    });
+  });
+});
+
+describe('a variant', () => {
+  it('records which colour of its product an offering is, and answers the record', async () => {
+    const run = world();
+
+    const set = await run(
+      setVariant.handler(
+        {
+          params: { id: 'priced' },
+          payload: { variantValues: [{ axis: 'color', value: 'azul' }] },
+        },
+        context,
+      ),
+    );
+
+    expect(set).toMatchObject({
+      success: {
+        data: {
+          id: 'priced',
+          variantValues: [{ axis: 'color', value: 'azul' }],
+        },
       },
     });
   });

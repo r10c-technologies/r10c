@@ -29,9 +29,9 @@ export interface VariantAxisChoices {
 const valueOn = (offering: VariantOffering, axis: VariantAxis) =>
   offering.variantValues?.find(one => one.axis === axis)?.value;
 
-/** How many axes two offerings agree on, accent- and case-blind. */
-const agreement = (a: VariantOffering, b: VariantOffering) =>
-  (a.variantValues ?? []).filter(({ axis, value }) => {
+/** How many of a variant's values another offering shares, accent- and case-blind. */
+const agreement = (values: readonly VariantValue[], b: VariantOffering) =>
+  values.filter(({ axis, value }) => {
     const other = valueOn(b, axis);
     return other !== undefined && foldText(other) === foldText(value);
   }).length;
@@ -49,11 +49,16 @@ export const variantChoices = (
   current: VariantOffering,
   siblings: readonly VariantOffering[],
 ): readonly VariantAxisChoices[] => {
-  const variants = siblings.filter(one => (one.variantValues?.length ?? 0) > 0);
+  type Variant = VariantOffering & {
+    readonly variantValues: readonly VariantValue[];
+  };
+  const variants = siblings.filter(
+    (one): one is Variant => (one.variantValues?.length ?? 0) > 0,
+  );
   if (variants.length < 2 || current.variantValues === undefined) return [];
   return VARIANT_AXES.filter(axis => valueOn(current, axis) !== undefined).map(
     axis => {
-      const byValue = new Map<string, VariantOffering>();
+      const byValue = new Map<string, Variant>();
       for (const sibling of variants) {
         const value = valueOn(sibling, axis);
         if (value === undefined) continue;
@@ -61,14 +66,15 @@ export const variantChoices = (
         const held = byValue.get(key);
         if (
           held === undefined ||
-          agreement(sibling, current) > agreement(held, current)
+          agreement(sibling.variantValues, current) >
+            agreement(held.variantValues, current)
         )
           byValue.set(key, sibling);
       }
       const chosen = foldText(valueOn(current, axis) as string);
       return {
         axis,
-        choices: [...byValue.entries()].map(([key, offering]) => ({
+        choices: Array.from(byValue.entries()).map(([key, offering]) => ({
           value: valueOn(offering, axis) as string,
           offeringId: key === chosen ? current.offeringId : offering.offeringId,
           current: key === chosen,

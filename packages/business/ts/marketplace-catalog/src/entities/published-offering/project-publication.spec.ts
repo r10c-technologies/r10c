@@ -72,6 +72,7 @@ describe('projectPublication', () => {
     );
 
     expect(projected.variantGroup).toBe('funda-a15');
+    expect(projected.specKey).toBe('funda-a15');
     expect(projected.variantValues).toEqual([
       { axis: 'color', value: 'negro' },
     ]);

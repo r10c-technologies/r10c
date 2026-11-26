@@ -43,6 +43,7 @@ export const projectPublication = (
   projected.categoryId = publication.categoryId;
   projected.media = publication.media;
   projected.fitsDeviceModelIds = publication.fitsDeviceModelIds;
+  projected.specKey = publication.specKey;
   projected.variantGroup =
     publication.variantValues === undefined ? undefined : publication.specKey;
   projected.variantValues = publication.variantValues;

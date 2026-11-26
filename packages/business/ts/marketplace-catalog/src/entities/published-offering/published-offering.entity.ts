@@ -94,6 +94,7 @@ export class PublishedOffering implements Entity {
   #categoryId?: string;
   #media?: readonly MediaReferenceValue[];
   #fitsDeviceModelIds?: readonly string[];
+  #specKey?: string;
   #variantGroup?: string;
   #variantValues?: readonly VariantValue[];
   #searchText?: string;
@@ -559,6 +560,21 @@ export class PublishedOffering implements Entity {
   }
   set fitsDeviceModelIds(value: readonly string[] | undefined) {
     this.#fitsDeviceModelIds = value;
+  }
+
+  /**
+   * The specification series the pinned version belongs to, as the snapshot
+   * carried it (ADR 0085). `variantGroup` is derived from it for a variant.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.specKey',
+  })
+  get specKey(): string | undefined {
+    return this.#specKey;
+  }
+  set specKey(value: string | undefined) {
+    this.#specKey = value;
   }
 
   /**

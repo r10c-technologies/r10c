@@ -68,7 +68,7 @@ const fixture = name =>
 
 const [
   { DeviceModel, ProductBrand, ProductCategory },
-  { PublishedOffering },
+  { PublishedOffering, searchTextOf },
   { PublishedVendor },
   { configurationHandler, entityBackendHandlers, http, HttpResponse },
   { setupServer },
@@ -208,7 +208,12 @@ const JOURNEY_OFFERINGS = [
 const collections = [
   entityBackendHandlers(PublishedOffering, {
     baseUrl: `${SERVICE_URL}/published-offering`,
-    seed: [...offerings, ...JOURNEY_OFFERINGS],
+    // The search text is derived at projection (#774), so a fixture row gets
+    // it the way the projector would write it.
+    seed: [...offerings, ...JOURNEY_OFFERINGS].map(row => ({
+      ...row,
+      searchText: searchTextOf(row),
+    })),
   }),
   entityBackendHandlers(ProductBrand, {
     baseUrl: `${SERVICE_URL}/product-brand`,

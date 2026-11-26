@@ -81,6 +81,23 @@ describe('variantChoices', () => {
 
     expect(colors?.choices).toHaveLength(2);
   });
+
+  it('weighs a sibling only by the axes both hold', () => {
+    const [colors] = variantChoices(SOLES[0] as VariantOffering, [
+      ...SOLES,
+      {
+        offeringId: 'negro-mate',
+        availableHint: true,
+        variantValues: [
+          { axis: 'color', value: 'negro' },
+          { axis: 'finish', value: 'mate' },
+        ],
+      },
+    ]);
+
+    // The black 40 agrees on two axes, the matte black on one: black stays.
+    expect(colors?.choices[0]?.offeringId).toBe('negro-40');
+  });
 });
 
 describe('VariantPicker', () => {

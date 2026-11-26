@@ -4,7 +4,12 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Context, Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getOffering, loadOfferings, searchOfferings } from './offerings.js';
+import {
+  getOffering,
+  getVariantSiblings,
+  loadOfferings,
+  searchOfferings,
+} from './offerings.js';
 import { parseSearch } from './search-query.js';
 
 /**
@@ -147,6 +152,32 @@ describe('getOffering', () => {
     const { result } = run(getOffering('offering-gone'));
 
     expect(await result).toBeUndefined();
+  });
+});
+
+describe('getVariantSiblings', () => {
+  it('reads the seller’s offerings in the same variant group', async () => {
+    const { load } = run(
+      getVariantSiblings({ vendorId: 'org-1', variantGroup: 'P-0001' }),
+    );
+
+    expect(load).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filtering: [
+          { property: 'vendorId', operator: 'eq', value: 'org-1' },
+          { property: 'variantGroup', operator: 'eq', value: 'P-0001' },
+        ],
+      }),
+    );
+  });
+
+  it('reads nothing for an offering in no group', async () => {
+    const { result, load } = run(
+      getVariantSiblings({ vendorId: 'org-1', variantGroup: undefined }),
+    );
+
+    expect(await result).toEqual([]);
+    expect(load).not.toHaveBeenCalled();
   });
 });
 

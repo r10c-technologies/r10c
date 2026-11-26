@@ -5,7 +5,10 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import {
+  PublishedOffering,
+  searchTextOf,
+} from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 
 import brands from './data/brands.json' with { type: 'json' };
@@ -24,7 +27,14 @@ export interface CatalogRows {
 }
 
 export const CATALOG_ROWS: CatalogRows = {
-  offerings,
+  // The search text is derived at projection (#774); a fixture row gets it
+  // the way the projector writes it, so a search over the fixtures matches.
+  offerings: offerings.map(row => ({
+    ...row,
+    searchText: searchTextOf(
+      row as unknown as Parameters<typeof searchTextOf>[0],
+    ),
+  })),
   brands,
   categories,
   vendors,
