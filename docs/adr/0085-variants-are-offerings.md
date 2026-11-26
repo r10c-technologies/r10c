@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-11-25
+- Revised: 2026-11-26 by [ADR 0086](0086-a-kit-sells-several-offerings-at-one-price.md) — a kit is never a variant: `set-variant` refuses one (`kit`).
 - Area: business
 - Read when: selling one product in several colours or sizes
 

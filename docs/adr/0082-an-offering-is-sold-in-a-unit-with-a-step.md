@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-11-21
+- Revised: 2026-11-26 by [ADR 0086](0086-a-kit-sells-several-offerings-at-one-price.md) — a kit is neither a presentation nor a base: `draw-on-stock` refuses one either way (`isKit`), and a kit's line copies a stock triple per component, restored the same way §7 restores a presentation's.
 - Revised: 2026-11-25 by [ADR 0085](0085-variants-are-offerings.md) — a presentation is never a variant: `draw-on-stock` refuses a variant (`isVariant`) and `set-variant` refuses a presentation, since a variant holds its own stock and a presentation draws on its base's.
 - Revised: 2026-11-22 — §5 gains the key a list orders and filters prices by, `amountPerThousand`, since `amount` compared across `pricePer` ranks a price per hundred a hundred times too dear; and the units, scales and `lineTotal` move to a `business:vocabulary` rung below `business:policy`, so a contract names a unit as a domain does (#672).
 - Revised: 2026-11-23 — §2: only the offering defaults to `UN`; a stock record, an order line and a shipping line state their unit and a body naming none is refused. §3: the cart refuses rather than rounds and a line made invalid blocks the review and the checkout. §4: the ledger tells `unitMismatch` from a first-movement race and from too little stock. §6: the coordinator also overwrites the group's totals, and the order write refuses a line whose `lineTotal` disagrees with its terms. Consequences: what was built, and the check that fails a new multiplication (#672).
