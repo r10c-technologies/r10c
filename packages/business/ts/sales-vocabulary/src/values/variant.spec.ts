@@ -9,7 +9,7 @@ import {
   variantShapeRefusal,
   variantSiblingRefusal,
   variantValuesOf,
-} from './variant';
+} from './variant.js';
 
 describe('variantShapeRefusal', () => {
   it('accepts no variant at all, and a well-formed one', () => {
