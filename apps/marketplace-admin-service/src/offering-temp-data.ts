@@ -33,6 +33,9 @@ export interface ProductOfferingRecord {
    */
   stockOfferingId?: string;
   stockFactor?: number;
+  /** A kit's components and their count (ADR 0086); absent on no kit. */
+  kitComponents?: { offeringId: string; quantity: number }[];
+  kitSize?: number;
   /** Which variant of its product it is (ADR 0085). */
   variantValues?: { axis: string; value: string }[];
   /** A variant's own picture, over its specification's. */
@@ -98,6 +101,30 @@ const stockSourceOf = (
 };
 
 /**
+ * The components a kit is seeded with: each one's positional id, found by its
+ * key in the same store (ADR 0086). A key that names no product throws, for
+ * the reason `stockSourceOf` does.
+ */
+const kitOf = (
+  vendor: Pick<SeededVendor, 'idPrefix' | 'products'>,
+  kit:
+    readonly { readonly key: string; readonly quantity: number }[] | undefined,
+): Pick<ProductOfferingRecord, 'kitComponents' | 'kitSize'> => {
+  if (kit === undefined) return {};
+  return {
+    kitComponents: kit.map(component => {
+      const held = vendor.products.findIndex(one => one.key === component.key);
+      if (held < 0) throw new Error(`no product ${component.key} to hold`);
+      return {
+        offeringId: offeringIdOf(vendor, held),
+        quantity: component.quantity,
+      };
+    }),
+    kitSize: kit.length,
+  };
+};
+
+/**
  * The row whose specification a product row's offering pins: its own, or —
  * for a variant joining another row's product — that row's (ADR 0085). A key
  * that names no product throws, for the reason `stockSourceOf` does.
@@ -137,6 +164,7 @@ export const offeringTempDataFor = (
       quantityStep: product.step,
       quantityMinimum: product.minimum,
       ...stockSourceOf(vendor, product.drawsOn),
+      ...kitOf(vendor, product.kit),
       ...(product.variant === undefined
         ? {}
         : {

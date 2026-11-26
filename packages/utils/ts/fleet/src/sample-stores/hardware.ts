@@ -299,4 +299,26 @@ export const HARDWARE_PRODUCTS: readonly SampleProduct[] = [
     },
     { drawsOn: { key: 'tornillo-madera-8', factor: 500 } },
   ),
+  // A kit (ADR 0086), last for the same reason: anchors and the box of
+  // screws they take, sold together, each from its own stock.
+  product(
+    {
+      key: 'kit-fijacion',
+      name: 'Kit de fijación: tacos ¼" y tornillos #8',
+      description:
+        'Dos bolsas de tacos y una caja de 500 tornillos para madera.',
+      brand: 'tornimax',
+      category: 'screws',
+      art: 'box',
+      amount: 5900,
+      status: 'published',
+      stock: 'none',
+    },
+    {
+      kit: [
+        { key: 'taco-fisher', quantity: 2 },
+        { key: 'tornillo-madera-8-caja', quantity: 1 },
+      ],
+    },
+  ),
 ];

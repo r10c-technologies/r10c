@@ -151,6 +151,25 @@ describe('the sample stores', () => {
     }
   });
 
+  it('sell each kit by the piece from published products of its own store, one level deep', () => {
+    const kits = everyProduct.filter(({ item }) => item.kit !== undefined);
+    expect(kits.length).toBeGreaterThanOrEqual(2);
+    for (const { vendor, item } of kits) {
+      expect(item.unit).toBe('UN');
+      expect(item.stock).toBe('none');
+      expect(item.status).toBe('published');
+      for (const component of item.kit ?? []) {
+        const held = vendor.products.find(one => one.key === component.key);
+        expect(held, `${item.key} holds a product of its store`).toBeDefined();
+        expect(held?.kit).toBeUndefined();
+        expect(held?.unit).toBe('UN');
+        expect(held?.status).toBe('published');
+        expect(Number.isSafeInteger(component.quantity)).toBe(true);
+        expect(component.quantity).toBeGreaterThan(0);
+      }
+    }
+  });
+
   it('fit every phone accessory to at least one seeded model', () => {
     for (const item of PHONE_ACCESSORIES_STORE.products) {
       expect(item.fits?.length).toBeGreaterThan(0);

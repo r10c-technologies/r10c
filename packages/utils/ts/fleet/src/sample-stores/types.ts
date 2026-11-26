@@ -99,6 +99,12 @@ export interface SampleProduct {
    * A presentation is sold by the piece and holds no stock of its own.
    */
   readonly drawsOn?: { readonly key: string; readonly factor: number };
+  /**
+   * The products in this store one of this holds, and how many of each
+   * (ADR 0086): a kit is sold by the piece, holds no stock of its own, and
+   * takes each component from that component's stock.
+   */
+  readonly kit?: readonly { readonly key: string; readonly quantity: number }[];
   /** Seeded device-model ids the product is made for (#641). */
   readonly fits?: readonly string[];
   /**

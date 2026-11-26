@@ -104,6 +104,32 @@ describe('the seeded catalog', () => {
     expect(() => offeringTempDataFor(broken)).toThrow(/no product nothing/);
   });
 
+  it('seeds each kit with its components’ positional ids and their count', () => {
+    const kits = offerings.filter(one => one.kitComponents !== undefined);
+
+    expect(kits.length).toBeGreaterThanOrEqual(2);
+    for (const kit of kits) {
+      const prefix = kit.id.replace(/product-offering-\d+$/, '');
+      expect(kit.kitSize).toBe(kit.kitComponents?.length);
+      for (const component of kit.kitComponents ?? []) {
+        expect(offerings.map(one => one.id)).toContain(component.offeringId);
+        expect(component.offeringId.startsWith(prefix)).toBe(true);
+      }
+    }
+  });
+
+  it('refuses a kit holding a product its store does not hold', () => {
+    const [vendor] = SEEDED_VENDORS;
+    const broken = {
+      ...vendor!,
+      products: [
+        { ...vendor!.products[0]!, kit: [{ key: 'nothing', quantity: 1 }] },
+      ],
+    };
+
+    expect(() => offeringTempDataFor(broken)).toThrow(/no product nothing/);
+  });
+
   it('sells only in units the vocabulary declares', () => {
     for (const offering of offerings) {
       expect(SaleUnits).toContain(offering.saleUnit);
