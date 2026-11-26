@@ -1,3 +1,11 @@
+import { AUTH_SEARCH_SOURCES } from '@r10c/shells-next-auth/server';
+import { FULFILMENT_SEARCH_SOURCES } from '@r10c/shells-next-fulfilment/server';
+import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from '@r10c/shells-next-marketplace-admin/server';
+import { ORDER_SEARCH_SOURCES } from '@r10c/shells-next-order/server';
+import { SALES_SEARCH_SOURCES } from '@r10c/shells-next-sales/server';
+import { SETTLEMENT_SEARCH_SOURCES } from '@r10c/shells-next-settlement/server';
+import { STOCK_SEARCH_SOURCES } from '@r10c/shells-next-stock/server';
+
 import { NAV } from '../src/lib/nav';
 import { SEARCH_SOURCES } from '../src/lib/search-sources';
 
@@ -9,37 +17,31 @@ import { SEARCH_SOURCES } from '../src/lib/search-sources';
  */
 describe('SEARCH_SOURCES', () => {
   it('composes all seven shells, catalog then stock then orders then shipments then sales then settlement then people', () => {
-    // Order is the ranking, so this asserts the order rather than the set: an
+    // Order is the ranking, so this asserts the order of the shells: an
     // operator learns where a kind of record lands, and a reshuffle is a
-    // behaviour change even though every source still resolves.
-    expect(SEARCH_SOURCES.map(source => source.key)).toEqual([
-      'product-specification',
-      'product-offering',
-      'product-offering-price',
-      'catalog-import',
-      'product-brand',
-      'product-category',
-      'device-model',
-      'stock-item',
-      'stock-movement',
-      'reservation',
-      // Declared with the order screens since that shell landed and mounted
-      // here in #249. The host already served the screens, the nav item and the
-      // proxy, so the palette was the one surface those records were absent
-      // from.
-      'product-order',
-      // A shipment, searched by the order it carries — right after the orders,
-      // since that is the id a vendor looking for one already has.
-      'shipping-order',
-      'sales-channel',
-      // ⚠️ **Three, not four.** `SettlementRun` contributes no source and must
-      // not: it has no string member at all, so a source would label every run
-      // by its status and fill a palette with results called "Calculada".
-      'agreement',
-      'commission-entry',
-      'vendor-payout',
-      'user-identity',
-    ]);
+    // behaviour change even though every source still resolves. Each shell's
+    // own spec asserts what it contributes (#773).
+    const shells = [
+      MARKETPLACE_ADMIN_SEARCH_SOURCES,
+      STOCK_SEARCH_SOURCES,
+      ORDER_SEARCH_SOURCES,
+      FULFILMENT_SEARCH_SOURCES,
+      SALES_SEARCH_SOURCES,
+      SETTLEMENT_SEARCH_SOURCES,
+      AUTH_SEARCH_SOURCES,
+    ];
+    expect(shells.every(sources => sources.length > 0)).toBe(true);
+    expect(SEARCH_SOURCES.map(source => source.key)).toEqual(
+      shells.flat().map(source => source.key),
+    );
+  });
+
+  it('leaves the settlement run out: it has no string member to label it by', () => {
+    // A source would label every run by its status and fill a palette with
+    // results called "Calculada".
+    expect(SEARCH_SOURCES.map(source => source.key)).not.toContain(
+      'settlement-run',
+    );
   });
 
   it('gives every source a distinct key, since the key selects and orders', () => {

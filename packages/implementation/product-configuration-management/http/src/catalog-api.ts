@@ -50,6 +50,7 @@ import {
   SetPriceTiersUC,
   SetSaleUnitUC,
   SetStockSourceUC,
+  SetVariantUC,
   SpecificationCommandsTag,
   type SpecificationMove,
   startSpecificationSeries,
@@ -57,7 +58,9 @@ import {
   transitionOfferingFor,
   transitionOfferingSelection,
   UnpublishProductOfferingUC,
+  type VariantPayload,
 } from '@r10c/business-ts-product-configuration-management';
+import { VariantInvalid } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Option } from 'effect';
 
 /** The per-organization store refuses a scope with none; the guard always names one. */
@@ -301,6 +304,27 @@ const drawOnStock = verbEndpoint(SetStockSourceUC, {
     }),
 });
 
+/**
+ * `POST /api/product-offering/:id/set-variant` — the vendor says which colour,
+ * size, finish or capacity of its product this offering is (ADR 0085).
+ * Answered with the record at its new revision.
+ */
+const setVariant = verbEndpoint(SetVariantUC, {
+  handler: (request: EntityApiRequest, context: EntityApiContext) =>
+    Effect.gen(function* () {
+      const offering = yield* SetVariantUC.run({
+        organizationId: organizationOf(context),
+        id: request.params?.id as string,
+        payload: request.payload as VariantPayload,
+      });
+      return makeEntityEnvelope(
+        ProductOffering,
+        offering,
+        context.links.record(offering.id),
+      );
+    }),
+});
+
 const unpublish = verbEndpoint(UnpublishProductOfferingUC, {
   handler: transitionOne('unpublish'),
   bulk: transitionSelected('unpublish'),
@@ -320,7 +344,10 @@ export const productOfferingApi = defineEntityApi(
     guard: { kind: 'organization' },
     prepare: (offering, context) =>
       preserveOfferingLifecycle(offering, organizationOf(context)),
-    useCases: [publish, unpublish, setSaleUnit, drawOnStock],
+    // An offering's own pictures and the variant's product are refused on
+    // the save (ADR 0061, ADR 0085).
+    errors: [MediaNotHttps, MediaAltMissing, VariantInvalid],
+    useCases: [publish, unpublish, setSaleUnit, drawOnStock, setVariant],
   },
 );
 

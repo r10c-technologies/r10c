@@ -223,7 +223,7 @@ describe('the offering reads, on the wire', () => {
     expect(outcome.value.items).toHaveLength(2);
   });
 
-  it('sends a category subtree and a name match as RSQL', async () => {
+  it('sends a category subtree and a word match as RSQL', async () => {
     const { runRead, loadOfferings, emptyPage } = load();
 
     await runRead(
@@ -238,7 +238,7 @@ describe('the offering reads, on the wire', () => {
     expect(rsqlOf(OFFERING_URL)).toContain(
       'categoryId=in=(category-lighting,category-desk)',
     );
-    expect(rsqlOf(OFFERING_URL)).toContain('name=like=lámpara');
+    expect(rsqlOf(OFFERING_URL)).toContain('searchText=like=lámpara');
   });
 
   it('sends the sort, the direction and the page', async () => {

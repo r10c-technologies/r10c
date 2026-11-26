@@ -2,7 +2,10 @@ import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { getBrand } from '@r10c/implementation-catalog-reference-next';
-import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
+import {
+  getOffering,
+  getVariantSiblings,
+} from '@r10c/implementation-marketplace-catalog-next';
 import { getVendor } from '@r10c/implementation-marketplace-vendor-next';
 import { cache } from 'react';
 
@@ -23,6 +26,12 @@ export interface ProductRead {
   readonly ships?: boolean;
   /** Whether the seller is a sample store with illustrative prices (#676). */
   readonly sampleStore?: boolean;
+  /**
+   * The product's published variants, this offering included (ADR 0085) —
+   * empty for an offering that is no variant, or when they could not be read,
+   * which leaves the picker off rather than the page.
+   */
+  readonly siblings: readonly PublishedOffering[];
 }
 
 /**
@@ -43,12 +52,14 @@ export const readProduct = cache(
     );
     if (offering === undefined) return undefined;
 
-    const [brand, vendor] = await Promise.all([
+    const [brand, vendor, siblings] = await Promise.all([
       runRead(ProductBrand, getBrand(offering.brandId), undefined),
       runRead(PublishedVendor, getVendor(offering.vendorId), undefined),
+      runRead(PublishedOffering, getVariantSiblings(offering), []),
     ]);
     return {
       offering,
+      siblings,
       ...(brand ? { brandName: brand.name } : {}),
       ...(vendor
         ? {

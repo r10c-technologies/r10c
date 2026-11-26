@@ -1,15 +1,12 @@
-import { EntityRepositoryTag } from '@entifix/business';
-import { type Entity, type EntityWriter, settled } from '@entifix/core';
 import { ReferenceLabelsHost } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
-import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   ProductOffering,
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
+import { inMemoryEntity } from '@r10c/testing-cells/writer';
 import { render, screen, waitFor, within } from '@testing-library/react';
-import { Context, Effect } from 'effect';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -28,17 +25,6 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-const writer = (
-  context: Context.Context<EntityRepositoryTag>,
-): EntityWriter => {
-  const repository = Context.get(context, EntityRepositoryTag);
-  return {
-    save: entity => Effect.map(repository.save(entity), settled),
-    delete: entityOrId =>
-      Effect.as(repository.delete(entityOrId), settled(undefined)),
-  };
-};
-
 const specification = (id: string, media?: ProductSpecification['media']) =>
   Object.assign(new ProductSpecification('P', `Spec ${id}`), {
     id,
@@ -51,67 +37,36 @@ const offering = (id: string, name: string, specificationId: string) =>
     specificationId,
   });
 
-const real = createClientAdapters();
 const adapters = (): MarketplaceAdminAdapters => {
-  const specs = Context.make(
-    EntityRepositoryTag,
-    makeInMemoryEntityRepository([
-      specification('s-1', [
-        { url: 'https://media.test/a.png', alt: 'Una taza azul' },
-      ]),
-      specification('s-2'),
-    ] as Entity[]),
-  );
-  const offerings = Context.make(
-    EntityRepositoryTag,
-    makeInMemoryEntityRepository([
-      offering('o-1', 'Taza', 's-1'),
-      offering('o-2', 'Plato', 's-2'),
-      offering('o-3', 'Suelta', ''),
-    ] as Entity[]),
-  );
-  const prices = Context.make(
-    EntityRepositoryTag,
-    makeInMemoryEntityRepository([
-      Object.assign(new ProductOfferingPrice('o-1', 4500, 'GTQ'), {
-        id: 'p-1',
-      }),
-      // Q7.50 the hundred (ADR 0082 §5).
-      Object.assign(new ProductOfferingPrice('o-2', 750, 'GTQ'), {
-        id: 'p-2',
-        pricePer: 100,
-      }),
-    ] as Entity[]),
-  );
+  const specs = inMemoryEntity([
+    specification('s-1', [
+      { url: 'https://media.test/a.png', alt: 'Una taza azul' },
+    ]),
+    specification('s-2'),
+  ]);
+  const offerings = inMemoryEntity([
+    offering('o-1', 'Taza', 's-1'),
+    offering('o-2', 'Plato', 's-2'),
+    offering('o-3', 'Suelta', ''),
+  ]);
+  const prices = inMemoryEntity([
+    Object.assign(new ProductOfferingPrice('o-1', 4500, 'GTQ'), {
+      id: 'p-1',
+    }),
+    // Q7.50 the hundred (ADR 0082 §5).
+    Object.assign(new ProductOfferingPrice('o-2', 750, 'GTQ'), {
+      id: 'p-2',
+      pricePer: 100,
+    }),
+  ]);
   return {
-    productRest: specs,
-    productWriter: writer(specs),
-    deviceModelRest: specs,
-    deviceModelWriter: writer(specs),
-    productBrandRest: specs,
-    productBrandWriter: writer(specs),
-    productCategoryRest: specs,
-    productCategoryWriter: writer(specs),
-    productOfferingRest: offerings,
-    productOfferingWriter: writer(offerings),
-    productOfferingPriceRest: prices,
-    productOfferingPriceWriter: writer(prices),
-    catalogImportRest: specs,
-    catalogImport: {
-      readTable: () => Promise.resolve([]),
-      references: () =>
-        Promise.resolve({ brands: [], categories: [], deviceModels: [] }),
-      submit: () => Promise.resolve({ ok: false, code: 'unexpected' }),
-    },
-    publishedVendorRest: specs,
-    referenceMetadata: real.referenceMetadata,
-    catalogMetadata: real.catalogMetadata,
-    productBrandUseCases: real.productBrandUseCases,
-    deviceModelUseCases: real.deviceModelUseCases,
-    productCategoryUseCases: real.productCategoryUseCases,
-    productOfferingUseCases: real.productOfferingUseCases,
-    productOfferingPriceUseCases: real.productOfferingPriceUseCases,
-    productUseCases: real.productUseCases,
+    ...createClientAdapters(),
+    productRest: specs.rest,
+    productWriter: specs.writer,
+    productOfferingRest: offerings.rest,
+    productOfferingWriter: offerings.writer,
+    productOfferingPriceRest: prices.rest,
+    productOfferingPriceWriter: prices.writer,
   };
 };
 

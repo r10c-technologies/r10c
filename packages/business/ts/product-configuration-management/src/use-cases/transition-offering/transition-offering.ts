@@ -5,6 +5,7 @@ import {
   type CatalogPublication,
   catalogPublishedEvent,
   catalogUnpublishedEvent,
+  plainVariant,
   readDeviceModelIds,
   readMedia,
 } from '@r10c/business-ts-catalog-contracts';
@@ -221,9 +222,17 @@ const MERCHANDISING = ['code', 'description', 'brandId', 'categoryId'] as const;
  * claiming to be a reference.
  */
 const merchandisingOf = (
+  offering: ProductOffering,
   specification: ProductSpecification | undefined,
 ): Partial<CatalogPublication> => {
-  const media = readMedia(specification?.media);
+  // The offering's own pictures win: a black case is not the blue one's
+  // photo (ADR 0085). Absent, the specification's (ADR 0061).
+  const media = readMedia(offering.media) ?? readMedia(specification?.media);
+  const variantValues = plainVariant(offering.variantValues);
+  const specKey =
+    specification === undefined
+      ? undefined
+      : (specification.specKey ?? String(specification.id));
   const fitsDeviceModelIds = readDeviceModelIds(
     specification?.fitsDeviceModelIds,
   );
@@ -238,6 +247,8 @@ const merchandisingOf = (
     // plain `{ url, alt }` values the save already accepted (ADR 0061).
     ...(media === undefined ? {} : { media }),
     ...(fitsDeviceModelIds === undefined ? {} : { fitsDeviceModelIds }),
+    ...(specKey === undefined ? {} : { specKey }),
+    ...(variantValues === undefined ? {} : { variantValues }),
   };
 };
 
@@ -369,7 +380,7 @@ export const offeringPublication = (input: {
     // Absent, never `undefined`, on an offering that draws on no base.
     ...(stockSource ?? {}),
     ...pinOf(offering, specification),
-    ...merchandisingOf(specification),
+    ...merchandisingOf(offering, specification),
   };
 };
 

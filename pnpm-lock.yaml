@@ -3293,6 +3293,9 @@ importers:
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../../business/ts/product-configuration-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -3718,6 +3721,9 @@ importers:
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../../business/ts/product-configuration-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -4900,6 +4906,9 @@ importers:
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
       '@types/papaparse':
         specifier: 5.5.2
         version: 5.5.2
@@ -4983,6 +4992,9 @@ importers:
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
 
   packages/shells/next/settlement:
     dependencies:
@@ -5026,6 +5038,9 @@ importers:
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
 
   packages/shells/next/stock:
     dependencies:
@@ -5066,6 +5081,9 @@ importers:
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
 
   packages/shells/next/system-management:
     dependencies:
@@ -5133,6 +5151,12 @@ importers:
 
   packages/testing/cells:
     dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.23.13(effect@4.0.7)
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.23.13(effect@4.0.7)
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.23.13(@entifix/transactions@0.23.13(effect@4.0.7))(effect@4.0.7)

@@ -194,6 +194,8 @@ export const errors: EsErrors = {
     'Each volume price starts at a quantity the product sells, above its minimum and above the one before, and costs less than the price before it. A price holds at most five.',
   stockSourceInvalid:
     "A presentation is sold by the unit and takes a whole number of its base's units. Its base is another offering of yours that is not itself a presentation, and a presentation is never another one's base.",
+  variantInvalid:
+    "A variant picks up to three attributes —colour, size, finish or capacity— with a short value each. Every variant of a product uses the same attributes and none repeats another one's combination; a presentation cannot be a variant.",
   saleUnitFixed:
     'This offering was already published, so its unit cannot change. Create another offering to sell it in another unit.',
   importTooLarge:

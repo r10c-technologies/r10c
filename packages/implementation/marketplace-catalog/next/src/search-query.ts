@@ -1,12 +1,12 @@
 import {
   type EntityLoadRequest,
+  type FilterGroup,
   type Locale,
   parseScaled,
   scaledToDecimal,
 } from '@entifix/core';
 import {
   anyOf,
-  containing,
   defineUrlQuery,
   type UrlState,
 } from '@entifix/react-integration/url-query';
@@ -30,6 +30,32 @@ export const SEARCH_PAGE_SIZE = 24;
 export interface SearchContext {
   readonly subtreeOf: (categoryId: string) => readonly string[];
 }
+
+/** The most words one search matches on; the rest of a pasted line is noise. */
+export const MAX_SEARCH_WORDS = 6;
+
+/**
+ * A search term as the words it is matched by: split on whitespace, at most
+ * {@link MAX_SEARCH_WORDS}, every one required somewhere in the offering's
+ * `searchText` (#774). "funda negra" then finds the black case whose name says
+ * only "funda", and word order stops mattering. `like` is accent- and
+ * case-blind (entifix 0011), so `cafe` still finds `café`.
+ */
+export const searchWords = (term: string): readonly string[] =>
+  term
+    .split(/\s+/)
+    .filter(word => word !== '')
+    .slice(0, MAX_SEARCH_WORDS);
+
+/** The filter a search term is: one `like` per word on `searchText`, all of them. */
+export const everyWord = (term: string): FilterGroup<PublishedOffering> => ({
+  operator: 'and',
+  values: searchWords(term).map(word => ({
+    property: 'searchText',
+    operator: 'like',
+    value: word,
+  })),
+});
 
 /** Decimals a price is typed in: the currency's minor unit. */
 const PRICE_SCALE = 2;
@@ -81,7 +107,7 @@ assertQueryable(
   Object.values(SORTS).map(([member]) => member),
 );
 assertQueryable(PublishedOffering, 'filterable', [
-  'name',
+  'searchText',
   'fitsDeviceModelIds',
 ]);
 
@@ -111,7 +137,8 @@ export const searchQuery = defineUrlQuery<
   SearchContext
 >({
   params: {
-    q: { single: true, condition: containing(() => 'name') },
+    // A `single` param always hands its one value over.
+    q: { single: true, condition: ([term]) => everyWord(String(term)) },
     brand: { condition: anyOf('brandId') },
     category: {
       single: true,

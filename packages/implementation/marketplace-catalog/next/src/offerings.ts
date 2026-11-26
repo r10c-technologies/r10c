@@ -9,6 +9,7 @@ import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Effect } from 'effect';
 
 import {
+  everyWord,
   type SearchContext,
   searchRequest,
   type SearchState,
@@ -83,14 +84,12 @@ export const loadOfferings = (
           } satisfies EntityFilter<PublishedOffering>,
         ]
       : []),
+    // Every word of the term, anywhere in what the offering is searched by
+    // (#774) — the one rule the search page's address applies too.
     ...(query.search
-      ? [
-          {
-            property: 'name',
-            operator: 'like',
-            value: query.search,
-          } satisfies EntityFilter<PublishedOffering>,
-        ]
+      ? everyWord(query.search).values.map(
+          word => word as EntityFilter<PublishedOffering>,
+        )
       : []),
     ...(query.availableOnly
       ? [
@@ -140,3 +139,28 @@ export const getOffering = (
     filtering: [{ property: 'offeringId', operator: 'eq', value: offeringId }],
     pageSize: 1,
   }).pipe(Effect.map(page => page.items[0]));
+
+/** The most variants one product page lists. */
+export const VARIANT_SIBLINGS_PAGE = 100;
+
+/**
+ * The other variants of an offering's product, the offering included — the
+ * published offerings of its seller in its variant group (ADR 0085). An
+ * offering in no group has none, and nothing is read.
+ */
+export const getVariantSiblings = (
+  offering: Pick<PublishedOffering, 'vendorId' | 'variantGroup'>,
+): OfferingRead<readonly PublishedOffering[]> =>
+  offering.variantGroup === undefined
+    ? Effect.succeed([])
+    : load({
+        filtering: [
+          { property: 'vendorId', operator: 'eq', value: offering.vendorId },
+          {
+            property: 'variantGroup',
+            operator: 'eq',
+            value: offering.variantGroup,
+          },
+        ],
+        pageSize: VARIANT_SIBLINGS_PAGE,
+      }).pipe(Effect.map(page => page.items));

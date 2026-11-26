@@ -9,3 +9,4 @@ export * from './sale-terms';
 export * from './sale-unit';
 export * from './sales-channel-type';
 export * from './stock-source';
+export * from './variant';

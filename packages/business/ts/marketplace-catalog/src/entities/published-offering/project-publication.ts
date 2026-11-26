@@ -43,5 +43,24 @@ export const projectPublication = (
   projected.categoryId = publication.categoryId;
   projected.media = publication.media;
   projected.fitsDeviceModelIds = publication.fitsDeviceModelIds;
+  projected.specKey = publication.specKey;
+  projected.variantGroup =
+    publication.variantValues === undefined ? undefined : publication.specKey;
+  projected.variantValues = publication.variantValues;
+  projected.searchText = searchTextOf(publication);
   return projected;
 };
+
+/**
+ * Every word a buyer may search an offering by, in one string: its name, its
+ * code, its variant's values and its description (#774).
+ */
+export const searchTextOf = (publication: CatalogPublication): string =>
+  [
+    publication.name,
+    publication.code,
+    ...(publication.variantValues ?? []).map(({ value }) => value),
+    publication.description,
+  ]
+    .filter(part => part !== undefined && part !== '')
+    .join(' ');

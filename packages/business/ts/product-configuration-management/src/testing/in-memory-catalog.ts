@@ -45,6 +45,8 @@ export const makeInMemoryOfferingCatalog = (
     }
   }
   const prices = new Map<string, { revision?: number }>();
+  // `<organization>/<series>|<key>` → the offering holding the combination.
+  const slots = new Map<string, string>();
   for (const [organizationId, seeded] of Object.entries(priceSeed)) {
     for (const { id, revision } of seeded) {
       prices.set(`${organizationId}/${id}`, { revision });
@@ -81,6 +83,25 @@ export const makeInMemoryOfferingCatalog = (
         const record = stored.get(`${organizationId}/${String(offering.id)}`);
         if (record === undefined || record.revision !== offering.revision)
           return 'changed';
+        record.revision = (record.revision ?? 0) + 1;
+        return 'committed';
+      }),
+    setVariant: (organizationId, offering, slot) =>
+      Effect.sync(() => {
+        const id = String(offering.id);
+        const record = stored.get(`${organizationId}/${id}`);
+        if (record === undefined || record.revision !== offering.revision)
+          return 'changed';
+        const claim =
+          slot === undefined
+            ? undefined
+            : `${organizationId}/${slot.series}|${slot.key}`;
+        const holder = claim === undefined ? undefined : slots.get(claim);
+        if (holder !== undefined && holder !== id) return 'taken';
+        for (const [key, owner] of slots)
+          if (owner === id && key.startsWith(`${organizationId}/`))
+            slots.delete(key);
+        if (claim !== undefined) slots.set(claim, id);
         record.revision = (record.revision ?? 0) + 1;
         return 'committed';
       }),

@@ -45,7 +45,9 @@ const linesOf = (name: string): string[] => {
  * picture itself says it is not a photograph of stock.
  */
 export const renderSamplePicture = (product: SampleProduct): string => {
-  const { tone } = sampleCategory(product.category);
+  // A variant draws in its own colour, so a black case is not the blue one
+  // (ADR 0085); every other product in its category's.
+  const tone = product.tone ?? sampleCategory(product.category).tone;
   const name = linesOf(product.name)
     .map(
       (line, index) =>

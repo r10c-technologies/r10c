@@ -210,6 +210,16 @@ export const r10c = {
       tierApplied: 'Precio por volumen desde {{quantity}}',
     },
     product: {
+      variant: {
+        label: 'Variantes',
+        unavailable: '{{value}}, agotado',
+        axis: {
+          color: 'Color',
+          size: 'Talla',
+          finish: 'Acabado',
+          capacity: 'Capacidad',
+        },
+      },
       buy: 'Comprar',
       soldBy: 'Vendido por {{seller}}',
       delivery: {
@@ -755,6 +765,13 @@ export const r10c = {
       saleUnit: {
         resets:
           'El paso y la cantidad mínima vuelven a una unidad completa de la unidad nueva. Después de publicar la oferta, la unidad ya no cambia.',
+      },
+      variant: {
+        hint:
+          'Las variantes de un producto son ofertas con su propio precio e inventario: elige en qué se distingue esta —color, talla, acabado o capacidad— y su valor. Todas las variantes del producto usan los mismos atributos.',
+        none: 'Esta oferta no es variante de su producto.',
+        add: 'Añadir atributo',
+        remove: 'Quitar el atributo {{position}}',
       },
       stockSource: {
         hint: 'Una caja, un rollo o una docena se vende del inventario de otra oferta: cada una que se vende toma esta cantidad de ella, así la caja y las sueltas comparten un mismo saldo.',

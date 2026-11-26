@@ -479,6 +479,28 @@ describe('what a transition announces', () => {
       description: 'Glazed by hand.',
       brandId: 'product-brand-3',
       categoryId: 'product-category-7',
+      // A specification from before versioning is its own series.
+      specKey: 'spec-1',
+    });
+  });
+
+  it('carries the variant and the offering’s own pictures over the specification’s', () => {
+    const variant = Object.assign(offering('1', 'draft'), {
+      variantValues: [
+        { axis: 'size', value: '40' },
+        { axis: 'color', value: 'café' },
+      ],
+      media: [{ url: 'https://media.test/cafe.png', alt: 'Suela café' }],
+    });
+
+    const event = publicationOf(run([variant], '1', 'publish').exit);
+
+    expect(event.data).toMatchObject({
+      variantValues: [
+        { axis: 'color', value: 'café' },
+        { axis: 'size', value: '40' },
+      ],
+      media: [{ url: 'https://media.test/cafe.png', alt: 'Suela café' }],
     });
   });
 

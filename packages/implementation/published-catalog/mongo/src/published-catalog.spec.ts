@@ -329,6 +329,8 @@ describe('the payload and the record it is written into', () => {
       categoryId: true,
       media: true,
       fitsDeviceModelIds: true,
+      specKey: true,
+      variantValues: true,
     };
 
     for (const member of Object.keys(publication)) {

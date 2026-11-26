@@ -200,6 +200,16 @@ export const r10c: EsR10c = {
       tierApplied: 'Volume price from {{quantity}}',
     },
     product: {
+      variant: {
+        label: 'Variants',
+        unavailable: '{{value}}, sold out',
+        axis: {
+          color: 'Colour',
+          size: 'Size',
+          finish: 'Finish',
+          capacity: 'Capacity',
+        },
+      },
       buy: 'Buy',
       soldBy: 'Sold by {{seller}}',
       delivery: {
@@ -703,6 +713,13 @@ export const r10c: EsR10c = {
       saleUnit: {
         resets:
           'The step and the minimum go back to one whole unit of the new unit. Once the offering is published, its unit no longer changes.',
+      },
+      variant: {
+        hint:
+          'A product’s variants are offerings with their own price and stock: choose what sets this one apart —colour, size, finish or capacity— and its value. Every variant of the product uses the same attributes.',
+        none: 'This offering is no variant of its product.',
+        add: 'Add an attribute',
+        remove: 'Remove attribute {{position}}',
       },
       stockSource: {
         hint: "A box, a roll or a dozen is sold from another offering's stock: each one sold takes this much from it, so the box and the loose units share one balance.",

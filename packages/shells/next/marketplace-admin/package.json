@@ -45,6 +45,7 @@
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",
     "@r10c/business-ts-i18n": "workspace:*",
+    "@r10c/testing-cells": "workspace:*",
     "@types/papaparse": "5.5.2"
   },
   "dependencies": {

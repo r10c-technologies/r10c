@@ -1,6 +1,11 @@
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
 import {
+  MediaReference,
+  type MediaReferenceValue,
+  VariantValueEntry,
+} from '@r10c/business-ts-catalog-contracts';
+import {
   DEFAULT_SALE_UNIT,
   oneWholeUnit,
   SALE_UNIT_NAME_KEY,
@@ -8,6 +13,7 @@ import {
   SALE_UNIT_SYMBOL_KEY,
   type SaleUnit,
   SaleUnits,
+  type VariantValue,
 } from '@r10c/business-ts-sales-vocabulary';
 
 import {
@@ -63,6 +69,8 @@ export class ProductOffering implements Entity {
   #quantityMinimum = oneWholeUnit(DEFAULT_SALE_UNIT);
   #stockOfferingId?: string;
   #stockFactor?: number;
+  #variantValues?: readonly VariantValue[];
+  #media?: readonly MediaReferenceValue[];
   #revision?: number;
   // #endregion
 
@@ -301,6 +309,48 @@ export class ProductOffering implements Entity {
   }
   set stockFactor(value: number | undefined) {
     this.#stockFactor = value;
+  }
+
+  /**
+   * What makes this offering one **variant** of its product: the colour, the
+   * size, the finish or the capacity it is sold in, beside the product's
+   * other offerings in the same specification series
+   * ([ADR 0085](../../../../../../../docs/adr/0085-variants-are-offerings.md)).
+   * Each variant is a whole offering — its own price, stock row and order
+   * line — so nothing downstream of the catalog learns the word.
+   *
+   * ⚠️ **Server-owned.** Only `set-variant` writes it, checking the axes
+   * against the product's other variants; a save carries the stored value
+   * across. Absent is no variant, never `[]`.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => VariantValueEntry,
+    labelKey: 'entity:product-offering.fields.variantValues',
+  })
+  get variantValues(): readonly VariantValue[] | undefined {
+    return this.#variantValues;
+  }
+  set variantValues(value: readonly VariantValue[] | undefined) {
+    this.#variantValues = value;
+  }
+
+  /**
+   * This offering's own pictures — a black case is not the blue one's photo.
+   * Absent, the publication shows its specification's (ADR 0061, ADR 0085).
+   * The same references the specification holds, checked by `mediaRefusal`
+   * on every write path.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => MediaReference,
+    labelKey: 'entity:product-offering.fields.media',
+  })
+  get media(): readonly MediaReferenceValue[] | undefined {
+    return this.#media;
+  }
+  set media(value: readonly MediaReferenceValue[] | undefined) {
+    this.#media = value;
   }
 
   // The revision check (ADR 0079 §4, entifix 0032): an authored record states

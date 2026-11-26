@@ -27,7 +27,12 @@ export const SHOEMAKING_SUPPLY_PRODUCTS: readonly SampleProduct[] = [
       status: 'published',
       stock: 120,
     },
-    BY_THE_YARD,
+    // One product in two colours (ADR 0085).
+    {
+      ...BY_THE_YARD,
+      variant: { values: [{ axis: 'color', value: 'negro' }] },
+      tone: '#2b2b2b',
+    },
   ),
   product(
     {
@@ -41,7 +46,14 @@ export const SHOEMAKING_SUPPLY_PRODUCTS: readonly SampleProduct[] = [
       status: 'published',
       stock: 90,
     },
-    BY_THE_YARD,
+    {
+      ...BY_THE_YARD,
+      variant: {
+        values: [{ axis: 'color', value: 'café' }],
+        of: 'cuerina-negra',
+      },
+      tone: '#7a4a24',
+    },
   ),
   product(
     {
@@ -97,7 +109,17 @@ export const SHOEMAKING_SUPPLY_PRODUCTS: readonly SampleProduct[] = [
       status: 'published',
       stock: 40,
     },
-    { unit: 'PAR' },
+    // By size and colour (ADR 0085); the other variants close the list.
+    {
+      unit: 'PAR',
+      variant: {
+        values: [
+          { axis: 'color', value: 'negro' },
+          { axis: 'size', value: '40' },
+        ],
+      },
+      tone: '#2b2b2b',
+    },
   ),
   product(
     {
@@ -257,5 +279,39 @@ export const SHOEMAKING_SUPPLY_PRODUCTS: readonly SampleProduct[] = [
       stock: 10,
     },
     { unit: 'PAR' },
+  ),
+  // The rubber sole's other sizes and colours (ADR 0085), appended because
+  // a product's position is its id.
+  ...(
+    [
+      ['negro', '41', '#2b2b2b', 25],
+      ['café', '40', '#7a4a24', 12],
+      ['café', '42', '#7a4a24', 8],
+    ] as const
+  ).map(([color, size, tone, stock]) =>
+    product(
+      {
+        key: `suela-hule-caballero-${color === 'café' ? 'cafe' : color}-${size}`,
+        name: `Suela de hule para caballero, ${color}, talla ${size}`,
+        description: 'Antiderrapante.',
+        brand: 'suelatex',
+        category: 'soles',
+        art: 'sole',
+        amount: 3500,
+        status: 'published',
+        stock,
+      },
+      {
+        unit: 'PAR',
+        variant: {
+          values: [
+            { axis: 'color', value: color },
+            { axis: 'size', value: size },
+          ],
+          of: 'suela-hule-caballero',
+        },
+        tone,
+      },
+    ),
   ),
 ];

@@ -14,6 +14,8 @@ import {
   saleTermsOf,
   type SaleUnit,
   stockSourceOf,
+  type VariantValue,
+  variantValuesOf,
 } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
@@ -181,6 +183,20 @@ export interface CatalogPublication extends SaleTerms {
    * never `[]`, when the vendor has not said.
    */
   readonly fitsDeviceModelIds?: readonly string[];
+  /**
+   * The specification **series** the pinned version belongs to — its
+   * `specKey`, or the version's own id when it has none. Every variant of one
+   * product shares it across versions, so it is what the storefront groups a
+   * product's variants by (ADR 0085). Absent on a publication from before it
+   * existed, which the projection reads as no group.
+   */
+  readonly specKey?: string;
+  /**
+   * The colour, size, finish or capacity this offering is of its product, in
+   * the axis list's order (ADR 0085). Absent, never `[]`, when the offering is
+   * no variant.
+   */
+  readonly variantValues?: readonly VariantValue[];
 }
 
 /**
@@ -313,6 +329,19 @@ const stockOf = (
 ): Pick<CatalogPublication, 'stockOfferingId' | 'stockFactor' | 'stockUnit'> =>
   stockSourceOf(raw) ?? {};
 
+/**
+ * A variant as plain `{ axis, value }` values in the axis order, or absent
+ * when the payload states none or not a well-formed one: an offering whose
+ * variant was lost still sells, as a product of its own.
+ */
+export const plainVariant = (
+  value: unknown,
+): readonly VariantValue[] | undefined =>
+  variantValuesOf(value)?.map(({ axis, value: chosen }) => ({
+    axis,
+    value: chosen,
+  }));
+
 const optionalString = (value: unknown): string | undefined =>
   typeof value === 'string' && value !== '' ? value : undefined;
 
@@ -349,6 +378,8 @@ export const readCatalogPublication = (
         categoryId: optionalString(raw['categoryId']),
         media: readMedia(raw['media']),
         fitsDeviceModelIds: readDeviceModelIds(raw['fitsDeviceModelIds']),
+        specKey: optionalString(raw['specKey']),
+        variantValues: plainVariant(raw['variantValues']),
         ...tiersOf(raw['tiers']),
         ...stockOf(raw),
         ...terms,

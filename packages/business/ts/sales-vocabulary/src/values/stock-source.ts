@@ -28,6 +28,7 @@ export const StockSourceProblems = [
   'baseMissing',
   'baseIsPresentation',
   'isBase',
+  'isVariant',
 ] as const;
 
 export type StockSourceProblem = (typeof StockSourceProblems)[number];
@@ -36,7 +37,8 @@ export type StockSourceProblem = (typeof StockSourceProblems)[number];
  * A stock source that cannot be drawn on: the presentation is not sold in
  * `UN`, the factor is not a positive count, the base is the offering itself,
  * missing, or a presentation already, or the offering is already a base for
- * another — one level only.
+ * another — one level only — or the offering is a variant of a product, whose
+ * stock is its own (ADR 0085).
  */
 export class StockSourceInvalid extends Failure.invalid<StockSourceInvalid>()(
   'StockSourceInvalid',

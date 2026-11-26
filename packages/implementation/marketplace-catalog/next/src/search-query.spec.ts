@@ -5,13 +5,16 @@ import '@r10c/business-ts-i18n/locales';
 import { describe, expect, it } from 'vitest';
 
 import {
+  everyWord,
   hiddenSearchFields,
+  MAX_SEARCH_WORDS,
   parseSearch,
   SEARCH_PAGE_SIZE,
   type SearchContext,
   searchHref,
   searchQuery,
   searchRequest,
+  searchWords,
 } from './search-query.js';
 
 const flat: SearchContext = { subtreeOf: id => [id] };
@@ -184,7 +187,12 @@ describe('searchRequest', () => {
       page: 2,
       pageSize: SEARCH_PAGE_SIZE,
       filtering: [
-        { property: 'name', operator: 'like', value: 'lamp' },
+        // Every word of the term, against what an offering is searched by
+        // (#774).
+        {
+          operator: 'and',
+          values: [{ property: 'searchText', operator: 'like', value: 'lamp' }],
+        },
         { property: 'brandId', operator: 'in', values: ['b-1', 'b-2'] },
         // The category facet matches the whole subtree (ADR 0062).
         {
@@ -231,5 +239,22 @@ describe('the buyer’s phone (plan 1.17)', () => {
     const state = parseSearch({ q: 'funda', model: 'dm-1', page: '3' }, 'es');
 
     expect(hiddenSearchFields(state, ['model'])).toEqual([['q', 'funda']]);
+  });
+});
+
+describe('everyWord', () => {
+  it('requires every word, in any order, against the search text', () => {
+    expect(everyWord('  funda   negra ')).toEqual({
+      operator: 'and',
+      values: [
+        { property: 'searchText', operator: 'like', value: 'funda' },
+        { property: 'searchText', operator: 'like', value: 'negra' },
+      ],
+    });
+  });
+
+  it('keeps the first words of a pasted line, and none of a blank one', () => {
+    expect(searchWords('a b c d e f g h')).toHaveLength(MAX_SEARCH_WORDS);
+    expect(searchWords('   ')).toEqual([]);
   });
 });

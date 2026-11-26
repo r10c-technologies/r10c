@@ -101,6 +101,21 @@ export interface SampleProduct {
   readonly drawsOn?: { readonly key: string; readonly factor: number };
   /** Seeded device-model ids the product is made for (#641). */
   readonly fits?: readonly string[];
+  /**
+   * What makes this row one variant of a product (ADR 0085): its values, and
+   * — on every variant but the first — the key of the product row whose
+   * specification it joins. A row that joins another seeds no specification
+   * of its own; its offering pins the other's.
+   */
+  readonly variant?: {
+    readonly values: readonly {
+      readonly axis: 'color' | 'size' | 'finish' | 'capacity';
+      readonly value: string;
+    }[];
+    readonly of?: string;
+  };
+  /** The picture's colour as `#rrggbb`, when not its category's: a variant's own. */
+  readonly tone?: string;
   readonly art: SampleArt;
 }
 
