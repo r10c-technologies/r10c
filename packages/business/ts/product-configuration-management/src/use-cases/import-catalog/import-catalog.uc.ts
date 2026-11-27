@@ -5,7 +5,12 @@ import {
   catalogPublishedEvent,
   MediaReference,
 } from '@r10c/business-ts-catalog-contracts';
-import type { PricePer, SaleUnit } from '@r10c/business-ts-sales-vocabulary';
+import {
+  isSellableRule,
+  type PricePer,
+  priceTiersRefusal,
+  type SaleUnit,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
 import type { ImportRejection } from '../../entities/catalog-import';
@@ -23,11 +28,14 @@ import {
   CatalogImportModes,
 } from '../../values/catalog-import-status';
 import {
+  DEFAULTED_IMPORT_COLUMNS,
   IMPORT_DUPLICATE,
   IMPORT_SPECIFICATION_CHANGED,
   type ImportColumn,
   type ImportRow,
   importRowRefusal,
+  PRICE_TIERS_INVALID,
+  SALE_RULE_INVALID,
 } from '../../values/import-sheet';
 import { contentHashOf } from '../../values/specification-lifecycle';
 import { startSpecificationSeries } from '../specification-lifecycle/specification-flows';
@@ -55,6 +63,9 @@ export const ImportRowSchema = Schema.Struct({
   quantityMinimum: Schema.Int,
   tiers: Schema.optional(
     Schema.Array(Schema.Struct({ from: Schema.Int, amount: Schema.Int })),
+  ),
+  defaulted: Schema.optional(
+    Schema.Array(Schema.Literals(DEFAULTED_IMPORT_COLUMNS)),
   ),
 });
 
@@ -202,10 +213,20 @@ const merchandisingChange = (
 };
 
 /**
- * The offering and price a row changes them into, or why it may not. The unit
- * is never changed here, whatever the offering's standing: `set-sale-unit`
- * owns it, and a unit moved under stored quantities would change what each of
- * them means (ADR 0082 §8).
+ * The offering and price a row changes them into, or why it may not.
+ *
+ * A sale-term cell the sheet left empty keeps what the product has, rather
+ * than the default a new product would take: a sheet of prices alone must not
+ * reset a step of six to one or drop the volume tiers (ADR 0084 §8). The terms
+ * that result are then asked what a save would ask of them, since a lower
+ * price under the stored tiers can leave a tier no cheaper than the base.
+ *
+ * The unit is never changed here, whatever the offering's standing:
+ * `set-sale-unit` owns it, and a unit moved under stored quantities would
+ * change what each of them means (ADR 0082 §8). An empty unit cell is the
+ * product's unit, but the row's quantities were read in the default one, so
+ * a row that leaves the unit empty and states a quantity for a product sold
+ * in another unit is refused rather than read in the wrong scale.
  */
 const updatedRecordsOf = (
   row: ImportRow,
@@ -215,14 +236,44 @@ const updatedRecordsOf = (
 ):
   | UpdateRefusal
   | { offering: ProductOffering; price: ProductOfferingPrice } => {
-  if (row.saleUnit !== offering.saleUnit)
+  const kept = new Set(row.defaulted);
+  const statesQuantity =
+    !kept.has('step') || !kept.has('minimum') || !kept.has('tiers');
+  if (
+    row.saleUnit !== offering.saleUnit &&
+    (!kept.has('unit') || statesQuantity)
+  )
     return { code: SALE_UNIT_FIXED, column: 'unit' };
   const changed = merchandisingChange(row, specification);
   if (changed !== undefined)
     return { code: IMPORT_SPECIFICATION_CHANGED, column: changed };
+
+  const rule = {
+    saleUnit: offering.saleUnit,
+    quantityStep: kept.has('step') ? offering.quantityStep : row.quantityStep,
+    quantityMinimum: kept.has('minimum')
+      ? offering.quantityMinimum
+      : row.quantityMinimum,
+  };
+  if (!isSellableRule(rule))
+    return { code: SALE_RULE_INVALID, column: 'minimum' };
+  const pricePer = (
+    kept.has('pricePer') && price !== undefined ? price.pricePer : row.pricePer
+  ) as PricePer;
+  const tiers = kept.has('tiers')
+    ? price?.tiers
+    : row.tiers?.map(({ from, amount }) => ({ from, amount }));
+  if (
+    tiers !== undefined &&
+    tiers.length > 0 &&
+    priceTiersRefusal(tiers, { amount: row.amount, pricePer }, rule) !==
+      undefined
+  )
+    return { code: PRICE_TIERS_INVALID, column: 'tiers' };
+
   offering.name = row.name;
-  offering.quantityStep = row.quantityStep;
-  offering.quantityMinimum = row.quantityMinimum;
+  offering.quantityStep = rule.quantityStep;
+  offering.quantityMinimum = rule.quantityMinimum;
   const repriced =
     price ??
     Object.assign(new ProductOfferingPrice(String(offering.id)), {
@@ -230,11 +281,9 @@ const updatedRecordsOf = (
     });
   repriced.amount = row.amount;
   repriced.currency = row.currency;
-  repriced.pricePer = row.pricePer as PricePer;
+  repriced.pricePer = pricePer;
   repriced.tiers =
-    row.tiers === undefined || row.tiers.length === 0
-      ? undefined
-      : row.tiers.map(({ from, amount }) => ({ from, amount }));
+    tiers === undefined || tiers.length === 0 ? undefined : tiers;
   return { offering, price: repriced };
 };
 
@@ -442,28 +491,35 @@ export class ImportCatalogUC {
         }
 
         const records = recordsOf(row, payload.mode, at);
-        written.push(
-          yield* commands.importRow(organizationId, rowKey, {
-            ...records,
-            seal: specification =>
-              payload.mode === 'draft'
-                ? Effect.succeed(undefined)
-                : Effect.gen(function* () {
-                    specification.contentHash =
-                      yield* contentHashOf(specification);
-                    return catalogPublishedEvent(
-                      offeringPublication({
-                        offering: records.offering,
-                        specification,
-                        price: records.price,
-                        vendorId: organizationId,
-                        at,
-                      }),
-                      input.source,
-                    );
-                  }),
-          }),
-        );
+        const created = yield* commands.importRow(organizationId, rowKey, {
+          ...records,
+          seal: specification =>
+            payload.mode === 'draft'
+              ? Effect.succeed(undefined)
+              : Effect.gen(function* () {
+                  specification.contentHash =
+                    yield* contentHashOf(specification);
+                  return catalogPublishedEvent(
+                    offeringPublication({
+                      offering: records.offering,
+                      specification,
+                      price: records.price,
+                      vendorId: organizationId,
+                      at,
+                    }),
+                    input.source,
+                  );
+                }),
+        });
+        if (created !== 'skuTaken') {
+          written.push(created);
+          continue;
+        }
+        // Another sheet took the code between this row's lookup and its
+        // write — or another attempt at this one did, and claimed the row.
+        const raced = yield* commands.claimed(organizationId, rowKey);
+        if (raced !== undefined) written.push(raced);
+        else reject(row.rowNumber, IMPORT_DUPLICATE, 'sku');
       }
 
       const record = new CatalogImport(payload.fileName);

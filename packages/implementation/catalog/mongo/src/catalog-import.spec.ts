@@ -187,6 +187,24 @@ describe('importing a row', () => {
     expect(w.fake.read(COUNTERS_COLLECTION)).toEqual([]);
   });
 
+  // Only the SKU is a value a row may find taken; a duplicate on anything
+  // else is the store failing, and rolls the row back like any other.
+  it('fails as the store on a duplicate that is not the SKU, writing nothing', async () => {
+    const row = importedRowOf('A mug', undefined, 'MUG-1');
+    const w = world({ [OFFERING_COLLECTION]: [{ id: row.offering.id }] });
+
+    const failure = await w.run(
+      Effect.flip(
+        Effect.flatMap(CatalogImportCommandsTag, commands =>
+          commands.importRow('acme', 'import-1:2', row),
+        ),
+      ),
+    );
+
+    expect(failure).toMatchObject({ _tag: 'Unavailable', dependency: 'mongo' });
+    expect(w.fake.read(SPECIFICATION_COLLECTION)).toEqual([]);
+  });
+
   it('fails as the store when a claim answers something that is not two ids', async () => {
     const w = world({
       command_inbox: [

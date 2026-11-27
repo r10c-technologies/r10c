@@ -195,9 +195,9 @@ export class ImportEmpty extends Failure.invalid<ImportEmpty>()(
 ) {}
 
 /** The codes the domain's own save rules refuse a row with. */
-const SALE_RULE_INVALID = 'saleRuleInvalid';
+export const SALE_RULE_INVALID = 'saleRuleInvalid';
 const PRICE_PER_INVALID = 'pricePerInvalid';
-const PRICE_TIERS_INVALID = 'priceTiersInvalid';
+export const PRICE_TIERS_INVALID = 'priceTiersInvalid';
 
 /** Why one row, or the sheet as a whole (`rowNumber` 1), cannot be imported. */
 export interface ImportProblem {
@@ -212,6 +212,20 @@ export interface ImportProblem {
  * amount and quantity already a scaled integer. The browser resolved the
  * names; the service checks the rest again.
  */
+/**
+ * The sale-term columns a row may leave empty, which reading fills with a
+ * default for a new product.
+ */
+export const DEFAULTED_IMPORT_COLUMNS = [
+  'unit',
+  'pricePer',
+  'step',
+  'minimum',
+  'tiers',
+] as const satisfies readonly ImportColumn[];
+
+export type DefaultedImportColumn = (typeof DEFAULTED_IMPORT_COLUMNS)[number];
+
 export interface ImportRow {
   readonly rowNumber: number;
   /**
@@ -234,6 +248,12 @@ export interface ImportRow {
   readonly quantityStep: number;
   readonly quantityMinimum: number;
   readonly tiers?: readonly PriceTier[];
+  /**
+   * The sale-term cells the sheet left empty, read as their default. A new
+   * product takes the default; a product the row's SKU names keeps what it
+   * has, so a sheet of prices alone changes prices alone (ADR 0084 §8).
+   */
+  readonly defaulted?: readonly DefaultedImportColumn[];
 }
 
 /** One row of the sheet, its cells keyed by column, before anything is read. */
@@ -446,6 +466,9 @@ const readRow = (
   const step = quantityIn(cells.step, unit, locale, 'step', oneWholeUnit(unit));
   const image = cells.image;
   const sku = normalizedSku(cells.sku);
+  const defaulted = DEFAULTED_IMPORT_COLUMNS.filter(
+    column => cells[column] === undefined,
+  );
 
   return {
     rowNumber: row.rowNumber,
@@ -481,6 +504,7 @@ const readRow = (
     ...(cells.tiers === undefined
       ? {}
       : { tiers: tiersIn(cells.tiers, unit, digits, locale) }),
+    ...(defaulted.length === 0 ? {} : { defaulted }),
   };
 };
 

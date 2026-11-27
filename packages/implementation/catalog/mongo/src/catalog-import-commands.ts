@@ -9,9 +9,10 @@ import {
   serializeEntity,
   Unavailable,
 } from '@entifix/core';
-import { MongoClientTag } from '@entifix/mongo';
+import { ensureEntityIndexes, MongoClientTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
+  duplicatedKeyOf,
   ensureOutboxIndexes,
   makeMongoUnitsOfWork,
   mongoUnitFault,
@@ -71,6 +72,11 @@ class RecordMoved {
   readonly _tag = 'RecordMoved';
 }
 
+/** Another offering holds the row's SKU: the unit aborts, claiming nothing. */
+class SkuTaken {
+  readonly _tag = 'SkuTaken';
+}
+
 /**
  * The catalog import's writes, over the organization's own `tenant_<id>`
  * database (ADR 0084 §4).
@@ -98,6 +104,11 @@ export const MongoCatalogImportCommandsLayer = Layer.effect(
         if (indexed.indexOf(db.databaseName) === -1) {
           yield* ensureOutboxIndexes(db);
           yield* ensureSpecificationIndexes(db);
+          // The offering's unique members (its SKU) are held to the indexes
+          // entifix's repository keeps. This cell writes through the driver,
+          // so it asks for them itself: a fresh database would otherwise hold
+          // two offerings of one code before any form save built the index.
+          yield* ensureEntityIndexes(db, ProductOffering);
           indexed.push(db.databaseName);
         }
         return db;
@@ -140,15 +151,22 @@ export const MongoCatalogImportCommandsLayer = Layer.effect(
                     { session },
                   ),
                 );
-                yield* store(() =>
-                  collection(OFFERING_COLLECTION).insertOne(
-                    {
-                      ...serializeEntity(ProductOffering, offering),
-                      id: offering.id,
-                    },
-                    { session },
-                  ),
-                );
+                // A duplicate on the SKU is a value already taken, which
+                // refuses the row; any other failure is the store's.
+                yield* Effect.tryPromise({
+                  try: () =>
+                    collection(OFFERING_COLLECTION).insertOne(
+                      {
+                        ...serializeEntity(ProductOffering, offering),
+                        id: offering.id,
+                      },
+                      { session },
+                    ),
+                  catch: error =>
+                    duplicatedKeyOf(error) === 'sku'
+                      ? new SkuTaken()
+                      : mongoUnitFault(error),
+                });
                 yield* store(() =>
                   collection(PRICE_COLLECTION).insertOne(
                     {
@@ -176,7 +194,7 @@ export const MongoCatalogImportCommandsLayer = Layer.effect(
           );
           if (outcome._tag === 'committed')
             return { outcome: 'created', ...outcome.value } as const;
-          // A unit whose body cannot abort ends `duplicate` or committed.
+          if (outcome._tag === 'aborted') return 'skuTaken' as const;
           const ids = asReplay(
             Option.getOrUndefined(
               (outcome as { readonly replay: Option.Option<unknown> }).replay,

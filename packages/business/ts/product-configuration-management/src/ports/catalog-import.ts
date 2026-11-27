@@ -69,11 +69,17 @@ export interface CatalogImportCommands {
     organizationId: string,
     key: string,
   ) => Effect.Effect<ImportedRowOutcome | undefined, StoreFailure | Invalid>;
+  /**
+   * Create a row's records under `key`. `skuTaken` when another offering of
+   * the organization already holds the row's SKU — a sheet racing another on
+   * one new code, both having read it free. The store's index decides, not a
+   * read; nothing is written or claimed.
+   */
   readonly importRow: (
     organizationId: string,
     key: string,
     row: ImportedRow,
-  ) => Effect.Effect<ImportedRowOutcome, StoreFailure | Invalid>;
+  ) => Effect.Effect<ImportedRowOutcome | 'skuTaken', StoreFailure | Invalid>;
   /**
    * Change an offering the sheet named by its SKU, claimed by `key` like a
    * created row: the offering's sale terms and its price move together with

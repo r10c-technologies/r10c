@@ -38,6 +38,7 @@ export const makeInMemoryCatalogImportCommands = (): CatalogImportCommands & {
   const revisions = new Map<string, number | undefined>();
   const announced: CatalogEvent[] = [];
   const records = new Map<string, CatalogImport>();
+  const skus = new Set<string>();
   const at = (organizationId: string, key: unknown) =>
     `${organizationId}/${String(key)}`;
 
@@ -50,13 +51,19 @@ export const makeInMemoryCatalogImportCommands = (): CatalogImportCommands & {
         const known = claims.get(at(organizationId, key));
         if (known !== undefined)
           return { ...known, outcome: 'replayed' as const };
-        const next = (counters.get(organizationId) ?? 0) + 1;
         const { specification, offering } = row;
+        const sku =
+          offering.sku === undefined
+            ? undefined
+            : at(organizationId, offering.sku);
+        if (sku !== undefined && skus.has(sku)) return 'skuTaken' as const;
+        const next = (counters.get(organizationId) ?? 0) + 1;
         specification.code = `product-${String(next).padStart(3, '0')}`;
         specification.specKey = specification.code;
         specification.revision = 1;
         const event = yield* row.seal(specification);
         counters.set(organizationId, next);
+        if (sku !== undefined) skus.add(sku);
         if (event !== undefined) announced.push(event);
         rows.push({ ...row, organizationId });
         const outcome = {

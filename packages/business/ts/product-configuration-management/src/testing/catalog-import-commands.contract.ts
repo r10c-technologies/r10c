@@ -16,6 +16,7 @@ import type {
 export const importedRowOf = (
   name: string,
   seal: ImportedRow['seal'] = () => Effect.succeed(undefined),
+  sku?: string,
 ): ImportedRow => {
   const specification = new ProductSpecification('', name);
   specification.id = globalThis.crypto.randomUUID();
@@ -24,6 +25,7 @@ export const importedRowOf = (
   const offering = new ProductOffering(name, String(specification.id));
   offering.id = globalThis.crypto.randomUUID();
   offering.revision = 1;
+  if (sku !== undefined) offering.sku = sku;
   const price = new ProductOfferingPrice(String(offering.id), 1500, 'GTQ');
   price.id = globalThis.crypto.randomUUID();
   price.revision = 1;
@@ -82,7 +84,7 @@ export const describeCatalogImportCommandsContract = (
       );
 
       expect(sealed).toEqual(['product-001', 'product-002', 'product-001']);
-      expect(outcomes.map(one => one.outcome)).toEqual([
+      expect(outcomes.map(one => (one as ImportedRowOutcome).outcome)).toEqual([
         'created',
         'created',
         'created',
@@ -93,9 +95,9 @@ export const describeCatalogImportCommandsContract = (
       const commands = await make();
       const first = importedRowOf('A');
 
-      const created = await Effect.runPromise(
+      const created = (await Effect.runPromise(
         commands.importRow('acme', 'k:2', first),
-      );
+      )) as ImportedRowOutcome;
       const before = await Effect.runPromise(commands.claimed('acme', 'k:9'));
       const claimed = await Effect.runPromise(commands.claimed('acme', 'k:2'));
       const again = await Effect.runPromise(
@@ -130,6 +132,40 @@ export const describeCatalogImportCommandsContract = (
       );
 
       expect(elsewhere).toBeUndefined();
+    });
+
+    // Two sheets racing on one new code have both read it free: the store
+    // decides, and the loser writes nothing it would have to undo.
+    it('refuses a second offering of one SKU in an organization, writing nothing', async () => {
+      const commands = await make();
+
+      await Effect.runPromise(
+        commands.importRow(
+          'acme',
+          'k:2',
+          importedRowOf('A', undefined, 'TAC-8'),
+        ),
+      );
+      const taken = await Effect.runPromise(
+        commands.importRow(
+          'acme',
+          'k:3',
+          importedRowOf('B', undefined, 'TAC-8'),
+        ),
+      );
+      const elsewhere = await Effect.runPromise(
+        commands.importRow(
+          'other',
+          'k:3',
+          importedRowOf('C', undefined, 'TAC-8'),
+        ),
+      );
+
+      expect(taken).toBe('skuTaken');
+      expect(
+        await Effect.runPromise(commands.claimed('acme', 'k:3')),
+      ).toBeUndefined();
+      expect(elsewhere).toMatchObject({ outcome: 'created' });
     });
 
     it('updates an offering and its price at the revisions read, once per key', async () => {

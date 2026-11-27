@@ -473,6 +473,114 @@ describe('a row naming an offering by its SKU', () => {
     expect(commands.state.updated).toHaveLength(1);
   });
 
+  // A sheet of prices alone: every sale-term cell empty, read as its default.
+  const priceOnly = (overrides: Partial<ImportRow> = {}) =>
+    row(2, {
+      sku: 'TAC-8',
+      name: 'Taco Fisher 8 mm',
+      amount: 1250,
+      defaulted: ['unit', 'pricePer', 'step', 'minimum', 'tiers'],
+      ...overrides,
+    });
+
+  it('keeps the unit, step, minimum, price basis and tiers a sheet of prices left empty', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [
+        coded({ saleUnit: 'M', quantityStep: 500, quantityMinimum: 6000 }),
+      ],
+      prices: [
+        Object.assign(priced(), {
+          pricePer: 100,
+          tiers: [{ from: 20_000, amount: 900 }],
+        }),
+      ],
+    });
+
+    const record = valueOf(await run({ rows: [priceOnly()] }));
+
+    expect(record.rejections).toBeUndefined();
+    const [written] = commands.state.updated;
+    expect(written?.offering).toMatchObject({
+      saleUnit: 'M',
+      quantityStep: 500,
+      quantityMinimum: 6000,
+    });
+    expect(written?.price).toMatchObject({
+      amount: 1250,
+      pricePer: 100,
+      tiers: [{ from: 20_000, amount: 900 }],
+    });
+  });
+
+  it('reads an empty price basis as the default for an offering that had no price', async () => {
+    const { commands, run } = world([spec()], { offerings: [coded()] });
+
+    valueOf(await run({ rows: [priceOnly()] }));
+
+    expect(commands.state.updated[0]?.price).toMatchObject({ pricePer: 1 });
+  });
+
+  it('refuses a quantity read in the default unit for a product sold in another', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [coded({ saleUnit: 'M', quantityStep: 500 })],
+      prices: [priced()],
+    });
+
+    const record = valueOf(
+      await run({
+        rows: [
+          priceOnly({
+            quantityStep: 2,
+            quantityMinimum: 2,
+            defaulted: ['unit', 'pricePer', 'tiers'],
+          }),
+        ],
+      }),
+    );
+
+    expect(record.rejections).toEqual([
+      { rowNumber: 2, code: 'saleUnitFixed', column: 'unit' },
+    ]);
+    expect(commands.state.updated).toHaveLength(0);
+  });
+
+  it('refuses a step that leaves the kept minimum unsellable', async () => {
+    const { run } = world([spec()], {
+      offerings: [coded({ quantityStep: 1, quantityMinimum: 3 })],
+      prices: [priced()],
+    });
+
+    const record = valueOf(
+      await run({
+        rows: [
+          priceOnly({
+            quantityStep: 2,
+            // What the cell's default would be; the stored 3 is kept.
+            quantityMinimum: 2,
+            defaulted: ['unit', 'pricePer', 'minimum', 'tiers'],
+          }),
+        ],
+      }),
+    );
+
+    expect(record.rejections).toEqual([
+      { rowNumber: 2, code: 'saleRuleInvalid', column: 'minimum' },
+    ]);
+  });
+
+  it('refuses a price lowered under the tiers it keeps', async () => {
+    const { run } = world([spec()], {
+      offerings: [coded()],
+      prices: [Object.assign(priced(), { tiers: [{ from: 10, amount: 900 }] })],
+    });
+
+    const record = valueOf(await run({ rows: [priceOnly({ amount: 800 })] }));
+
+    expect(record.rejections).toEqual([
+      { rowNumber: 2, code: 'priceTiersInvalid', column: 'tiers' },
+    ]);
+  });
+
   it.each([
     ['unit', { saleUnit: 'M' }, 'saleUnitFixed'],
     ['description', { description: 'Plástico' }, 'importSpecificationChanged'],
@@ -643,6 +751,39 @@ describe('a row naming an offering by its SKU', () => {
 
     expect(record.rejections).toEqual([
       { rowNumber: 2, code: 'staleRevision', column: 'sku' },
+      { rowNumber: 3, code: 'importDuplicate', column: 'sku' },
+    ]);
+  });
+
+  // Both sheets looked the code up and found it free; the store's index
+  // decides which of the two creates it.
+  it('refuses a new SKU another sheet created first, and keeps one this sheet created', async () => {
+    const { commands, run } = world();
+    (commands as { importRow: typeof commands.importRow }).importRow = () =>
+      Effect.succeed('skuTaken' as const);
+    // Row 2 was taken by another attempt at this very sheet, which claimed it
+    // after this attempt's first read of the claim.
+    let reads = 0;
+    (commands as { claimed: typeof commands.claimed }).claimed = (_, key) =>
+      Effect.sync(() =>
+        key.endsWith(':2') && (reads += 1) > 1
+          ? {
+              outcome: 'replayed' as const,
+              change: 'create' as const,
+              specificationId: 's-1',
+              offeringId: 'o-1',
+            }
+          : undefined,
+      );
+
+    const record = valueOf(
+      await run({
+        rows: [row(2, { sku: 'NEW-1' }), row(3, { sku: 'NEW-2' })],
+      }),
+    );
+
+    expect(record.createdCount).toBe(1);
+    expect(record.rejections).toEqual([
       { rowNumber: 3, code: 'importDuplicate', column: 'sku' },
     ]);
   });

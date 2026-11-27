@@ -191,6 +191,8 @@ describe('turning rows into what the service takes', () => {
         saleUnit: 'UN',
         quantityStep: 1,
         quantityMinimum: 1,
+        // What a product the row's SKU names keeps rather than takes.
+        defaulted: ['unit', 'pricePer', 'step', 'minimum', 'tiers'],
       },
     ]);
   });

@@ -4,6 +4,8 @@
 - Date: 2026-11-25
 - Revised: 2026-11-26 — a row whose SKU names an offering updates it (§8);
   the import is no longer create-only (§6)
+- Revised: 2026-11-27 — an update keeps the sale terms a row left empty, and
+  the store decides two sheets racing on one new SKU (§8)
 - Area: business
 - Read when: bulk-loading records — a row is one claimed unit
 
@@ -117,8 +119,19 @@ already written.
    offering's name, step, minimum and price (amount, currency, price per,
    tiers), and nothing else:
 
+   - **A sale-term cell left empty keeps what the offering has.** An empty
+     unit, price per, step, minimum or tiers cell is read as its default for
+     a new product, and the row says which it defaulted; an update keeps the
+     stored value instead, so a sheet of SKUs and prices changes prices and
+     nothing else. The terms that result are checked as a save checks them
+     (`saleRuleInvalid`, `priceTiersInvalid`): a lower price under the tiers
+     it keeps can leave a tier no cheaper than the base.
    - **The unit is never changed.** A row whose unit differs is refused
-     `saleUnitFixed`: `set-sale-unit` owns it (ADR 0082 §8).
+     `saleUnitFixed`: `set-sale-unit` owns it (ADR 0082 §8). An empty unit
+     cell is the offering's unit; but the row's quantities were read in the
+     default one, so a row that leaves the unit empty and states a step,
+     minimum or tiers for an offering sold in another unit is refused
+     `saleUnitFixed` too, rather than read in the wrong scale.
    - **The product's details are the specification's.** A description,
      brand, category, fit or picture cell left empty keeps what the product
      has, and one repeating it passes. One that differs is refused
@@ -140,7 +153,11 @@ already written.
 
    The preview cannot tell an update from a create: only the catalog knows
    which SKUs it holds. It says how many rows carry one. Two imports creating
-   one new SKU at once are caught by the store, as two forms are.
+   one new SKU at once are caught by the store, as two forms are: the import
+   cell ensures the offering's unique index before it writes
+   (`ensureEntityIndexes`, entifix ADR 0034), and the row whose insert finds
+   the SKU taken answers `skuTaken` and is refused `importDuplicate` on
+   `sku`, unless its own sheet's other attempt claimed it.
 
 ## Consequences
 
