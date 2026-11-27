@@ -180,6 +180,96 @@ it('reprices a product on sale from a sheet by its SKU, and the storefront follo
   );
 });
 
+it('keeps the sale terms a sheet of prices leaves empty', async () => {
+  const before = await offering(TACO);
+  const price = await priceOf(TACO);
+  const original = Number(price['amount']);
+
+  try {
+    const record = await importRows([
+      {
+        rowNumber: 2,
+        sku: TACO_SKU,
+        name: String(before['name']),
+        amount: original + 3,
+        currency: String(price['currency']),
+        pricePer: 1,
+        saleUnit: 'UN',
+        quantityStep: 1,
+        quantityMinimum: 1,
+        defaulted: ['unit', 'pricePer', 'step', 'minimum', 'tiers'],
+      },
+    ]);
+    expect(record).toMatchObject({ updatedCount: 1, rejectedCount: 0 });
+
+    const after = await offering(TACO);
+    const repriced = await priceOf(TACO);
+    expect(after).toMatchObject({
+      saleUnit: before['saleUnit'],
+      quantityStep: before['quantityStep'],
+      quantityMinimum: before['quantityMinimum'],
+    });
+    expect(repriced['amount']).toBe(original + 3);
+    expect(repriced['pricePer']).toEqual(price['pricePer']);
+    expect(repriced['tiers']).toEqual(price['tiers']);
+  } finally {
+    await importRows([await tacoRow(original)]);
+  }
+});
+
+// Both sheets look the new code up and find it free: the store's index, not
+// the lookup, decides which one creates it.
+it('creates a new SKU once when two sheets race on it', async () => {
+  const sku = `RACE-${randomUUID().slice(0, 8).toUpperCase()}`;
+  const sheet = (name: string) => [
+    {
+      rowNumber: 2,
+      sku,
+      name,
+      amount: 1500,
+      currency: 'GTQ',
+      pricePer: 1,
+      saleUnit: 'UN',
+      quantityStep: 1,
+      quantityMinimum: 1,
+    },
+  ];
+
+  const records = await Promise.all(
+    Array.from({ length: 4 }, (_, index) =>
+      importRows(sheet(`Carrera ${sku} #${String(index)}`)),
+    ),
+  );
+  const created = await (
+    await mongo(`tenant_${HARDWARE.organizationId}`)
+  )
+    .collection('product-offering')
+    .find({ sku })
+    .toArray();
+  try {
+    expect(created).toHaveLength(1);
+    expect(records.map(record => record['createdCount'])).toEqual(
+      expect.arrayContaining([1]),
+    );
+    expect(
+      records
+        .flatMap(record => (record['rejections'] ?? []) as unknown[])
+        .every(
+          rejection =>
+            (rejection as Record<string, unknown>)['code'] ===
+              'importDuplicate' &&
+            (rejection as Record<string, unknown>)['column'] === 'sku',
+        ),
+    ).toBe(true);
+    expect(
+      records.reduce((sum, record) => sum + Number(record['createdCount']), 0),
+    ).toBe(1);
+  } finally {
+    for (const one of created)
+      await admin('DELETE', `product-offering/${String(one['id'])}`);
+  }
+});
+
 it('refuses a sheet row that would change the unit a product is sold in', async () => {
   const before = await offering(TACO);
 
