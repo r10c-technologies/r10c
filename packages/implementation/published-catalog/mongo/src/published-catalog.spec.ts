@@ -324,6 +324,7 @@ describe('the payload and the record it is written into', () => {
       stockFactor: true,
       stockUnit: true,
       code: true,
+      sku: true,
       description: true,
       brandId: true,
       categoryId: true,
