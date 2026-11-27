@@ -87,6 +87,23 @@ export function KitForm({
     initialSorting: { 0: { property: 'name', type: 'asc' } },
     queryKey: [...entityQueryScope(ProductOffering), 'kit-components'],
   });
+  // The components the kit holds, read by id: one may sort past the page
+  // above, or no longer be eligible, and must still read as what it is
+  // rather than as an empty row the vendor would fill in again.
+  const held = (record.kitComponents ?? []).map(
+    component => component.offeringId,
+  );
+  const holding = useDataLoading<ProductOffering, CrudContext>({
+    uc: loadUCFactory<ProductOffering>(),
+    ctx: crudContextOf(adapters, 'productOfferingRest'),
+    initialPageSize: Math.max(held.length, 1),
+    enabled: held.length > 0,
+    baseFiltering: {
+      operator: 'and',
+      values: [{ property: 'id', operator: 'in', values: held }],
+    },
+    queryKey: [...entityQueryScope(ProductOffering), 'kit-components', held],
+  });
   const [rows, setRows] = useState<readonly Row[]>(() =>
     (record.kitComponents ?? []).map((component, key) => ({
       key,
@@ -100,7 +117,7 @@ export function KitForm({
       current.map(row => (row.key === key ? { ...row, ...change } : row)),
     );
 
-  if (isLoading) {
+  if (isLoading || holding.isLoading) {
     return (
       <form id={formId} onSubmit={event => event.preventDefault()}>
         <Text muted>{t('marketplaceAdmin.offering.kit.loading')}</Text>
@@ -108,7 +125,10 @@ export function KitForm({
     );
   }
 
-  const choices = componentsFor(record, items);
+  const choices = componentsFor(record, [
+    ...items,
+    ...holding.items.filter(one => !items.some(listed => listed.id === one.id)),
+  ]);
 
   return (
     <form
@@ -162,6 +182,19 @@ export function KitForm({
                           {one.name}
                         </option>
                       ))}
+                      {row.offeringId === '' ||
+                      choices.some(
+                        one => String(one.id) === row.offeringId,
+                      ) ? null : (
+                        <option value={row.offeringId}>
+                          {t('marketplaceAdmin.offering.kit.unavailable', {
+                            name:
+                              holding.items.find(
+                                one => String(one.id) === row.offeringId,
+                              )?.name ?? row.offeringId,
+                          })}
+                        </option>
+                      )}
                     </Select>
                   </Stack>
                   <Stack gap="3xs">

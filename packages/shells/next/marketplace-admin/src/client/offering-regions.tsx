@@ -276,7 +276,11 @@ function VariantsRegion({ offering }: { readonly offering: ProductOffering }) {
     },
     queryKey: [...entityQueryScope(ProductOffering), 'variants', versionIds],
   });
-  const others = siblings.items.filter(one => one.id !== offering.id);
+  // A series also pins presentations and plain offerings of the product
+  // (a box of ten, an older listing); only another variant is one.
+  const others = siblings.items.filter(
+    one => one.id !== offering.id && (one.variantValues?.length ?? 0) > 0,
+  );
   useRegion(id, heading);
 
   return (

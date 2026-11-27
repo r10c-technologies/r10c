@@ -129,6 +129,40 @@ describe('KitForm', () => {
     expect(submit).toHaveBeenCalledWith({ components: [] });
   });
 
+  // Read by id beside the list: a component no longer sold by the unit is
+  // still named, rather than shown as an empty row to fill in again.
+  it('names a component the kit holds that can no longer be in one', async () => {
+    const submit = renderForm(
+      kit({
+        kitComponents: [
+          { offeringId: 'cable', quantity: 1 },
+          { offeringId: 'gone', quantity: 2 },
+        ],
+        kitSize: 3,
+      }),
+    );
+
+    const [held, gone] = await screen.findAllByLabelText('Producto');
+    expect(held).toHaveValue('cable');
+    expect(
+      screen.getByRole('option', {
+        name: 'Cable (ya no puede ir en un kit)',
+      }),
+    ).toBeInTheDocument();
+    expect(gone).toHaveValue('gone');
+    expect(
+      screen.getByRole('option', { name: 'gone (ya no puede ir en un kit)' }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    expect(submit).toHaveBeenCalledWith({
+      components: [
+        { offeringId: 'cable', quantity: 1 },
+        { offeringId: 'gone', quantity: 2 },
+      ],
+    });
+  });
+
   it('sends nothing while the offerings are still loading', async () => {
     const submit = renderForm(kit());
 

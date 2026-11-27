@@ -14,6 +14,7 @@ import { loadBrands } from '@r10c/implementation-catalog-reference-next';
 import {
   getVariantCounts,
   offeringCard,
+  variantCountKey,
 } from '@r10c/implementation-marketplace-catalog-next';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { ProductCard } from '@r10c/utils-react-ui';
@@ -42,7 +43,11 @@ export interface CardNames {
    * How many published variants a group holds, read once for the page
    * (ADR 0085 §7); `undefined` for no group, or when the count failed.
    */
-  readonly variantCount: (variantGroup: string) => number | undefined;
+  readonly variantCount: (
+    offering: Pick<PublishedOffering, 'vendorId'> & {
+      readonly variantGroup: string;
+    },
+  ) => number | undefined;
   /**
    * Whether either read failed. A grid without seller lines is still a grid,
    * so a failure never drops a card; but the cached component that rendered it
@@ -87,20 +92,11 @@ export async function loadCardNames(
     brandName: id => brandNames.get(id),
     sellerName: id => sellerNames.get(id),
     ships: id => shipping.get(id),
-    variantCount: group => variants.value.get(group),
+    variantCount: offering => variants.value.get(variantCountKey(offering)),
     failed: brands.failed || vendors.failed || variants.failed,
   };
 }
 
-/**
- * How the grid lays its cards out (#569).
- *
- * - **`strip`**: a fixed count of cards (home's strips, the related strip) in
- *   fixed columns, two below `lg` and four from it, so four cards always fill
- *   whole rows and the last is never an orphan that reads as a failed load.
- * - **`listing`**: a page of results, as many columns as fit. A full search
- *   page (24) divides by two, three and four, so it never orphans either.
- */
 /**
  * What a card says about its product beyond its own price: that it is a kit
  * (ADR 0086), or how many versions it comes in (ADR 0085 §7). Nothing for a
@@ -117,7 +113,10 @@ export const cardChips = (
   const count =
     offering.variantGroup === undefined
       ? undefined
-      : names.variantCount(offering.variantGroup);
+      : names.variantCount({
+          vendorId: offering.vendorId,
+          variantGroup: offering.variantGroup,
+        });
   const chips = [
     ...((offering.kitSize ?? 0) > 0 ? [labels.kit] : []),
     ...(count !== undefined && count > 1 ? [labels.variants(count)] : []),
@@ -131,6 +130,15 @@ export const cardChips = (
       ));
 };
 
+/**
+ * How the grid lays its cards out (#569).
+ *
+ * - **`strip`**: a fixed count of cards (home's strips, the related strip) in
+ *   fixed columns, two below `lg` and four from it, so four cards always fill
+ *   whole rows and the last is never an orphan that reads as a failed load.
+ * - **`listing`**: a page of results, as many columns as fit. A full search
+ *   page (24) divides by two, three and four, so it never orphans either.
+ */
 export type OfferingGridLayout = 'strip' | 'listing';
 
 export interface OfferingGridProps {
@@ -268,14 +276,14 @@ export function OfferingGrid({
   );
 }
 
+/** A listing's first row on a phone: two cards. */
+const PRIORITY_CARDS = 2;
+
 /**
  * How wide a card's picture is shown in each layout, as `sizes`: half the
  * viewport in two columns, then a strip's quarter of the 80rem frame or a
  * listing's column beside its filters.
  */
-/** A listing's first row on a phone: two cards. */
-const PRIORITY_CARDS = 2;
-
 const SIZES: Record<OfferingGridLayout, string> = {
   strip: '(min-width: 64rem) 20rem, 50vw',
   listing: '(min-width: 40rem) 24rem, 50vw',

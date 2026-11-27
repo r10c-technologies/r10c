@@ -735,6 +735,7 @@ export const r10c: EsR10c = {
         hint: 'A kit sells several of your products together at one price. Each kit sold takes every product in it from that product’s own stock.',
         loading: 'Loading your offerings…',
         pick: 'Choose a product',
+        unavailable: '{{name}} (can no longer be in a kit)',
         add: 'Add a product',
         remove: 'Remove product {{position}}',
         notCounted:

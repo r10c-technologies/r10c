@@ -11,6 +11,7 @@ import {
   getVariantSiblings,
   loadOfferings,
   searchOfferings,
+  variantCountKey,
 } from './offerings.js';
 import { parseSearch } from './search-query.js';
 
@@ -247,8 +248,8 @@ describe('getKitComponents', () => {
 });
 
 describe('getVariantCounts', () => {
-  const variant = (id: string, group: string) =>
-    Object.assign(offering(id, id), { variantGroup: group });
+  const variant = (id: string, group: string, vendorId = 'vendor-1') =>
+    Object.assign(offering(id, id), { variantGroup: group, vendorId });
 
   it('counts each group on the page in one read', async () => {
     const { result, load } = over(
@@ -259,24 +260,49 @@ describe('getVariantCounts', () => {
         offering('d', 'd'),
       ],
       getVariantCounts([
-        { variantGroup: 'g1' },
-        { variantGroup: 'g1' },
-        { variantGroup: 'g2' },
-        { variantGroup: undefined },
+        { vendorId: 'vendor-1', variantGroup: 'g1' },
+        { vendorId: 'vendor-1', variantGroup: 'g1' },
+        { vendorId: 'vendor-1', variantGroup: 'g2' },
+        { vendorId: 'vendor-1', variantGroup: undefined },
       ]),
     );
 
     expect([...(await result)]).toEqual([
-      ['g1', 2],
-      ['g2', 1],
+      [variantCountKey({ vendorId: 'vendor-1', variantGroup: 'g1' }), 2],
+      [variantCountKey({ vendorId: 'vendor-1', variantGroup: 'g2' }), 1],
     ]);
     expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  // Each organization numbers its specifications on its own, so `PRD-001`
+  // in two stores is two products.
+  it('keeps two vendors’ groups of one code apart', async () => {
+    const { result } = over(
+      [
+        variant('a', 'PRD-001', 'vendor-1'),
+        variant('b', 'PRD-001', 'vendor-1'),
+        variant('c', 'PRD-001', 'vendor-2'),
+        variant('d', 'PRD-002', 'vendor-2'),
+        variant('e', 'PRD-002', 'vendor-3'),
+      ],
+      getVariantCounts([
+        { vendorId: 'vendor-1', variantGroup: 'PRD-001' },
+        { vendorId: 'vendor-2', variantGroup: 'PRD-001' },
+        { vendorId: 'vendor-3', variantGroup: 'PRD-002' },
+      ]),
+    );
+
+    expect(Object.fromEntries(await result)).toEqual({
+      [variantCountKey({ vendorId: 'vendor-1', variantGroup: 'PRD-001' })]: 2,
+      [variantCountKey({ vendorId: 'vendor-2', variantGroup: 'PRD-001' })]: 1,
+      [variantCountKey({ vendorId: 'vendor-3', variantGroup: 'PRD-002' })]: 1,
+    });
   });
 
   it('reads nothing for a page with no variant', async () => {
     const { result, load } = over(
       [],
-      getVariantCounts([{ variantGroup: undefined }]),
+      getVariantCounts([{ vendorId: 'vendor-1', variantGroup: undefined }]),
     );
 
     expect((await result).size).toBe(0);

@@ -61,6 +61,8 @@ const adapters = (): MarketplaceAdminAdapters => {
     variant('o-4', 's-3', 'negro'),
     variant('o-5', 's-4', 'azul'),
     variant('o-6', 's-5', 'rosa'),
+    // A box of the cased product, pinned to its series but no variant.
+    offering('o-7', 'Caja de 10 fundas', 's-4'),
   ]);
   const prices = inMemoryEntity([
     Object.assign(new ProductOfferingPrice('o-1', 4500, 'GTQ'), {
@@ -198,6 +200,7 @@ describe('the other variants of an offering’s product (ADR 0085)', () => {
       within(list).getByRole('link', { name: 'Funda (azul)' }),
     ).toHaveAttribute('href', expect.stringContaining('o-5'));
     expect(within(list).queryByText('Funda (negro)')).toBeNull();
+    expect(within(list).queryByText(/Caja de 10 fundas/)).toBeNull();
   });
 
   it('says so when no other variant is in the catalog', async () => {

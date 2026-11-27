@@ -787,6 +787,7 @@ export const r10c = {
         hint: 'Un kit vende varios de tus productos juntos a un solo precio. Cada kit vendido toma cada producto de su propio inventario.',
         loading: 'Cargando tus ofertas…',
         pick: 'Elige un producto',
+        unavailable: '{{name}} (ya no puede ir en un kit)',
         add: 'Agregar un producto',
         remove: 'Quitar producto {{position}}',
         notCounted:
