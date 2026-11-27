@@ -2,6 +2,10 @@
 
 - Status: Proposed
 - Date: 2026-11-25
+- Revised: 2026-11-26 — a row whose SKU names an offering updates it (§8);
+  the import is no longer create-only (§6)
+- Revised: 2026-11-27 — an update keeps the sale terms a row left empty, and
+  the store decides two sheets racing on one new SKU (§8)
 - Area: business
 - Read when: bulk-loading records — a row is one claimed unit
 
@@ -86,9 +90,11 @@ already written.
    list. It is append-only, like a commission entry, so it carries no
    revision.
 
-6. **Create-only, capped, and synchronous.** A row whose name repeats an
-   earlier row, or names a specification the catalog holds in design or on
-   sale, is refused `importDuplicate`. Which of two same-named products a
+6. **A row creates unless its SKU names an offering; capped; synchronous.**
+   A row with no SKU, or one the catalog does not hold, creates a product
+   and keeps its SKU. Such a row is refused `importDuplicate` when its name
+   repeats an earlier row without a SKU, or names a specification the catalog
+   holds in design or on sale. Which of two same-named products a
    sheet means is not something to guess. The claim is read **before** the
    name check, so a retried sheet is not refused for the products its first
    attempt created. Two imports racing on one new name are not caught, exactly
@@ -107,6 +113,52 @@ already written.
    `File` (ADR 0032), so a refreshed tab resumes the review and a resubmit
    resumes the import.
 
+8. **A row whose SKU names an offering updates it.** `ProductOffering.sku`
+   is the vendor's own code, unique within the organization's catalog store
+   (entifix ADR 0034). A row carrying a SKU the catalog holds changes that
+   offering's name, step, minimum and price (amount, currency, price per,
+   tiers), and nothing else:
+
+   - **A sale-term cell left empty keeps what the offering has.** An empty
+     unit, price per, step, minimum or tiers cell is read as its default for
+     a new product, and the row says which it defaulted; an update keeps the
+     stored value instead, so a sheet of SKUs and prices changes prices and
+     nothing else. The terms that result are checked as a save checks them
+     (`saleRuleInvalid`, `priceTiersInvalid`): a lower price under the tiers
+     it keeps can leave a tier no cheaper than the base.
+   - **The unit is never changed.** A row whose unit differs is refused
+     `saleUnitFixed`: `set-sale-unit` owns it (ADR 0082 §8). An empty unit
+     cell is the offering's unit; but the row's quantities were read in the
+     default one, so a row that leaves the unit empty and states a step,
+     minimum or tiers for an offering sold in another unit is refused
+     `saleUnitFixed` too, rather than read in the wrong scale.
+   - **The product's details are the specification's.** A description,
+     brand, category, fit or picture cell left empty keeps what the product
+     has, and one repeating it passes. One that differs is refused
+     `importSpecificationChanged` with its column: a released version is
+     changed by revising it (ADR 0079), never from a sheet.
+   - **An offering on sale is republished in the same unit**, whatever the
+     sheet's mode, checked as `publish` checks it: an active specification
+     (`specificationNotActive`), a drawable base (`stockSourceInvalid`) and
+     sellable components (`kitInvalid`). A draft stays a draft. The mode
+     decides only what a created row becomes.
+   - **One unit, claimed by the same key.** `CatalogImportCommands.updateRow`
+     writes the offering and its price, each conditional on the revision it
+     was read at, with the announcement. If either moved since, nothing is
+     written or claimed, and the row is refused `staleRevision`. Its claim
+     replays `change: 'update'`, so a resumed sheet counts as its first
+     attempt did, in `updatedCount` beside `createdCount`.
+   - **A SKU the sheet repeats** is refused `importDuplicate` on every row
+     after the first. One row changes one product.
+
+   The preview cannot tell an update from a create: only the catalog knows
+   which SKUs it holds. It says how many rows carry one. Two imports creating
+   one new SKU at once are caught by the store, as two forms are: the import
+   cell ensures the offering's unique index before it writes
+   (`ensureEntityIndexes`, entifix ADR 0034), and the row whose insert finds
+   the SKU taken answers `skuTaken` and is refused `importDuplicate` on
+   `sku`, unless its own sheet's other attempt claimed it.
+
 ## Consequences
 
 - A merchant's spreadsheet becomes a catalog in one request, as drafts to
@@ -114,10 +166,12 @@ already written.
   to fix.
 - A retry is always safe: a row is all or nothing, and a key replays.
 - The shell's bundle carries two parsers, loaded only on the import screen.
-- **Not decided:** updating products from a sheet. An upsert needs a key a
-  vendor controls (a SKU), and the catalog has none. Recorded as a Discussion
-  rather than built half-way. Remnants as inventory units (Discussion #614)
-  and kits (#616) would arrive as further columns once their models exist.
+- A sheet of SKUs and prices is a price list: re-importing it reprices the
+  catalog, and what is on sale is republished at once.
+- **Not decided:** variants and kits from a sheet. A variant's axes
+  (ADR 0085) and a kit's components (ADR 0086) are set by their own verbs;
+  a row creates a plain offering. Remnants as inventory units
+  (Discussion #614) would arrive as further columns once their model exists.
 
 ## Considered
 

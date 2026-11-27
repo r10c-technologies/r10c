@@ -269,6 +269,37 @@ export const describeOfferingCatalogContract = (
       );
     });
 
+    it('records a kit at the revision it was read at, once', async () => {
+      const catalog = await make();
+      const read = Object.assign(moved('draft', 1), {
+        kitComponents: [{ offeringId: 'o-2', quantity: 2 }],
+        kitSize: 1,
+      });
+
+      expect(await run(catalog.setKit('acme', read))).toBe('committed');
+      expect(await run(catalog.setKit('acme', read))).toBe('changed');
+    });
+
+    it('makes a kit a plain offering again at the revision it was read at', async () => {
+      const catalog = await make();
+      const cleared = Object.assign(moved('draft'), {
+        kitComponents: undefined,
+        kitSize: undefined,
+      });
+
+      expect(await run(catalog.setKit('acme', cleared))).toBe('committed');
+      expect(await run(catalog.setKit('other', cleared))).toBe('changed');
+    });
+
+    it('sets a kit on a seeded offering, which has no revision yet', async () => {
+      const catalog = await make();
+      const kit = Object.assign(seeded(), {
+        kitComponents: [{ offeringId: 'o-1', quantity: 1 }],
+      });
+
+      expect(await run(catalog.setKit('acme', kit))).toBe('committed');
+    });
+
     it('records a variant at the revision it was read at, once', async () => {
       const catalog = await make();
       const read = asVariant(moved('draft', 1), 'negro');

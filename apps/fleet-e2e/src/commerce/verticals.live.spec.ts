@@ -101,9 +101,9 @@ describe.each(VERTICALS)('$name', ({ vendor, paymentMethod }) => {
 
     if (paymentMethod === 'link') {
       expect(first.state).toBe('waiting');
-      expect(
-        (await orders.findOne({ id: orderId }))?.['status'],
-      ).toBe('awaiting-payment');
+      expect((await orders.findOne({ id: orderId }))?.['status']).toBe(
+        'awaiting-payment',
+      );
       const confirmed = await post(
         `${FLEET.order}/api/product-order/${orderId}/confirm-payment`,
         bearer,

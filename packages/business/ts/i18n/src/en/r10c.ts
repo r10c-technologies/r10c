@@ -211,6 +211,12 @@ export const r10c: EsR10c = {
         },
       },
       buy: 'Buy',
+      kit: {
+        chip: 'Kit',
+        heading: 'Included in this kit',
+        item: '{{quantity}} × {{name}}',
+      },
+      variantCount: 'Comes in {{count}} versions',
       soldBy: 'Sold by {{seller}}',
       delivery: {
         ships: 'Shipped by the seller',
@@ -655,6 +661,7 @@ export const r10c: EsR10c = {
       counterSale: 'Sell at the counter',
     },
     counterSale: {
+      search: 'Search or scan a product',
       title: 'Counter sale',
       steps: {
         channel: 'Channel',
@@ -715,12 +722,24 @@ export const r10c: EsR10c = {
         resets:
           'The step and the minimum go back to one whole unit of the new unit. Once the offering is published, its unit no longer changes.',
       },
+      variants: {
+        alone: 'No other variant of this product is in your catalog yet.',
+      },
       variant: {
-        hint:
-          'A product’s variants are offerings with their own price and stock: choose what sets this one apart —colour, size, finish or capacity— and its value. Every variant of the product uses the same attributes.',
+        hint: 'A product’s variants are offerings with their own price and stock: choose what sets this one apart —colour, size, finish or capacity— and its value. Every variant of the product uses the same attributes.',
         none: 'This offering is no variant of its product.',
         add: 'Add an attribute',
         remove: 'Remove attribute {{position}}',
+      },
+      kit: {
+        hint: 'A kit sells several of your products together at one price. Each kit sold takes every product in it from that product’s own stock.',
+        loading: 'Loading your offerings…',
+        pick: 'Choose a product',
+        unavailable: '{{name}} (can no longer be in a kit)',
+        add: 'Add a product',
+        remove: 'Remove product {{position}}',
+        notCounted:
+          'A kit is sold by the unit. Set this offering’s unit to pieces first.',
       },
       stockSource: {
         hint: "A box, a roll or a dozen is sold from another offering's stock: each one sold takes this much from it, so the box and the loose units share one balance.",
@@ -733,6 +752,7 @@ export const r10c: EsR10c = {
       regions: {
         images: 'Images',
         prices: 'Prices',
+        variants: 'Other variants',
         stock: 'Stock',
         movements: 'Stock movements',
       },
@@ -788,11 +808,15 @@ export const r10c: EsR10c = {
           template: 'Download the template',
           reading: 'Reading the sheet…',
           read: '{{file}}: {{ready}} rows ready, {{rejected}} with problems.',
-          unreadable: 'This file could not be read. Save it as CSV or as Excel (.xlsx).',
-          required: 'Choose a sheet with at least one product that can be imported.',
+          unreadable:
+            'This file could not be read. Save it as CSV or as Excel (.xlsx).',
+          required:
+            'Choose a sheet with at least one product that can be imported.',
         },
         preview: {
           prompt: 'Review what will be imported before confirming.',
+          coded:
+            'Rows with a SKU: {{count}}. A row with the SKU of a product you already have updates its name, price and the way it is sold; a new one creates the product.',
           ready: 'Rows to import: {{count}}',
           rejected: 'Rows that will not be imported: {{count}}',
           mode: 'Mode: {{mode}}',

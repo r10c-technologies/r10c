@@ -107,6 +107,9 @@ test('submits the rows under one key and lands on the import', async ({
         saleUnit: 'UN',
         quantityStep: 1,
         quantityMinimum: 1,
+        // The sale terms the sheet left empty: a product its SKU named
+        // would keep its own (ADR 0084 §8).
+        defaulted: ['unit', 'pricePer', 'step', 'minimum', 'tiers'],
       },
     ],
   });

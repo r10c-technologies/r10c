@@ -7,6 +7,7 @@ import {
   type VendorDoesNotShip,
 } from '@r10c/business-ts-flow-contracts';
 import type {
+  KitStock,
   PricePer,
   SaleUnit,
   StockSource,
@@ -62,6 +63,8 @@ export interface PricedLine extends Partial<StockSource> {
   readonly offeringId: string;
   /** What it is sold as: the order and the shipment keep it (#582). */
   readonly name: string;
+  /** A kit's components and what one kit takes from each (ADR 0086). */
+  readonly kitComponents?: readonly KitStock[];
   /** The description and specification version it was published on (ADR 0079 §3). */
   readonly description?: string;
   readonly specificationId: string;

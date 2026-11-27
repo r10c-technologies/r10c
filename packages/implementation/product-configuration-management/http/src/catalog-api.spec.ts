@@ -124,7 +124,7 @@ const world = (tiers?: { from: number; amount: number }[]) => {
     );
 };
 
-const [publish, unpublish, setSaleUnit, drawOnStock, setVariant] =
+const [publish, unpublish, setSaleUnit, drawOnStock, setKit, setVariant] =
   productOfferingApi.options.useCases;
 const [setPriceTiers] = productOfferingPriceApi.options.useCases;
 const [release, revise, retire, obsolete] =
@@ -449,6 +449,26 @@ describe('an offering', () => {
       success: {
         data: { id: 'unpriced', stockOfferingId: 'priced', stockFactor: 12 },
       },
+    });
+  });
+});
+
+describe('a kit', () => {
+  it('records which offerings one of this holds, and answers the record', async () => {
+    const run = world();
+
+    const set = await run(
+      setKit.handler(
+        {
+          params: { id: 'unpriced' },
+          payload: { components: [{ offeringId: 'priced', quantity: 2 }] },
+        },
+        context,
+      ),
+    );
+
+    expect(set).toMatchObject({
+      success: { data: { id: 'unpriced', kitSize: 1 } },
     });
   });
 });

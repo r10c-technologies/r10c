@@ -73,6 +73,15 @@ export const entity: EsEntity = {
       amount: 'Price',
     },
   },
+  'kit-component': {
+    fields: {
+      offeringId: 'Product',
+      quantity: 'Quantity',
+      stockOfferingId: 'Takes stock from',
+      stockUnit: 'Stock unit',
+      stockQuantity: 'Stock per kit',
+    },
+  },
   'variant-value': {
     fields: {
       axis: 'Attribute',
@@ -368,6 +377,7 @@ export const entity: EsEntity = {
     },
     fields: {
       id: 'ID',
+      sku: 'SKU',
       offeringId: 'Offering ID',
       vendorId: 'Vendor ID',
       name: 'Name',
@@ -384,6 +394,8 @@ export const entity: EsEntity = {
       specKey: 'Specification series',
       variantGroup: 'Product it is a variant of',
       variantValues: 'Variant',
+      kitComponents: 'Kit contents',
+      kitSize: 'Products in the kit',
       searchText: 'Search text',
       stockUnit: 'Base unit',
       availableHint: 'Availability hint',
@@ -481,6 +493,7 @@ export const entity: EsEntity = {
         stockOfferingId: 'Taken from',
         stockUnit: 'Base unit',
         stockQuantity: 'Taken from stock',
+        kitComponents: 'Kit contents',
         lineTotal: 'Line total',
         quantity: 'Quantity',
         amount: 'Amount',
@@ -784,6 +797,7 @@ export const entity: EsEntity = {
     plural: 'Product offerings',
     fields: {
       id: 'ID',
+      sku: 'SKU',
       name: 'Name',
       specificationId: 'Specification',
       status: 'Status',
@@ -794,6 +808,8 @@ export const entity: EsEntity = {
       stockOfferingId: 'Draws its stock from',
       stockFactor: 'Base units per one',
       variantValues: 'Variant',
+      kitComponents: 'Kit contents',
+      kitSize: 'Products in the kit',
       media: 'Own pictures',
     },
     values: {
@@ -808,6 +824,7 @@ export const entity: EsEntity = {
       publish: 'Publish',
       setSaleUnit: 'Set the sale unit',
       drawOnStock: 'Sell a presentation from the same stock',
+      setKit: 'Sell as a kit',
       setVariant: 'Set the variant',
       publishConfirm:
         'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',
@@ -832,6 +849,7 @@ export const entity: EsEntity = {
       importedAt: 'Imported',
       rowCount: 'Rows',
       createdCount: 'Created',
+      updatedCount: 'Updated',
       rejectedCount: 'Rejected',
       rejections: 'Rejected rows',
     },
@@ -1051,6 +1069,7 @@ export const entity: EsEntity = {
         stockOfferingId: 'Taken from',
         stockUnit: 'Base unit',
         stockQuantity: 'Taken from stock',
+        kitComponents: 'Kit contents',
       },
       status: 'Status',
       dispatchedAt: 'Dispatched at',

@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-11-05
 - Area: frontend
-- Read when: a screen fails an accessibility check, adding a screen or a palette, or weighing a usability finding on the storefront versus the back office — r10c only narrows entifix's WCAG 2.2 AA, deterministic checks gate every screen type, heuristics never do
+- Read when: a screen fails an accessibility check, adding a screen or a palette, or weighing a usability finding — r10c only narrows entifix's WCAG 2.2 AA, deterministic checks gate every screen type, heuristics never do
 
 ## Context
 

@@ -44,8 +44,10 @@ const store = <A>(run: () => Promise<A>) =>
     try: run,
     // A store fault, so the unit of work rolls back and surfaces it — or, for
     // a write conflict, runs the unit again — rather than reading it as the
-    // body's own abort.
-    catch: () => new Unavailable({ dependency: 'mongo' }),
+    // body's own abort. ⚠️ The conflict must stay `Contention`: read as
+    // `Unavailable`, two creates drawing one counter answered 503 instead of
+    // one rerunning — measured live, four sheets importing at once.
+    catch: mongoUnitFault,
   });
 
 /**

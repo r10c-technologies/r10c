@@ -1,3 +1,5 @@
+export * from './kit';
+export * from './kit-component-row';
 export * from './line-total';
 export * from './order-tender';
 export * from './price-basis';

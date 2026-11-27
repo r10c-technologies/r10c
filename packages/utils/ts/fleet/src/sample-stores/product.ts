@@ -30,6 +30,7 @@ export const product = (
       | 'fits'
       | 'tiers'
       | 'drawsOn'
+      | 'kit'
       | 'variant'
       | 'tone'
     >

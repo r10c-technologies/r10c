@@ -7,6 +7,8 @@ import {
 } from '@r10c/business-ts-catalog-contracts';
 import {
   DEFAULT_SALE_UNIT,
+  type KitComponent,
+  KitComponentRow,
   oneWholeUnit,
   SALE_UNIT_NAME_KEY,
   SALE_UNIT_SCALES,
@@ -61,6 +63,7 @@ export class ProductOffering implements Entity {
   // #region properties
   #id?: EntityId;
   #name: string;
+  #sku?: string;
   #specificationId: string;
   #status: OfferingStatus = 'draft';
   #statusChangedAt?: Date;
@@ -70,6 +73,8 @@ export class ProductOffering implements Entity {
   #stockOfferingId?: string;
   #stockFactor?: number;
   #variantValues?: readonly VariantValue[];
+  #kitComponents?: readonly KitComponent[];
+  #kitSize?: number;
   #media?: readonly MediaReferenceValue[];
   #revision?: number;
   // #endregion
@@ -109,6 +114,28 @@ export class ProductOffering implements Entity {
   }
   set name(value: string) {
     this.#name = value;
+  }
+
+  /**
+   * The vendor's own code for this offering — what its labels print, its
+   * scanner types and its sheets are keyed by. Optional, and **unique within
+   * the organization**: each organization has its own catalog store, and the
+   * store refuses a second offering with the same code (`duplicateKey`), so
+   * no read-then-write race can let two through. Trimmed on every save, blank
+   * is no SKU, and anything a label would not print is `skuInvalid`.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-offering.fields.sku',
+    unique: true,
+    sortable: true,
+    filterable: true,
+  })
+  get sku(): string | undefined {
+    return this.#sku;
+  }
+  set sku(value: string | undefined) {
+    this.#sku = value;
   }
 
   /**
@@ -333,6 +360,47 @@ export class ProductOffering implements Entity {
   }
   set variantValues(value: readonly VariantValue[] | undefined) {
     this.#variantValues = value;
+  }
+
+  /**
+   * What makes this offering a **kit**: other offerings of the same vendor,
+   * and how many of each one kit holds — a case and its screen protector at
+   * one price
+   * ([ADR 0086](../../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
+   * A kit is sold in `UN` and holds no stock of its own: each one sold takes
+   * its components from theirs, so a kit and a loose component compete for one
+   * balance.
+   *
+   * ⚠️ **Server-owned.** Only `set-kit` writes it; a save carries the stored
+   * value across. Absent is no kit, never `[]`.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => KitComponentRow,
+    labelKey: 'entity:product-offering.fields.kitComponents',
+  })
+  get kitComponents(): readonly KitComponent[] | undefined {
+    return this.#kitComponents;
+  }
+  set kitComponents(value: readonly KitComponent[] | undefined) {
+    this.#kitComponents = value;
+  }
+
+  /**
+   * How many components the kit holds, written with them: the one fact about
+   * a kit a query can ask, since a composition is never filtered. Absent on an
+   * offering that is not a kit. Server-owned with `kitComponents`.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:product-offering.fields.kitSize',
+    filterable: true,
+  })
+  get kitSize(): number | undefined {
+    return this.#kitSize;
+  }
+  set kitSize(value: number | undefined) {
+    this.#kitSize = value;
   }
 
   /**

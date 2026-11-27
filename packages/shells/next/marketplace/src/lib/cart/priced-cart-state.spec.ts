@@ -93,6 +93,27 @@ describe('pricedCartOf', () => {
     expect(plain).not.toHaveProperty('stockOfferingId');
   });
 
+  it('states what a kit holds, as published', () => {
+    const kitComponents = [
+      {
+        offeringId: 'case',
+        quantity: 1,
+        stockOfferingId: 'case',
+        stockUnit: 'UN' as const,
+        stockQuantity: 1,
+      },
+    ];
+    const kit = Object.assign(offering('kit', 'v-1', 15_000), {
+      kitComponents,
+    });
+
+    const [priced] = pricedCartOf([
+      { line: { offeringId: 'kit', quantity: 2 }, offering: kit },
+    ]).priced;
+
+    expect(priced).toMatchObject({ kitComponents });
+  });
+
   it('copies the description and the version each line is sold under', () => {
     const pinned = Object.assign(offering('o-1', 'v-1', 500), {
       description: 'Esmaltada a mano.',

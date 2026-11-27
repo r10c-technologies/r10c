@@ -30,6 +30,7 @@ export const MAX_VARIANT_VALUE_LENGTH = 40;
 
 export const VariantProblems = [
   'presentation',
+  'kit',
   'axis',
   'value',
   'repeatedAxis',
@@ -42,7 +43,8 @@ export const VariantProblems = [
 export type VariantProblem = (typeof VariantProblems)[number];
 
 /**
- * A variant that cannot be recorded: the offering is a presentation, an axis
+ * A variant that cannot be recorded: the offering is a presentation or a kit
+ * (ADR 0086), an axis
  * is unknown or named twice, a value is blank or too long, there are too many
  * axes, the axes differ from the rest of the product's variants, or another
  * variant of the product already takes this combination, or a save would move a

@@ -112,11 +112,13 @@ function ThemedProviders({
   children,
   scope,
   partyRole,
+  organizationId,
   initialTheme,
   initialDensity,
 }: PropsWithChildren<{
   scope: string;
   partyRole: string | undefined;
+  organizationId: string | undefined;
   initialTheme: string;
   initialDensity: Density | undefined;
 }>) {
@@ -175,7 +177,10 @@ function ThemedProviders({
                         <StockProvider>
                           <OrderProvider>
                             <FulfilmentProvider>
-                              <SalesProvider scope={scope}>
+                              <SalesProvider
+                                scope={scope}
+                                vendorId={organizationId}
+                              >
                                 <SettlementProvider
                                   {...(partyRole === undefined
                                     ? {}
@@ -205,6 +210,7 @@ export function Providers({
   locale,
   scope,
   partyRole,
+  organizationId,
   reader,
   initialTheme,
   initialDensity,
@@ -214,6 +220,12 @@ export function Providers({
   scope: string;
   /** Who is reading, for copy only — never a decision (ADR 0015, #559). */
   partyRole: string | undefined;
+  /**
+   * The organization the reader acts for, from unverified claims: what the
+   * till lists, never what it may sell — sales-service refuses another
+   * vendor's offering (ADR 0015).
+   */
+  organizationId: string | undefined;
   /** Which other slices' regions a page may compose for them (#564). */
   reader: Reader;
   initialTheme: string;
@@ -225,6 +237,7 @@ export function Providers({
         <ThemedProviders
           scope={scope}
           partyRole={partyRole}
+          organizationId={organizationId}
           initialTheme={initialTheme}
           initialDensity={initialDensity}
         >

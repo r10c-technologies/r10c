@@ -1,6 +1,8 @@
 import {
   isPricePer,
   isSaleUnit,
+  kitLineStockOf,
+  kitStockListOf,
   lineTotal,
   PRESENTATION_UNIT,
   stockQuantityOf,
@@ -30,6 +32,7 @@ export const pricedLine = (line: Body): Body => {
     stockFactor: _factor,
     stockUnit: _unit,
     stockQuantity: _taken,
+    kitComponents: _kit,
     ...rest
   } = line;
   const { amount, quantity, saleUnit, pricePer } = rest;
@@ -41,6 +44,7 @@ export const pricedLine = (line: Body): Body => {
         ...rest,
         lineTotal: lineTotal({ amount, quantity, saleUnit, pricePer }),
         ...drawnStock(line, quantity, saleUnit),
+        ...kitStock(line, quantity, saleUnit),
       }
     : rest;
 };
@@ -66,6 +70,20 @@ const drawnStock = (line: Body, quantity: number, saleUnit: string): Body => {
           stockFactor: source.stockFactor,
         }),
       };
+};
+
+/**
+ * What a kit's line takes from each component's stock, **stated by the
+ * coordinator**: `kitLineStockOf` over what one kit takes, as published,
+ * computed here once (ADR 0086). A line that names no whole kit, or one not
+ * sold in `UN`, holds no components: it reserves on its own id, where no
+ * stock is held, and is refused — never sold as a bundle nobody counted.
+ */
+const kitStock = (line: Body, quantity: number, saleUnit: string): Body => {
+  const kit = kitStockListOf(line['kitComponents']);
+  return kit === undefined || saleUnit !== PRESENTATION_UNIT
+    ? {}
+    : { kitComponents: kitLineStockOf(quantity, kit) };
 };
 
 /** A vendor part with every line priced by the coordinator. */

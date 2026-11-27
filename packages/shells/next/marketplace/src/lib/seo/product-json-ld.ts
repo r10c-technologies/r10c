@@ -31,12 +31,14 @@ export const productJsonLd = ({
 }: ProductJsonLdInput): Record<string, unknown> => {
   const price = (offering.amount / 100).toFixed(2);
   const quoted = quotedQuantity(offering);
+  // The vendor's own code when it gave one; the product model's otherwise.
+  const sku = offering.sku ?? offering.code;
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: offering.name,
     ...(offering.description ? { description: offering.description } : {}),
-    ...(offering.code ? { sku: offering.code } : {}),
+    ...(sku ? { sku } : {}),
     ...(offering.media && offering.media.length > 0
       ? {
           // Absolute, as schema.org asks: a sample store's picture is a path

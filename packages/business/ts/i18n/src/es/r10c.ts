@@ -221,6 +221,12 @@ export const r10c = {
         },
       },
       buy: 'Comprar',
+      kit: {
+        chip: 'Kit',
+        heading: 'Incluye',
+        item: '{{quantity}} × {{name}}',
+      },
+      variantCount: 'Disponible en {{count}} versiones',
       soldBy: 'Vendido por {{seller}}',
       delivery: {
         ships: 'Envío por el vendedor',
@@ -698,6 +704,7 @@ export const r10c = {
       counterSale: 'Vender en mostrador',
     },
     counterSale: {
+      search: 'Buscar o escanear un producto',
       title: 'Venta en mostrador',
       steps: {
         channel: 'Canal',
@@ -767,12 +774,24 @@ export const r10c = {
         resets:
           'El paso y la cantidad mínima vuelven a una unidad completa de la unidad nueva. Después de publicar la oferta, la unidad ya no cambia.',
       },
+      variants: {
+        alone: 'Todavía no hay otra variante de este producto en tu catálogo.',
+      },
       variant: {
-        hint:
-          'Las variantes de un producto son ofertas con su propio precio e inventario: elige en qué se distingue esta —color, talla, acabado o capacidad— y su valor. Todas las variantes del producto usan los mismos atributos.',
+        hint: 'Las variantes de un producto son ofertas con su propio precio e inventario: elige en qué se distingue esta —color, talla, acabado o capacidad— y su valor. Todas las variantes del producto usan los mismos atributos.',
         none: 'Esta oferta no es variante de su producto.',
         add: 'Añadir atributo',
         remove: 'Quitar el atributo {{position}}',
+      },
+      kit: {
+        hint: 'Un kit vende varios de tus productos juntos a un solo precio. Cada kit vendido toma cada producto de su propio inventario.',
+        loading: 'Cargando tus ofertas…',
+        pick: 'Elige un producto',
+        unavailable: '{{name}} (ya no puede ir en un kit)',
+        add: 'Agregar un producto',
+        remove: 'Quitar producto {{position}}',
+        notCounted:
+          'Un kit se vende por unidad. Primero define la unidad de esta oferta en piezas.',
       },
       stockSource: {
         hint: 'Una caja, un rollo o una docena se vende del inventario de otra oferta: cada una que se vende toma esta cantidad de ella, así la caja y las sueltas comparten un mismo saldo.',
@@ -785,6 +804,7 @@ export const r10c = {
       regions: {
         images: 'Imágenes',
         prices: 'Precios',
+        variants: 'Otras variantes',
         stock: 'Existencias',
         movements: 'Movimientos de inventario',
       },
@@ -840,11 +860,15 @@ export const r10c = {
           template: 'Descargar la plantilla',
           reading: 'Leyendo la hoja…',
           read: '{{file}}: {{ready}} filas listas, {{rejected}} con problemas.',
-          unreadable: 'No se pudo leer este archivo. Guárdelo como CSV o como Excel (.xlsx).',
-          required: 'Elija una hoja con al menos un producto que se pueda importar.',
+          unreadable:
+            'No se pudo leer este archivo. Guárdelo como CSV o como Excel (.xlsx).',
+          required:
+            'Elija una hoja con al menos un producto que se pueda importar.',
         },
         preview: {
           prompt: 'Revise lo que se importará antes de confirmar.',
+          coded:
+            'Filas con SKU: {{count}}. Una fila con el SKU de un producto que ya tiene actualiza su nombre, precio y forma de venta; con uno nuevo, crea el producto.',
           ready: 'Filas que se importarán: {{count}}',
           rejected: 'Filas que no se importarán: {{count}}',
           mode: 'Modo: {{mode}}',

@@ -53,6 +53,18 @@ describe('productJsonLd', () => {
     });
   });
 
+  it('names the vendor’s own SKU over the product model’s code', () => {
+    expect(
+      productJsonLd({
+        offering: offering(one => {
+          one.code = 'ARC-1';
+          one.sku = 'COB-ARC-NEGRA';
+        }),
+        url: URL,
+      }),
+    ).toMatchObject({ sku: 'COB-ARC-NEGRA' });
+  });
+
   it('leaves out what the snapshot left out, and says out of stock', () => {
     expect(productJsonLd({ offering: offering(), url: URL })).toEqual({
       '@context': 'https://schema.org',

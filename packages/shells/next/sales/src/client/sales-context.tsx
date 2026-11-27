@@ -7,6 +7,7 @@ import type { SalesAdapters } from './client-types';
 
 const SalesContext = createContext<SalesAdapters | undefined>(undefined);
 const SalesScopeContext = createContext<string | undefined>(undefined);
+const SalesVendorContext = createContext<string | undefined>(undefined);
 
 export interface SalesProviderProps {
   children: ReactNode;
@@ -20,6 +21,12 @@ export interface SalesProviderProps {
    * Without one, nothing is remembered.
    */
   scope?: string;
+  /**
+   * The organization whose till this is, so it lists that vendor's products
+   * only. Presentation, never a permission: sales-service refuses a sale of
+   * another vendor's offering whatever the till listed.
+   */
+  vendorId?: string;
 }
 
 /**
@@ -34,13 +41,16 @@ export function SalesProvider({
   children,
   adapters,
   scope,
+  vendorId,
 }: SalesProviderProps) {
   const value = useMemo(() => adapters ?? createClientAdapters(), [adapters]);
 
   return (
     <SalesContext.Provider value={value}>
       <SalesScopeContext.Provider value={scope}>
-        {children}
+        <SalesVendorContext.Provider value={vendorId}>
+          {children}
+        </SalesVendorContext.Provider>
       </SalesScopeContext.Provider>
     </SalesContext.Provider>
   );
@@ -49,6 +59,11 @@ export function SalesProvider({
 /** The scope the host mounted the shell under, if it named one. */
 export function useSalesScope(): string | undefined {
   return useContext(SalesScopeContext);
+}
+
+/** The vendor whose till this is, if the host named one. */
+export function useSalesVendor(): string | undefined {
+  return useContext(SalesVendorContext);
 }
 
 export function useSalesAdapters(): SalesAdapters {

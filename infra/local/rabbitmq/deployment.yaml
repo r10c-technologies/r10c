@@ -18,6 +18,13 @@ spec:
       labels:
         app: rabbitmq
     spec:
+      # The node is named after the host (`rabbit@<hostname>`), and its Mnesia
+      # directory after the node. A Deployment's pod takes a new name each time
+      # it is recreated, so without a fixed hostname every restart booted an
+      # empty node beside the old one's directory on the kept volume: durable
+      # queues, their bindings and what they held were gone, measured by the
+      # broker-outage live spec, whose publication was routed to no queue.
+      hostname: rabbitmq
       containers:
         - name: rabbitmq
           # ⚠️ **Pinned to a patch, not a major.** This was `3-management`, a

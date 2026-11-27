@@ -11,6 +11,7 @@ import {
 } from '@entifix/core';
 import { refuseSelectionAbove } from '@r10c/business-ts-common';
 import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import { kitTakenOf } from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Option } from 'effect';
 
 import { ShippingOrder } from '../entities/shipping-order';
@@ -40,7 +41,8 @@ export const deliveryInput = (
   taxAmount: order.taxAmount,
   taxRegime: order.taxRegime,
   currency: order.currency,
-  // A presentation's line goes back to its base (ADR 0082 §7).
+  // A presentation's line goes back to its base (ADR 0082 §7), a kit's to
+  // each component (ADR 0086).
   lines: order.lines.map(line => ({
     offeringId: line.offeringId,
     unit: line.unit,
@@ -52,6 +54,7 @@ export const deliveryInput = (
           stockUnit: line.stockUnit,
           stockQuantity: line.stockQuantity,
         }),
+    ...kitTakenOf(line),
   })),
 });
 

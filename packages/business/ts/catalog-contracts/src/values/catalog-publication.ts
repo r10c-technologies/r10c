@@ -7,6 +7,8 @@ import {
   registerEvent,
 } from '@entifix/core';
 import {
+  type KitStock,
+  kitStockListOf,
   type PriceTier,
   priceTiersOf,
   type SaleTerms,
@@ -89,6 +91,11 @@ export interface CatalogPublication extends SaleTerms {
   readonly vendorId: string;
   readonly name: string;
   /**
+   * The vendor's own code for the offering: what a till scans and a buyer
+   * may search by. Absent when the vendor gave none.
+   */
+  readonly sku?: string;
+  /**
    * Minor units, matching `ProductOfferingPrice.amount`: what `pricePer` whole
    * `saleUnit`s cost. The sale terms are required, unlike the merchandising
    * below: a price without them is read as a price for one unit, which
@@ -112,6 +119,15 @@ export interface CatalogPublication extends SaleTerms {
   readonly stockOfferingId?: string;
   readonly stockFactor?: number;
   readonly stockUnit?: SaleUnit;
+  /**
+   * A kit's components and what one kit takes from each one's stock, read
+   * when the kit is published
+   * ([ADR 0086](../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
+   * The coordinator reserves each, and the order line copies them. Absent,
+   * never `[]`, on an offering that is not a kit; a kit never also draws on
+   * a base.
+   */
+  readonly kitComponents?: readonly KitStock[];
   /**
    * A hint, not a promise — the checkout reservation is the truth (ADR 0009,
    * ADR 0010).
@@ -330,6 +346,17 @@ const stockOf = (
   stockSourceOf(raw) ?? {};
 
 /**
+ * The kit a payload states, folded like the stock source: a partial list is
+ * absent rather than poison. A kit that lost its components reserves on its
+ * own id, where no stock is held, so the checkout refuses it rather than
+ * selling a bundle nobody counted.
+ */
+const kitOf = (value: unknown): Pick<CatalogPublication, 'kitComponents'> => {
+  const kitComponents = kitStockListOf(value);
+  return kitComponents === undefined ? {} : { kitComponents };
+};
+
+/**
  * A variant as plain `{ axis, value }` values in the axis order, or absent
  * when the payload states none or not a well-formed one: an offering whose
  * variant was lost still sells, as a product of its own.
@@ -372,6 +399,7 @@ export const readCatalogPublication = (
         publishedAt: raw.publishedAt,
         specificationId: raw.specificationId,
         specificationVersion: raw.specificationVersion,
+        sku: optionalString(raw['sku']),
         code: optionalString(raw['code']),
         description: optionalString(raw['description']),
         brandId: optionalString(raw['brandId']),
@@ -382,6 +410,7 @@ export const readCatalogPublication = (
         variantValues: plainVariant(raw['variantValues']),
         ...tiersOf(raw['tiers']),
         ...stockOf(raw),
+        ...kitOf(raw['kitComponents']),
         ...terms,
       })),
     ),

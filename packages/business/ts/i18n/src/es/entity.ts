@@ -84,6 +84,15 @@ export const entity = {
       amount: 'Precio',
     },
   },
+  'kit-component': {
+    fields: {
+      offeringId: 'Producto',
+      quantity: 'Cantidad',
+      stockOfferingId: 'Toma inventario de',
+      stockUnit: 'Unidad de inventario',
+      stockQuantity: 'Inventario por kit',
+    },
+  },
   'variant-value': {
     fields: {
       axis: 'Atributo',
@@ -402,6 +411,7 @@ export const entity = {
     },
     fields: {
       id: 'ID',
+      sku: 'SKU',
       offeringId: 'ID de oferta',
       vendorId: 'ID de vendedor',
       name: 'Nombre',
@@ -418,6 +428,8 @@ export const entity = {
       specKey: 'Serie de la especificación',
       variantGroup: 'Producto del que es variante',
       variantValues: 'Variante',
+      kitComponents: 'Contenido del kit',
+      kitSize: 'Productos en el kit',
       searchText: 'Texto de búsqueda',
       stockUnit: 'Unidad base',
       availableHint: 'Disponibilidad estimada',
@@ -516,6 +528,7 @@ export const entity = {
         stockOfferingId: 'Tomado de',
         stockUnit: 'Unidad base',
         stockQuantity: 'Tomado del inventario',
+        kitComponents: 'Contenido del kit',
         lineTotal: 'Total de la línea',
         quantity: 'Cantidad',
         amount: 'Importe',
@@ -830,6 +843,7 @@ export const entity = {
     plural: 'Ofertas comerciales',
     fields: {
       id: 'ID',
+      sku: 'SKU',
       name: 'Nombre',
       specificationId: 'Especificación',
       status: 'Estado',
@@ -840,6 +854,8 @@ export const entity = {
       stockOfferingId: 'Toma su inventario de',
       stockFactor: 'Unidades base por cada una',
       variantValues: 'Variante',
+      kitComponents: 'Contenido del kit',
+      kitSize: 'Productos en el kit',
       media: 'Imágenes propias',
     },
     values: {
@@ -854,6 +870,7 @@ export const entity = {
       publish: 'Publicar',
       setSaleUnit: 'Definir unidad de venta',
       drawOnStock: 'Vender una presentación del mismo inventario',
+      setKit: 'Vender como kit',
       setVariant: 'Definir variante',
       publishConfirm:
         'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',
@@ -878,6 +895,7 @@ export const entity = {
       importedAt: 'Importada',
       rowCount: 'Filas',
       createdCount: 'Creados',
+      updatedCount: 'Actualizados',
       rejectedCount: 'Rechazados',
       rejections: 'Filas rechazadas',
     },
@@ -1097,6 +1115,7 @@ export const entity = {
         stockOfferingId: 'Tomado de',
         stockUnit: 'Unidad base',
         stockQuantity: 'Tomado del inventario',
+        kitComponents: 'Contenido del kit',
       },
       status: 'Estado',
       dispatchedAt: 'Despachado el',

@@ -3,6 +3,7 @@ import { EntityRepositoryFactoryTag } from '@entifix/business';
 import { type EntityId, NotFound, useCase } from '@entifix/core';
 import {
   defaultSaleRule,
+  KitInvalid,
   PRESENTATION_UNIT,
   SaleUnits,
   StockSourceInvalid,
@@ -56,7 +57,13 @@ export type SaleUnitPayload = typeof SaleUnitPayload.Type;
   // surface that holds no such form does not offer the verb (entifix #315).
   form: 'sale-unit',
   availableWhen: { member: 'status', in: NeverPublishedStatuses },
-  errors: [NotFound, SaleUnitFixed, StockSourceInvalid, OfferingChanged],
+  errors: [
+    NotFound,
+    SaleUnitFixed,
+    StockSourceInvalid,
+    KitInvalid,
+    OfferingChanged,
+  ],
 })
 export class SetSaleUnitUC {
   static run(input: {
@@ -79,6 +86,12 @@ export class SetSaleUnitUC {
         input.payload.saleUnit !== PRESENTATION_UNIT
       )
         return yield* new StockSourceInvalid({ problem: 'notCounted' });
+      // So is a kit (ADR 0086): what it holds is counted per one kit.
+      if (
+        (offering.kitSize ?? 0) > 0 &&
+        input.payload.saleUnit !== PRESENTATION_UNIT
+      )
+        return yield* new KitInvalid({ problem: 'notCounted' });
       const read =
         input.payload.revision === undefined
           ? offering.revision

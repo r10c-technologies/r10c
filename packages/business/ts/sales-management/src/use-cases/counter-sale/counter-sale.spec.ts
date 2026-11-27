@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { SalesChannel } from '../../entities/sales-channel/index.js';
 import {
   counterBuyerTax,
+  mergedLines,
   sellAtCounter,
   validateSalesChannel,
 } from './counter-sale.js';
@@ -91,6 +92,26 @@ const prices: Record<string, PublishedPrice> = {
     stockOfferingId: 'tiered',
     stockFactor: 100,
     stockUnit: 'UN',
+    ...ONE_PIECE,
+  },
+  // A hammer and a box of nails at one price (ADR 0086).
+  kit: {
+    offeringId: 'kit',
+    name: 'Kit de martillo',
+    vendorId: 'org-1',
+    amount: 9000,
+    currency: 'GTQ',
+    specificationId: 'spec-kit',
+    specificationVersion: 1,
+    kitComponents: [
+      {
+        offeringId: 'tiered',
+        quantity: 2,
+        stockOfferingId: 'tiered',
+        stockUnit: 'UN',
+        stockQuantity: 2,
+      },
+    ],
     ...ONE_PIECE,
   },
   theirs: {
@@ -254,6 +275,35 @@ describe('sellAtCounter', () => {
       tierFrom: 2,
     });
     expect(input.totals).toEqual([{ currency: 'GTQ', amount: 800 }]);
+  });
+
+  it('sells a repeated offering as one line of the summed quantity', async () => {
+    expect(
+      mergedLines([
+        { offeringId: 'a', quantity: 1 },
+        { offeringId: 'b', quantity: 2 },
+        { offeringId: 'a', quantity: 3 },
+      ]),
+    ).toEqual([
+      { offeringId: 'a', quantity: 4 },
+      { offeringId: 'b', quantity: 2 },
+    ]);
+  });
+
+  it('states what a kit holds, as published', async () => {
+    const { sold, started } = world();
+
+    await sold('c-open', 'kit');
+
+    const input = started[0]?.input as {
+      readonly vendors: readonly {
+        readonly lines: readonly Record<string, unknown>[];
+      }[];
+    };
+    expect(input.vendors[0]?.lines[0]).toMatchObject({
+      offeringId: 'kit',
+      kitComponents: [{ offeringId: 'tiered', stockQuantity: 2 }],
+    });
   });
 
   it('states the base a presentation draws on, as published', async () => {

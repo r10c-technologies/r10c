@@ -164,3 +164,92 @@ export const getVariantSiblings = (
         ],
         pageSize: VARIANT_SIBLINGS_PAGE,
       }).pipe(Effect.map(page => page.items));
+
+/**
+ * The published offerings a kit holds, in the kit's order (ADR 0086): what
+ * the product page lists as included. A component no longer published is left
+ * off rather than the page; an offering that is no kit reads nothing.
+ */
+export const getKitComponents = (
+  offering: Pick<PublishedOffering, 'vendorId' | 'kitComponents'>,
+): OfferingRead<readonly PublishedOffering[]> => {
+  const ids = (offering.kitComponents ?? []).map(
+    component => component.offeringId,
+  );
+  return ids.length === 0
+    ? Effect.succeed([])
+    : load({
+        filtering: [
+          { property: 'vendorId', operator: 'eq', value: offering.vendorId },
+          { property: 'offeringId', operator: 'in', values: ids },
+        ],
+        pageSize: ids.length,
+      }).pipe(
+        Effect.map(page =>
+          ids.flatMap(id => page.items.filter(item => item.offeringId === id)),
+        ),
+      );
+};
+
+/** The most offerings a listing's variant counts read in one request. */
+export const VARIANT_COUNT_PAGE = 500;
+
+/**
+ * The key a listing's variant counts are kept under: the vendor **and** the
+ * group. A group is the specification's code, which each organization numbers
+ * on its own (`PRD-001` in two stores is two products), so a group alone
+ * would add one vendor's variants to another's count.
+ */
+export const variantCountKey = (
+  offering: Pick<PublishedOffering, 'vendorId'> & {
+    readonly variantGroup: string;
+  },
+): string => `${offering.vendorId}\u0000${offering.variantGroup}`;
+
+/**
+ * How many published variants each group on a listing page holds, by
+ * {@link variantCountKey} (ADR 0085 §7): one read for the whole page, and none
+ * when the page holds no variant. Paging and facets stay one card per
+ * offering; this only says how many more a card's product comes in.
+ */
+export const getVariantCounts = (
+  offerings: readonly Pick<PublishedOffering, 'vendorId' | 'variantGroup'>[],
+): OfferingRead<ReadonlyMap<string, number>> => {
+  const grouped = offerings.flatMap(offering =>
+    offering.variantGroup === undefined
+      ? []
+      : [{ vendorId: offering.vendorId, variantGroup: offering.variantGroup }],
+  );
+  const wanted = new Set(grouped.map(variantCountKey));
+  return grouped.length === 0
+    ? Effect.succeed(new Map())
+    : load({
+        filtering: [
+          {
+            property: 'vendorId',
+            operator: 'in',
+            values: Array.from(new Set(grouped.map(one => one.vendorId))),
+          },
+          {
+            property: 'variantGroup',
+            operator: 'in',
+            values: Array.from(new Set(grouped.map(one => one.variantGroup))),
+          },
+        ],
+        pageSize: VARIANT_COUNT_PAGE,
+      }).pipe(
+        Effect.map(page => {
+          const counts = new Map<string, number>();
+          for (const item of page.items) {
+            // The two filters cross: vendor A's group may be read for vendor
+            // B, and is not B's product.
+            const key = variantCountKey({
+              vendorId: item.vendorId,
+              variantGroup: String(item.variantGroup),
+            });
+            if (wanted.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
+          }
+          return counts;
+        }),
+      );
+};

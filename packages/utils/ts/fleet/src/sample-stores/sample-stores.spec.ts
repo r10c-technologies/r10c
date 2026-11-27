@@ -4,6 +4,7 @@ import {
   HARDWARE_STORE,
   PHONE_ACCESSORIES_STORE,
   sampleMediaPath,
+  sampleSkuOf,
   SEEDED_VENDORS,
   SHOEMAKING_SUPPLIES_STORE,
 } from '../seeded-vendors.js';
@@ -63,6 +64,15 @@ describe('the sample stores', () => {
       expect(SAMPLE_CATEGORY_IDS[item.category]).toBeDefined();
       expect(sampleCategory(item.category).retired).toBeUndefined();
     }
+  });
+
+  it('give every product a SKU a label prints, unique within its store', () => {
+    for (const vendor of SEEDED_VENDORS) {
+      const skus = vendor.products.map(sampleSkuOf);
+      expect(new Set(skus).size).toBe(skus.length);
+      for (const sku of skus) expect(sku).toMatch(/^[A-Z0-9._/-]{1,40}$/);
+    }
+    expect(sampleSkuOf({ key: 'taco-fisher' })).toBe('TACO-FISHER');
   });
 
   it('keep keys and names unique within a store', () => {
@@ -148,6 +158,25 @@ describe('the sample stores', () => {
       expect(item.stock).toBe('none');
       expect(Number.isSafeInteger(item.drawsOn?.factor)).toBe(true);
       expect(item.drawsOn?.factor).toBeGreaterThan(0);
+    }
+  });
+
+  it('sell each kit by the piece from published products of its own store, one level deep', () => {
+    const kits = everyProduct.filter(({ item }) => item.kit !== undefined);
+    expect(kits.length).toBeGreaterThanOrEqual(2);
+    for (const { vendor, item } of kits) {
+      expect(item.unit).toBe('UN');
+      expect(item.stock).toBe('none');
+      expect(item.status).toBe('published');
+      for (const component of item.kit ?? []) {
+        const held = vendor.products.find(one => one.key === component.key);
+        expect(held, `${item.key} holds a product of its store`).toBeDefined();
+        expect(held?.kit).toBeUndefined();
+        expect(held?.unit).toBe('UN');
+        expect(held?.status).toBe('published');
+        expect(Number.isSafeInteger(component.quantity)).toBe(true);
+        expect(component.quantity).toBeGreaterThan(0);
+      }
     }
   });
 

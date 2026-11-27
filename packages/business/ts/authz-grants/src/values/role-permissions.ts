@@ -124,6 +124,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${CATALOG_DOMAIN}:product-offering:set-sale-unit`,
     // A box or a roll drawing on its base offering's stock (ADR 0082 §7).
     `${CATALOG_DOMAIN}:product-offering:draw-on-stock`,
+    // Several offerings sold together at one price (ADR 0086).
+    `${CATALOG_DOMAIN}:product-offering:set-kit`,
     // Which colour, size, finish or capacity of its product it is (ADR 0085).
     `${CATALOG_DOMAIN}:product-offering:set-variant`,
     // Where a price steps down by quantity (ADR 0082 §8).

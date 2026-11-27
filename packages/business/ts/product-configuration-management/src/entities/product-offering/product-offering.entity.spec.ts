@@ -112,6 +112,7 @@ describe('ProductOffering', () => {
     expect(names).toEqual([
       'id',
       'name',
+      'sku',
       'specificationId',
       'status',
       'statusChangedAt',
@@ -121,6 +122,8 @@ describe('ProductOffering', () => {
       'stockOfferingId',
       'stockFactor',
       'variantValues',
+      'kitComponents',
+      'kitSize',
       'media',
       'revision',
     ]);

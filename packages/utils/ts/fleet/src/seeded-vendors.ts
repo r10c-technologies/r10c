@@ -144,6 +144,14 @@ export const PHONE_ACCESSORIES_STORE = SEEDED_VENDORS[1];
 export const SHOEMAKING_SUPPLIES_STORE = SEEDED_VENDORS[2];
 
 /**
+ * A sample product's SKU: its key, upper-cased — `taco-fisher` is
+ * `TACO-FISHER`. Unique in its store because the key is, and made of what a
+ * label prints, so the till scans it and a sheet updates it by it.
+ */
+export const sampleSkuOf = (product: Pick<SampleProduct, 'key'>): string =>
+  product.key.toUpperCase();
+
+/**
  * Where a seeded product's picture is served: a path on the storefront's own
  * origin, generated at build time by `@r10c/sample-media` — never a third
  * party's host (#676, ADR 0061).

@@ -281,6 +281,26 @@ describe('creating a specification', () => {
     ]);
   });
 
+  // Creates racing on one counter conflict on its `$inc`; the unit runs
+  // again rather than failing the one that lost (four sheets importing at
+  // once answered 503 while this read as the store failing).
+  it('runs the unit again when its draw lost a race for the counter', async () => {
+    const w = world();
+    w.fake.failOnce(
+      'findOneAndUpdate',
+      Object.assign(new Error('WriteConflict'), {
+        name: 'MongoServerError',
+        code: 112,
+        errorLabels: ['TransientTransactionError'],
+      }),
+    );
+
+    const created = await create(w, 'A widget', undefined);
+
+    expect(created.code).toBe('product-001');
+    expect(w.fake.read(SPECIFICATION_COLLECTION)).toHaveLength(1);
+  });
+
   it('answers a repeated key with the record it wrote, spending no code', async () => {
     const w = world();
 
@@ -496,5 +516,39 @@ describe('a variant slot', () => {
     w.fake.failOn('replaceOne', new Error('down'));
 
     await expect(claim(w)).rejects.toMatchObject({ _tag: 'Unavailable' });
+  });
+});
+
+describe('a kit write', () => {
+  const write = (w: ReturnType<typeof world>, offering: ProductOffering) =>
+    w.run(
+      Effect.flatMap(OfferingCatalogTag, catalog =>
+        catalog.setKit('acme', offering),
+      ),
+    );
+
+  it('stores the components as plain rows beside their count, and clears both', async () => {
+    const w = world({ [OFFERING_COLLECTION]: [{ id: 'o-1', revision: 1 }] });
+    const kit = Object.assign(new ProductOffering('A kit', 'spec-1'), {
+      id: 'o-1',
+      revision: 1,
+      kitComponents: [{ offeringId: 'o-2', quantity: 2 }],
+    });
+
+    expect(await write(w, kit)).toBe('committed');
+    expect(w.fake.read(OFFERING_COLLECTION)).toEqual([
+      expect.objectContaining({
+        kitComponents: [{ offeringId: 'o-2', quantity: 2 }],
+        kitSize: 1,
+        revision: 2,
+      }),
+    ]);
+
+    const plain = Object.assign(kit, { revision: 2, kitComponents: [] });
+    expect(await write(w, plain)).toBe('committed');
+    expect(w.fake.read(OFFERING_COLLECTION)[0]).not.toHaveProperty(
+      'kitComponents',
+    );
+    expect(w.fake.read(OFFERING_COLLECTION)[0]).not.toHaveProperty('kitSize');
   });
 });

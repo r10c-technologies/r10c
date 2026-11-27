@@ -49,7 +49,11 @@ describe('paymentLinkOf', () => {
 
   it.each([
     ['', 'other', 'url'],
-    [`https://x.example/${'a'.repeat(PAYMENT_LINK_MAX_LENGTH)}`, 'other', 'url'],
+    [
+      `https://x.example/${'a'.repeat(PAYMENT_LINK_MAX_LENGTH)}`,
+      'other',
+      'url',
+    ],
     ['http://x.example', 'other', 'url'],
     ['not a url', 'other', 'url'],
     ['https://x.example', 'nobody', 'providerKey'],
@@ -81,7 +85,10 @@ describe('paymentReferenceOf', () => {
 describe('paymentLinkProviderOf', () => {
   it('reads a row’s JSON, lower-casing its hosts', () => {
     expect(
-      paymentLinkProviderOf('acq', '{"name":"Acquirer","hosts":["Pay.Acq.Example"]}'),
+      paymentLinkProviderOf(
+        'acq',
+        '{"name":"Acquirer","hosts":["Pay.Acq.Example"]}',
+      ),
     ).toEqual({ key: 'acq', name: 'Acquirer', hosts: ['pay.acq.example'] });
     expect(paymentLinkProviderOf('other', { name: 'Other' })).toEqual({
       key: 'other',
@@ -90,10 +97,13 @@ describe('paymentLinkProviderOf', () => {
     });
   });
 
-  it.each(['{', 'null', '{"name":" "}', '{"name":"A","hosts":"x"}', '{"name":"A","hosts":[1]}'])(
-    'drops a row that is not a provider: %s',
-    value => {
-      expect(paymentLinkProviderOf('k', value)).toBeUndefined();
-    },
-  );
+  it.each([
+    '{',
+    'null',
+    '{"name":" "}',
+    '{"name":"A","hosts":"x"}',
+    '{"name":"A","hosts":[1]}',
+  ])('drops a row that is not a provider: %s', value => {
+    expect(paymentLinkProviderOf('k', value)).toBeUndefined();
+  });
 });

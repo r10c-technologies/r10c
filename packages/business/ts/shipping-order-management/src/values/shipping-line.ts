@@ -1,5 +1,7 @@
 import { accessor } from '@entifix/core';
 import {
+  type KitStock,
+  KitStockRow,
   SALE_UNIT_NAME_KEY,
   SALE_UNIT_SCALES,
   SALE_UNIT_SYMBOL_KEY,
@@ -29,6 +31,7 @@ export class ShippingLine {
   #stockOfferingId?: string;
   #stockUnit?: SaleUnit;
   #stockQuantity?: number;
+  #kitComponents?: readonly KitStock[];
   // #endregion
 
   // #region constructors
@@ -144,6 +147,24 @@ export class ShippingLine {
   }
   set stockQuantity(value: number | undefined) {
     this.#stockQuantity = value;
+  }
+
+  /**
+   * What the line took from each component's stock, when it sold a kit
+   * (ADR 0086): stated by the checkout's coordinator and copied here, so a
+   * cancellation or a return puts back exactly that whatever the kit holds by
+   * then. Absent on a line that sold no kit.
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => KitStockRow,
+    labelKey: 'entity:shipping-order.fields.line.kitComponents',
+  })
+  get kitComponents(): readonly KitStock[] | undefined {
+    return this.#kitComponents;
+  }
+  set kitComponents(value: readonly KitStock[] | undefined) {
+    this.#kitComponents = value;
   }
   // #endregion
 }

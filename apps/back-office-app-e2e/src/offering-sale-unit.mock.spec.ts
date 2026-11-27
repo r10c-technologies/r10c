@@ -1,4 +1,5 @@
 import { expect, test } from './support/fixtures';
+import { openVerb } from './support/verbs';
 
 /**
  * Setting what one of an offering is (ADR 0082 §3). The verb needs the unit,
@@ -11,7 +12,7 @@ test('sets the unit an offering is sold in, through the form the verb names', as
 }) => {
   await page.goto('/es/catalog/product-offering/offering-priced');
 
-  await page.getByRole('button', { name: 'Definir unidad de venta' }).click();
+  await openVerb(page, 'Definir unidad de venta');
   const form = page.getByRole('dialog', { name: 'Definir unidad de venta' });
   await expect(form.getByText(/vuelven a una unidad completa/)).toBeVisible();
   await form

@@ -27,6 +27,7 @@ const PUBLICATION: CatalogPublication = {
   quantityStep: 1,
   quantityMinimum: 1,
   pricePer: 1,
+  sku: 'TAZ-013-AZUL',
   code: 'product-013',
   description: 'Stoneware, glazed by hand.',
   brandId: 'product-brand-3',
@@ -180,6 +181,30 @@ describe('readCatalogPublication', () => {
         readCatalogPublication({ ...PUBLICATION, ...stock, stockFactor: 0 }),
       ),
     ).not.toHaveProperty('stockOfferingId');
+  });
+
+  it('reads a kit’s components, and folds a partial list to none', () => {
+    const kitComponents = [
+      {
+        offeringId: 'o-case',
+        quantity: 1,
+        stockOfferingId: 'o-case',
+        stockUnit: 'UN',
+        stockQuantity: 1,
+      },
+    ] as const;
+
+    expect(
+      Effect.runSync(readCatalogPublication({ ...PUBLICATION, kitComponents })),
+    ).toEqual({ ...PUBLICATION, kitComponents });
+    expect(
+      Effect.runSync(
+        readCatalogPublication({
+          ...PUBLICATION,
+          kitComponents: [{ ...kitComponents[0], stockQuantity: 0 }],
+        }),
+      ),
+    ).not.toHaveProperty('kitComponents');
   });
 
   it('survives the round trip through JSON, which is how it actually arrives', () => {
@@ -373,6 +398,7 @@ describe('readCatalogPublication', () => {
     const publication = Effect.runSync(
       readCatalogPublication({
         ...REQUIRED,
+        sku: null,
         code: null,
         description: null,
         brandId: null,

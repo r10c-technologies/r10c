@@ -76,6 +76,17 @@ export interface CatalogSurface<TEntity extends Entity = Entity> {
   readonly labelProperty?: string;
   readonly sublabelProperty?: string;
   /**
+   * A code people also know a record by — an offering's SKU, typed or scanned
+   * — searched as a group of its own under that member's label, and shown
+   * under each result found by name. Matched with `like` like the name, so a
+   * partial code finds it too.
+   */
+  readonly codeProperty?: {
+    readonly member: string;
+    /** The group's heading: the member's own field label. */
+    readonly labelKey: string;
+  };
+  /**
    * The record a result is found and named through, when a person knows it by
    * another record's name: a price by its offering's (#552). The term is
    * matched against the target's label at the service that owns it.
@@ -164,6 +175,10 @@ export const PRODUCT_OFFERING_SURFACE = catalogSurface(ProductOffering, {
   service: 'marketplace-admin',
   searchProperty: 'name',
   labelProperty: 'name',
+  codeProperty: {
+    member: 'sku',
+    labelKey: 'entity:product-offering.fields.sku',
+  },
 });
 
 export const PRODUCT_OFFERING_PRICE_SURFACE = catalogSurface(

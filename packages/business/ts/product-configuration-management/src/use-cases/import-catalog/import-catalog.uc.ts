@@ -5,7 +5,12 @@ import {
   catalogPublishedEvent,
   MediaReference,
 } from '@r10c/business-ts-catalog-contracts';
-import type { PricePer, SaleUnit } from '@r10c/business-ts-sales-vocabulary';
+import {
+  isSellableRule,
+  type PricePer,
+  priceTiersRefusal,
+  type SaleUnit,
+} from '@r10c/business-ts-sales-vocabulary';
 import { Effect, Schema } from 'effect';
 
 import type { ImportRejection } from '../../entities/catalog-import';
@@ -16,23 +21,34 @@ import { ProductSpecification } from '../../entities/product-specification';
 import {
   CatalogImportCommandsTag,
   type ImportedRowOutcome,
+  type UpdatedRow,
 } from '../../ports/catalog-import';
 import {
   type CatalogImportMode,
   CatalogImportModes,
 } from '../../values/catalog-import-status';
 import {
+  DEFAULTED_IMPORT_COLUMNS,
   IMPORT_DUPLICATE,
+  IMPORT_SPECIFICATION_CHANGED,
+  type ImportColumn,
   type ImportRow,
   importRowRefusal,
+  PRICE_TIERS_INVALID,
+  SALE_RULE_INVALID,
 } from '../../values/import-sheet';
 import { contentHashOf } from '../../values/specification-lifecycle';
 import { startSpecificationSeries } from '../specification-lifecycle/specification-flows';
-import { offeringPublication } from '../transition-offering/transition-offering';
+import {
+  kitStockOfOffering,
+  offeringPublication,
+  stockSourceOf,
+} from '../transition-offering/transition-offering';
 
 /** One row on the wire: what `toImportRows` answered in the browser. */
 export const ImportRowSchema = Schema.Struct({
   rowNumber: Schema.Int,
+  sku: Schema.optional(Schema.String),
   name: Schema.String,
   description: Schema.optional(Schema.String),
   brandId: Schema.optional(Schema.String),
@@ -47,6 +63,9 @@ export const ImportRowSchema = Schema.Struct({
   quantityMinimum: Schema.Int,
   tiers: Schema.optional(
     Schema.Array(Schema.Struct({ from: Schema.Int, amount: Schema.Int })),
+  ),
+  defaulted: Schema.optional(
+    Schema.Array(Schema.Literals(DEFAULTED_IMPORT_COLUMNS)),
   ),
 });
 
@@ -109,6 +128,7 @@ const recordsOf = (row: ImportRow, mode: CatalogImportMode, at: Date) => {
 
   const offering = new ProductOffering(row.name, String(specification.id));
   offering.id = globalThis.crypto.randomUUID();
+  offering.sku = row.sku;
   // Checked by `importRowRefusal` before this is reached.
   offering.saleUnit = row.saleUnit as SaleUnit;
   offering.quantityStep = row.quantityStep;
@@ -139,6 +159,134 @@ const recordsOf = (row: ImportRow, mode: CatalogImportMode, at: Date) => {
   return { specification, offering, price };
 };
 
+/** The domain's own codes, for a row refused as a save or a publication would be. */
+const SALE_UNIT_FIXED = 'saleUnitFixed';
+const SPECIFICATION_NOT_ACTIVE = 'specificationNotActive';
+const STOCK_SOURCE_INVALID = 'stockSourceInvalid';
+const KIT_INVALID = 'kitInvalid';
+const STALE_REVISION = 'staleRevision';
+
+/** Why a row may not change the offering its SKU names: a column and a code. */
+interface UpdateRefusal {
+  readonly code: string;
+  readonly column: ImportColumn;
+}
+
+const sameIds = (
+  given: readonly string[],
+  held: readonly string[] | undefined,
+) => [...given].sort().join('\n') === [...(held ?? [])].sort().join('\n');
+
+/**
+ * The first cell the row gives that differs from the product it names. A cell
+ * left empty keeps what the product has, so a sheet of prices alone updates
+ * prices; a merchandising cell that says something else is a revision of the
+ * specification, which a sheet does not make (ADR 0084 §8).
+ */
+const merchandisingChange = (
+  row: ImportRow,
+  specification: ProductSpecification | undefined,
+): ImportColumn | undefined => {
+  if (
+    row.description !== undefined &&
+    row.description !== specification?.description
+  )
+    return 'description';
+  if (row.brandId !== undefined && row.brandId !== specification?.brandId)
+    return 'brand';
+  if (
+    row.categoryId !== undefined &&
+    row.categoryId !== specification?.categoryId
+  )
+    return 'category';
+  if (
+    row.fitsDeviceModelIds !== undefined &&
+    !sameIds(row.fitsDeviceModelIds, specification?.fitsDeviceModelIds)
+  )
+    return 'fits';
+  if (
+    row.imageUrl !== undefined &&
+    !(specification?.media ?? []).some(({ url }) => url === row.imageUrl)
+  )
+    return 'image';
+  return undefined;
+};
+
+/**
+ * The offering and price a row changes them into, or why it may not.
+ *
+ * A sale-term cell the sheet left empty keeps what the product has, rather
+ * than the default a new product would take: a sheet of prices alone must not
+ * reset a step of six to one or drop the volume tiers (ADR 0084 §8). The terms
+ * that result are then asked what a save would ask of them, since a lower
+ * price under the stored tiers can leave a tier no cheaper than the base.
+ *
+ * The unit is never changed here, whatever the offering's standing:
+ * `set-sale-unit` owns it, and a unit moved under stored quantities would
+ * change what each of them means (ADR 0082 §8). An empty unit cell is the
+ * product's unit, but the row's quantities were read in the default one, so
+ * a row that leaves the unit empty and states a quantity for a product sold
+ * in another unit is refused rather than read in the wrong scale.
+ */
+const updatedRecordsOf = (
+  row: ImportRow,
+  offering: ProductOffering,
+  price: ProductOfferingPrice | undefined,
+  specification: ProductSpecification | undefined,
+):
+  | UpdateRefusal
+  | { offering: ProductOffering; price: ProductOfferingPrice } => {
+  const kept = new Set(row.defaulted);
+  const statesQuantity =
+    !kept.has('step') || !kept.has('minimum') || !kept.has('tiers');
+  if (
+    row.saleUnit !== offering.saleUnit &&
+    (!kept.has('unit') || statesQuantity)
+  )
+    return { code: SALE_UNIT_FIXED, column: 'unit' };
+  const changed = merchandisingChange(row, specification);
+  if (changed !== undefined)
+    return { code: IMPORT_SPECIFICATION_CHANGED, column: changed };
+
+  const rule = {
+    saleUnit: offering.saleUnit,
+    quantityStep: kept.has('step') ? offering.quantityStep : row.quantityStep,
+    quantityMinimum: kept.has('minimum')
+      ? offering.quantityMinimum
+      : row.quantityMinimum,
+  };
+  if (!isSellableRule(rule))
+    return { code: SALE_RULE_INVALID, column: 'minimum' };
+  const pricePer = (
+    kept.has('pricePer') && price !== undefined ? price.pricePer : row.pricePer
+  ) as PricePer;
+  const tiers = kept.has('tiers')
+    ? price?.tiers
+    : row.tiers?.map(({ from, amount }) => ({ from, amount }));
+  if (
+    tiers !== undefined &&
+    tiers.length > 0 &&
+    priceTiersRefusal(tiers, { amount: row.amount, pricePer }, rule) !==
+      undefined
+  )
+    return { code: PRICE_TIERS_INVALID, column: 'tiers' };
+
+  offering.name = row.name;
+  offering.quantityStep = rule.quantityStep;
+  offering.quantityMinimum = rule.quantityMinimum;
+  const repriced =
+    price ??
+    Object.assign(new ProductOfferingPrice(String(offering.id)), {
+      id: globalThis.crypto.randomUUID(),
+    });
+  repriced.amount = row.amount;
+  repriced.currency = row.currency;
+  repriced.pricePer = pricePer;
+  repriced.tiers =
+    tiers === undefined || tiers.length === 0 ? undefined : tiers;
+  return { offering, price: repriced };
+};
+
 /**
  * Load a vendor's catalog from a sheet
  * ([ADR 0084](../../../../../../../docs/adr/0084-a-catalog-import-is-a-record-and-a-row-is-one-unit-of-work.md)):
@@ -151,11 +299,15 @@ const recordsOf = (row: ImportRow, mode: CatalogImportMode, at: Date) => {
  * and never ends the run; a store that fails ends it, and resubmitting the
  * same sheet under the same key resumes where it stopped.
  *
- * **Create-only.** A row naming a product the catalog already holds in design
- * or on sale is refused `importDuplicate` rather than updating it: which of
- * two same-named products a sheet means is not something to guess. Two
- * imports racing on one new name are not caught here — exactly as two people
- * creating it through the form are not.
+ * **A SKU decides between a create and an update** (ADR 0084 §8). A row whose
+ * SKU names an offering of the catalog changes that offering's name, sale
+ * terms and price — and republishes it in the same unit when it is on sale,
+ * checked as a publication is; a draft stays a draft. A row with a new SKU, or
+ * none, creates a product, and is refused `importDuplicate` when one of the
+ * same name is in design or on sale: which of two same-named products a sheet
+ * means is not something to guess. Two imports racing on one new name are not
+ * caught here — exactly as two people creating it through the form are not;
+ * two racing on one new SKU are, by the store.
  *
  * `unbound`: it acts on no record and no selection, and the back office
  * reaches it only through its wizard (`form`), never as a toolbar button.
@@ -186,6 +338,69 @@ export class ImportCatalogUC {
       const specifications = yield* factory.for(ProductSpecification, {
         organizationId,
       });
+      const offerings = yield* factory.for(ProductOffering, { organizationId });
+      const prices = yield* factory.for(ProductOfferingPrice, {
+        organizationId,
+      });
+
+      /**
+       * What an update row writes, or why it may not: the records it changes
+       * and, for an offering on sale, the republication — checked exactly as
+       * `publish` checks one, since the import announces it in its stead.
+       */
+      const updateOf = (row: ImportRow, offering: ProductOffering) =>
+        Effect.gen(function* () {
+          const [specification] =
+            (yield* specifications.load<ProductSpecification>({
+              filtering: [
+                {
+                  property: 'id',
+                  operator: 'eq',
+                  value: offering.specificationId,
+                },
+              ],
+              pageSize: 1,
+            })).items;
+          const [price] = (yield* prices.load<ProductOfferingPrice>({
+            filtering: [
+              {
+                property: 'offeringId',
+                operator: 'eq',
+                value: String(offering.id),
+              },
+            ],
+            pageSize: 1,
+          })).items;
+          const records = updatedRecordsOf(row, offering, price, specification);
+          if ('code' in records) return records;
+          const base = { ...records, priceIsNew: price === undefined };
+          if (offering.status !== 'published')
+            return { ...base, event: undefined } satisfies UpdatedRow;
+          if (specification?.lifecycleStatus !== 'active')
+            return { code: SPECIFICATION_NOT_ACTIVE, column: 'sku' } as const;
+          const stockSource = yield* stockSourceOf(offerings, offering);
+          if (typeof stockSource === 'string')
+            return { code: STOCK_SOURCE_INVALID, column: 'sku' } as const;
+          const kit = yield* kitStockOfOffering(offerings, offering);
+          if (typeof kit === 'string')
+            return { code: KIT_INVALID, column: 'sku' } as const;
+          offering.statusChangedAt = at;
+          return {
+            ...base,
+            event: catalogPublishedEvent(
+              offeringPublication({
+                offering,
+                specification,
+                price: records.price,
+                vendorId: organizationId,
+                at,
+                ...(stockSource === undefined ? {} : { stockSource }),
+                ...(kit === undefined ? {} : { kitComponents: kit }),
+              }),
+              input.source,
+            ),
+          } satisfies UpdatedRow;
+        });
 
       const rejections: ImportRejection[] = [];
       const written: ImportedRowOutcome[] = [];
@@ -205,6 +420,45 @@ export class ImportCatalogUC {
           written.push(earlier);
           continue;
         }
+        if (
+          row.sku !== undefined &&
+          payload.rows.some(
+            other => other.rowNumber < row.rowNumber && other.sku === row.sku,
+          )
+        ) {
+          reject(row.rowNumber, IMPORT_DUPLICATE, 'sku');
+          continue;
+        }
+        const coded =
+          row.sku === undefined
+            ? undefined
+            : (yield* offerings.load<ProductOffering>({
+                filtering: [
+                  { property: 'sku', operator: 'eq', value: row.sku },
+                ],
+                pageSize: 1,
+              })).items[0];
+        if (coded !== undefined) {
+          const update = yield* updateOf(row, coded);
+          if ('code' in update) {
+            reject(row.rowNumber, update.code, update.column);
+            continue;
+          }
+          const outcome = yield* commands.updateRow(
+            organizationId,
+            rowKey,
+            update,
+          );
+          if (outcome !== 'changed') {
+            written.push(outcome);
+            continue;
+          }
+          // Another attempt at this sheet may have been the one to move it.
+          const raced = yield* commands.claimed(organizationId, rowKey);
+          if (raced !== undefined) written.push(raced);
+          else reject(row.rowNumber, STALE_REVISION, 'sku');
+          continue;
+        }
         const named = yield* specifications.load<ProductSpecification>({
           filtering: [{ property: 'name', operator: 'eq', value: row.name }],
           pageSize: 10,
@@ -217,6 +471,8 @@ export class ImportCatalogUC {
           payload.rows.some(
             other =>
               other.rowNumber < row.rowNumber &&
+              other.sku === undefined &&
+              row.sku === undefined &&
               other.name.trim().toLowerCase() === row.name.trim().toLowerCase(),
           )
         ) {
@@ -235,28 +491,35 @@ export class ImportCatalogUC {
         }
 
         const records = recordsOf(row, payload.mode, at);
-        written.push(
-          yield* commands.importRow(organizationId, rowKey, {
-            ...records,
-            seal: specification =>
-              payload.mode === 'draft'
-                ? Effect.succeed(undefined)
-                : Effect.gen(function* () {
-                    specification.contentHash =
-                      yield* contentHashOf(specification);
-                    return catalogPublishedEvent(
-                      offeringPublication({
-                        offering: records.offering,
-                        specification,
-                        price: records.price,
-                        vendorId: organizationId,
-                        at,
-                      }),
-                      input.source,
-                    );
-                  }),
-          }),
-        );
+        const created = yield* commands.importRow(organizationId, rowKey, {
+          ...records,
+          seal: specification =>
+            payload.mode === 'draft'
+              ? Effect.succeed(undefined)
+              : Effect.gen(function* () {
+                  specification.contentHash =
+                    yield* contentHashOf(specification);
+                  return catalogPublishedEvent(
+                    offeringPublication({
+                      offering: records.offering,
+                      specification,
+                      price: records.price,
+                      vendorId: organizationId,
+                      at,
+                    }),
+                    input.source,
+                  );
+                }),
+        });
+        if (created !== 'skuTaken') {
+          written.push(created);
+          continue;
+        }
+        // Another sheet took the code between this row's lookup and its
+        // write — or another attempt at this one did, and claimed the row.
+        const raced = yield* commands.claimed(organizationId, rowKey);
+        if (raced !== undefined) written.push(raced);
+        else reject(row.rowNumber, IMPORT_DUPLICATE, 'sku');
       }
 
       const record = new CatalogImport(payload.fileName);
@@ -264,7 +527,12 @@ export class ImportCatalogUC {
       record.mode = payload.mode;
       record.importedAt = at;
       record.rowCount = payload.rows.length;
-      record.createdCount = written.length;
+      record.createdCount = written.filter(
+        ({ change }) => change === 'create',
+      ).length;
+      record.updatedCount = written.filter(
+        ({ change }) => change === 'update',
+      ).length;
       record.rejectedCount = rejections.length;
       record.rejections = rejections.length === 0 ? undefined : rejections;
       record.status = rejections.length === 0 ? 'completed' : 'partial';

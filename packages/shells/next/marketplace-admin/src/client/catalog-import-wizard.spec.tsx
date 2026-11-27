@@ -154,6 +154,7 @@ describe('importing a sheet', () => {
     expect(screen.getByTestId('catalog-import-mode')).toHaveTextContent(
       'Publicados',
     );
+    expect(screen.queryByTestId('catalog-import-coded')).toBeNull();
     const rows = within(screen.getByRole('table')).getAllByRole('row');
     expect(rows[1]).toHaveTextContent(/3.*Precio.*no se pudo leer/);
 
@@ -182,8 +183,9 @@ describe('importing a sheet', () => {
   it('hands the record to a host that says where to go', async () => {
     const onFinished = vi.fn();
     table = [
-      ['Nombre', 'Precio'],
-      ['Tornillo', '1'],
+      ['SKU', 'Nombre', 'Precio'],
+      ['TOR-1', 'Tornillo', '1'],
+      ['', 'Tuerca', '1'],
     ];
     renderWizard({ onFinished });
 
@@ -191,6 +193,9 @@ describe('importing a sheet', () => {
     await upload();
     await click('Continuar');
     expect(await screen.findByTestId('catalog-import-ready')).toBeVisible();
+    expect(screen.getByTestId('catalog-import-coded')).toHaveTextContent(
+      'Filas con SKU: 1.',
+    );
     expect(screen.queryByTestId('catalog-import-rejected')).toBeNull();
     await click(/Finalizar|Crear|Importar/);
 

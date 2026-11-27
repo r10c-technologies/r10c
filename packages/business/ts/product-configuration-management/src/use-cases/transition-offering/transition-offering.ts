@@ -11,6 +11,10 @@ import {
 } from '@r10c/business-ts-catalog-contracts';
 import {
   isStockFactor,
+  KitInvalid,
+  kitShapeRefusal,
+  type KitStock,
+  kitStockOf,
   PRESENTATION_UNIT,
   priceTiersRefusal,
   type StockSource,
@@ -278,6 +282,147 @@ export interface OfferingTransitionDecision {
 }
 
 /**
+ * The stock source a presentation publishes with, `undefined` for an offering
+ * that draws on no base, or the problem that keeps it from being drawn on.
+ *
+ * ⚠️ `load` with a filter, never `get`, for the same reason as the
+ * specification: a base that is gone is a value this decides on.
+ */
+export const stockSourceOf = (
+  repository: EntityRepositoryTag['Service'],
+  offering: ProductOffering,
+) =>
+  Effect.gen(function* () {
+    const { stockOfferingId, stockFactor } = offering;
+    if (stockOfferingId === undefined) return undefined;
+    if (offering.saleUnit !== PRESENTATION_UNIT) return 'notCounted' as const;
+    if (!isStockFactor(stockFactor)) return 'factor' as const;
+    const page = yield* repository.load<ProductOffering>({
+      filtering: [{ property: 'id', operator: 'eq', value: stockOfferingId }],
+      pageSize: 1,
+    });
+    const base = page.items[0];
+    if (base === undefined) return 'baseMissing' as const;
+    if (base.stockOfferingId !== undefined)
+      return 'baseIsPresentation' as const;
+    return {
+      stockOfferingId,
+      stockFactor,
+      stockUnit: base.saleUnit,
+    } satisfies StockSource;
+  });
+
+/**
+ * What one kit takes from each component's stock, `undefined` for an offering
+ * that is not a kit, or the problem that keeps it from being sold
+ * ([ADR 0086](../../../../../../../docs/adr/0086-a-kit-sells-several-offerings-at-one-price.md)).
+ * `set-kit` checked the components when it was set, but nothing locks them,
+ * so publication checks them again: each must still be in the catalog, sold
+ * in `UN`, no kit, and on sale itself — a kit whose case was taken down would
+ * sell a case nobody offers. A component that is a presentation is resolved
+ * to its base, as its own publication is.
+ */
+export const kitStockOfOffering = (
+  repository: EntityRepositoryTag['Service'],
+  offering: ProductOffering,
+) =>
+  Effect.gen(function* () {
+    const components = offering.kitComponents;
+    if (components === undefined || components.length === 0) return undefined;
+    const shape = kitShapeRefusal(String(offering.id), components);
+    if (shape !== undefined) return shape;
+    if (offering.saleUnit !== PRESENTATION_UNIT) return 'notCounted' as const;
+    const page = yield* repository.load<ProductOffering>({
+      filtering: [
+        {
+          property: 'id',
+          operator: 'in',
+          values: components.map(component => component.offeringId),
+        },
+      ],
+      pageSize: components.length,
+    });
+    const byId = new Map(page.items.map(item => [String(item.id), item]));
+    const resolved: KitStock[] = [];
+    for (const { offeringId, quantity } of components) {
+      const component = byId.get(offeringId);
+      if (component === undefined) return 'componentMissing' as const;
+      if ((component.kitSize ?? 0) > 0) return 'componentIsKit' as const;
+      if (component.saleUnit !== PRESENTATION_UNIT)
+        return 'componentNotCounted' as const;
+      if (component.status !== 'published')
+        return 'componentUnpublished' as const;
+      const source = yield* stockSourceOf(repository, component);
+      // A component that cannot be drawn on is as unsellable as a missing one.
+      if (typeof source === 'string') return 'componentMissing' as const;
+      resolved.push(kitStockOf({ offeringId, quantity }, source));
+    }
+    return resolved;
+  });
+
+/**
+ * What an offering on sale announces, from the records it is made of: its
+ * price, its pinned specification's merchandising and its stock source. Pure,
+ * so the transition and the import (ADR 0084) build one payload one way.
+ */
+export const offeringPublication = (input: {
+  readonly offering: ProductOffering;
+  readonly specification: ProductSpecification | undefined;
+  readonly price: ProductOfferingPrice;
+  readonly vendorId: string;
+  readonly at: Date;
+  readonly stockSource?: StockSource;
+  readonly kitComponents?: readonly KitStock[];
+}): CatalogPublication => {
+  const { offering, specification, price, vendorId, at, stockSource } = input;
+  const kitComponents = input.kitComponents;
+  const tiers = price.tiers;
+  return {
+    offeringId: String(offering.id),
+    vendorId,
+    name: offering.name,
+    // Absent, never `undefined`, on an offering with no SKU (ADR 0049).
+    ...(offering.sku === undefined ? {} : { sku: offering.sku }),
+    amount: price.amount,
+    currency: price.currency,
+    // Nothing computes availability yet: the `stock` slice is `planned`, and M2
+    // is what gives this member a source. `true` rather than `false` because
+    // the storefront's badge is a hint and the checkout reservation is the
+    // truth — publishing everything as unavailable would make the hint say
+    // nothing while looking like it says something.
+    availableHint: true,
+    publishedAt: at.toISOString(),
+    // What the price buys and how a buyer may ask for it (ADR 0082). The save
+    // rules already refused a rule that sells nothing and a basis other than
+    // 1, 100 or 1000, so these are copied as stored.
+    saleUnit: offering.saleUnit,
+    quantityStep: offering.quantityStep,
+    quantityMinimum: offering.quantityMinimum,
+    pricePer: price.pricePer,
+    // Absent, never `[]`, when the price has none (ADR 0049).
+    ...(tiers === undefined || tiers.length === 0
+      ? {}
+      : { tiers: tiers.map(({ from, amount }) => ({ from, amount })) }),
+    // Absent, never `undefined`, on an offering that draws on no base.
+    ...(stockSource ?? {}),
+    // Absent, never `[]`, on an offering that is not a kit (ADR 0086).
+    ...(kitComponents === undefined || kitComponents.length === 0
+      ? {}
+      : {
+          kitComponents: kitComponents.map(component => ({
+            offeringId: component.offeringId,
+            quantity: component.quantity,
+            stockOfferingId: component.stockOfferingId,
+            stockUnit: component.stockUnit,
+            stockQuantity: component.stockQuantity,
+          })),
+        }),
+    ...pinOf(offering, specification),
+    ...merchandisingOf(offering, specification),
+  };
+};
+
+/**
  * Decide one move along an offering's lifecycle, and build what it announces.
  *
  * The rule lives in `offeringStatusAfter` and the enforcement lives **here**,
@@ -307,83 +452,6 @@ export interface OfferingTransitionDecision {
  * Framework-free, like every use case in this repository: both repositories
  * arrive as tags and the caller has already been authorized by the route.
  */
-/**
- * The stock source a presentation publishes with, `undefined` for an offering
- * that draws on no base, or the problem that keeps it from being drawn on.
- *
- * ⚠️ `load` with a filter, never `get`, for the same reason as the
- * specification: a base that is gone is a value this decides on.
- */
-const stockSourceOf = (
-  repository: EntityRepositoryTag['Service'],
-  offering: ProductOffering,
-) =>
-  Effect.gen(function* () {
-    const { stockOfferingId, stockFactor } = offering;
-    if (stockOfferingId === undefined) return undefined;
-    if (offering.saleUnit !== PRESENTATION_UNIT) return 'notCounted' as const;
-    if (!isStockFactor(stockFactor)) return 'factor' as const;
-    const page = yield* repository.load<ProductOffering>({
-      filtering: [{ property: 'id', operator: 'eq', value: stockOfferingId }],
-      pageSize: 1,
-    });
-    const base = page.items[0];
-    if (base === undefined) return 'baseMissing' as const;
-    if (base.stockOfferingId !== undefined)
-      return 'baseIsPresentation' as const;
-    return {
-      stockOfferingId,
-      stockFactor,
-      stockUnit: base.saleUnit,
-    } satisfies StockSource;
-  });
-
-/**
- * What an offering on sale announces, from the records it is made of: its
- * price, its pinned specification's merchandising and its stock source. Pure,
- * so the transition and the import (ADR 0084) build one payload one way.
- */
-export const offeringPublication = (input: {
-  readonly offering: ProductOffering;
-  readonly specification: ProductSpecification | undefined;
-  readonly price: ProductOfferingPrice;
-  readonly vendorId: string;
-  readonly at: Date;
-  readonly stockSource?: StockSource;
-}): CatalogPublication => {
-  const { offering, specification, price, vendorId, at, stockSource } = input;
-  const tiers = price.tiers;
-  return {
-    offeringId: String(offering.id),
-    vendorId,
-    name: offering.name,
-    amount: price.amount,
-    currency: price.currency,
-    // Nothing computes availability yet: the `stock` slice is `planned`, and M2
-    // is what gives this member a source. `true` rather than `false` because
-    // the storefront's badge is a hint and the checkout reservation is the
-    // truth — publishing everything as unavailable would make the hint say
-    // nothing while looking like it says something.
-    availableHint: true,
-    publishedAt: at.toISOString(),
-    // What the price buys and how a buyer may ask for it (ADR 0082). The save
-    // rules already refused a rule that sells nothing and a basis other than
-    // 1, 100 or 1000, so these are copied as stored.
-    saleUnit: offering.saleUnit,
-    quantityStep: offering.quantityStep,
-    quantityMinimum: offering.quantityMinimum,
-    pricePer: price.pricePer,
-    // Absent, never `[]`, when the price has none (ADR 0049).
-    ...(tiers === undefined || tiers.length === 0
-      ? {}
-      : { tiers: tiers.map(({ from, amount }) => ({ from, amount })) }),
-    // Absent, never `undefined`, on an offering that draws on no base.
-    ...(stockSource ?? {}),
-    ...pinOf(offering, specification),
-    ...merchandisingOf(offering, specification),
-  };
-};
-
 export const transitionOffering = Effect.gen(function* () {
   const { id, transition, vendorId, source, at, restating } =
     yield* TransitionOfferingInputTag;
@@ -471,6 +539,12 @@ export const transitionOffering = Effect.gen(function* () {
   if (typeof stockSource === 'string' && next === 'published')
     return yield* new StockSourceInvalid({ problem: stockSource });
 
+  // A kit carries what one kit takes from each component (ADR 0086), checked
+  // again for the same reason. A takedown announces whatever it can resolve.
+  const kit = yield* kitStockOfOffering(repository, offering);
+  if (typeof kit === 'string' && next === 'published')
+    return yield* new KitInvalid({ problem: kit });
+
   offering.status = next;
   // ⚠️ Stamped on **both** transitions, and stored rather than only announced.
   // It is the same value the payload carries as `publishedAt` and therefore the
@@ -486,6 +560,7 @@ export const transitionOffering = Effect.gen(function* () {
     vendorId,
     at,
     ...(typeof stockSource === 'object' ? { stockSource } : {}),
+    ...(Array.isArray(kit) ? { kitComponents: kit } : {}),
   });
 
   return {

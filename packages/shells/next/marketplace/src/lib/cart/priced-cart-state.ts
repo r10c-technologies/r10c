@@ -1,5 +1,6 @@
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import {
+  kitTakenOf,
   lineTotal,
   stockSourceOf,
   tieredPrice,
@@ -78,6 +79,8 @@ const pricedLineOf = (
       stockFactor: offering.stockFactor,
       stockUnit: offering.stockUnit,
     }),
+    // A kit holds each component's stock, as published (ADR 0086).
+    ...kitTakenOf(offering),
   };
 };
 

@@ -63,6 +63,7 @@ describe('projectPublication', () => {
     const projected = projectPublication(
       {
         ...PUBLICATION,
+        sku: 'FUN-A15-NEGRA',
         code: 'product-9',
         description: 'Suave y resistente.',
         specKey: 'funda-a15',
@@ -76,8 +77,9 @@ describe('projectPublication', () => {
     expect(projected.variantValues).toEqual([
       { axis: 'color', value: 'negro' },
     ]);
+    expect(projected.sku).toBe('FUN-A15-NEGRA');
     expect(projected.searchText).toBe(
-      `${PUBLICATION.name} product-9 negro Suave y resistente.`,
+      `${PUBLICATION.name} FUN-A15-NEGRA product-9 negro Suave y resistente.`,
     );
   });
 
@@ -91,5 +93,26 @@ describe('projectPublication', () => {
     expect(projected.searchText).toBe(
       [PUBLICATION.name, PUBLICATION.code, PUBLICATION.description].join(' '),
     );
+  });
+
+  it('carries a kit’s components and their count, and none on another offering', () => {
+    const kitComponents = [
+      {
+        offeringId: 'case',
+        quantity: 1,
+        stockOfferingId: 'case',
+        stockUnit: 'UN' as const,
+        stockQuantity: 1,
+      },
+    ];
+
+    const kit = projectPublication({ ...PUBLICATION, kitComponents }, AT);
+    const plain = projectPublication(PUBLICATION, AT);
+
+    expect([kit.kitComponents, kit.kitSize]).toEqual([kitComponents, 1]);
+    expect([plain.kitComponents, plain.kitSize]).toEqual([
+      undefined,
+      undefined,
+    ]);
   });
 });

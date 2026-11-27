@@ -416,6 +416,9 @@ function PreviewStep({
   const headers = IMPORT_HEADERS[sheetLocaleOf(locale)];
   // The sheet's own problems kept it on the file step; these are its rows'.
   const { problems } = sheet;
+  // Which of these update a product the browser cannot know: the service
+  // decides by the catalog it holds. It can say how many may.
+  const coded = sheet.rows.filter(row => row.sku !== undefined).length;
 
   return (
     <Card>
@@ -431,6 +434,11 @@ function PreviewStep({
             count: sheet.rows.length,
           })}
         </Text>
+        {coded > 0 ? (
+          <Text data-testid="catalog-import-coded">
+            {translateKey(copy('preview.coded'), { count: coded })}
+          </Text>
+        ) : null}
         {problems.length > 0 ? (
           <Stack gap="2xs">
             <Text weight="medium" data-testid="catalog-import-rejected">

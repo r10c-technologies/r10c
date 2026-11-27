@@ -37,6 +37,7 @@ export const projectPublication = (
   projected.publishedAt = at;
   projected.specificationId = publication.specificationId;
   projected.specificationVersion = publication.specificationVersion;
+  projected.sku = publication.sku;
   projected.code = publication.code;
   projected.description = publication.description;
   projected.brandId = publication.brandId;
@@ -47,17 +48,20 @@ export const projectPublication = (
   projected.variantGroup =
     publication.variantValues === undefined ? undefined : publication.specKey;
   projected.variantValues = publication.variantValues;
+  projected.kitComponents = publication.kitComponents;
+  projected.kitSize = publication.kitComponents?.length;
   projected.searchText = searchTextOf(publication);
   return projected;
 };
 
 /**
  * Every word a buyer may search an offering by, in one string: its name, its
- * code, its variant's values and its description (#774).
+ * SKU, its code, its variant's values and its description (#774).
  */
 export const searchTextOf = (publication: CatalogPublication): string =>
   [
     publication.name,
+    publication.sku,
     publication.code,
     ...(publication.variantValues ?? []).map(({ value }) => value),
     publication.description,

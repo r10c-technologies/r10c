@@ -100,6 +100,7 @@ export default async function RootLayout({
           locale={locale}
           scope={scope}
           partyRole={partyRole}
+          organizationId={principal.organizationId}
           reader={reader}
           initialTheme={theme}
           initialDensity={density}

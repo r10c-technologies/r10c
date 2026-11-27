@@ -193,9 +193,12 @@ export const errors: EsErrors = {
   priceTiersInvalid:
     'Each volume price starts at a quantity the product sells, above its minimum and above the one before, and costs less than the price before it. A price holds at most five.',
   stockSourceInvalid:
-    "A presentation is sold by the unit and takes a whole number of its base's units. Its base is another offering of yours that is not itself a presentation, and a presentation is never another one's base.",
+    "A presentation is sold by the unit and takes a whole number of its base's units. Its base is another offering of yours that is not itself a presentation, and a presentation is never another one's base. A kit neither draws on a base nor is one.",
   variantInvalid:
-    "A variant picks up to three attributes —colour, size, finish or capacity— with a short value each. Every variant of a product uses the same attributes and none repeats another one's combination; a presentation cannot be a variant.",
+    "A variant picks up to three attributes —colour, size, finish or capacity— with a short value each. Every variant of a product uses the same attributes and none repeats another one's combination; a presentation or a kit cannot be a variant.",
+  skuInvalid: 'A SKU is 1 to 40 letters, digits or . _ / -, with no spaces.',
+  kitInvalid:
+    'A kit is sold by the unit and holds between one and ten of your other products, each sold by the unit, in whole numbers. A kit is not a variant, a presentation or part of another kit, and every product in it has to be on sale.',
   saleUnitFixed:
     'This offering was already published, so its unit cannot change. Create another offering to sell it in another unit.',
   importTooLarge:
@@ -209,6 +212,8 @@ export const errors: EsErrors = {
   importReferenceUnresolved:
     'This name matches nothing in the catalog. Check its spelling, or create it first.',
   importDuplicate:
-    'A product with this name already exists, in your catalog or on an earlier row of the sheet. An import only creates new products.',
+    "A product with this name already exists, in your catalog or on an earlier row of the sheet, or an earlier row already uses this SKU. A row with no SKU, or a new one, creates a product; a row with an existing product's SKU updates it.",
+  importSpecificationChanged:
+    "This row changes the product's description, brand, category, fit or picture, which is changed by revising the product, not from the sheet. Leave that cell empty or as it is to update the price and the way it is sold.",
   importEmpty: 'The sheet has no products under its headers.',
 };

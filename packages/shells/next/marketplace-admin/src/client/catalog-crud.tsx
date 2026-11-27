@@ -42,10 +42,12 @@ import {
   type WizardSurface,
 } from '../wizard-surfaces';
 import type { MarketplaceAdminAdapters } from './client-types';
+import { KIT_FORM, KitForm } from './kit-form';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 import {
   OFFERING_RELATED_COLUMNS,
   OfferingImagesRegion,
+  OfferingVariantsRegion,
 } from './offering-regions';
 import { PRICE_TIERS_FORM, PriceTiersForm } from './price-tiers-form';
 import { SALE_UNIT_FORM, SaleUnitForm } from './sale-unit-form';
@@ -375,6 +377,9 @@ export const productOfferingCrudWith = ({
       'stockFactor',
       // Server-owned: only `set-variant` writes it (ADR 0085).
       'variantValues',
+      // Server-owned: only `set-kit` writes them (ADR 0086).
+      'kitComponents',
+      'kitSize',
     ],
     // `specificationId` is a plain `string` into the same store, and the picker
     // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
@@ -399,11 +404,13 @@ export const productOfferingCrudWith = ({
     verbForms: {
       [SALE_UNIT_FORM]: SaleUnitForm,
       [STOCK_SOURCE_FORM]: StockSourceForm,
+      [KIT_FORM]: KitForm,
       [VARIANT_FORM]: VariantForm,
     },
     related: [...OFFERING_RELATED_COLUMNS, ...related],
     regions: offering => [
       <OfferingImagesRegion key="images" offering={offering} />,
+      <OfferingVariantsRegion key="variants" offering={offering} />,
       <productOfferingPriceCrud.RelatedList
         key="prices"
         labelKey="r10c:marketplaceAdmin.offering.regions.prices"

@@ -50,7 +50,7 @@ const searchSourceFor = (surface: CatalogSurface): RecordSearchSource =>
     entityConstructor: surface.entityConstructor,
     baseUrl: SERVICE_URLS[surface.service],
     searchProperty: surface.searchProperty,
-    sublabelProperty: surface.sublabelProperty,
+    sublabelProperty: surface.sublabelProperty ?? surface.codeProperty?.member,
     ...(surface.labelProperty === undefined
       ? {}
       : { labelProperty: surface.labelProperty }),
@@ -66,5 +66,34 @@ const searchSourceFor = (surface: CatalogSurface): RecordSearchSource =>
     href: id => `${surface.basePath}/${id}`,
   });
 
+/**
+ * The same records found by the code people also know them by: a SKU typed or
+ * read off a label finds its offering even when its name does not match. A
+ * group of its own, keyed `<entity>:<member>`, so the palette says which way a
+ * result matched.
+ */
+const codeSourceFor = (
+  surface: CatalogSurface,
+  code: NonNullable<CatalogSurface['codeProperty']>,
+): RecordSearchSource =>
+  defineRecordSearchSource({
+    key: `${surface.entityKey}:${code.member}`,
+    entityConstructor: surface.entityConstructor,
+    baseUrl: SERVICE_URLS[surface.service],
+    searchProperty: code.member,
+    sublabelProperty: code.member,
+    // No label member: each result names itself as everywhere else, and the
+    // group is sorted by the code it matched on.
+    labelKey: code.labelKey,
+    href: id => `${surface.basePath}/${id}`,
+  });
+
 export const MARKETPLACE_ADMIN_SEARCH_SOURCES: readonly RecordSearchSource[] =
-  MARKETPLACE_ADMIN_CATALOG_SURFACES.map(searchSourceFor);
+  MARKETPLACE_ADMIN_CATALOG_SURFACES.flatMap(surface =>
+    surface.codeProperty === undefined
+      ? [searchSourceFor(surface)]
+      : [
+          searchSourceFor(surface),
+          codeSourceFor(surface, surface.codeProperty),
+        ],
+  );

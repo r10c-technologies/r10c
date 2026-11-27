@@ -11,6 +11,7 @@ import {
   ImportReferenceUnresolved,
   type ImportRow,
   importRowRefusal,
+  ImportSpecificationChanged,
   importTemplateCsv,
   minorUnitDigits,
   readImportSheet,
@@ -43,6 +44,27 @@ const valid: ImportRow = {
   quantityStep: 1,
   quantityMinimum: 1,
 };
+
+describe('a SKU column', () => {
+  it('reads a trimmed SKU, refuses one a label would not print, and refuses one the sheet repeats', () => {
+    const { rows, problems } = read([
+      ['SKU', 'Nombre', 'Precio'],
+      [' TOR-14 ', 'Tornillo', '1.50'],
+      ['TOR 15', 'Tornillo 15', '1.50'],
+      ['TOR-14', 'Tornillo de nuevo', '1.60'],
+      ['TOR-16', 'Tornillo', '1.70'],
+    ]);
+
+    expect(rows.map(row => [row.rowNumber, row.sku])).toEqual([
+      [2, 'TOR-14'],
+      [5, 'TOR-16'],
+    ]);
+    expect(problems).toEqual([
+      { rowNumber: 3, code: 'skuInvalid', column: 'sku' },
+      { rowNumber: 4, code: 'importDuplicate', column: 'sku' },
+    ]);
+  });
+});
 
 describe('reading the sheet', () => {
   it('matches headers in either locale, by key, blind to accents and case', () => {
@@ -169,6 +191,8 @@ describe('turning rows into what the service takes', () => {
         saleUnit: 'UN',
         quantityStep: 1,
         quantityMinimum: 1,
+        // What a product the row's SKU names keeps rather than takes.
+        defaulted: ['unit', 'pricePer', 'step', 'minimum', 'tiers'],
       },
     ]);
   });
@@ -356,6 +380,7 @@ describe('the refusals an import adds', () => {
       new ImportCellInvalid({ rowNumber: 3, column: 'price' }),
       new ImportReferenceUnresolved({ rowNumber: 4, column: 'brand' }),
       new ImportDuplicate({ rowNumber: 5, column: 'name' }),
+      new ImportSpecificationChanged({ rowNumber: 6, column: 'brand' }),
       new ImportEmpty({ rowNumber: 1 }),
     ];
 
@@ -367,7 +392,11 @@ describe('the refusals an import adds', () => {
         'importReferenceUnresolved',
         "row 4: 'brand' names nothing in the catalog",
       ],
-      ['importDuplicate', 'row 5: a product with this name already exists'],
+      ['importDuplicate', 'row 5: another product already has this name'],
+      [
+        'importSpecificationChanged',
+        "row 6: 'brand' differs from the product's, which only a revision changes",
+      ],
       ['importEmpty', 'the sheet has no products'],
     ]);
   });

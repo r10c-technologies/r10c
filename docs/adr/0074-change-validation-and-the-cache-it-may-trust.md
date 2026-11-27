@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-11-05
 - Area: platform
-- Read when: a CI job is slow because it rebuilds what another job built, adding a job or a check to `change_validation.yml`, a check passed without running, the Actions cache is near its 10 GB, or about to restore `.nx/cache` between runners — a restored `.nx/cache` is ignored by Nx 24, and a repository-wide check must never read from the cache
+- Read when: a CI job rebuilds what another built, adding a job to `change_validation.yml`, a check passed without running, or about to restore `.nx/cache` — Nx 24 ignores a restored cache, and a repository-wide check never reads it
 
 ## Context
 

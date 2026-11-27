@@ -51,6 +51,7 @@ export class CatalogImport implements Entity {
   #importedAt?: Date;
   #rowCount = 0;
   #createdCount = 0;
+  #updatedCount = 0;
   #rejectedCount = 0;
   #rejections?: readonly ImportRejection[];
   // #endregion
@@ -147,6 +148,19 @@ export class CatalogImport implements Entity {
   }
   set createdCount(value: number) {
     this.#createdCount = value;
+  }
+
+  /** Rows whose SKU named an offering the catalog held, and changed it. */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:catalog-import.fields.updatedCount',
+    sortable: true,
+  })
+  get updatedCount(): number {
+    return this.#updatedCount;
+  }
+  set updatedCount(value: number) {
+    this.#updatedCount = value;
   }
 
   @accessor({

@@ -1,4 +1,9 @@
-import { deserializeSingleEntity, serializeEntity } from '@entifix/core';
+import {
+  describeEntityColumns,
+  deserializeSingleEntity,
+  serializeEntity,
+} from '@entifix/core';
+import { KitStockRow } from '@r10c/business-ts-sales-vocabulary';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -31,4 +36,13 @@ describe('ShippingLine', () => {
   it('states no unit it was not given', () => {
     expect(new ShippingLine('gear', 'Engranaje', 2).unit).toBeUndefined();
   });
+
+  it('describes a kit’s components as rows a packer reads', () => {
+    const kit = describeEntityColumns(ShippingLine).find(
+      column => column.name === 'kitComponents',
+    );
+
+    expect(kit?.childType).toBe(KitStockRow);
+  });
 });
+

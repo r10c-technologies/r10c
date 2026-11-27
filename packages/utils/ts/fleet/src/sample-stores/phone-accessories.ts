@@ -337,4 +337,26 @@ export const PHONE_ACCESSORY_PRODUCTS: readonly SampleProduct[] = [
       },
     ),
   ),
+  // A kit (ADR 0086), last so every product keeps its positional id: the
+  // black case and its screen protector at one price, each from its own stock.
+  product(
+    {
+      key: 'kit-proteccion-a15',
+      name: 'Kit de protección Galaxy A15: funda y vidrio',
+      description: 'La funda de silicón negra y el vidrio templado 9H, juntos.',
+      brand: 'kinetik',
+      category: 'cases',
+      art: 'case',
+      amount: 8900,
+      status: 'published',
+      stock: 'none',
+    },
+    {
+      fits: A15,
+      kit: [
+        { key: 'funda-silicon-a15', quantity: 1 },
+        { key: 'vidrio-a15', quantity: 1 },
+      ],
+    },
+  ),
 ];

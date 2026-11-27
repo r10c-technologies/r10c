@@ -324,6 +324,7 @@ describe('the payload and the record it is written into', () => {
       stockFactor: true,
       stockUnit: true,
       code: true,
+      sku: true,
       description: true,
       brandId: true,
       categoryId: true,
@@ -331,6 +332,7 @@ describe('the payload and the record it is written into', () => {
       fitsDeviceModelIds: true,
       specKey: true,
       variantValues: true,
+      kitComponents: true,
     };
 
     for (const member of Object.keys(publication)) {

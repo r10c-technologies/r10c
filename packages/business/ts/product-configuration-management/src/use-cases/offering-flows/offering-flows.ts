@@ -27,6 +27,7 @@ import { ProductOfferingPrice } from '../../entities/product-offering-price';
 import { ProductSpecification } from '../../entities/product-specification';
 import { OfferingCatalogTag } from '../../ports/offering-catalog';
 import type { OfferingTransition } from '../../values/offering-transition';
+import { isSku, normalizedSku, SkuInvalid } from '../../values/sku';
 import { refuseSpecificationMedia } from '../../values/specification-media';
 import {
   PricePerInvalid,
@@ -212,6 +213,9 @@ export const preserveOfferingLifecycle = (
       offering.stockOfferingId = undefined;
       offering.stockFactor = undefined;
       offering.variantValues = undefined;
+      // Nor a kit until `set-kit` says so (ADR 0086).
+      offering.kitComponents = undefined;
+      offering.kitSize = undefined;
     } else {
       offering.status = stored.value.status;
       offering.statusChangedAt = stored.value.statusChangedAt;
@@ -219,6 +223,8 @@ export const preserveOfferingLifecycle = (
       offering.stockOfferingId = stored.value.stockOfferingId;
       offering.stockFactor = stored.value.stockFactor;
       offering.variantValues = stored.value.variantValues;
+      offering.kitComponents = stored.value.kitComponents;
+      offering.kitSize = stored.value.kitSize;
       // A variant belongs to its product: pinning another version of the same
       // series keeps it, moving it to another product would leave a colour
       // nobody else's axes agree with (ADR 0085).
@@ -230,6 +236,11 @@ export const preserveOfferingLifecycle = (
       ) {
         return yield* new VariantInvalid({ problem: 'productChanged' });
       }
+    }
+    // Every write path reaches here, so the SKU is shaped once, for all.
+    offering.sku = normalizedSku(offering.sku);
+    if (offering.sku !== undefined && !isSku(offering.sku)) {
+      return yield* new SkuInvalid({ sku: offering.sku });
     }
     // An offering's own pictures enter here, so the `https` and alt-text rule
     // is kept here (ADR 0061).
@@ -365,10 +376,17 @@ export const rebuildPublications = (input: {
           restating: true,
         }).pipe(
           // No `IllegalOfferingTransition`: the walk reads only published
-          // offerings, and `published → published` is legal (ADR 0047).
+          // offerings, and `published → published` is legal (ADR 0047). A
+          // check publication makes again — a kit whose component was taken
+          // down, a base no longer counted, tiers its unit no longer sells —
+          // refuses one offering, and must not stop the walk for every
+          // offering after it: that one is left unannounced and counted.
           Effect.catchTags({
             OfferingHasNoPrice: () => Effect.succeed(undefined),
             OfferingHasNoSpecification: () => Effect.succeed(undefined),
+            KitInvalid: () => Effect.succeed(undefined),
+            StockSourceInvalid: () => Effect.succeed(undefined),
+            PriceTiersInvalid: () => Effect.succeed(undefined),
           }),
         );
         if (decision === undefined) {

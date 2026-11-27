@@ -7,6 +7,7 @@ import {
   usePalette,
 } from './a11y';
 import { expect, record, test } from './support/fixtures';
+import { openVerb } from './support/verbs';
 
 /**
  * The accessibility gate on every back-office screen type (ADR 0075): one
@@ -209,6 +210,11 @@ const DIALOGS = [
     path: '/es/catalog/product-offering/offering-priced',
     verb: 'Vender una presentación del mismo inventario',
   },
+  {
+    screen: 'dialog-kit',
+    path: '/es/catalog/product-offering/offering-priced',
+    verb: 'Vender como kit',
+  },
 ] as const;
 
 for (const palette of PALETTES) {
@@ -219,7 +225,7 @@ for (const palette of PALETTES) {
     for (const { screen, path, verb } of DIALOGS) {
       await test.step(screen, async () => {
         await page.goto(path);
-        await page.getByRole('button', { name: verb }).click();
+        await openVerb(page, verb);
         await expectAccessibleDialog(
           page,
           page.getByRole('dialog', { name: verb }),
