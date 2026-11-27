@@ -238,7 +238,7 @@ describe('getKitComponents', () => {
   it('reads nothing for an offering that is no kit', async () => {
     const { result, load } = over(
       [kase],
-      getKitComponents({ vendorId: 'vendor-1' }),
+      getKitComponents({ vendorId: 'vendor-1', kitComponents: undefined }),
     );
 
     expect(await result).toEqual([]);

@@ -151,6 +151,27 @@ describe('placing an order', () => {
     expect(isStoreFault(sameId)).toBe(true);
   });
 
+  it('reads a taken number from the message when the server names no key pattern', async () => {
+    const w = world();
+    // An older server answers a collision with its message alone.
+    w.fake.failOn(
+      'insertOne',
+      Object.assign(
+        new Error(
+          'E11000 duplicate key error collection: order.checkout-group index: number_1 dup key: { number: "G-1" }',
+        ),
+        { code: 11000 },
+      ),
+    );
+
+    const group = await w.run(({ groups }) =>
+      Effect.flip(groups.open(aGroup(), undefined)),
+    );
+
+    // Redrawn as a taken number every time, then given up on as a fault.
+    expect(isStoreFault(group)).toBe(true);
+  });
+
   it('reports writes and reads the driver failed as store failures', async () => {
     const writes = world();
     await writes.run(({ groups }) => groups.open(aGroup(), undefined));
