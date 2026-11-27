@@ -261,6 +261,33 @@ export const tillFiltering = (
 };
 
 /**
+ * What the read of the sale's own lines asks for: the vendor's offerings
+ * among the ids on the sale.
+ */
+export const linesFiltering = (
+  vendorId: string | undefined,
+  offeringIds: readonly string[],
+): FilterGroup<PublishedOffering> => ({
+  operator: 'and',
+  values: [
+    ...(vendorId === undefined
+      ? []
+      : [
+          {
+            property: 'vendorId' as const,
+            operator: 'eq' as const,
+            value: vendorId,
+          },
+        ]),
+    {
+      property: 'offeringId' as const,
+      operator: 'in' as const,
+      values: [...offeringIds],
+    },
+  ],
+});
+
+/**
  * What Enter on the search picks — what a scanner typing a code and Enter
  * means. The offering whose SKU is exactly what was typed, first: `TAC-8`
  * also finds `TAC-80` by its words, but a label names one product. Failing
@@ -425,12 +452,34 @@ export function CounterSaleWizard({
   const taxName = payment.taxName ?? '';
   const identified = taxIdType !== 'cf';
 
-  const [pendingOffering, setPendingOffering] = useState('');
+  // The offerings already on the sale, read by id beside the search, so a
+  // line keeps its live terms whatever is typed next: the search list holds
+  // only what matches it, and a line priced from it would preview nothing the
+  // moment the cashier looks for the next product.
+  const lineIds = [...new Set(lines.map(line => line.offeringId))].sort();
+  const onSale = useDataLoading<PublishedOffering, EntityRepositoryTag>({
+    uc: loadUCFactory<PublishedOffering>(),
+    ctx: adapters.publishedOfferingRest,
+    initialPageSize: Math.max(lineIds.length, 1),
+    enabled: lineIds.length > 0,
+    baseFiltering: linesFiltering(vendorId, lineIds),
+    queryKey: [
+      'published-offering',
+      'counter-sale',
+      'lines',
+      vendorId,
+      lineIds,
+    ],
+  });
+  const known = uniqueOfferings([...offerings.items, ...onSale.items]);
+
+  // The offering picked, held itself rather than by id: a scan clears the
+  // search, and the list it was picked from goes with it.
+  const [picked, setPicked] = useState<PublishedOffering | undefined>(
+    undefined,
+  );
   // In the picked offering's scale; `NaN` while the field holds no number.
   const [pendingQuantity, setPendingQuantity] = useState(Number.NaN);
-  const picked = offerings.items.find(
-    candidate => candidate.offeringId === pendingOffering,
-  );
   // Decided against the published terms as typed, and refused rather than
   // rounded (ADR 0082 §3); sales-service checks again, and its answer stands.
   const pendingRefusal =
@@ -440,15 +489,34 @@ export function CounterSaleWizard({
           amount: tieredPrice(picked, pendingQuantity).amount,
           pricePer: picked.pricePer,
         });
-  const pick = (offeringId: string) => {
-    setPendingOffering(offeringId);
-    const offering = offerings.items.find(
-      candidate => candidate.offeringId === offeringId,
-    );
+  const pick = (offering: PublishedOffering | undefined) => {
+    setPicked(offering);
     setPendingQuantity(offering?.quantityMinimum ?? Number.NaN);
   };
   const quantityText = (line: Line) =>
-    quantityTextOf(line, offerings.items, locale, translateKey);
+    quantityTextOf(line, known, locale, translateKey);
+  // What the select lists: the search's matches, and the one picked even once
+  // the search no longer matches it, so the field never reads as empty.
+  const choices = uniqueOfferings(
+    picked === undefined ? offerings.items : [...offerings.items, picked],
+  );
+
+  // A scanner types its code and Enter faster than the list can answer the
+  // code, so the list may still be the previous search's: a scan waits for
+  // the list of what was typed, picks from it, and clears the field for the
+  // next code.
+  const [pendingScan, setPendingScan] = useState<string | undefined>(undefined);
+  // Settled during render, as React adjusts state from what it just read:
+  // once, when the list stops loading.
+  if (pendingScan !== undefined && !offerings.isLoading) {
+    setPendingScan(undefined);
+    const found =
+      pendingScan === search ? scanPick(offerings.items, search) : undefined;
+    if (found !== undefined) {
+      pick(found);
+      setSearch('');
+    }
+  }
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
   const [charging, setCharging] = useState(false);
   const [failure, setFailure] = useState<string | undefined>(undefined);
@@ -569,7 +637,7 @@ export function CounterSaleWizard({
         quantity,
       }),
     );
-    setPendingOffering('');
+    setPicked(undefined);
     setPendingQuantity(Number.NaN);
   };
 
@@ -741,8 +809,7 @@ export function CounterSaleWizard({
               onKeyDown={event => {
                 if (event.key !== 'Enter') return;
                 event.preventDefault();
-                const found = scanPick(offerings.items, search);
-                if (found !== undefined) pick(found.offeringId);
+                setPendingScan(search);
               }}
             />
           </Cluster>
@@ -752,12 +819,18 @@ export function CounterSaleWizard({
             </label>
             <Select
               id="counter-sale-offering"
-              value={pendingOffering}
-              onChange={event => pick(event.target.value)}
+              value={picked?.offeringId ?? ''}
+              onChange={event =>
+                pick(
+                  choices.find(
+                    candidate => candidate.offeringId === event.target.value,
+                  ),
+                )
+              }
               disabled={offerings.isLoading}
             >
               <option value="">—</option>
-              {uniqueOfferings(offerings.items).map(offering => (
+              {choices.map(offering => (
                 <option key={offering.offeringId} value={offering.offeringId}>
                   {offering.name}
                 </option>
@@ -899,7 +972,7 @@ export function CounterSaleWizard({
             <Text key={line.key}>
               {quantityText(line)} × {line.name} —{' '}
               <Money
-                amount={previewOf(line, offerings.items)}
+                amount={previewOf(line, known)}
                 currency={line.currency}
                 unit="minor"
                 locale={locale}
@@ -915,7 +988,7 @@ export function CounterSaleWizard({
           <Text>
             {translateKey('r10c:sales.counterSale.total')}:{' '}
             <Money
-              amount={totalOf(lines, offerings.items)}
+              amount={totalOf(lines, known)}
               currency={currencyOf(lines)}
               unit="minor"
               locale={locale}

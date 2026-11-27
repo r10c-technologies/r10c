@@ -11,7 +11,13 @@ import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { settledWriter } from '@r10c/testing-cells/writer';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -23,6 +29,7 @@ import {
   CounterSaleWizard,
   currencyOf,
   lastChannelKey,
+  linesFiltering,
   previewOf,
   quantityTextOf,
   readLines,
@@ -638,6 +645,69 @@ describe('the lines step', () => {
     expect(await screen.findByText(/^3\.5 m × Cable/)).toBeVisible();
   });
 
+  // A line keeps its live terms from a read of its own: the search list holds
+  // only what matches what is typed next.
+  it('keeps a line priced while the search looks for the next product', async () => {
+    const user = userEvent.setup();
+    renderTill();
+    await reachLines(user);
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Producto' }),
+      'cable',
+    );
+    await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
+
+    await user.type(screen.getByRole('searchbox'), 'café');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('option', { name: 'Cable' }),
+      ).not.toBeInTheDocument(),
+    );
+
+    // Read from the line's own offering: priced from the search list, the
+    // line would read a bare 1000 and preview nothing.
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'P' &&
+          element.textContent?.replace(/\s+/g, ' ').trim() === '1 m × Cable',
+      ),
+    ).toBeVisible();
+  });
+
+  // What a scanner does: the code and Enter, faster than the list answers.
+  it('picks a scanned product once the list answers its code, and clears the field', async () => {
+    renderTill();
+    await reachLines(userEvent.setup());
+    const search = screen.getByRole('searchbox');
+
+    fireEvent.change(search, { target: { value: 'thhn' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Producto' })).toHaveValue(
+        'cable',
+      ),
+    );
+    expect(search).toHaveValue('');
+  });
+
+  it('drops a scan the cashier typed past before the list answered', async () => {
+    renderTill();
+    await reachLines(userEvent.setup());
+    const search = screen.getByRole('searchbox');
+
+    fireEvent.change(search, { target: { value: 'thhn' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
+    fireEvent.change(search, { target: { value: 'thhn café' } });
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Producto' })).toBeEnabled(),
+    );
+    expect(screen.getByRole('combobox', { name: 'Producto' })).toHaveValue('');
+    expect(search).toHaveValue('thhn café');
+  });
+
   it('removes a line the seller changed their mind about', async () => {
     const user = userEvent.setup();
     renderTill();
@@ -930,6 +1000,19 @@ describe('the till’s product list', () => {
       ],
     });
     expect(tillFiltering(undefined, '')).toBeUndefined();
+  });
+
+  it('reads the sale’s own lines among the vendor’s products', () => {
+    expect(linesFiltering('v-1', ['a', 'b'])).toEqual({
+      operator: 'and',
+      values: [
+        { property: 'vendorId', operator: 'eq', value: 'v-1' },
+        { property: 'offeringId', operator: 'in', values: ['a', 'b'] },
+      ],
+    });
+    expect(linesFiltering(undefined, ['a']).values).toEqual([
+      { property: 'offeringId', operator: 'in', values: ['a'] },
+    ]);
   });
 
   it('picks on Enter only the one product the words found', () => {
