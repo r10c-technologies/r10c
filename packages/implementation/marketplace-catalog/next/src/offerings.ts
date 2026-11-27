@@ -228,12 +228,12 @@ export const getVariantCounts = (
           {
             property: 'vendorId',
             operator: 'in',
-            values: [...new Set(grouped.map(one => one.vendorId))],
+            values: Array.from(new Set(grouped.map(one => one.vendorId))),
           },
           {
             property: 'variantGroup',
             operator: 'in',
-            values: [...new Set(grouped.map(one => one.variantGroup))],
+            values: Array.from(new Set(grouped.map(one => one.variantGroup))),
           },
         ],
         pageSize: VARIANT_COUNT_PAGE,

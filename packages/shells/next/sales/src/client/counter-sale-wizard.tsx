@@ -456,7 +456,9 @@ export function CounterSaleWizard({
   // line keeps its live terms whatever is typed next: the search list holds
   // only what matches it, and a line priced from it would preview nothing the
   // moment the cashier looks for the next product.
-  const lineIds = [...new Set(lines.map(line => line.offeringId))].sort();
+  const lineIds = Array.from(
+    new Set(lines.map(line => line.offeringId)),
+  ).sort();
   const onSale = useDataLoading<PublishedOffering, EntityRepositoryTag>({
     uc: loadUCFactory<PublishedOffering>(),
     ctx: adapters.publishedOfferingRest,

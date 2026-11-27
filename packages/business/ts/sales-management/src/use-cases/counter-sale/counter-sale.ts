@@ -148,7 +148,7 @@ export const mergedLines = <
         : { ...seen, quantity: seen.quantity + line.quantity },
     );
   }
-  return [...byOffering.values()];
+  return Array.from(byOffering.values());
 };
 
 /**
