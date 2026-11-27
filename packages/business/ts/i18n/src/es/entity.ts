@@ -411,6 +411,7 @@ export const entity = {
     },
     fields: {
       id: 'ID',
+      sku: 'SKU',
       offeringId: 'ID de oferta',
       vendorId: 'ID de vendedor',
       name: 'Nombre',
@@ -842,6 +843,7 @@ export const entity = {
     plural: 'Ofertas comerciales',
     fields: {
       id: 'ID',
+      sku: 'SKU',
       name: 'Nombre',
       specificationId: 'Especificación',
       status: 'Estado',
@@ -893,6 +895,7 @@ export const entity = {
       importedAt: 'Importada',
       rowCount: 'Filas',
       createdCount: 'Creados',
+      updatedCount: 'Actualizados',
       rejectedCount: 'Rechazados',
       rejections: 'Filas rechazadas',
     },

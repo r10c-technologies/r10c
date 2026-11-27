@@ -63,6 +63,7 @@ export class ProductOffering implements Entity {
   // #region properties
   #id?: EntityId;
   #name: string;
+  #sku?: string;
   #specificationId: string;
   #status: OfferingStatus = 'draft';
   #statusChangedAt?: Date;
@@ -113,6 +114,28 @@ export class ProductOffering implements Entity {
   }
   set name(value: string) {
     this.#name = value;
+  }
+
+  /**
+   * The vendor's own code for this offering — what its labels print, its
+   * scanner types and its sheets are keyed by. Optional, and **unique within
+   * the organization**: each organization has its own catalog store, and the
+   * store refuses a second offering with the same code (`duplicateKey`), so
+   * no read-then-write race can let two through. Trimmed on every save, blank
+   * is no SKU, and anything a label would not print is `skuInvalid`.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-offering.fields.sku',
+    unique: true,
+    sortable: true,
+    filterable: true,
+  })
+  get sku(): string | undefined {
+    return this.#sku;
+  }
+  set sku(value: string | undefined) {
+    this.#sku = value;
   }
 
   /**

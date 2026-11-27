@@ -27,6 +27,7 @@ import { ProductOfferingPrice } from '../../entities/product-offering-price';
 import { ProductSpecification } from '../../entities/product-specification';
 import { OfferingCatalogTag } from '../../ports/offering-catalog';
 import type { OfferingTransition } from '../../values/offering-transition';
+import { isSku, normalizedSku, SkuInvalid } from '../../values/sku';
 import { refuseSpecificationMedia } from '../../values/specification-media';
 import {
   PricePerInvalid,
@@ -235,6 +236,11 @@ export const preserveOfferingLifecycle = (
       ) {
         return yield* new VariantInvalid({ problem: 'productChanged' });
       }
+    }
+    // Every write path reaches here, so the SKU is shaped once, for all.
+    offering.sku = normalizedSku(offering.sku);
+    if (offering.sku !== undefined && !isSku(offering.sku)) {
+      return yield* new SkuInvalid({ sku: offering.sku });
     }
     // An offering's own pictures enter here, so the `https` and alt-text rule
     // is kept here (ADR 0061).

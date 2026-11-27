@@ -18,6 +18,8 @@ import {
 } from '@r10c/business-ts-sales-vocabulary';
 import { Schema } from 'effect';
 
+import { isSku, normalizedSku, SKU_INVALID } from './sku';
+
 /**
  * The sheet a catalog import reads, column by column
  * ([ADR 0084](../../../../../../docs/adr/0084-a-catalog-import-is-a-record-and-a-row-is-one-unit-of-work.md)).
@@ -28,6 +30,7 @@ import { Schema } from 'effect';
  * the same question again.
  */
 export const IMPORT_COLUMNS = [
+  'sku',
   'name',
   'description',
   'brand',
@@ -64,6 +67,7 @@ export const IMPORT_HEADERS: Readonly<
   Record<'es' | 'en', Readonly<Record<ImportColumn, string>>>
 > = {
   es: {
+    sku: 'SKU',
     name: 'Nombre',
     description: 'Descripción',
     brand: 'Marca',
@@ -79,6 +83,7 @@ export const IMPORT_HEADERS: Readonly<
     tiers: 'Escalas',
   },
   en: {
+    sku: 'SKU',
     name: 'Name',
     description: 'Description',
     brand: 'Brand',
@@ -106,6 +111,7 @@ export const IMPORT_CELL_INVALID = 'importCellInvalid';
 export const IMPORT_REFERENCE_UNRESOLVED = 'importReferenceUnresolved';
 export const IMPORT_DUPLICATE = 'importDuplicate';
 export const IMPORT_EMPTY = 'importEmpty';
+export const IMPORT_SPECIFICATION_CHANGED = 'importSpecificationChanged';
 
 const where = {
   rowNumber: Schema.Number,
@@ -150,14 +156,33 @@ export class ImportReferenceUnresolved extends Failure.invalid<ImportReferenceUn
   },
 ) {}
 
-/** A product the sheet or the catalog already has: an import only creates. */
+/**
+ * A new product the sheet or the catalog already has by its name, or a SKU an
+ * earlier row of the sheet already used: one row creates or changes one
+ * product, and two rows for one product say one thing twice.
+ */
 export class ImportDuplicate extends Failure.conflict<ImportDuplicate>()(
   'ImportDuplicate',
   IMPORT_DUPLICATE,
   where,
   {
-    message: ({ rowNumber }) =>
-      `row ${String(rowNumber)}: a product with this name already exists`,
+    message: ({ rowNumber, column }) =>
+      `row ${String(rowNumber)}: another product already has this ${String(column)}`,
+  },
+) {}
+
+/**
+ * A row naming a product by its SKU whose description, brand, category,
+ * fit or picture differs from the product's. Those are the specification's,
+ * changed by revising it; a sheet changes an offering's price and sale terms.
+ */
+export class ImportSpecificationChanged extends Failure.conflict<ImportSpecificationChanged>()(
+  'ImportSpecificationChanged',
+  IMPORT_SPECIFICATION_CHANGED,
+  where,
+  {
+    message: ({ rowNumber, column }) =>
+      `row ${String(rowNumber)}: '${String(column)}' differs from the product's, which only a revision changes`,
   },
 ) {}
 
@@ -189,6 +214,11 @@ export interface ImportProblem {
  */
 export interface ImportRow {
   readonly rowNumber: number;
+  /**
+   * The vendor's code: a SKU the catalog already holds names the offering
+   * the row updates; a new one, or none, creates a product.
+   */
+  readonly sku?: string;
   readonly name: string;
   readonly description?: string;
   readonly brandId?: string;
@@ -415,9 +445,11 @@ const readRow = (
     cells.pricePer === undefined ? DEFAULT_PRICE_PER : Number(cells.pricePer);
   const step = quantityIn(cells.step, unit, locale, 'step', oneWholeUnit(unit));
   const image = cells.image;
+  const sku = normalizedSku(cells.sku);
 
   return {
     rowNumber: row.rowNumber,
+    ...(sku === undefined ? {} : { sku }),
     name,
     ...(cells.description === undefined
       ? {}
@@ -465,6 +497,7 @@ export const importRowRefusal = (
     code,
     column,
   });
+  if (row.sku !== undefined && !isSku(row.sku)) return at(SKU_INVALID, 'sku');
   if (row.name.trim() === '') return at(IMPORT_CELL_INVALID, 'name');
   if (!isSaleUnit(row.saleUnit)) return at(IMPORT_CELL_INVALID, 'unit');
   const digits = minorUnitDigits(row.currency);
@@ -499,10 +532,10 @@ export const importRowRefusal = (
 };
 
 /**
- * The sheet's rows as the service takes them, and every row's problem. A name
- * the sheet repeats is refused on every row after the first: the import
- * creates, and two rows creating one product is a sheet that says one thing
- * twice.
+ * The sheet's rows as the service takes them, and every row's problem. A SKU
+ * the sheet repeats is refused on every row after the first, and so is a name
+ * repeated among rows with no SKU: one row creates or changes one product, and
+ * two rows for one product is a sheet that says one thing twice.
  */
 export const toImportRows = (
   sheet: readonly ImportSheetRow[],
@@ -515,6 +548,7 @@ export const toImportRows = (
   const rows: ImportRow[] = [];
   const problems: ImportProblem[] = [];
   const seen = new Set<string>();
+  const seenSkus = new Set<string>();
   for (const sheetRow of sheet) {
     let row: ImportRow;
     try {
@@ -536,6 +570,19 @@ export const toImportRows = (
     const refused = importRowRefusal(row);
     if (refused !== undefined) {
       problems.push(refused);
+      continue;
+    }
+    if (row.sku !== undefined) {
+      if (seenSkus.has(row.sku)) {
+        problems.push({
+          rowNumber: row.rowNumber,
+          code: IMPORT_DUPLICATE,
+          column: 'sku',
+        });
+        continue;
+      }
+      seenSkus.add(row.sku);
+      rows.push(row);
       continue;
     }
     const folded = foldText(row.name);
@@ -561,6 +608,7 @@ export const toImportRows = (
 export const importTemplateCsv = (locale: 'es' | 'en'): string => {
   const headers = IMPORT_HEADERS[locale];
   const example: Readonly<Record<ImportColumn, string>> = {
+    sku: 'TOR-14',
     name: locale === 'es' ? 'Tornillo 1/4"' : 'Screw 1/4"',
     description: '',
     brand: '',

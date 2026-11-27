@@ -91,6 +91,11 @@ export interface CatalogPublication extends SaleTerms {
   readonly vendorId: string;
   readonly name: string;
   /**
+   * The vendor's own code for the offering: what a till scans and a buyer
+   * may search by. Absent when the vendor gave none.
+   */
+  readonly sku?: string;
+  /**
    * Minor units, matching `ProductOfferingPrice.amount`: what `pricePer` whole
    * `saleUnit`s cost. The sale terms are required, unlike the merchandising
    * below: a price without them is read as a price for one unit, which
@@ -394,6 +399,7 @@ export const readCatalogPublication = (
         publishedAt: raw.publishedAt,
         specificationId: raw.specificationId,
         specificationVersion: raw.specificationVersion,
+        sku: optionalString(raw['sku']),
         code: optionalString(raw['code']),
         description: optionalString(raw['description']),
         brandId: optionalString(raw['brandId']),

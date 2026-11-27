@@ -377,6 +377,7 @@ export const entity: EsEntity = {
     },
     fields: {
       id: 'ID',
+      sku: 'SKU',
       offeringId: 'Offering ID',
       vendorId: 'Vendor ID',
       name: 'Name',
@@ -796,6 +797,7 @@ export const entity: EsEntity = {
     plural: 'Product offerings',
     fields: {
       id: 'ID',
+      sku: 'SKU',
       name: 'Name',
       specificationId: 'Specification',
       status: 'Status',
@@ -847,6 +849,7 @@ export const entity: EsEntity = {
       importedAt: 'Imported',
       rowCount: 'Rows',
       createdCount: 'Created',
+      updatedCount: 'Updated',
       rejectedCount: 'Rejected',
       rejections: 'Rejected rows',
     },

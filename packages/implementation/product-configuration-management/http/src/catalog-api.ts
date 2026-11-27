@@ -53,6 +53,7 @@ import {
   SetSaleUnitUC,
   SetStockSourceUC,
   SetVariantUC,
+  SkuInvalid,
   SpecificationCommandsTag,
   type SpecificationMove,
   startSpecificationSeries,
@@ -367,9 +368,9 @@ export const productOfferingApi = defineEntityApi(
     guard: { kind: 'organization' },
     prepare: (offering, context) =>
       preserveOfferingLifecycle(offering, organizationOf(context)),
-    // An offering's own pictures and the variant's product are refused on
-    // the save (ADR 0061, ADR 0085).
-    errors: [MediaNotHttps, MediaAltMissing, VariantInvalid],
+    // An offering's own pictures, the variant's product and a malformed SKU
+    // are refused on the save (ADR 0061, ADR 0085).
+    errors: [MediaNotHttps, MediaAltMissing, VariantInvalid, SkuInvalid],
     useCases: [
       publish,
       unpublish,

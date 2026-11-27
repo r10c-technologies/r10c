@@ -933,9 +933,17 @@ describe('the till’s product list', () => {
   });
 
   it('picks on Enter only the one product the words found', () => {
-    expect(scanPick([cable()])?.offeringId).toBe('cable');
-    expect(scanPick([cable(), publishedOffering()])).toBeUndefined();
-    expect(scanPick([])).toBeUndefined();
+    expect(scanPick([cable()], 'cable')?.offeringId).toBe('cable');
+    expect(scanPick([cable(), publishedOffering()], 'cable')).toBeUndefined();
+    expect(scanPick([], 'cable')).toBeUndefined();
+  });
+
+  it('picks the offering whose SKU is exactly what was scanned, among the ones its words found', () => {
+    const tac8 = { offeringId: 'tac-8', sku: 'TAC-8' };
+    const tac80 = { offeringId: 'tac-80', sku: 'TAC-80' };
+
+    expect(scanPick([tac80, tac8], ' TAC-8 ')?.offeringId).toBe('tac-8');
+    expect(scanPick([tac80, { offeringId: 'x' }], 'TAC-8')).toBeUndefined();
   });
 
   it('adds to the line a sale already holds, and a new line otherwise', () => {

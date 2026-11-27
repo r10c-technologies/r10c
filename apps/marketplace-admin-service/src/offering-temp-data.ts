@@ -1,5 +1,9 @@
 import { variantKeyOf } from '@r10c/business-ts-sales-vocabulary';
-import { sampleMediaPath, type SeededVendor } from '@r10c/utils-ts-fleet';
+import {
+  sampleMediaPath,
+  sampleSkuOf,
+  type SeededVendor,
+} from '@r10c/utils-ts-fleet';
 
 import { productTempDataFor } from './product-temp-data';
 
@@ -20,6 +24,8 @@ import { productTempDataFor } from './product-temp-data';
 export interface ProductOfferingRecord {
   id: string;
   name: string;
+  /** The vendor's own code: a sample store's product key, upper-cased. */
+  sku: string;
   specificationId: string;
   status: string;
   statusChangedAt: Date;
@@ -154,6 +160,7 @@ export const offeringTempDataFor = (
       // The product's own name: a store sells "Cable THHN #12", not an
       // "offer" of it.
       name: product.name,
+      sku: sampleSkuOf(product),
       specificationId,
       status: product.status,
       // Without this the seeded `published` offerings carry no moment, the

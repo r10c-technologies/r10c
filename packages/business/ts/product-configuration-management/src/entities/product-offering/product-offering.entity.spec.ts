@@ -112,6 +112,7 @@ describe('ProductOffering', () => {
     expect(names).toEqual([
       'id',
       'name',
+      'sku',
       'specificationId',
       'status',
       'statusChangedAt',

@@ -3,6 +3,7 @@ import {
   TenantDatabaseResolverTag,
 } from '@entifix/business';
 import {
+  bumpRevision,
   deserializeSingleEntity,
   envelopeEntityName,
   serializeEntity,
@@ -28,6 +29,7 @@ import {
 import { Effect, Layer, Option } from 'effect';
 import type { Db } from 'mongodb';
 
+import { atRevision } from './at-revision.js';
 import { OFFERING_COLLECTION, PRICE_COLLECTION } from './offering-catalog.js';
 import {
   drawSpecificationCode,
@@ -37,8 +39,9 @@ import {
 
 export const CATALOG_IMPORT_COLLECTION = envelopeEntityName(CatalogImport);
 
-/** The ids a row's claim is answered with. */
+/** The ids a row's claim is answered with, and whether it made or changed one. */
 interface RowReplay {
+  readonly change: 'create' | 'update';
   readonly specificationId: string;
   readonly offeringId: string;
 }
@@ -54,11 +57,19 @@ const store = <A>(run: () => Promise<A>) =>
 const unreadable = () => new Unavailable({ dependency: 'mongo' });
 
 const asReplay = (value: unknown): RowReplay | undefined => {
-  const { specificationId, offeringId } = (value ?? {}) as Partial<RowReplay>;
-  return typeof specificationId === 'string' && typeof offeringId === 'string'
-    ? { specificationId, offeringId }
+  const { change, specificationId, offeringId } = (value ??
+    {}) as Partial<RowReplay>;
+  return (change === 'create' || change === 'update') &&
+    typeof specificationId === 'string' &&
+    typeof offeringId === 'string'
+    ? { change, specificationId, offeringId }
     : undefined;
 };
+
+/** A record moved since the update read it: the unit aborts, claiming nothing. */
+class RecordMoved {
+  readonly _tag = 'RecordMoved';
+}
 
 /**
  * The catalog import's writes, over the organization's own `tenant_<id>`
@@ -149,6 +160,7 @@ export const MongoCatalogImportCommandsLayer = Layer.effect(
                 );
                 if (event !== undefined) unit.emit(event);
                 return {
+                  change: 'create',
                   specificationId: String(specification.id),
                   offeringId: String(offering.id),
                 } satisfies RowReplay;
@@ -165,6 +177,105 @@ export const MongoCatalogImportCommandsLayer = Layer.effect(
           if (outcome._tag === 'committed')
             return { outcome: 'created', ...outcome.value } as const;
           // A unit whose body cannot abort ends `duplicate` or committed.
+          const ids = asReplay(
+            Option.getOrUndefined(
+              (outcome as { readonly replay: Option.Option<unknown> }).replay,
+            ),
+          );
+          if (ids === undefined) return yield* Effect.fail(unreadable());
+          return { outcome: 'replayed', ...ids } as const;
+        }),
+
+      updateRow: (organizationId, key, row) =>
+        Effect.gen(function* () {
+          const db = yield* databaseOf(organizationId);
+          const { offering, price } = row;
+          const outcome = yield* units.forDatabase(db).run(
+            unit =>
+              Effect.gen(function* () {
+                const { session } = unit.handle;
+                const collection = (name: string) =>
+                  unit.handle.db.collection(name);
+                // What an update row may change on an offering, and nothing
+                // else: the members its sale terms are, and the stamp a
+                // republication moves. The revision moves in the same write.
+                const moved = yield* store(() =>
+                  collection(OFFERING_COLLECTION).updateOne(
+                    { id: offering.id, ...atRevision(offering.revision) },
+                    {
+                      $set: {
+                        name: offering.name,
+                        quantityStep: offering.quantityStep,
+                        quantityMinimum: offering.quantityMinimum,
+                        ...(offering.statusChangedAt === undefined
+                          ? {}
+                          : { statusChangedAt: offering.statusChangedAt }),
+                      },
+                      ...bumpRevision.mongo,
+                    },
+                    { session },
+                  ),
+                );
+                if (moved.matchedCount === 0)
+                  return yield* Effect.fail(new RecordMoved());
+                if (row.priceIsNew) {
+                  price.revision = 1;
+                  yield* store(() =>
+                    collection(PRICE_COLLECTION).insertOne(
+                      {
+                        ...serializeEntity(ProductOfferingPrice, price),
+                        id: price.id,
+                      },
+                      { session },
+                    ),
+                  );
+                } else {
+                  const tiers = price.tiers?.map(({ from, amount }) => ({
+                    from,
+                    amount,
+                  }));
+                  const repriced = yield* store(() =>
+                    collection(PRICE_COLLECTION).updateOne(
+                      { id: price.id, ...atRevision(price.revision) },
+                      {
+                        $set: {
+                          amount: price.amount,
+                          currency: price.currency,
+                          pricePer: price.pricePer,
+                          ...(tiers === undefined || tiers.length === 0
+                            ? {}
+                            : { tiers }),
+                        },
+                        ...(tiers === undefined || tiers.length === 0
+                          ? { $unset: { tiers: '' } }
+                          : {}),
+                        ...bumpRevision.mongo,
+                      },
+                      { session },
+                    ),
+                  );
+                  if (repriced.matchedCount === 0)
+                    return yield* Effect.fail(new RecordMoved());
+                }
+                if (row.event !== undefined) unit.emit(row.event);
+                return {
+                  change: 'update',
+                  specificationId: offering.specificationId,
+                  offeringId: String(offering.id),
+                } satisfies RowReplay;
+              }),
+            {
+              claim: { kind: 'command', commandId: key },
+              replay: ids => ids,
+              afterCommit: drainOutboxNow(db).pipe(
+                Effect.provideService(EventBusTag, bus),
+                Effect.provideService(OutboxMaxAttempts, maxAttempts),
+              ),
+            },
+          );
+          if (outcome._tag === 'committed')
+            return { outcome: 'created', ...outcome.value } as const;
+          if (outcome._tag === 'aborted') return 'changed' as const;
           const ids = asReplay(
             Option.getOrUndefined(
               (outcome as { readonly replay: Option.Option<unknown> }).replay,

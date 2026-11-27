@@ -866,6 +866,8 @@ export const r10c = {
         },
         preview: {
           prompt: 'Revise lo que se importará antes de confirmar.',
+          coded:
+            'Filas con SKU: {{count}}. Una fila con el SKU de un producto que ya tiene actualiza su nombre, precio y forma de venta; con uno nuevo, crea el producto.',
           ready: 'Filas que se importarán: {{count}}',
           rejected: 'Filas que no se importarán: {{count}}',
           mode: 'Modo: {{mode}}',

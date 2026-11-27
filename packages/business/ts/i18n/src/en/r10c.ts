@@ -814,6 +814,8 @@ export const r10c: EsR10c = {
         },
         preview: {
           prompt: 'Review what will be imported before confirming.',
+          coded:
+            'Rows with a SKU: {{count}}. A row with the SKU of a product you already have updates its name, price and the way it is sold; a new one creates the product.',
           ready: 'Rows to import: {{count}}',
           rejected: 'Rows that will not be imported: {{count}}',
           mode: 'Mode: {{mode}}',

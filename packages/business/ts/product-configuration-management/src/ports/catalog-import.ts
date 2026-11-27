@@ -22,9 +22,28 @@ export interface ImportedRow {
   ) => Effect.Effect<CatalogEvent | undefined>;
 }
 
-/** What became of a row: written now, or written by an earlier attempt. */
+/**
+ * One row naming an offering the catalog already holds by its SKU, decided by
+ * the domain: the offering and its price as they are to be stored, each
+ * carrying the revision it was read at, and what to announce — a publication
+ * when the offering is on sale, nothing for a draft.
+ */
+export interface UpdatedRow {
+  readonly offering: ProductOffering;
+  readonly price: ProductOfferingPrice;
+  /** The offering had no price: the row writes its first rather than moving one. */
+  readonly priceIsNew: boolean;
+  readonly event: CatalogEvent | undefined;
+}
+
+/**
+ * What became of a row: written now, or written by an earlier attempt — and
+ * whether it made a product or changed one, which a replay answers too, so a
+ * resumed sheet counts as its first attempt did.
+ */
 export interface ImportedRowOutcome {
   readonly outcome: 'created' | 'replayed';
+  readonly change: 'create' | 'update';
   readonly specificationId: string;
   readonly offeringId: string;
 }
@@ -55,6 +74,18 @@ export interface CatalogImportCommands {
     key: string,
     row: ImportedRow,
   ) => Effect.Effect<ImportedRowOutcome, StoreFailure | Invalid>;
+  /**
+   * Change an offering the sheet named by its SKU, claimed by `key` like a
+   * created row: the offering's sale terms and its price move together with
+   * the announcement, each conditional on the revision it was read at.
+   * `changed` when either moved since — someone saved first, and nothing is
+   * written or claimed, so the row can be imported again.
+   */
+  readonly updateRow: (
+    organizationId: string,
+    key: string,
+    row: UpdatedRow,
+  ) => Effect.Effect<ImportedRowOutcome | 'changed', StoreFailure | Invalid>;
   /**
    * Write the import's record under its id, once: an id already written
    * answers the record that is stored, so two attempts report one outcome.

@@ -94,6 +94,7 @@ export class PublishedOffering implements Entity {
   #specificationId?: string;
   #specificationVersion?: number;
   #code?: string;
+  #sku?: string;
   #description?: string;
   #brandId?: string;
   #categoryId?: string;
@@ -440,6 +441,24 @@ export class PublishedOffering implements Entity {
   }
   set specificationVersion(value: number | undefined) {
     this.#specificationVersion = value;
+  }
+
+  /**
+   * The vendor's own code for the offering, copied from the publication: what
+   * the till matches a scan against exactly, unique within the vendor's
+   * catalog. Absent when the vendor gave none.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.sku',
+    sortable: true,
+    filterable: true,
+  })
+  get sku(): string | undefined {
+    return this.#sku;
+  }
+  set sku(value: string | undefined) {
+    this.#sku = value;
   }
 
   /**

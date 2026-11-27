@@ -27,6 +27,7 @@ const PUBLICATION: CatalogPublication = {
   quantityStep: 1,
   quantityMinimum: 1,
   pricePer: 1,
+  sku: 'TAZ-013-AZUL',
   code: 'product-013',
   description: 'Stoneware, glazed by hand.',
   brandId: 'product-brand-3',
@@ -397,6 +398,7 @@ describe('readCatalogPublication', () => {
     const publication = Effect.runSync(
       readCatalogPublication({
         ...REQUIRED,
+        sku: null,
         code: null,
         description: null,
         brandId: null,

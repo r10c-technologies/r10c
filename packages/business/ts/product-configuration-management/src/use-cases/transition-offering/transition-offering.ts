@@ -318,7 +318,7 @@ export interface OfferingTransitionDecision {
  * ⚠️ `load` with a filter, never `get`, for the same reason as the
  * specification: a base that is gone is a value this decides on.
  */
-const stockSourceOf = (
+export const stockSourceOf = (
   repository: EntityRepositoryTag['Service'],
   offering: ProductOffering,
 ) =>
@@ -352,7 +352,7 @@ const stockSourceOf = (
  * sell a case nobody offers. A component that is a presentation is resolved
  * to its base, as its own publication is.
  */
-const kitStockOfOffering = (
+export const kitStockOfOffering = (
   repository: EntityRepositoryTag['Service'],
   offering: ProductOffering,
 ) =>
@@ -411,6 +411,8 @@ export const offeringPublication = (input: {
     offeringId: String(offering.id),
     vendorId,
     name: offering.name,
+    // Absent, never `undefined`, on an offering with no SKU (ADR 0049).
+    ...(offering.sku === undefined ? {} : { sku: offering.sku }),
     amount: price.amount,
     currency: price.currency,
     // Nothing computes availability yet: the `stock` slice is `planned`, and M2

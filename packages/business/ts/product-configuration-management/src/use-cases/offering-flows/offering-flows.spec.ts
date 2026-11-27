@@ -447,6 +447,32 @@ describe('preserveOfferingLifecycle', () => {
     });
     expect(error.message).toContain('a step of 2 from 3');
   });
+
+  it('trims a SKU, and reads a blank one as none', async () => {
+    const coded = offering('o-9', 'draft', { sku: '  FUN-A15-NEGRA ' });
+    const blank = offering('o-8', 'draft', { sku: '   ' });
+
+    const [kept, cleared] = await world().run(
+      Effect.all([
+        preserveOfferingLifecycle(coded, 'acme'),
+        preserveOfferingLifecycle(blank, 'acme'),
+      ]),
+    );
+
+    expect(kept.sku).toBe('FUN-A15-NEGRA');
+    expect(cleared.sku).toBeUndefined();
+  });
+
+  it('refuses a SKU a label would not print', async () => {
+    const claimed = offering('o-9', 'draft', { sku: 'FUN A15' });
+
+    const error = await world().run(
+      Effect.flip(preserveOfferingLifecycle(claimed, 'acme')),
+    );
+
+    expect(error).toMatchObject({ code: 'skuInvalid', sku: 'FUN A15' });
+    expect(error.message).toContain('"FUN A15" is not');
+  });
 });
 
 describe('refuseUnknownPricePer', () => {

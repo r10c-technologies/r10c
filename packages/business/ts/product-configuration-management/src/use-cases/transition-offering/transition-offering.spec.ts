@@ -899,6 +899,24 @@ describe('the specification the snapshot copies from', () => {
   });
 });
 
+describe('a SKU', () => {
+  it('publishes the vendor’s code, and nothing for an offering without one', () => {
+    const coded = publicationOf(
+      run(
+        [Object.assign(offering('1', 'draft'), { sku: 'TAC-8' })],
+        '1',
+        'publish',
+      ).exit,
+    );
+    const plain = publicationOf(
+      run([offering('1', 'draft')], '1', 'publish').exit,
+    );
+
+    expect(coded.data).toMatchObject({ sku: 'TAC-8' });
+    expect('sku' in plain.data).toBe(false);
+  });
+});
+
 describe('a kit', () => {
   const kit = (status: OfferingStatus = 'draft') =>
     Object.assign(offering('kit', status), {

@@ -227,6 +227,8 @@ export const errors = {
     'Una presentación se vende por unidad y toma un número entero de unidades de su base. Su base es otra oferta tuya que no es a su vez una presentación, y una presentación nunca es base de otra. Un kit no toma inventario de una base ni es base de otra.',
   variantInvalid:
     'Una variante elige hasta tres atributos —color, talla, acabado o capacidad— con un valor corto cada uno. Todas las variantes de un producto usan los mismos atributos y ninguna repite la combinación de otra; una presentación o un kit no pueden ser variante.',
+  skuInvalid:
+    'El SKU admite de 1 a 40 letras, dígitos o . _ / -, sin espacios.',
   kitInvalid:
     'Un kit se vende por unidad y contiene entre uno y diez de sus otros productos, cada uno vendido por unidad y en cantidades enteras. Un kit no es una variante, ni una presentación, ni parte de otro kit, y cada producto que contiene debe estar a la venta.',
   saleUnitFixed:
@@ -242,6 +244,8 @@ export const errors = {
   importReferenceUnresolved:
     'Este nombre no coincide con ninguno del catálogo. Revisa cómo está escrito o créalo primero.',
   importDuplicate:
-    'Ya existe un producto con este nombre, en tu catálogo o en una fila anterior de la hoja. La importación solo crea productos nuevos.',
+    'Ya existe un producto con este nombre, en tu catálogo o en una fila anterior de la hoja, o una fila anterior ya usa este SKU. Una fila sin SKU, o con uno nuevo, crea un producto; una fila con el SKU de un producto existente lo actualiza.',
+  importSpecificationChanged:
+    'Esta fila cambia la descripción, la marca, la categoría, la compatibilidad o la imagen del producto, y eso se cambia revisando el producto, no desde la hoja. Deja esa celda vacía o como está para actualizar el precio y la forma de venta.',
   importEmpty: 'La hoja no tiene ningún producto bajo sus encabezados.',
 };

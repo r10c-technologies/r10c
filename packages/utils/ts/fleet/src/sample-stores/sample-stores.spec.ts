@@ -4,6 +4,7 @@ import {
   HARDWARE_STORE,
   PHONE_ACCESSORIES_STORE,
   sampleMediaPath,
+  sampleSkuOf,
   SEEDED_VENDORS,
   SHOEMAKING_SUPPLIES_STORE,
 } from '../seeded-vendors.js';
@@ -63,6 +64,15 @@ describe('the sample stores', () => {
       expect(SAMPLE_CATEGORY_IDS[item.category]).toBeDefined();
       expect(sampleCategory(item.category).retired).toBeUndefined();
     }
+  });
+
+  it('give every product a SKU a label prints, unique within its store', () => {
+    for (const vendor of SEEDED_VENDORS) {
+      const skus = vendor.products.map(sampleSkuOf);
+      expect(new Set(skus).size).toBe(skus.length);
+      for (const sku of skus) expect(sku).toMatch(/^[A-Z0-9._/-]{1,40}$/);
+    }
+    expect(sampleSkuOf({ key: 'taco-fisher' })).toBe('TACO-FISHER');
   });
 
   it('keep keys and names unique within a store', () => {

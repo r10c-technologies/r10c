@@ -229,10 +229,6 @@ const totalOf = (
 ): number => lines.reduce((sum, line) => sum + previewOf(line, offerings), 0);
 
 /**
- * The offerings the till can pick from, one per id. The projection can answer
- * the same offering twice, and a select listing it twice reads as two products.
- */
-/**
  * What the till's product list reads: the vendor's own published offerings,
  * narrowed by every word typed — a name, a code — as the storefront search
  * matches them (#774). Without a vendor, the words alone.
@@ -265,15 +261,24 @@ export const tillFiltering = (
 };
 
 /**
- * What Enter on the search picks: the one product the words found — what a
- * scanner typing a code and Enter means. Several or none pick nothing, and
+ * What Enter on the search picks — what a scanner typing a code and Enter
+ * means. The offering whose SKU is exactly what was typed, first: `TAC-8`
+ * also finds `TAC-80` by its words, but a label names one product. Failing
+ * that, the one product the words found. Several or none pick nothing, and
  * the list stays for the vendor to choose from.
  */
-export const scanPick = <T extends { readonly offeringId: string }>(
+export const scanPick = <
+  T extends { readonly offeringId: string; readonly sku?: string },
+>(
   items: readonly T[],
+  search: string,
 ): T | undefined => {
   const found = uniqueOfferings(items);
-  return found.length === 1 ? found[0] : undefined;
+  const code = search.trim();
+  return (
+    found.find(item => item.sku !== undefined && item.sku === code) ??
+    (found.length === 1 ? found[0] : undefined)
+  );
 };
 
 /**
@@ -295,6 +300,10 @@ export const withLine = <
       )
     : [...lines, line];
 
+/**
+ * The offerings the till can pick from, one per id. The projection can answer
+ * the same offering twice, and a select listing it twice reads as two products.
+ */
 export const uniqueOfferings = <T extends { readonly offeringId: string }>(
   items: readonly T[],
 ): T[] =>
@@ -732,7 +741,7 @@ export function CounterSaleWizard({
               onKeyDown={event => {
                 if (event.key !== 'Enter') return;
                 event.preventDefault();
-                const found = scanPick(offerings.items);
+                const found = scanPick(offerings.items, search);
                 if (found !== undefined) pick(found.offeringId);
               }}
             />

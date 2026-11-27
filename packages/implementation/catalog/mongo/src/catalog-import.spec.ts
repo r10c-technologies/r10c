@@ -20,6 +20,7 @@ import {
 import {
   describeCatalogImportCommandsContract,
   importedRowOf,
+  updatedRowOf,
 } from '@r10c/business-ts-product-configuration-management/testing';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
@@ -224,6 +225,123 @@ describe('importing a row', () => {
     expect(claimed).toMatchObject({ _tag: 'Unavailable' });
     expect(imported).toMatchObject({ _tag: 'Unavailable' });
     expect(nothing).toMatchObject({ _tag: 'Unavailable' });
+  });
+});
+
+describe('updating a row', () => {
+  const imported = async (w: ReturnType<typeof world>) => {
+    const created = importedRowOf('A mug');
+    await w.run(
+      Effect.flatMap(CatalogImportCommandsTag, commands =>
+        commands.importRow('acme', 'import-1:2', created),
+      ),
+    );
+    return created;
+  };
+
+  it('moves the sale terms, the price and its tiers, and the republication stamp, announcing it at once', async () => {
+    const w = world();
+    const created = await imported(w);
+    const row = updatedRowOf(created, { event: publication('product-001') });
+    row.offering.statusChangedAt = new Date('2026-11-26T10:00:00.000Z');
+    row.price.tiers = [{ from: 10, amount: 1000 }];
+
+    await w.run(
+      Effect.flatMap(CatalogImportCommandsTag, commands =>
+        commands.updateRow('acme', 'import-2:2', row),
+      ),
+    );
+    await settled();
+
+    expect(w.fake.read(OFFERING_COLLECTION)).toEqual([
+      expect.objectContaining({
+        name: 'A mug (2)',
+        quantityStep: 2,
+        quantityMinimum: 2,
+        statusChangedAt: new Date('2026-11-26T10:00:00.000Z'),
+        revision: 2,
+      }),
+    ]);
+    expect(w.fake.read(PRICE_COLLECTION)).toEqual([
+      expect.objectContaining({
+        amount: 1200,
+        tiers: [{ from: 10, amount: 1000 }],
+        revision: 2,
+      }),
+    ]);
+    expect(w.bus.published.map(event => event.name)).toEqual([
+      'catalog.published',
+    ]);
+  });
+
+  it('clears tiers the row no longer has, and keeps a draft’s stamp', async () => {
+    const w = world();
+    const created = await imported(w);
+    const tiered = updatedRowOf(created);
+    tiered.price.tiers = [{ from: 10, amount: 1000 }];
+    await w.run(
+      Effect.flatMap(CatalogImportCommandsTag, commands =>
+        commands.updateRow('acme', 'import-2:2', tiered),
+      ),
+    );
+    const plain = updatedRowOf(created);
+    plain.offering.revision = 2;
+    plain.price.revision = 2;
+
+    await w.run(
+      Effect.flatMap(CatalogImportCommandsTag, commands =>
+        commands.updateRow('acme', 'import-3:2', plain),
+      ),
+    );
+
+    const [price] = w.fake.read(PRICE_COLLECTION);
+    expect(price?.['tiers']).toBeUndefined();
+    expect(price?.['revision']).toBe(3);
+    expect(w.fake.read(OFFERING_COLLECTION)[0]?.['statusChangedAt']).toBe(
+      undefined,
+    );
+  });
+
+  it('writes nothing when the price moved though the offering did not', async () => {
+    const w = world();
+    const created = await imported(w);
+    const row = updatedRowOf(created);
+    row.price.revision = 7;
+
+    const outcome = await w.run(
+      Effect.flatMap(CatalogImportCommandsTag, commands =>
+        commands.updateRow('acme', 'import-2:2', row),
+      ),
+    );
+
+    expect(outcome).toBe('changed');
+    expect(w.fake.read(OFFERING_COLLECTION)[0]?.['revision']).toBe(1);
+  });
+
+  it('fails as the store when a claim answers something that is not a change and two ids', async () => {
+    const w = world({
+      command_inbox: [
+        {
+          commandId: 'import-1:2',
+          claimedAt: new Date().toISOString(),
+          replay: { change: 'rename', specificationId: 's', offeringId: 'o' },
+        },
+      ],
+    });
+
+    const failure = await w.run(
+      Effect.flip(
+        Effect.flatMap(CatalogImportCommandsTag, commands =>
+          commands.updateRow(
+            'acme',
+            'import-1:2',
+            updatedRowOf(importedRowOf('A mug')),
+          ),
+        ),
+      ),
+    );
+
+    expect(failure).toMatchObject({ _tag: 'Unavailable' });
   });
 });
 

@@ -5,6 +5,8 @@ import { Cause, Effect, Exit, Layer, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { CatalogImport } from '../../entities/catalog-import/catalog-import.entity.js';
+import { ProductOffering } from '../../entities/product-offering/product-offering.entity.js';
+import { ProductOfferingPrice } from '../../entities/product-offering-price/product-offering-price.entity.js';
 import { ProductSpecification } from '../../entities/product-specification/product-specification.entity.js';
 import { CatalogImportCommandsTag } from '../../ports/catalog-import.js';
 import { makeInMemoryCatalogImportCommands } from '../../testing/in-memory-catalog-import.js';
@@ -42,11 +44,26 @@ const stored = (
     lifecycleStatus,
   });
 
-const world = (specifications: ProductSpecification[] = []) => {
+const world = (
+  specifications: ProductSpecification[] = [],
+  catalog: {
+    readonly offerings?: ProductOffering[];
+    readonly prices?: ProductOfferingPrice[];
+  } = {},
+) => {
   const commands = makeInMemoryCatalogImportCommands();
+  const repositories = new Map<unknown, unknown[]>([
+    [ProductOffering, catalog.offerings ?? []],
+    [ProductOfferingPrice, catalog.prices ?? []],
+  ]);
   const layer = Layer.mergeAll(
     Layer.succeed(EntityRepositoryFactoryTag, {
-      for: () => Effect.succeed(makeInMemoryEntityRepository(specifications)),
+      for: (entity: unknown) =>
+        Effect.succeed(
+          makeInMemoryEntityRepository(
+            (repositories.get(entity) ?? specifications) as never[],
+          ),
+        ),
     }),
     Layer.succeed(CatalogImportCommandsTag, commands),
   );
@@ -289,6 +306,7 @@ describe('two attempts at one sheet at once', () => {
         ? Effect.succeed(undefined)
         : Effect.succeed({
             outcome: 'replayed' as const,
+            change: 'create' as const,
             specificationId: 's-raced',
             offeringId: 'o-raced',
           });
@@ -326,5 +344,345 @@ describe('importing the same sheet again', () => {
 
     expect(resumed.createdCount).toBe(2);
     expect(commands.state.rows).toHaveLength(2);
+  });
+});
+
+describe('a row naming an offering by its SKU', () => {
+  const spec = (
+    lifecycleStatus: ProductSpecification['lifecycleStatus'] = 'active',
+  ) =>
+    Object.assign(new ProductSpecification('product-007', 'Taco Fisher'), {
+      id: 's-7',
+      lifecycleStatus,
+      description: 'Nylon',
+      brandId: 'b-1',
+      categoryId: 'c-1',
+      fitsDeviceModelIds: ['m-1', 'm-2'],
+      media: [{ url: 'https://media.example.test/taco.png', alt: 'Taco' }],
+    });
+  const coded = (overrides: Partial<ProductOffering> = {}) =>
+    Object.assign(new ProductOffering('Taco Fisher 8', 's-7'), {
+      id: 'o-7',
+      sku: 'TAC-8',
+      revision: 3,
+      ...overrides,
+    });
+  const priced = () =>
+    Object.assign(new ProductOfferingPrice('o-7', 1000, 'GTQ'), {
+      id: 'p-7',
+      revision: 2,
+    });
+  const update = (overrides: Partial<ImportRow> = {}) =>
+    row(2, {
+      sku: 'TAC-8',
+      name: 'Taco Fisher 8 mm',
+      amount: 1250,
+      quantityStep: 2,
+      quantityMinimum: 2,
+      tiers: [{ from: 10, amount: 1100 }],
+      ...overrides,
+    });
+
+  it('changes a draft’s name, sale terms and price at the revisions read, and announces nothing', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [coded()],
+      prices: [priced()],
+    });
+
+    const record = valueOf(await run({ rows: [update()] }));
+
+    expect(record).toMatchObject({
+      createdCount: 0,
+      updatedCount: 1,
+      rejectedCount: 0,
+      status: 'completed',
+    });
+    const [written] = commands.state.updated;
+    expect(written?.offering).toMatchObject({
+      id: 'o-7',
+      name: 'Taco Fisher 8 mm',
+      quantityStep: 2,
+      quantityMinimum: 2,
+      revision: 3,
+      status: 'draft',
+    });
+    expect(written?.price).toMatchObject({
+      id: 'p-7',
+      amount: 1250,
+      tiers: [{ from: 10, amount: 1100 }],
+      revision: 2,
+    });
+    expect(written?.priceIsNew).toBe(false);
+    expect(commands.state.announced).toHaveLength(0);
+  });
+
+  it('republishes an offering on sale with its new price, whatever the sheet’s mode', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [coded({ status: 'published' })],
+      prices: [priced()],
+    });
+
+    const record = valueOf(await run({ rows: [update({ tiers: [] })] }));
+
+    expect(record.rejections).toBeUndefined();
+    const [event] = commands.state.announced;
+    expect(event?.name).toBe('catalog.published');
+    expect(event?.data).toMatchObject({
+      offeringId: 'o-7',
+      sku: 'TAC-8',
+      name: 'Taco Fisher 8 mm',
+      amount: 1250,
+      publishedAt: AT.toISOString(),
+    });
+    expect('tiers' in (event?.data ?? {})).toBe(false);
+    expect(commands.state.updated[0]?.offering.statusChangedAt).toEqual(AT);
+  });
+
+  it('writes the first price of an offering that had none', async () => {
+    const { commands, run } = world([spec()], { offerings: [coded()] });
+
+    valueOf(await run({ rows: [update()] }));
+
+    expect(commands.state.updated[0]).toMatchObject({
+      priceIsNew: true,
+      price: { offeringId: 'o-7', amount: 1250 },
+    });
+  });
+
+  it('keeps what a cell left empty or repeated, whatever order the phones are in', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [coded()],
+      prices: [priced()],
+    });
+
+    const record = valueOf(
+      await run({
+        rows: [
+          update({
+            description: 'Nylon',
+            brandId: 'b-1',
+            categoryId: 'c-1',
+            fitsDeviceModelIds: ['m-2', 'm-1'],
+            imageUrl: 'https://media.example.test/taco.png',
+          }),
+        ],
+      }),
+    );
+
+    expect(record.updatedCount).toBe(1);
+    expect(commands.state.updated).toHaveLength(1);
+  });
+
+  it.each([
+    ['unit', { saleUnit: 'M' }, 'saleUnitFixed'],
+    ['description', { description: 'Plástico' }, 'importSpecificationChanged'],
+    ['brand', { brandId: 'b-2' }, 'importSpecificationChanged'],
+    ['category', { categoryId: 'c-2' }, 'importSpecificationChanged'],
+    ['fits', { fitsDeviceModelIds: ['m-1'] }, 'importSpecificationChanged'],
+    [
+      'image',
+      { imageUrl: 'https://media.example.test/other.png' },
+      'importSpecificationChanged',
+    ],
+  ] as const)(
+    'refuses a row whose %s differs from the product’s',
+    async (column, overrides, code) => {
+      const { commands, run } = world([spec()], {
+        offerings: [coded()],
+        prices: [priced()],
+      });
+
+      const record = valueOf(await run({ rows: [update(overrides)] }));
+
+      expect(record.rejections).toEqual([{ rowNumber: 2, code, column }]);
+      expect(commands.state.updated).toHaveLength(0);
+    },
+  );
+
+  it.each([
+    ['description', { description: 'Nylon' }],
+    ['fits', { fitsDeviceModelIds: ['m-1'] }],
+    ['image', { imageUrl: 'https://media.example.test/taco.png' }],
+  ] as const)(
+    'refuses a %s cell for an offering whose product is gone',
+    async (column, overrides) => {
+      const { run } = world([], { offerings: [coded()], prices: [priced()] });
+
+      const record = valueOf(await run({ rows: [update(overrides)] }));
+
+      expect(record.rejections).toEqual([
+        { rowNumber: 2, code: 'importSpecificationChanged', column },
+      ]);
+    },
+  );
+
+  it('republishes a presentation from its base, and a kit with what it takes from each component', async () => {
+    const base = Object.assign(new ProductOffering('Taco suelto', 's-7'), {
+      id: 'o-base',
+      status: 'published' as const,
+    });
+    const box = coded({
+      status: 'published',
+      stockOfferingId: 'o-base',
+      stockFactor: 12,
+    });
+    const kit = Object.assign(new ProductOffering('Kit', 's-7'), {
+      id: 'o-kit',
+      sku: 'KIT-1',
+      status: 'published' as const,
+      kitComponents: [{ offeringId: 'o-base', quantity: 2 }],
+      kitSize: 1,
+    });
+    const { commands, run } = world([spec()], {
+      offerings: [base, box, kit],
+      prices: [priced()],
+    });
+
+    valueOf(
+      await run({ rows: [update(), row(3, { sku: 'KIT-1', name: 'Kit' })] }),
+    );
+
+    expect(commands.state.announced.map(event => event.data)).toEqual([
+      expect.objectContaining({ stockOfferingId: 'o-base', stockFactor: 12 }),
+      expect.objectContaining({
+        kitComponents: [
+          expect.objectContaining({ offeringId: 'o-base', stockQuantity: 2 }),
+        ],
+      }),
+    ]);
+  });
+
+  it('replays a row another attempt updated after this one first looked', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [coded()],
+      prices: [priced()],
+    });
+    (commands as { updateRow: typeof commands.updateRow }).updateRow = () =>
+      Effect.succeed('changed' as const);
+    let reads = 0;
+    (commands as { claimed: typeof commands.claimed }).claimed = () => {
+      reads += 1;
+      return Effect.succeed(
+        reads === 1
+          ? undefined
+          : {
+              outcome: 'replayed' as const,
+              change: 'update' as const,
+              specificationId: 's-7',
+              offeringId: 'o-7',
+            },
+      );
+    };
+
+    const record = valueOf(await run({ rows: [update()] }));
+
+    expect(record).toMatchObject({ updatedCount: 1, rejectedCount: 0 });
+  });
+
+  it.each([
+    [
+      'its product is not released',
+      [spec('in-design')],
+      [coded({ status: 'published' })],
+      'specificationNotActive',
+    ],
+    [
+      'it draws on a base that is gone',
+      [spec()],
+      [
+        coded({
+          status: 'published',
+          stockOfferingId: 'o-gone',
+          stockFactor: 12,
+        }),
+      ],
+      'stockSourceInvalid',
+    ],
+    [
+      'it is a kit whose component is gone',
+      [spec()],
+      [
+        coded({
+          status: 'published',
+          kitComponents: [{ offeringId: 'o-gone', quantity: 1 }],
+          kitSize: 1,
+        }),
+      ],
+      'kitInvalid',
+    ],
+  ] as const)(
+    'refuses to republish an offering on sale when %s',
+    async (_why, specifications, offerings, code) => {
+      const { commands, run } = world([...specifications], {
+        offerings: [...offerings],
+        prices: [priced()],
+      });
+
+      const record = valueOf(await run({ rows: [update()] }));
+
+      expect(record.rejections).toEqual([
+        { rowNumber: 2, code, column: 'sku' },
+      ]);
+      expect(commands.state.announced).toHaveLength(0);
+    },
+  );
+
+  it('refuses a row whose offering moved since it was read, and a SKU the sheet already used', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [coded()],
+      prices: [priced()],
+    });
+    (commands as { updateRow: typeof commands.updateRow }).updateRow = () =>
+      Effect.succeed('changed' as const);
+
+    const record = valueOf(
+      await run({
+        rows: [update(), { ...update(), rowNumber: 3 }],
+      }),
+    );
+
+    expect(record.rejections).toEqual([
+      { rowNumber: 2, code: 'staleRevision', column: 'sku' },
+      { rowNumber: 3, code: 'importDuplicate', column: 'sku' },
+    ]);
+  });
+
+  it('counts a replayed update as an update', async () => {
+    const { commands, run } = world([spec()], {
+      offerings: [coded()],
+      prices: [priced()],
+    });
+
+    valueOf(await run({ rows: [update()] }));
+    const replayed = valueOf(await run({ rows: [update()] }));
+
+    expect(replayed).toMatchObject({ updatedCount: 1, createdCount: 0 });
+    expect(commands.state.updated).toHaveLength(1);
+  });
+
+  it('creates a product with a SKU the catalog does not hold, and keeps it', async () => {
+    const { commands, run } = world();
+
+    const record = valueOf(await run({ rows: [row(2, { sku: 'NEW-1' })] }));
+
+    expect(record).toMatchObject({ createdCount: 1, updatedCount: 0 });
+    expect(commands.state.rows[0]?.offering.sku).toBe('NEW-1');
+  });
+
+  it('creates two products of one name when each has its own new SKU... unless the name is taken', async () => {
+    const { run } = world();
+
+    const record = valueOf(
+      await run({
+        rows: [
+          row(2, { sku: 'A-1', name: 'Funda' }),
+          row(3, { sku: 'A-2', name: 'Funda' }),
+        ],
+      }),
+    );
+
+    // The sheet itself does not refuse them; the catalog's own products by
+    // name are what a create is checked against.
+    expect(record).toMatchObject({ createdCount: 2, rejectedCount: 0 });
   });
 });

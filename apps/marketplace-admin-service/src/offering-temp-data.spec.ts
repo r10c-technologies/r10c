@@ -156,6 +156,14 @@ describe('the seeded catalog', () => {
     ).toBe(false);
   });
 
+  it('gives every seeded offering its product’s SKU, unique within its store', () => {
+    for (const vendor of SEEDED_VENDORS) {
+      const skus = offeringTempDataFor(vendor).map(offering => offering.sku);
+      expect(new Set(skus).size).toBe(skus.length);
+    }
+    expect(offerings.map(offering => offering.sku)).toContain('TACO-FISHER');
+  });
+
   it('seeds a product in variants, each pinning its product with its own picture', () => {
     const [, phones] = SEEDED_VENDORS;
     const offerings = offeringTempDataFor(phones);
