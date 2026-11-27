@@ -281,6 +281,26 @@ describe('creating a specification', () => {
     ]);
   });
 
+  // Creates racing on one counter conflict on its `$inc`; the unit runs
+  // again rather than failing the one that lost (four sheets importing at
+  // once answered 503 while this read as the store failing).
+  it('runs the unit again when its draw lost a race for the counter', async () => {
+    const w = world();
+    w.fake.failOnce(
+      'findOneAndUpdate',
+      Object.assign(new Error('WriteConflict'), {
+        name: 'MongoServerError',
+        code: 112,
+        errorLabels: ['TransientTransactionError'],
+      }),
+    );
+
+    const created = await create(w, 'A widget', undefined);
+
+    expect(created.code).toBe('product-001');
+    expect(w.fake.read(SPECIFICATION_COLLECTION)).toHaveLength(1);
+  });
+
   it('answers a repeated key with the record it wrote, spending no code', async () => {
     const w = world();
 
