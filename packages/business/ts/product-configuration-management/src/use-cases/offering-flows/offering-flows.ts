@@ -376,10 +376,17 @@ export const rebuildPublications = (input: {
           restating: true,
         }).pipe(
           // No `IllegalOfferingTransition`: the walk reads only published
-          // offerings, and `published → published` is legal (ADR 0047).
+          // offerings, and `published → published` is legal (ADR 0047). A
+          // check publication makes again — a kit whose component was taken
+          // down, a base no longer counted, tiers its unit no longer sells —
+          // refuses one offering, and must not stop the walk for every
+          // offering after it: that one is left unannounced and counted.
           Effect.catchTags({
             OfferingHasNoPrice: () => Effect.succeed(undefined),
             OfferingHasNoSpecification: () => Effect.succeed(undefined),
+            KitInvalid: () => Effect.succeed(undefined),
+            StockSourceInvalid: () => Effect.succeed(undefined),
+            PriceTiersInvalid: () => Effect.succeed(undefined),
           }),
         );
         if (decision === undefined) {

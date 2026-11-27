@@ -876,6 +876,42 @@ describe('rebuildPublications', () => {
     });
   });
 
+  it.each([
+    [
+      'a kit whose component was taken down',
+      { kitComponents: [{ offeringId: 'o-2', quantity: 1 }] },
+      undefined,
+    ],
+    [
+      'a presentation whose base is gone',
+      { stockOfferingId: 'gone', stockFactor: 12 },
+      undefined,
+    ],
+    ['tiers its rule no longer sells', {}, [{ from: 1, amount: 1 }]],
+  ] as const)(
+    'counts %s, and walks on past it',
+    async (_, overrides, tiers) => {
+      const w = world({
+        offerings: [
+          offering('o-1', 'published', overrides),
+          offering('o-2', 'draft'),
+          offering('o-3', 'published'),
+        ],
+        priced: ['o-1', 'o-2', 'o-3'],
+        ...(tiers === undefined ? {} : { tiers: [...tiers] }),
+      });
+
+      const report = await w.run(
+        rebuildPublications({ organizationId: 'acme', source: SOURCE }),
+      );
+
+      expect(report).toMatchObject({
+        announced: tiers === undefined ? 1 : 0,
+        unannounceable: tiers === undefined ? 1 : 2,
+      });
+    },
+  );
+
   it('pages rather than reading a whole organization at once', async () => {
     const many = Array.from({ length: 101 }, (_, index) =>
       offering(`o-${String(index).padStart(3, '0')}`, 'published'),

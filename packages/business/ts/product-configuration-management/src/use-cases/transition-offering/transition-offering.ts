@@ -282,36 +282,6 @@ export interface OfferingTransitionDecision {
 }
 
 /**
- * Decide one move along an offering's lifecycle, and build what it announces.
- *
- * The rule lives in `offeringStatusAfter` and the enforcement lives **here**,
- * in the domain — not in the route that calls it. That is the whole reason this
- * exists rather than a status field the generated form could set: a status enum
- * a user can write to anything is not a lifecycle, it is a text box with four
- * suggestions.
- *
- * ⚠️ **It mutates the offering and deliberately does not save it.** The status
- * write and the outbox entry announcing it must land in one Mongo transaction
- * or a broker outage between them leaves the storefront disagreeing with the
- * vendor's own screen, permanently, with nothing to replay from. A driver
- * session may not enter the framework-free `EntityRepository` or
- * `TransactionOutbox` ports — ADR 0028 rejected threading one through by name —
- * so the **caller** commits both, exactly as a `TransactionHandler` writes its
- * own `completed` entry. This use case is the decision;
- * `transitionOfferingRoute` is the commit.
- *
- * ⚠️ **The price is loaded for an unpublish too**, and that is not waste. The
- * announced payload is the same shape either way, because the consumer's write
- * guard reads `publishedAt` off both and a payload that changes shape by event
- * name means two decoders and two ways for that guard to be skipped. It does
- * mean an offering whose only price is deleted cannot be taken down through
- * this path — recorded, and the reason the precondition is stated once here
- * rather than per transition.
- *
- * Framework-free, like every use case in this repository: both repositories
- * arrive as tags and the caller has already been authorized by the route.
- */
-/**
  * The stock source a presentation publishes with, `undefined` for an offering
  * that draws on no base, or the problem that keeps it from being drawn on.
  *
@@ -452,6 +422,36 @@ export const offeringPublication = (input: {
   };
 };
 
+/**
+ * Decide one move along an offering's lifecycle, and build what it announces.
+ *
+ * The rule lives in `offeringStatusAfter` and the enforcement lives **here**,
+ * in the domain — not in the route that calls it. That is the whole reason this
+ * exists rather than a status field the generated form could set: a status enum
+ * a user can write to anything is not a lifecycle, it is a text box with four
+ * suggestions.
+ *
+ * ⚠️ **It mutates the offering and deliberately does not save it.** The status
+ * write and the outbox entry announcing it must land in one Mongo transaction
+ * or a broker outage between them leaves the storefront disagreeing with the
+ * vendor's own screen, permanently, with nothing to replay from. A driver
+ * session may not enter the framework-free `EntityRepository` or
+ * `TransactionOutbox` ports — ADR 0028 rejected threading one through by name —
+ * so the **caller** commits both, exactly as a `TransactionHandler` writes its
+ * own `completed` entry. This use case is the decision;
+ * `transitionOfferingRoute` is the commit.
+ *
+ * ⚠️ **The price is loaded for an unpublish too**, and that is not waste. The
+ * announced payload is the same shape either way, because the consumer's write
+ * guard reads `publishedAt` off both and a payload that changes shape by event
+ * name means two decoders and two ways for that guard to be skipped. It does
+ * mean an offering whose only price is deleted cannot be taken down through
+ * this path — recorded, and the reason the precondition is stated once here
+ * rather than per transition.
+ *
+ * Framework-free, like every use case in this repository: both repositories
+ * arrive as tags and the caller has already been authorized by the route.
+ */
 export const transitionOffering = Effect.gen(function* () {
   const { id, transition, vendorId, source, at, restating } =
     yield* TransitionOfferingInputTag;

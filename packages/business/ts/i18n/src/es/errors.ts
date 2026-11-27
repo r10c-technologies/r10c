@@ -230,7 +230,7 @@ export const errors = {
   skuInvalid:
     'El SKU admite de 1 a 40 letras, dígitos o . _ / -, sin espacios.',
   kitInvalid:
-    'Un kit se vende por unidad y contiene entre uno y diez de sus otros productos, cada uno vendido por unidad y en cantidades enteras. Un kit no es una variante, ni una presentación, ni parte de otro kit, y cada producto que contiene debe estar a la venta.',
+    'Un kit se vende por unidad y contiene entre uno y diez de tus otros productos, cada uno vendido por unidad y en cantidades enteras. Un kit no es una variante, ni una presentación, ni parte de otro kit, y cada producto que contiene debe estar a la venta.',
   saleUnitFixed:
     'Esta oferta ya se publicó, así que su unidad no puede cambiar. Crea otra oferta para venderla en otra unidad.',
   importTooLarge:

@@ -127,21 +127,6 @@ export const counterBuyerTax = (
 };
 
 /**
- * Sell at the counter: **the same checkout the storefront starts**, with a
- * channel on it (ADR 0056). This process presents a crossing token on the
- * seller's behalf, so everything a token could abuse is decided here first —
- * the channel is the caller's own and active, every price comes from the
- * published projection, and every offering is the caller's to sell.
- *
- * It answers the flow it started, never the sale's outcome: the till follows
- * the flow to `flow.completed`, or to the refusal a line's hold met
- * (ADR 0066, ADR 0073).
- *
- * A channel this organization does not have is **not found** rather than
- * forbidden: the id is the store's key, and a 403 would make the route an
- * oracle for which channels exist elsewhere.
- */
-/**
  * The till's lines with each offering once, its quantities summed, in the
  * order each first appeared. Two lines of one offering would compose to two
  * holds with one step name and one idempotency key, so the second would
@@ -166,6 +151,21 @@ export const mergedLines = <
   return [...byOffering.values()];
 };
 
+/**
+ * Sell at the counter: **the same checkout the storefront starts**, with a
+ * channel on it (ADR 0056). This process presents a crossing token on the
+ * seller's behalf, so everything a token could abuse is decided here first —
+ * the channel is the caller's own and active, every price comes from the
+ * published projection, and every offering is the caller's to sell.
+ *
+ * It answers the flow it started, never the sale's outcome: the till follows
+ * the flow to `flow.completed`, or to the refusal a line's hold met
+ * (ADR 0066, ADR 0073).
+ *
+ * A channel this organization does not have is **not found** rather than
+ * forbidden: the id is the store's key, and a 403 would make the route an
+ * oracle for which channels exist elsewhere.
+ */
 export const sellAtCounter = (input: {
   readonly organizationId: string;
   readonly channelId: string;
